@@ -1,0 +1,33 @@
+# nx
+.nx/installation
+.nx/cache
+.nx/workspace-data
+
+.nuxt
+
+# nodejs
+node_modules/
+
+# era-test-node
+era_test_node.log
+
+package-lock.json
+yarn.lock
+
+.cache/
+
+tmp
+
+.firebase
+
+# e2e tests
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+.output
+
+.DS_Store
+
+dist

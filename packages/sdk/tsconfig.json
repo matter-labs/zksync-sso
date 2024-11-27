@@ -1,0 +1,11 @@
+{
+  // This configuration is used for local development and type checking.
+  "extends": "./tsconfig.base.json",
+  "include": ["src"],
+  "exclude": [],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
+    "module": "nodenext"
+  }
+}
