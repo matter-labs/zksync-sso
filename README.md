@@ -1,2 +1,2 @@
-# zksync-sso-clave-contracts
-ZKsync SSO Contracts based on Clave
+# zksync-sso
+ZKsync SSO SDK
