@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       with:
-        submodules: 'true'
+        submodules: recursive
 
     # Start node
     - name: Era Test Node Action
@@ -29,11 +29,16 @@ jobs:
       uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
       with:
         node-version: lts/Iron
-        cache: 'pnpm'
+        cache: pnpm
 
     # Install dependencies for repo
     - name: Install dependencies
       run: pnpm install -r --frozen-lockfile
+
+    # Install dependencies for the submodule
+    - name: Install contract dependencies
+      run: pnpm install -r --frozen-lockfile
+      working-directory: packages/contracts
 
     # Build SDK
     - name: Build SDK
@@ -41,7 +46,8 @@ jobs:
 
     # Deploy contracts
     - name: Deploy contracts
-      run: pnpm nx deploy contracts
+      run: pnpm run deploy
+      working-directory: packages/contracts
 
     # Run E2E tests
     - name: Install Playwright Chromium Browser
@@ -56,7 +62,7 @@ jobs:
         path: examples/demo-app/playwright-report/
         retention-days: 3
 
-  
+
   e2e-nft-quest:
     runs-on: ubuntu-latest
     defaults:
@@ -65,7 +71,7 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       with:
-        submodules: 'true'
+        submodules: recursive
 
     # Start node
     - name: Era Test Node Action
@@ -81,11 +87,16 @@ jobs:
       uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
       with:
         node-version: lts/Iron
-        cache: 'pnpm'
+        cache: pnpm
 
     # Install dependencies for repo
     - name: Install dependencies
       run: pnpm install -r --frozen-lockfile
+
+    # Install dependencies for the submodule
+    - name: Install contract dependencies
+      run: pnpm install -r --frozen-lockfile
+      working-directory: packages/contracts
 
     # Build SDK
     - name: Build SDK
@@ -93,7 +104,8 @@ jobs:
 
     # Deploy contracts
     - name: Deploy contracts
-      run: pnpm nx deploy contracts
+      run: pnpm run deploy
+      working-directory: packages/contracts
 
     # Deploy nft-quest-contracts
     - name: Deploy NFT contracts
@@ -121,7 +133,7 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       with:
-        submodules: 'true'
+        submodules: recursive
 
     # Start node
     - name: Era Test Node Action
@@ -137,17 +149,20 @@ jobs:
       uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4
       with:
         node-version: lts/Iron
-        cache: 'pnpm'
+        cache: pnpm
 
-    # Install dependencies for repo
-    - name: Install dependencies
+    # Install dependencies for the submodule
+    - name: Install contract dependencies
       run: pnpm install -r --frozen-lockfile
+      working-directory: packages/contracts
 
     # Build contracts and generate types
     - name: Build contracts
-      run: pnpm nx build contracts
+      run: pnpm build
+      working-directory: packages/contracts
 
     # Run contract tests
     - name: Run contract test
-      run: pnpm nx test contracts
+      run: pnpm test
+      working-directory: packages/contracts
 
