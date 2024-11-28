@@ -19,7 +19,6 @@ jobs:
     - name: Era Test Node Action
       uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
 
-    # Setup pnpm
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:
@@ -40,11 +39,13 @@ jobs:
       run: pnpm install -r --frozen-lockfile
       working-directory: packages/contracts
 
-    # Build SDK
     - name: Build SDK
       run: pnpm nx build sdk
 
-    # Deploy contracts
+    - name: Build contracts
+      run: pnpm build
+      working-directory: packages/contracts
+
     - name: Deploy contracts
       run: pnpm run deploy
       working-directory: packages/contracts
@@ -77,7 +78,6 @@ jobs:
     - name: Era Test Node Action
       uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
 
-    # Setup pnpm
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:
@@ -98,16 +98,17 @@ jobs:
       run: pnpm install -r --frozen-lockfile
       working-directory: packages/contracts
 
-    # Build SDK
     - name: Build SDK
       run: pnpm nx build sdk
 
-    # Deploy contracts
+    - name: Build contracts
+      run: pnpm build
+      working-directory: packages/contracts
+
     - name: Deploy contracts
       run: pnpm run deploy
       working-directory: packages/contracts
 
-    # Deploy nft-quest-contracts
     - name: Deploy NFT contracts
       run: pnpm nx deploy:local nft-quest-contracts
 
