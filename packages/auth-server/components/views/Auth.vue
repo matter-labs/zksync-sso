@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col justify-center px-4">
+  <div class="h-full flex flex-col justify-center items-center px-4 max-h-[550px] max-w-[300px] m-auto">
     <SessionMetadata
       :app-meta="appMeta"
       :connect="true"
@@ -29,7 +29,7 @@
       </p>
     </CommonHeightTransition>
 
-    <div class="flex flex-col gap-5 mt-8 py-8">
+    <div class="flex flex-col gap-5 py-8 w-full">
       <ZkHighlightWrapper>
         <ZkButton
           class="w-full"
