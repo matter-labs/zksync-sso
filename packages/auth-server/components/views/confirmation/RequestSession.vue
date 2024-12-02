@@ -32,9 +32,10 @@
         </CommonLine>
       </div>
     </div>
+
     <SessionTokens
+      class="mt-2"
       :session="sessionConfig"
-      class="mt-1"
     />
 
     <SessionAdvancedInfo :session-config="sessionConfig" />
@@ -65,7 +66,7 @@
             data-testid="connect"
             @click="confirmConnection()"
           >
-            Connect
+            {{ isLoggedIn ? "Connect" : "Create" }}
           </ZkButton>
         </ZkHighlightWrapper>
       </div>
