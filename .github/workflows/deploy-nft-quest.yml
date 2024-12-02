@@ -10,6 +10,7 @@ on:
 env:
   HUSKY: 0
   CI: true
+  NUXT_PUBLIC_GTAG_ID: ${{ secrets.NFT_QUEST_ANALYTICS_ID }}
 
 jobs:
   build_and_preview:
