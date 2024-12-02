@@ -15,10 +15,6 @@ export default {
   ],
   theme: {
     extend: {
-      screens: {
-        dashboard: "1100px",
-        panel: "300px",
-      },
       fontFamily: {
         sans: ["Inter", ...defaultTheme.fontFamily.sans],
       },
