@@ -83,8 +83,12 @@ const {
   execute: revokeSession,
 } = useAsync(async () => {
   const client = getClient({ chainId: defaultChain.id });
+  const paymasterAddress = contractsByChain[defaultChain.id].accountPaymaster;
   await client.revokeSession({
     sessionId: props.sessionId,
+    paymaster: {
+      address: paymasterAddress,
+    },
   });
   await fetchSessionState();
 });
