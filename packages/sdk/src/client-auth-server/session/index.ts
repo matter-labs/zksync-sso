@@ -119,7 +119,7 @@ export const formatLimitPreferences = (limit: PartialLimit): Limit => {
 
 export const formatDatePreferences = (date: string | bigint | Date): bigint => {
   if (typeof date === "string") {
-    const now = new Date().getTime();
+    const now = Math.floor(new Date().getTime() / 1000);
     const seconds = msStringToSeconds(date);
     return BigInt(now) + seconds;
   }
