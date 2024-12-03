@@ -1,6 +1,6 @@
 <template>
   <div
-    class="border border-neutral-200 rounded-zk flex justify-between dark:border-neutral-700 dark:bg-neutral-900"
+    class="border border-neutral-200 rounded-zk flex justify-between dark:border-neutral-900 dark:bg-neutral-950"
   >
     <div class="flex items-center pl-3">
       <NuxtLink to="/dashboard">
@@ -82,7 +82,7 @@ onBeforeUnmount(() => {
 watch(windowWidth, checkWidths);
 </script>
 
-<style lang="postcss" scoped>
+<style lang="scss" scoped>
 .router-link-exact-active {
   @apply border-b-neutral-700 text-neutral-900 dark:text-neutral-100 dark:border-b-neutral-200 dark:hover:text-neutral-100
 }

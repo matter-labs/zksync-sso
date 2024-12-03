@@ -15,6 +15,10 @@ export default {
   ],
   theme: {
     extend: {
+      spacing: {
+        dashboard: "900px",
+        panel: "620px",
+      },
       fontFamily: {
         sans: ["Inter", ...defaultTheme.fontFamily.sans],
       },

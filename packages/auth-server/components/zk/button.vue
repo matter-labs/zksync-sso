@@ -18,7 +18,7 @@
     </div>
     <div
       v-show="loading"
-      class="absolute flex justify-center items-center bg-white/90 top-0 left-0 w-full h-full rounded-full"
+      class="absolute flex justify-center items-center bg-white/80 top-0 left-0 w-full h-full rounded-full"
     >
       <CommonSpinner
         :height="24"

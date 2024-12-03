@@ -155,7 +155,12 @@ export function formatSessionPreferences(
         selector: selector,
         constraints: policy.constraints?.map((constraint) => {
           const limit = constraint.limit ? formatLimitPreferences(constraint.limit) : LimitUnlimited;
-          const condition = constraint.condition ? ConstraintCondition[constraint.condition] : ConstraintCondition.Unconstrained;
+          let condition = ConstraintCondition.Unconstrained;
+          if (constraint.condition) {
+            condition = ConstraintCondition[constraint.condition];
+          } else if (constraint.value !== undefined && constraint.value !== null) {
+            condition = ConstraintCondition.Equal;
+          }
 
           const input = abiFunction.inputs[constraint.index];
           if (!input) {
@@ -195,10 +200,11 @@ export function formatSessionPreferences(
 
           if (
             abiBytesChunks.length > 1
-            && !ALLOWED_OVERFLOW_CONDITIONS.includes(condition)
-            && !ALLOWED_OVERFLOW_LIMIT_TYPES.includes(limit.limitType)
+            && (
+              !ALLOWED_OVERFLOW_CONDITIONS.includes(condition) // Can't validate condition (e.g. < >) if value is split across multiple chunks
+              || !ALLOWED_OVERFLOW_LIMIT_TYPES.includes(limit.limitType) // Can't validate limit if value is split across multiple chunks
+            )
           ) {
-            /* Can't make validation for < > when value is split across multiple chunks */
             throw new Error(`Encoded input size of parameter at index ${constraint.index} of ${policy.functionName} exceeds the maximum size of 32 bytes: ${abiBytesChunks.length * 32} bytes`);
           };
 

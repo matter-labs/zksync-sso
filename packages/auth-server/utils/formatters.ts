@@ -66,3 +66,29 @@ export const formatTokenPrice = (amount: bigint, decimals: number, price: number
   const formattedTokenAmount = formatUnits(amount, decimals);
   return formatPricePretty(parseFloat(formattedTokenAmount) * price);
 };
+
+export const bigintDateToDate = (date: bigint): Date => {
+  return new Date(Number(date) * 1000);
+};
+
+export const formatExpiryDate = (args: { now: Date; expiresAt: Date }): { isToday: boolean; isTomorrow: boolean; formattedDate: string; formattedTime: string } => {
+  const { now, expiresAt } = args;
+  const isToday = expiresAt.toDateString() === now.toDateString();
+
+  const tomorrowDate = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+  );
+  const isTomorrow = expiresAt.toDateString() === tomorrowDate.toDateString();
+
+  const formatTime = (date: Date) => date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const formatDate = (date: Date) => date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
+  return {
+    isToday,
+    isTomorrow,
+    formattedDate: formatDate(expiresAt),
+    formattedTime: formatTime(expiresAt),
+  };
+};
