@@ -107,6 +107,11 @@
       "import": "./dist/_esm/utils/index.js",
       "require": "./dist/_cjs/utils/index.js"
     },
+    "./abi": {
+      "types": "./dist/_types/abi/index.d.ts",
+      "import": "./dist/_esm/abi/index.js",
+      "require": "./dist/_cjs/abi/index.js"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
@@ -128,6 +133,9 @@
       ],
       "errors": [
         "./dist/_types/errors/index.d.ts"
+      ],
+      "abi": [
+        "./dist/_types/abi/index.d.ts"
       ]
     }
   },

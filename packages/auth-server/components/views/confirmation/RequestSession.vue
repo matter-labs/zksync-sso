@@ -32,10 +32,9 @@
         </CommonLine>
       </div>
     </div>
-
     <SessionTokens
-      class="mt-2"
       :session="sessionConfig"
+      class="mt-1"
     />
 
     <SessionAdvancedInfo :session-config="sessionConfig" />
@@ -66,7 +65,7 @@
             data-testid="connect"
             @click="confirmConnection()"
           >
-            {{ isLoggedIn ? "Connect" : "Create" }}
+            Connect
           </ZkButton>
         </ZkHighlightWrapper>
       </div>
@@ -100,7 +99,7 @@ const defaults = {
   expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
   feeLimit: {
     limitType: LimitType.Lifetime,
-    limit: parseEther("0.01"),
+    limit: parseEther("0.001"),
     period: 0n,
   },
 };
@@ -110,27 +109,17 @@ const sessionConfig = computed(() => formatSessionPreferences(props.sessionPrefe
 const domain = computed(() => new URL(appOrigin.value).host);
 const now = useNow({ interval: 5000 });
 const sessionExpiry = computed(() => {
-  const expiresAt = Number(sessionConfig.value.expiresAt) * 1000; // Convert to milliseconds
-  const expiresDate = new Date(expiresAt);
-  const nowDate = new Date(now.value);
+  const expiresDate = bigintDateToDate(sessionConfig.value.expiresAt);
 
-  const isToday = expiresDate.toDateString() === nowDate.toDateString();
+  const { isToday, isTomorrow, formattedDate, formattedTime } = formatExpiryDate({
+    expiresAt: expiresDate,
+    now: now.value,
+  });
 
-  const tomorrowDate = new Date(
-    nowDate.getFullYear(),
-    nowDate.getMonth(),
-    nowDate.getDate() + 1,
-  );
-  const isTomorrow = expiresDate.toDateString() === tomorrowDate.toDateString();
+  if (isToday) return `Expires today at ${formattedTime}`;
+  if (isTomorrow) return `Expires tomorrow at ${formattedTime}`;
 
-  const formatTime = (date: Date) => date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  const formatDate = (date: Date) => date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  const formatDateTime = (date: Date) => `${formatDate(date)} at ${formatTime(date)}`;
-
-  if (isToday) return `Expires today at ${formatTime(expiresDate)}`;
-  if (isTomorrow) return `Expires tomorrow at ${formatTime(expiresDate)}`;
-
-  return `Expires on ${formatDateTime(expiresDate)}`;
+  return `Expires on ${formattedDate} at ${formattedTime}`;
 });
 
 const sessionError = ref("");
@@ -157,6 +146,7 @@ const confirmConnection = async () => {
     } else {
       // create a new session for the existing account
       const client = getClient({ chainId: requestChain.value!.id });
+      const paymasterAddress = contractsByChain[requestChain.value!.id].accountPaymaster;
       const sessionKey = generatePrivateKey();
       const session = {
         sessionKey,
@@ -166,7 +156,12 @@ const confirmConnection = async () => {
         },
       };
 
-      await client.createSession({ sessionConfig: session.sessionConfig });
+      await client.createSession({
+        sessionConfig: session.sessionConfig,
+        paymaster: {
+          address: paymasterAddress,
+        },
+      });
       response = {
         result: constructReturn(
           client.account.address,

@@ -35,7 +35,12 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
 };
 
 export const useClientStore = defineStore("client", () => {
+  const runtimeConfig = useRuntimeConfig();
   const { address, username, passkey } = storeToRefs(useAccountStore());
+
+  const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
+  const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
+  if (!defaultChain) throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
 
   const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -61,7 +66,6 @@ export const useClientStore = defineStore("client", () => {
       userName: username.value!,
       userDisplayName: username.value!,
       contracts,
-      paymasterAddress: contracts.accountPaymaster,
       chain: chain,
       transport: http(),
     });
@@ -85,6 +89,7 @@ export const useClientStore = defineStore("client", () => {
   };
 
   return {
+    defaultChain,
     getPublicClient,
     getClient,
     getThrowAwayClient,

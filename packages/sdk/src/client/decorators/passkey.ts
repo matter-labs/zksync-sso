@@ -1,10 +1,14 @@
 import { type Chain, type Transport } from "viem";
 
-import { createSession, type CreateSessionArgs, type CreateSessionReturnType } from "../actions/session.js";
+import {
+  createSession, type CreateSessionArgs, type CreateSessionReturnType,
+  revokeSession, type RevokeSessionArgs, type RevokeSessionReturnType,
+} from "../actions/session.js";
 import type { ClientWithZksyncSsoPasskeyData } from "../clients/passkey.js";
 
 export type ZksyncSsoPasskeyActions = {
   createSession: (args: Omit<CreateSessionArgs, "contracts">) => Promise<CreateSessionReturnType>;
+  revokeSession: (args: Omit<RevokeSessionArgs, "contracts">) => Promise<RevokeSessionReturnType>;
 };
 
 export function zksyncSsoPasskeyActions<
@@ -14,6 +18,12 @@ export function zksyncSsoPasskeyActions<
   return {
     createSession: async (args: Omit<CreateSessionArgs, "contracts">) => {
       return await createSession(client, {
+        ...args,
+        contracts: client.contracts,
+      });
+    },
+    revokeSession: async (args: Omit<RevokeSessionArgs, "contracts">) => {
+      return await revokeSession(client, {
         ...args,
         contracts: client.contracts,
       });

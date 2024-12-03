@@ -101,3 +101,32 @@ export type SessionConfig = {
   callPolicies: CallPolicy[];
   transferPolicies: TransferPolicy[];
 };
+
+export enum SessionStatus {
+  NotInitialized = 0,
+  Active = 1,
+  Closed = 2,
+}
+
+export type SessionState = {
+  status: SessionStatus;
+  feesRemaining: bigint;
+  transferValue: {
+    remaining: bigint;
+    target: Address;
+    selector: Hash;
+    index: bigint;
+  }[];
+  callValue: {
+    remaining: bigint;
+    target: Address;
+    selector: Hash;
+    index: bigint;
+  }[];
+  callParams: {
+    remaining: bigint;
+    target: Address;
+    selector: Hash;
+    index: bigint;
+  }[];
+};
