@@ -1,5 +1,5 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { zksyncSepoliaTestnet } from "viem/chains";
+import { zksyncInMemoryNode } from "viem/chains";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -54,7 +54,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncSepoliaTestnet.id,
+      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncInMemoryNode.id,
     },
   },
 });
