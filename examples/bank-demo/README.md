@@ -11,7 +11,7 @@ Run the following command from the root of the monorepo:
 pnpm nx dev bank-demo
 ```
 
-_Note: You will need `era_test_node` running with the latest contracts deployed_
+_Note: You will need `anvil-zksync` running with the latest contracts deployed_
 
 ## "Resetting" the demo
 

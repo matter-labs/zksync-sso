@@ -8,8 +8,9 @@
 # nodejs
 node_modules/
 
-# era-test-node
+# anvil-zksync
 era_test_node.log
+anvil-zksync.log
 
 package-lock.json
 yarn.lock
