@@ -1,9 +1,9 @@
 <template>
   <div>
-    <header class="mb-8">
+    <header class="max-w-[1920px] mx-auto mb-8">
       <AppNav />
     </header>
-    <main class="max-w-dashboard m-auto">
+    <main class="max-w-[900px] m-auto">
       <NuxtPage />
     </main>
   </div>
