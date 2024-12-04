@@ -1,35 +1,40 @@
 <template>
-  <TokenLine
-    :symbol="symbol"
-    :name="name"
-    :address="address"
-    :decimals="decimals"
-    :icon-url="iconUrl"
-    :as="sendRouteName ? 'RouterLink' : as"
-    :to="sendRouteName ? { name: sendRouteName, query: { token: address } } : undefined"
-    class="token-balance"
-    :class="{ 'is-zero-amount': isZeroAmount }"
-  >
-    <template #right>
-      <CommonButtonLineBodyInfo class="text-right">
-        <template #secondary>
-          <div
-            class="token-balance-amount"
-            :title="unformattedAmount"
-          >
-            {{ formattedAmount }}
+  <CommonButtonLineWithImg :as="as">
+    <template #image>
+      <TokenImage
+        :symbol="symbol"
+        :address="address"
+        :icon-url="iconUrl"
+      />
+    </template>
+    <template #default>
+      <CommonButtonLineBodyInfo class="text-left">
+        <template #label>
+          <div class="truncate">
+            <span
+              class="font-medium"
+              :title="unformattedAmount"
+            >{{ formattedAmount }}</span>
+            <span
+              v-if="tokenPrice"
+              class="text-neutral-500 text-sm"
+            >&nbsp;(~{{ tokenPrice }})</span>
           </div>
         </template>
-        <template #underline>
-          <div class="token-balance-price">
-            <template v-if="!isZeroAmount && tokenPrice">
-              {{ tokenPrice }}
-            </template>
+        <template
+          v-if="symbol || name"
+          #underline
+        >
+          <div class="truncate">
+            {{ symbol || name }}
           </div>
         </template>
       </CommonButtonLineBodyInfo>
     </template>
-  </TokenLine>
+    <template #right>
+      <slot name="right" />
+    </template>
+  </CommonButtonLineWithImg>
 </template>
 
 <script lang="ts" setup>
@@ -64,12 +69,8 @@ const props = defineProps({
   price: {
     type: [String, Number] as PropType<number | undefined>,
   },
-  sendRouteName: {
-    type: String,
-  },
 });
 
-const isZeroAmount = computed(() => !props.amount);
 const isUnlimitedAmount = computed(() => props.amount === "unlimited");
 const unformattedAmount = computed(() => {
   if (isUnlimitedAmount.value) return undefined;
@@ -85,15 +86,4 @@ const tokenPrice = computed(() => {
 });
 </script>
 
-<style lang="scss" scoped>
-.token-balance {
-  &.is-zero-amount {
-    .token-balance-amount {
-      @apply opacity-30;
-    }
-  }
-  .token-balance-amount {
-    @apply max-w-[100px] truncate;
-  }
-}
-</style>
+<style lang="scss" scoped></style>

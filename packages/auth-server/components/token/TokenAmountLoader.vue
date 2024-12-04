@@ -1,6 +1,5 @@
 <template>
   <CommonButtonLineWithImg
-    icon-loading
     as="div"
     class="token-balance-loader"
   >
@@ -13,20 +12,10 @@
     <template #default>
       <CommonButtonLineBodyInfo class="text-left">
         <template #label>
-          <CommonContentLoader :length="10" />
+          <CommonContentLoader :length="24" />
         </template>
         <template #underline>
-          <CommonContentLoader :length="28" />
-        </template>
-      </CommonButtonLineBodyInfo>
-    </template>
-    <template #right>
-      <CommonButtonLineBodyInfo class="text-right">
-        <template #secondary>
-          <CommonContentLoader :length="20" />
-        </template>
-        <template #underline>
-          <CommonContentLoader :length="20" />
+          <CommonContentLoader :length="16" />
         </template>
       </CommonButtonLineBodyInfo>
     </template>
