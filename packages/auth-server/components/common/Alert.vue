@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl bg-primary-500/20 p-2">
+  <div class="rounded-xl bg-primary-50 dark:bg-primary-500/20 p-2">
     <div class="flex">
       <div
         v-if="$slots.icon"
@@ -7,7 +7,7 @@
       >
         <slot name="icon" />
       </div>
-      <div class="ml-3 text-primary-100">
+      <div class="ml-3 text-primary-300 dark:text-primary-100">
         <slot />
       </div>
     </div>

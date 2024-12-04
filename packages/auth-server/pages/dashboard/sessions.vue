@@ -23,6 +23,7 @@
     </layout-header>
 
     <CommonAlert
+      v-if="sessions?.length"
       class="mb-4"
     >
       <template #icon>
@@ -41,7 +42,7 @@
     >No sessions yet...</span>
     <div
       v-else
-      class="bg-neutral-950 border border-neutral-900 rounded-3xl divide-y divide-neutral-900"
+      class="border rounded-3xl divide-y bg-white border-neutral-200 divide-neutral-200 dark:bg-neutral-950 dark:border-neutral-900 dark:divide-neutral-900"
     >
       <template v-if="!sessions?.length && sessionsInProgress">
         <SessionRowLoader
@@ -64,7 +65,7 @@
     </div>
 
     <CommonAlert
-      v-if="defaultChain.id === zksyncInMemoryNode.id"
+      v-if="defaultChain.id === zksyncInMemoryNode.id && sessions?.length"
       class="mt-4"
     >
       <template #icon>
