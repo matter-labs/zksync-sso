@@ -5,10 +5,10 @@ coverage for the SDK.
 
 ## Requirements
 
-You will need [Anvil ZKsync Node](https://github.com/matter-labs/anvil-zksync)
+You will need [Era In Memory Node](https://github.com/matter-labs/era-test-node)
 for deploying contracts locally.
 
-In a terminal, start up the Anvil ZKsync Node with the command `anvil-zksync`.
+In a terminal, start up the Era In Memory Node with the command `era_test_node`.
 
 ## Setup
 
