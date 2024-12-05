@@ -32,7 +32,7 @@ const props = defineProps<{
 }>();
 
 const headerUI = twMerge(
-  "px-4 flex items-center bg-neutral-100 rounded-t-zk py-2 dark:bg-neutral-950",
+  "p-4 flex items-center bg-neutral-100 rounded-t-zk dark:bg-neutral-950",
   props.ui?.header,
 );
 
@@ -51,7 +51,7 @@ const bodyUI = computed(() => {
 });
 
 const footerUI = twMerge(
-  "bg-neutral-100 rounded-b-zk p-2 px-4 dark:bg-neutral-950",
+  "flex justify-center bg-neutral-100 rounded-b-zk p-2 px-4 dark:bg-neutral-950",
   props.ui?.footer,
 );
 </script>
