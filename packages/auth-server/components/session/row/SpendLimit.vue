@@ -38,7 +38,7 @@
       :class="tokensLoading ? 'animate-pulse' : ''"
     >
       <div
-        class="bg-white rounded-full h-full will-change-[width,opacity] transition-[width,opacity]"
+        class="session-row-line-inner"
         :class="{ 'opacity-30': tokensLoading || !totalSpentUsd || isInactive }"
         :style="{ width: `${usedPercentage}%` }"
       />
