@@ -27,3 +27,4 @@ usdc
 // examples/nft-quest
 Fren
 fren
+nfts

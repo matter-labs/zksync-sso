@@ -17,14 +17,14 @@
           >
         </video>
       </ZkTableCellData>
-      <ZkTableCell class="flex flex-col justify-center">
+      <ZkTableCellData class="flex flex-col justify-center">
         <ZkTableCellData class="flex-auto text-sm">
           {{ nftMetadata?.description }}
           <template #sub>
             NFT Quest
           </template>
         </ZkTableCellData>
-      </ZkTableCell>
+      </ZkTableCellData>
     </ZkTableRow>
     <ZkTableRow
       v-else
@@ -50,7 +50,7 @@ import { ZeekNftQuestAbi } from "~/abi/ZeekNFTQuest";
 const runtimeConfig = useRuntimeConfig();
 const { address } = useAccountStore();
 const chainId = runtimeConfig.public.chainId as SupportedChainId;
-const nftAddress = "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6";
+const nftAddress = runtimeConfig.public[chainId].nftQuestAddress as Address;
 const nftMetadata = ref<null | { animation_url: string; background_color: string; description: string; image: string }>(null);
 const hasNft = ref(false);
 
