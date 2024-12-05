@@ -23,7 +23,7 @@
       </div>
       <div class="session-row-line">
         <div
-          class="bg-white rounded-full h-full will-change-[width] transition-[width] duration-300"
+          class="session-row-line-inner"
           :style="{ width: `${timeLeftPercentage}%` }"
         />
       </div>

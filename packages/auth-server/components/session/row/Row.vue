@@ -148,7 +148,11 @@ fetchSessionState();
     @apply text-neutral-500 text-xs;
   }
   .session-row-line {
-    @apply bg-neutral-900 rounded-full w-full h-1 mt-1;
+    @apply bg-neutral-100 dark:bg-neutral-900 rounded-full w-full h-1 mt-1;
+
+    .session-row-line-inner {
+      @apply bg-primary-300 dark:bg-white rounded-full h-full will-change-[width,opacity] transition-[width,opacity];
+    }
   }
 }
 </style>

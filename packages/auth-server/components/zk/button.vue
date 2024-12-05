@@ -66,7 +66,7 @@ const types = {
   secondary:
     "bg-neutral-200 text-neutral-700 hover:bg-neutral-300 hover:text-neutral-800 focus:bg-neutral-300 active:bg-neutral-400 active:text-neutral-900 disabled:bg-neutral-100 disabled:text-neutral-500 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800 dark:hover:text-neutral-200 dark:focus:bg-neutral-800 dark:active:bg-neutral-900 dark:active:text-neutral-400 dark:disabled:bg-neutral-900 dark:disabled:text-neutral-500",
   danger:
-    "bg-error-100 text-error-950 focus:bg-error-200 hover:bg-error-200  active:bg-error-300 disabled:bg-transparent dark:bg-error-400/20 dark:text-error-300 dark:hover:bg-error-400/40 dark:active:bg-error-400/20 disabled:bg-error-100/70 disabled:text-error-800/70 disabled:dark:hover:bg-error-100/70",
+    "bg-error-100 text-error-700 focus:bg-error-200 hover:bg-error-200  active:bg-error-300 disabled:bg-transparent dark:bg-error-400/20 dark:text-error-300 dark:hover:bg-error-400/40 dark:active:bg-error-400/20 disabled:bg-error-100/70 disabled:text-error-800/70 disabled:dark:hover:bg-error-100/70",
   ghost:
     "border-neutral-100 bg-inherit text-neutral-800 focus:bg-neutral-100 hover:bg-neutral-100 active:bg-neutral-300 active:text-neutral-950/70 disabled:bg-neutral-100 disabled:text-neutral-600 dark:border-neutral-700 dark:bg-transparent dark:text-neutral-100 dark:hover:bg-neutral-800 dark:hover:text-neutral-200 dark:focus:bg-neutral-800 dark:active:bg-neutral-900 dark:active:text-neutral-300 disabled:dark:bg-neutral-100 disabled:dark:text-neutral-600",
   tertiary:
