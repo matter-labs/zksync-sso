@@ -1,4 +1,4 @@
-import { type Address, type Chain, type Hash, hexToNumber, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport } from "viem";
+import { type Address, type Chain, createWalletClient, custom, type Hash, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport, type WalletClient } from "viem";
 
 import { createZksyncSessionClient, type ZksyncSsoSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
@@ -20,7 +20,7 @@ type Account = {
 interface SignerInterface {
   accounts: Address[];
   chain: Chain;
-  getClient(parameters?: { chainId?: number }): ZksyncSsoSessionClient;
+  getClient(parameters?: { chainId?: number }): ZksyncSsoSessionClient | WalletClient;
   handshake(): Promise<Address[]>;
   request<TMethod extends Method>(request: RequestArguments<TMethod>): Promise<ExtractReturnType<TMethod>>;
   disconnect: () => Promise<void>;
@@ -52,7 +52,7 @@ export class Signer implements SignerInterface {
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
-  private walletClient: ZksyncSsoSessionClient | undefined;
+  private client: { instance: ZksyncSsoSessionClient; type: "session" } | { instance: WalletClient; type: "auth-server" } | undefined;
 
   constructor({ metadata, communicator, updateListener, session, chains, transports }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
@@ -82,6 +82,10 @@ export class Signer implements SignerInterface {
       console.error("Logging out to prevent crash loop");
       this.clearState();
     }
+  }
+
+  get walletClient() {
+    return this.client?.instance as WalletClient | undefined;
   }
 
   getClient(parameters?: { chainId?: number }) {
@@ -123,16 +127,29 @@ export class Signer implements SignerInterface {
     if (!this.account) throw new Error("Account is not set");
     if (!chainInfo) throw new Error(`Chain info for ${chain} wasn't set during handshake`);
     if (session) {
-      this.walletClient = createZksyncSessionClient({
-        address: this.account.address,
-        sessionKey: session.sessionKey,
-        sessionConfig: session.sessionConfig,
-        contracts: chainInfo.contracts,
-        chain,
-        transport: this.transports[chain.id] || http(),
-      });
+      this.client = {
+        type: "session",
+        instance: createZksyncSessionClient({
+          address: this.account.address,
+          sessionKey: session.sessionKey,
+          sessionConfig: session.sessionConfig,
+          contracts: chainInfo.contracts,
+          chain,
+          transport: this.transports[chain.id] || http(),
+        }),
+      };
     } else {
-      this.walletClient = undefined;
+      this.client = {
+        type: "auth-server",
+        instance: createWalletClient({
+          key: "zksync-sso-auth-server-wallet",
+          account: this.account.address,
+          chain,
+          transport: custom({
+            request: this.request.bind(this),
+          }),
+        }),
+      };
     }
   }
 
@@ -205,25 +222,29 @@ export class Signer implements SignerInterface {
   }
 
   private async tryLocalHandling<TMethod extends Method>(request: RequestArguments<TMethod>): Promise<ExtractReturnType<TMethod> | undefined> {
+    const client = this.walletClient;
+    const originalClient = this.client;
+
     switch (request.method) {
       case "eth_estimateGas": {
-        if (!this.walletClient || !this.session) return undefined;
+        if (!client) return undefined;
         const params = request.params as ExtractParams<"eth_estimateGas">;
-        const res = await this.walletClient.request({ method: request.method, params: params });
+        const res = await client.request({ method: request.method, params: params });
         return res as ExtractReturnType<TMethod>;
       }
       case "eth_sendTransaction": {
-        if (!this.walletClient || !this.session) return undefined;
+        if (originalClient?.type !== "session") return undefined;
         const params = request.params as ExtractParams<"eth_sendTransaction">;
         const transactionRequest = params[0];
-        const res = await this.walletClient.sendTransaction(transactionRequest as unknown as SendTransactionParameters);
+        const res = await originalClient.instance.sendTransaction(transactionRequest as unknown as SendTransactionParameters);
         return res as ExtractReturnType<TMethod>;
       }
       case "wallet_switchEthereumChain": {
-        const params = request.params as ExtractParams<"wallet_switchEthereumChain">;
-        const chainId = params[0].chainId;
-        const switched = this.switchChain(typeof chainId === "string" ? hexToNumber(chainId as Hash) : chainId);
-        return switched ? (null as ExtractReturnType<TMethod>) : undefined;
+        throw new Error("Chain switching is not supported yet");
+        // const params = request.params as ExtractParams<"wallet_switchEthereumChain">;
+        // const chainId = params[0].chainId;
+        // const switched = this.switchChain(typeof chainId === "string" ? hexToNumber(chainId as Hash) : chainId);
+        // return switched ? (null as ExtractReturnType<TMethod>) : undefined;
       }
       case "wallet_getCapabilities": {
         const chainInfo = this.chainsInfo.find((e) => e.id === this.chain.id);

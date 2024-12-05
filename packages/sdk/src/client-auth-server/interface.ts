@@ -1,5 +1,5 @@
 import { EventEmitter } from "eventemitter3";
-import type { RpcSchema as RpcSchemaGeneric } from "viem";
+import type { RpcSchema as RpcSchemaGeneric, WalletClient } from "viem";
 
 import type { ZksyncSsoSessionClient } from "../client/index.js";
 import type { ExtractParams, ExtractReturnType, Method, RpcSchema } from "./rpc.js";
@@ -27,7 +27,7 @@ interface ProviderConnectInfo {
 export interface ProviderInterface extends EventEmitter {
   request<M extends Method>(args: RequestArguments<M>): Promise<ExtractReturnType<M>>;
   disconnect(): Promise<void>;
-  getClient(parameters?: { chainId?: number }): Promise<ZksyncSsoSessionClient> | ZksyncSsoSessionClient;
+  getClient(parameters?: { chainId?: number }): Promise<ZksyncSsoSessionClient | WalletClient> | (ZksyncSsoSessionClient | WalletClient);
   on(event: "connect", listener: (info: ProviderConnectInfo) => void): this;
   on(event: "disconnect", listener: (error: ProviderRpcError) => void): this;
   on(event: "chainChanged", listener: (chainId: string) => void): this;

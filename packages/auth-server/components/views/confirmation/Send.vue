@@ -170,9 +170,13 @@ const { getClient } = useClientStore();
 
 const transactionParams = computed(() => {
   const params = request.value!.content.action.params as ExtractParams<"eth_sendTransaction">;
-  // convert rpc formatted data to actual values (e.g. convert hex to BigInt)
+  // Convert RPC formatted data to actual values (e.g. convert hex to BigInt)
   const formatted = chainConfig.formatters.transaction.format(params[0] as ZksyncRpcTransaction);
-  return formatted as SendTransactionRequest;
+  if (!formatted.gas) {
+    formatted.gas = 100_000_000n; // TODO: remove when gas estimation for passkey client is fixed
+  }
+  // Remove undefined and null values
+  return Object.fromEntries(Object.entries(formatted).filter(([_, val]) => val !== undefined && val !== null)) as SendTransactionRequest;
 });
 
 const advancedInfoOpened = ref(false);
