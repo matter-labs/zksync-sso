@@ -211,7 +211,7 @@ export const isSsoSessionClientConnected = async<
   return isSsoSessionClient(connectorClient);
 };
 
-export const getConnectedSsoClient = async<
+export const getConnectedSsoSessionClient = async<
   config extends Config,
   chainId extends config["chains"][number]["id"],
 >(
