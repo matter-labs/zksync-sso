@@ -1,72 +1,73 @@
 <template>
-  <ZkPanelSection
-    title="Assets"
-    :ui="{ title: 'py-2', footer: 'flex justify-center' }"
-  >
-    <ZkTableBody>
-      <template v-if="filteredBalances.length === 0">
-        <ZkTableRow>
-          <div class="w-full text-center text-neutral-500 py-4 flex items-center justify-center">
-            <ZkIcon
-              icon="savings"
-              class="mr-2 !text-4xl"
-            />
-            We can't find any balances related to this account.
-          </div>
-        </ZkTableRow>
-      </template>
-      <template v-else>
-        <ZkTableRow
-          v-for="(balance, balanceAddress) in filteredBalances"
-          :key="balanceAddress"
-        >
-          <ZkTableCellData>
-            <img
-              v-if="balance.token.iconURL"
-              :src="balance.token.iconURL"
-              alt="Thumbnail"
-              class="w-12 h-12 rounded"
-            >
-            <ZkIconThumbnail
-              v-else
-              :icon="'toll'"
-            />
-          </ZkTableCellData>
-          <ZkTableCellData class="flex-auto">
-            {{ balance.token.symbol }}
-            <template
-              v-if="balance.token.name"
-              #sub
-            >
-              {{ balance.token.name }}
-            </template>
-          </ZkTableCellData>
-          <ZkTableCellData class="text-right">
-            <span class="font-bold">
-              {{ formatUnits(BigInt(balance.balance), balance.token.decimals) }}
-            </span>
-            <template
-              v-if="balance.token.usdPrice"
-              #sub
-            >
-              {{ formatBalance(balance.token.usdValue) }}
-            </template>
-          </ZkTableCellData>
-        </ZkTableRow>
-      </template>
-    </ZkTableBody>
-    <template
-      v-if="hasMoreToShow"
-      #footer
+  <div>
+    <ZkPanelSection
+      title="Assets"
     >
-      <ZkButton
-        type="secondary"
-        @click="showAll = !showAll"
+      <ZkTableBody>
+        <template v-if="filteredBalances.length === 0">
+          <ZkTableRow>
+            <div class="w-full text-center text-neutral-500 py-4 flex items-center justify-center">
+              <ZkIcon
+                icon="savings"
+                class="mr-2 !text-4xl"
+              />
+              We can't find any balances related to this account.
+            </div>
+          </ZkTableRow>
+        </template>
+        <template v-else>
+          <ZkTableRow
+            v-for="(balance, balanceAddress) in filteredBalances"
+            :key="balanceAddress"
+          >
+            <ZkTableCellData>
+              <img
+                v-if="balance.token.iconURL"
+                :src="balance.token.iconURL"
+                alt="Thumbnail"
+                class="w-12 h-12 rounded"
+              >
+              <ZkIconThumbnail
+                v-else
+                :icon="'toll'"
+              />
+            </ZkTableCellData>
+            <ZkTableCellData class="flex-auto">
+              {{ balance.token.symbol }}
+              <template
+                v-if="balance.token.name"
+                #sub
+              >
+                {{ balance.token.name }}
+              </template>
+            </ZkTableCellData>
+            <ZkTableCellData class="text-right pr-2">
+              <span class="font-bold">
+                {{ formatUnits(BigInt(balance.balance), balance.token.decimals) }}
+              </span>
+              <template
+                v-if="balance.token.usdPrice"
+                #sub
+              >
+                {{ formatBalance(balance.token.usdValue) }}
+              </template>
+            </ZkTableCellData>
+          </ZkTableRow>
+        </template>
+      </ZkTableBody>
+      <template
+        v-if="hasMoreToShow"
+        #footer
       >
-        {{ showAll ? 'Show less' : `View all (${Object.entries(assets?.balances || {}).filter(([, balance]) => balance.token !== null).length})` }}
-      </ZkButton>
-    </template>
-  </ZkPanelSection>
+        <ZkButton
+          type="secondary"
+          @click="showAll = !showAll"
+        >
+          {{ showAll ? 'Show less' : `View all (${Object.entries(assets?.balances || {}).filter(([, balance]) => balance.token !== null).length})` }}
+        </ZkButton>
+      </template>
+    </ZkPanelSection>
+  </div>
 </template>
 
 <script setup lang="ts">
