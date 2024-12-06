@@ -25,7 +25,7 @@ export const useConnectorStore = defineStore("connector", () => {
       feeLimit: parseEther("0.001"),
       contractCalls: [
         callPolicy({
-          address: runtimeConfig.public.contracts.room as Hash,
+          address: runtimeConfig.public.contracts.nft as Hash,
           abi: ZeekNftQuestAbi,
           functionName: "mint",
         }),
