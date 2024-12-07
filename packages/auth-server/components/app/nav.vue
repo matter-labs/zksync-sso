@@ -38,6 +38,10 @@
       class="flex items-center pr-2"
     >
       <app-color-mode />
+      <ZkButtonIcon
+        icon="logout"
+        @click="logout()"
+      />
     </div>
     <div
       v-show="showMobileMenu"
@@ -57,6 +61,7 @@ const menuWrapper = useTemplateRef("menu-wrapper");
 const menu = useTemplateRef("menu");
 const menuWidth = ref(0);
 const { mainNav } = useNav();
+const { logout: _logout } = useAccountStore();
 
 const showMobileMenu = ref(false);
 
@@ -67,6 +72,11 @@ const checkWidths = () => {
   } else {
     showMobileMenu.value = false;
   }
+};
+
+const logout = () => {
+  _logout();
+  navigateTo("/");
 };
 
 onMounted(() => {

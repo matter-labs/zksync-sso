@@ -1,5 +1,5 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import { zksync, zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -54,8 +54,11 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncInMemoryNode.id,
+      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksync.id,
       [zksyncInMemoryNode.id]: {
+        nftQuestAddress: "",
+      },
+      [zksync.id]: {
         nftQuestAddress: "",
       },
       [zksyncSepoliaTestnet.id]: {

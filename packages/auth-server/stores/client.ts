@@ -1,16 +1,18 @@
 import { type Address, createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import { zksync, zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 
-export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
+export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode, zksync];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
+  [zksync.id]: zksync.blockExplorers.native.url,
   [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.url,
   [zksyncInMemoryNode.id]: "http://localhost:3010",
 };
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
+  [zksync.id]: zksync.blockExplorers.native.apiUrl,
   [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
   [zksyncInMemoryNode.id]: "http://localhost:3020",
 };
@@ -20,6 +22,13 @@ type ChainContracts = PasskeyRequiredContracts & {
   accountPaymaster: Address;
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
+  [zksync.id]: {
+    // These are fake
+    session: "0x21fe79B31bE4c54c6B4e13303B379Cd4e4fa9489",
+    passkey: "0x86F20D0701c54019F2f58d0f69767A27BA3E724C",
+    accountFactory: "0xf9a9fFF7E55F4375FF5f736c58e29B7D4d68aEfb",
+    accountPaymaster: "0x0cE4c9b3eA74971210C114cc136eAE41148C8B5a",
+  },
   [zksyncSepoliaTestnet.id]: {
     session: "0x21fe79B31bE4c54c6B4e13303B379Cd4e4fa9489",
     passkey: "0x86F20D0701c54019F2f58d0f69767A27BA3E724C",
