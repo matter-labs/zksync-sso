@@ -1,9 +1,10 @@
 <template>
   <div>
     <ZkTableRow
-      v-if="myNfts.length > 0"
-      ui="px-4 hover:cursor-pointer"
       v-for="nft in myNfts"
+      v-if="myNfts.length > 0"
+      :key="nft.hash"
+      ui="px-4 hover:cursor-pointer"
       @click="navigateTo(nft.url, { external: true, open: { target: '_blank' } })"
     >
       <ZkTableCellData>
@@ -19,18 +20,21 @@
             type="video/mp4"
           >
         </video>
-        <img 
+        <img
           v-if="nft.tokenMetadata?.image && !nft.tokenMetadata?.animation_url"
           class="aspect-square max-w-[68px] rounded"
           :src="nft.tokenMetadata?.image"
-        />
-        <UnknownNft 
+        >
+        <UnknownNft
           v-if="!nft.tokenMetadata?.image"
           class="aspect-square w-[68px] rounded"
         />
       </ZkTableCellData>
       <ZkTableCellData class="flex flex-col justify-center">
-        <ZkTableCellData class="flex-auto text-sm" ui-sub="truncate-to-2-lines">
+        <ZkTableCellData
+          class="flex-auto text-sm"
+          ui-sub="truncate-to-2-lines"
+        >
           <span class="font-bold text-base">
             {{ nft.tokenName }}
           </span>
@@ -44,7 +48,7 @@
       </ZkTableCellData>
     </ZkTableRow>
     <ZkTableRow
-      v-else
+      v-if="myNfts.length == 0 && allNfts.filter(x => x.contractAddress == nftAddress).length == 0"
       ui="px-4"
     >
       <ZkTableCellData class="w-full text-center text-neutral-500 py-4 flex items-center justify-center">
@@ -56,14 +60,27 @@
         >NFT Quest</a>.
       </ZkTableCellData>
     </ZkTableRow>
+    <ZkTableRow
+      v-if="myNfts.length > 0 && allNfts.filter(x => x.contractAddress == nftAddress).length == 0"
+      ui="px-4"
+    >
+      <ZkTableCellData class="w-full text-center text-neutral-500 py-4 flex items-center justify-center">
+        Don't forget to collect your free NFT at <a
+          href="https://nft.zksync.dev"
+          target="_blank"
+          class="text-blue-500"
+        >NFT Quest</a>.
+      </ZkTableCellData>
+    </ZkTableRow>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ContractFunctionExecutionError, type Address } from "viem";
+import { type Address, ContractFunctionExecutionError } from "viem";
 
-import { ZeekNftQuestAbi } from "~/abi/ZeekNFTQuest";
 import UnknownNft from "../icons/UnknownNft.vue";
+import { ZeekNftQuestAbi } from "~/abi/ZeekNFTQuest";
+
 
 const runtimeConfig = useRuntimeConfig();
 const { address } = useAccountStore();
@@ -73,7 +90,7 @@ const nftMetadata = ref<null | NftMetadata>(null);
 const hasNft = ref(false);
 const myNfts = ref<AccountNftTransfer[]>([]);
 const allNfts = ref<AccountNftTransfer[]>([]);
-const MAX_NFTS_TO_DISPLAY = 5;
+const MAX_NFTS_TO_DISPLAY = 150;
 
 interface AccountNftTransferResponse {
   message: string;
@@ -116,7 +133,7 @@ interface NftMetadata {
   animation_url: string;
   background_color: string;
   description: string;
-  image: string
+  image: string;
 }
 
 function convertIpfsToGateway(ipfsUrl: string): string {
@@ -133,7 +150,7 @@ const getNFTTransactions = async function () {
 
     const { data: getNftTransferInfoResponse } = await useFetch(nftTransferUrl);
     const result = await getNftTransferInfoResponse.value as AccountNftTransferResponse;
-    
+
     if (result.message == "OK") {
       const seenTokenIDs = new Set();
       let filteredNfts = [];
@@ -142,16 +159,13 @@ const getNFTTransactions = async function () {
         const uniqueID = `${nft.contractAddress}-${nft.tokenID}`;
         if (nft.to === address && !seenTokenIDs.has(uniqueID)) {
           filteredNfts.push(nft);
-          seenTokenIDs.add(uniqueID);
         }
+        seenTokenIDs.add(uniqueID);
       }
 
       filteredNfts = filteredNfts.slice(0, MAX_NFTS_TO_DISPLAY);
-      // const filteredNfts = result.result
-      //   .filter(x => x.to == address)
-      //   .slice(0, MAX_NFTS_TO_DISPLAY);
       allNfts.value = filteredNfts;
-      
+
       try {
         await Promise.all(filteredNfts.map(async (nft) => {
           let tokenURI = await client.readContract({
@@ -238,7 +252,7 @@ const getNFTTransactions = async function () {
       //   console.log("");
       // });
 
-      myNfts.value = filteredNfts.filter(nft => nft.invalidTokenURI != true);
+      myNfts.value = filteredNfts.filter((nft) => nft.invalidTokenURI != true);
     }
 
     const res = await client.readContract({
