@@ -33,7 +33,7 @@ export const encodedInputToAbiChunks = (encodedInput: string) => {
   if (!encodedInput.startsWith("0x")) {
     throw new Error("Input is not a valid hex string");
   }
-  return (encodedInput.slice(2).match(/.{1,64}/g) || []) as Hash[]; // 32 bytes abi chunks
+  return (encodedInput.slice(2).match(/.{1,64}/g) || []).map((e) => `0x${e}`) as Hash[]; // 32 bytes abi chunks
 };
 
 const getDummyBytesValue = (type: string) => {
