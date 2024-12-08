@@ -1,4 +1,4 @@
-import type { Account, Chain, Hex, PublicActions, Transport } from "viem";
+import { type Account, type Chain, encodeFunctionData, type Hex, type PublicActions, type Transport } from "viem";
 import { estimateContractGas, estimateGas, prepareTransactionRequest } from "viem/actions";
 
 import { type ClientWithZksyncSsoSessionData, signSessionTransaction } from "../clients/session.js";
@@ -19,6 +19,8 @@ export function publicActionsRewrite<
           sessionKeySignedHash: emptySignature,
           sessionContract: client.contracts.session,
           sessionConfig: client.sessionConfig,
+          to: args.to!,
+          callData: args.data,
         });
       }
       const request = await prepareTransactionRequest(client, {
@@ -29,10 +31,17 @@ export function publicActionsRewrite<
     },
     estimateContractGas: (args) => {
       if (!("customSignature" in args)) {
+        const callData = encodeFunctionData({
+          abi: args.abi as any,
+          functionName: args.functionName,
+          args: (args.args as unknown[]) || [],
+        });
         (args as any).customSignature = signSessionTransaction({
           sessionKeySignedHash: emptySignature,
           sessionContract: client.contracts.session,
           sessionConfig: client.sessionConfig,
+          to: args.address,
+          callData,
         });
       }
       return estimateContractGas(client, args as any);
@@ -43,6 +52,8 @@ export function publicActionsRewrite<
           sessionKeySignedHash: emptySignature,
           sessionContract: client.contracts.session,
           sessionConfig: client.sessionConfig,
+          to: args.to!,
+          callData: args.data,
         });
       }
       const estimated = await estimateGas(client, args);

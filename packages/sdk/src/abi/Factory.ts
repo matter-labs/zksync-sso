@@ -8,12 +8,31 @@ export const FactoryAbi = [
       },
       {
         internalType: "address",
-        name: "implementation",
+        name: "_implementation",
         type: "address",
       },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "uniqueAccountId",
+        type: "string",
+      },
+    ],
+    name: "AccountCreated",
+    type: "event",
   },
   {
     anonymous: false,
@@ -70,92 +89,27 @@ export const FactoryAbi = [
     inputs: [
       {
         internalType: "bytes32",
-        name: "uniqueAccountId",
-        type: "bytes32",
-      },
-    ],
-    name: "addNewUniqueId",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "beaconProxyBytecodeHash",
-    outputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "salt",
+        name: "_salt",
         type: "bytes32",
       },
       {
         internalType: "string",
-        name: "uniqueAccountId",
+        name: "_uniqueAccountId",
         type: "string",
       },
       {
         internalType: "bytes[]",
-        name: "initialValidators",
+        name: "_initialValidators",
         type: "bytes[]",
       },
       {
         internalType: "bytes[]",
-        name: "initialModules",
+        name: "_initialModules",
         type: "bytes[]",
       },
       {
         internalType: "address[]",
-        name: "initialK1Owners",
-        type: "address[]",
-      },
-    ],
-    name: "deployProxySsoAccount",
-    outputs: [
-      {
-        internalType: "address",
-        name: "accountAddress",
-        type: "address",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "salt",
-        type: "bytes32",
-      },
-      {
-        internalType: "string",
-        name: "uniqueAccountId",
-        type: "string",
-      },
-      {
-        internalType: "bytes[]",
-        name: "initialValidators",
-        type: "bytes[]",
-      },
-      {
-        internalType: "bytes[]",
-        name: "initialModules",
-        type: "bytes[]",
-      },
-      {
-        internalType: "address[]",
-        name: "initialK1Owners",
+        name: "_initialK1Owners",
         type: "address[]",
       },
     ],
