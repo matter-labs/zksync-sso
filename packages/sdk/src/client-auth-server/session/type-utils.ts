@@ -12,3 +12,11 @@ export type IndexedValues<T extends unknown[]> = Array<{
 }[NumericKeys<T>]>;
 
 export type ContractWriteMutability = Extract<AbiStateMutability, "nonpayable" | "payable">;
+
+export type ConvertBigIntToString<T> = T extends bigint
+  ? string
+  : T extends Array<infer U>
+    ? Array<ConvertBigIntToString<U>>
+    : T extends object
+      ? { [K in keyof T]: ConvertBigIntToString<T[K]> }
+      : T;

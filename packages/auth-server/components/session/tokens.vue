@@ -20,7 +20,7 @@
         </div>
       </div>
     </div>
-    <CommonLine v-if="fetchTokensError">
+    <CommonLine v-if="!tokensLoading && !spendLimitTokens.length && fetchTokensError">
       <p class="p-4 text-sm text-error-300 break-all">
         Failed to fetch token information. {{ fetchTokensError }}
       </p>

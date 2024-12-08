@@ -80,7 +80,7 @@ export const deployAccount = async <
 
   const encodedSessionKeyModuleData = encodeModuleData({
     address: args.contracts.session,
-    parameters: args.initialSession == null ? "0x" : encodeSession(args.initialSession),
+    parameters: args.initialSession ? encodeSession(args.initialSession) : "0x",
   });
 
   let deployProxyArgs = {

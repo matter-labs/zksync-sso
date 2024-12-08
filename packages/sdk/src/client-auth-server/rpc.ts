@@ -3,9 +3,9 @@ import type { Address, Chain, Hash, PublicRpcSchema, RpcSchema as RpcSchemaGener
 import type { SessionRequiredContracts } from "../client/index.js";
 import type { Message } from "../communicator/index.js";
 import type { SerializedEthereumRpcError } from "../errors/index.js";
-import type { SessionConfig } from "../utils/session.js";
 import type { AppMetadata, RequestArguments } from "./interface.js";
 import type { SessionPreferences } from "./session/index.js";
+import type { SessionConfigJSON } from "./session/utils.js";
 
 export type AuthServerRpcSchema = [
   {
@@ -20,7 +20,7 @@ export type AuthServerRpcSchema = [
         activeChainId: Chain["id"];
         session?: {
           sessionKey: Hash;
-          sessionConfig: SessionConfig;
+          sessionConfig: SessionConfigJSON;
         };
       };
       chainsInfo: {
