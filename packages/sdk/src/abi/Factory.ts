@@ -104,7 +104,7 @@ export const FactoryAbi = [
       },
       {
         internalType: "bytes[]",
-        name: "_initialModules",
+        name: "_initialHooks",
         type: "bytes[]",
       },
       {

@@ -92,7 +92,7 @@ export const deployAccount = async <
     args: [
       toHex(args.salt),
       accountId,
-      [encodedPasskeyModuleData],
+      [encodedPasskeyModuleData, encodedSessionKeyModuleData],
       [encodedSessionKeyModuleData],
       [],
     ],
