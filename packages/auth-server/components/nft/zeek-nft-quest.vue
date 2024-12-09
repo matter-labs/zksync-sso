@@ -38,8 +38,8 @@
           <span class="font-bold text-base">
             {{ nft.tokenName }}
           </span>
-          <span class="italic">
-            (#{{ nft.tokenID }})
+          <span class="italic ml-0.5">
+          #{{ nft.tokenID }}
           </span>
           <template #sub>
             {{ nft.tokenMetadata?.description ?? nft.tokenName }}
@@ -81,6 +81,9 @@ import { type Address, ContractFunctionExecutionError } from "viem";
 import UnknownNft from "../icons/UnknownNft.vue";
 import { ZeekNftQuestAbi } from "~/abi/ZeekNFTQuest";
 
+const props = defineProps<{
+  maxDisplay: number;
+}>();
 
 const runtimeConfig = useRuntimeConfig();
 const { address } = useAccountStore();
@@ -90,7 +93,6 @@ const nftMetadata = ref<null | NftMetadata>(null);
 const hasNft = ref(false);
 const myNfts = ref<AccountNftTransfer[]>([]);
 const allNfts = ref<AccountNftTransfer[]>([]);
-const MAX_NFTS_TO_DISPLAY = 150;
 
 interface AccountNftTransferResponse {
   message: string;
@@ -163,7 +165,7 @@ const getNFTTransactions = async function () {
         seenTokenIDs.add(uniqueID);
       }
 
-      filteredNfts = filteredNfts.slice(0, MAX_NFTS_TO_DISPLAY);
+      filteredNfts = filteredNfts.slice(0, props.maxDisplay);
       allNfts.value = filteredNfts;
 
       try {
@@ -278,4 +280,9 @@ const getNFTTransactions = async function () {
 };
 
 await getNFTTransactions();
+
+watch(() => props.maxDisplay, async () => {
+  console.log("XXXXXXXX max display updated!!!! XXXX");
+  await getNFTTransactions();
+})
 </script>

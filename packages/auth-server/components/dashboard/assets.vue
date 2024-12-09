@@ -2,6 +2,7 @@
   <div>
     <ZkPanelSection
       title="Assets"
+      :ui="{footer: 'flex justify-center'}"
     >
       <ZkTableBody>
         <template v-if="filteredBalances.length === 0">
