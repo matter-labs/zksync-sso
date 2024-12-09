@@ -23,7 +23,8 @@
     </h1>
     <p
       v-if="domain"
-      class="text-center border border-neutral-800 bg-neutral-800/50 mt-3 mx-auto w-max px-4 py-1 rounded-3xl"
+      class="line-clamp-1 w-fit text-center border border-neutral-800 bg-neutral-800/50 mt-3 mx-auto px-4 py-1 rounded-3xl"
+      :title="domain"
     >
       {{ domain }}
     </p>
