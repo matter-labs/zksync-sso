@@ -2,11 +2,11 @@ import { type Account, type Address, type Chain, type Client, getAddress, type H
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
-import { FactoryAbi } from "../../abi/Factory.js";
-import { encodeModuleData, encodePasskeyModuleParameters, encodeSession } from "../../utils/encoding.js";
-import { noThrow } from "../../utils/helpers.js";
-import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../utils/passkey.js";
-import type { SessionConfig } from "../../utils/session.js";
+import { FactoryAbi } from "../../../abi/Factory.js";
+import { encodeModuleData, encodePasskeyModuleParameters, encodeSession } from "../../../utils/encoding.js";
+import { noThrow } from "../../../utils/helpers.js";
+import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
+import type { SessionConfig } from "../../../utils/session.js";
 
 /* TODO: try to get rid of most of the contract params like passkey, session */
 /* it should come from factory, not passed manually each time */

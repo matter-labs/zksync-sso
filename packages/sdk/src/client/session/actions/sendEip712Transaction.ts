@@ -3,8 +3,8 @@ import { parseAccount } from "viem/accounts";
 import { prepareTransactionRequest, sendRawTransaction } from "viem/actions";
 import { type ChainEIP712, type SendEip712TransactionParameters, type SendEip712TransactionReturnType, type SendTransactionParameters, zksync } from "viem/zksync";
 
-import { InvalidEip712TransactionError, type InvalidEip712TransactionErrorType } from "../utils/assertEip712Transaction.js";
-import { isEIP712Transaction } from "../utils/isEip712Transaction.js";
+import { InvalidEip712TransactionError, type InvalidEip712TransactionErrorType } from "../../utils/assertEip712Transaction.js";
+import { isEIP712Transaction } from "../../utils/isEip712Transaction.js";
 
 /**
  * Creates, signs, and sends a new EIP712 transaction to the network.

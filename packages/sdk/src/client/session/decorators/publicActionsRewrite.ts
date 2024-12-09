@@ -1,7 +1,7 @@
 import { type Account, type Chain, encodeFunctionData, type Hex, type PublicActions, type Transport } from "viem";
 import { estimateContractGas, estimateGas, prepareTransactionRequest } from "viem/actions";
 
-import { type ClientWithZksyncSsoSessionData, signSessionTransaction } from "../clients/session.js";
+import { type ClientWithZksyncSsoSessionData, signSessionTransaction } from "../client.js";
 
 const emptySignature = "0x" + "1b".padStart(65 * 2, "0") as Hex;
 

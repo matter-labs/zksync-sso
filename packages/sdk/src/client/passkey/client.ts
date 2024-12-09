@@ -2,9 +2,9 @@ import { type Account, type Address, type Chain, type Client, createClient, getA
 import { eip712WalletActions } from "viem/zksync";
 
 import { passkeyHashSignatureResponseFormat } from "../../utils/passkey.js";
-import { requestPasskeyAuthentication } from "../actions/passkey.js";
-import { type ZksyncSsoPasskeyActions, zksyncSsoPasskeyActions } from "../decorators/passkey.js";
-import { toSmartAccount } from "../smart-account.js";
+import { toPasskeyAccount } from "./account.js";
+import { requestPasskeyAuthentication } from "./actions/passkey.js";
+import { type ZksyncSsoPasskeyActions, zksyncSsoPasskeyActions } from "./decorators/passkey.js";
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
@@ -22,7 +22,7 @@ export function createZksyncPasskeyClient<
     name: _parameters.name || "ZKsync SSO Passkey Client",
   };
 
-  const account = toSmartAccount({
+  const account = toPasskeyAccount({
     address: parameters.address,
     sign: async ({ hash }) => {
       const passkeySignature = await requestPasskeyAuthentication({

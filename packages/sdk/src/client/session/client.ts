@@ -4,10 +4,9 @@ import { zksyncInMemoryNode } from "viem/chains";
 
 import { encodeSessionTx } from "../../utils/encoding.js";
 import type { SessionConfig } from "../../utils/session.js";
-import { publicActionsRewrite } from "../decorators/publicActionsRewrite.js";
-import { type ZksyncSsoSessionActions, zksyncSsoSessionActions } from "../decorators/session.js";
-import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "../decorators/session_wallet.js";
-import { toSmartAccount } from "../session-smart-account.js";
+import { toSessionAccount } from "./account.js";
+import { publicActionsRewrite } from "./decorators/publicActionsRewrite.js";
+import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "./decorators/wallet.js";
 
 export const signSessionTransaction = (args: {
   sessionKeySignedHash: Hash;
@@ -62,7 +61,7 @@ export function createZksyncSessionClient<
     return BigInt(timestamp);
   };
 
-  const account = toSmartAccount({
+  const account = toSessionAccount({
     address: parameters.address,
     signTransaction: async ({ hash, to, callData }) => {
       // In Memory Node uses a different timestamp mechanism which isn't equal to actual timestamp
@@ -95,8 +94,7 @@ export function createZksyncSessionClient<
     }))
     .extend(publicActions)
     .extend(publicActionsRewrite)
-    .extend(zksyncSsoWalletActions)
-    .extend(zksyncSsoSessionActions);
+    .extend(zksyncSsoWalletActions);
   return client;
 }
 
@@ -128,7 +126,7 @@ export type ZksyncSsoSessionClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    ZksyncSsoWalletActions<chain, account> & ZksyncSsoSessionActions
+    ZksyncSsoWalletActions<chain, account>
   > & ZksyncSsoSessionData
 >;
 

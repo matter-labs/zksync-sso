@@ -73,24 +73,14 @@
       "require": "./dist/_cjs/client/index.js"
     },
     "./client/passkey": {
-      "types": "./dist/_types/client/passkey.d.ts",
-      "import": "./dist/_esm/client/passkey.js",
-      "require": "./dist/_cjs/client/passkey.js"
+      "types": "./dist/_types/client/passkey/index.d.ts",
+      "import": "./dist/_esm/client/passkey/index.js",
+      "require": "./dist/_cjs/client/passkey/index.js"
     },
-    "./client/smart-account": {
-      "types": "./dist/_types/client/smart-account.d.ts",
-      "import": "./dist/_esm/client/smart-account.js",
-      "require": "./dist/_cjs/client/smart-account.js"
-    },
-    "./client/actions": {
-      "types": "./dist/_types/client/actions/index.d.ts",
-      "import": "./dist/_esm/client/actions/index.js",
-      "require": "./dist/_cjs/client/actions/index.js"
-    },
-    "./client/decorators": {
-      "types": "./dist/_types/client/decorators/index.d.ts",
-      "import": "./dist/_esm/client/decorators/index.js",
-      "require": "./dist/_cjs/client/decorators/index.js"
+    "./client/session": {
+      "types": "./dist/_types/client/session/index.d.ts",
+      "import": "./dist/_esm/client/session/index.js",
+      "require": "./dist/_cjs/client/session/index.js"
     },
     "./communicator": {
       "types": "./dist/_types/communicator/index.d.ts",
