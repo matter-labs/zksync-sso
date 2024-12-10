@@ -81,6 +81,8 @@ import type { SessionPreferences } from "zksync-sso";
 import { type ExtractReturnType, formatSessionPreferences, type Method, type RPCResponseMessage } from "zksync-sso/client-auth-server";
 import { LimitType } from "zksync-sso/utils";
 
+import { ssoContractsByChain } from "~/stores/client";
+
 const props = defineProps({
   sessionPreferences: {
     type: Object as PropType<SessionPreferences>,
@@ -146,7 +148,7 @@ const confirmConnection = async () => {
     } else {
       // create a new session for the existing account
       const client = getClient({ chainId: requestChain.value!.id });
-      const paymasterAddress = contractsByChain[requestChain.value!.id].accountPaymaster;
+      const paymasterAddress = ssoContractsByChain(requestChain.value!.id).accountPaymaster;
       const sessionKey = generatePrivateKey();
       const session = {
         sessionKey,

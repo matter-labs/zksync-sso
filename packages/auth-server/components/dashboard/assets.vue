@@ -75,7 +75,7 @@ import { type Address, formatUnits } from "viem";
 
 const runtimeConfig = useRuntimeConfig();
 const { address } = useAccountStore();
-const chainId = runtimeConfig.public.chainId as SupportedChainId;
+const chainId = runtimeConfig.public.defaultChainId as SupportedChainId;
 const assets = ref<GetAddressInfoResponse | null>(null);
 
 const showLimit = 5;

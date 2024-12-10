@@ -4,6 +4,8 @@ import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 
+import { SSO } from "~/abi";
+
 export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
@@ -19,26 +21,21 @@ type ChainContracts = PasskeyRequiredContracts & {
   accountFactory: NonNullable<PasskeyRequiredContracts["accountFactory"]>;
   accountPaymaster: Address;
 };
-export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
-  [zksyncSepoliaTestnet.id]: {
-    session: "0x21fe79B31bE4c54c6B4e13303B379Cd4e4fa9489",
-    passkey: "0x86F20D0701c54019F2f58d0f69767A27BA3E724C",
-    accountFactory: "0xf9a9fFF7E55F4375FF5f736c58e29B7D4d68aEfb",
-    accountPaymaster: "0x0cE4c9b3eA74971210C114cc136eAE41148C8B5a",
-  },
-  [zksyncInMemoryNode.id]: {
-    session: "0xd2fEB541bdFfA0401abD5dEE403D3C0d2a3FdCFd",
-    passkey: "0x960e1934baB4A82d0F1A3C44B0aFa4FADf161868",
-    accountFactory: "0xd7385ba726A7b72933E63FCb0Dfee8Bcae63478c",
-    accountPaymaster: "0xbE9F933BE4C1273626E209d1DfF751a41997598D",
-  },
+
+export const ssoContractsByChain = (chainId: number) => {
+  return {
+    session: SSO.Session.addressByChain[chainId],
+    passkey: SSO.Passkey.addressByChain[chainId],
+    accountFactory: SSO.AccountFactory.addressByChain[chainId],
+    accountPaymaster: SSO.AccountPaymaster.addressByChain[chainId],
+  } as ChainContracts;
 };
 
 export const useClientStore = defineStore("client", () => {
   const runtimeConfig = useRuntimeConfig();
   const { address, username, passkey } = storeToRefs(useAccountStore());
 
-  const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
+  const defaultChainId = runtimeConfig.public.defaultChainId as SupportedChainId;
   const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
   if (!defaultChain) throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
 
@@ -58,7 +55,7 @@ export const useClientStore = defineStore("client", () => {
     if (!address.value) throw new Error("Address is not set");
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
-    const contracts = contractsByChain[chainId];
+    const contracts = ssoContractsByChain(chainId);
 
     const client = createZksyncPasskeyClient({
       address: address.value,

@@ -1,4 +1,11 @@
-export const ZeekNftQuestAbi = [
+import type { AddressByChain } from "../types";
+
+export const addressByChain: AddressByChain = {
+  300: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
+  260: "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb",
+};
+
+export const Abi = [
   {
     inputs: [
       {

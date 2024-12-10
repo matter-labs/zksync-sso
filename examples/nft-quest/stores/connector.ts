@@ -1,20 +1,24 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
-import { zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "@wagmi/core/chains";
-import { type Address, type Hash, parseEther } from "viem";
+import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "@wagmi/core/chains";
+import { type Address, parseEther } from "viem";
 import { callPolicy, zksyncSsoConnector } from "zksync-sso/connector";
 
-import { ZeekNftQuestAbi } from "@/abi/ZeekNFTQuest";
+import { Nft } from "~/abi";
+
+export type SupportedChainId = (typeof supportedChains)[number]["id"];
+
+const supportedChains = [
+  zksyncSepoliaTestnet,
+  zksyncInMemoryNode,
+] as const;
 
 export const useConnectorStore = defineStore("connector", () => {
   const runtimeConfig = useRuntimeConfig();
-  const supportedChains = [
-    zksyncSepoliaTestnet,
-    zksyncInMemoryNode,
-    zksyncLocalNode,
-  ] as const;
-  const chain = supportedChains.filter((x) => x.id == runtimeConfig.public.chain.id)[0];
+
+  const chainId = runtimeConfig.public.defaultChainId;
+  const chain = supportedChains.filter((x) => x.id == chainId)[0];
   type SupportedChainId = (typeof supportedChains)[number]["id"];
-  if (!chain) throw new Error(`Chain with id ${runtimeConfig.public.chain.id} was not found in supported chains list`);
+  if (!chain) throw new Error(`Chain with id ${chainId} was not found in supported chains list`);
 
   const connector = zksyncSsoConnector({
     metadata: {
@@ -25,8 +29,8 @@ export const useConnectorStore = defineStore("connector", () => {
       feeLimit: parseEther("0.001"),
       contractCalls: [
         callPolicy({
-          address: runtimeConfig.public.contracts.nft as Hash,
-          abi: ZeekNftQuestAbi,
+          address: Nft.addressByChain[chainId],
+          abi: Nft.Abi,
           functionName: "mint",
         }),
       ],

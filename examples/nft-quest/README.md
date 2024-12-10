@@ -15,13 +15,9 @@ pnpm nx deploy contracts
 pnpm nx deploy:local nft-quest-contracts
 ```
 
-The contract addresses for the NFT Quest app will be set in `.env.local`. This
-.env file will override the values set in the `runtimeConfig` in
-`nuxt.config.ts`.
-
-You may also need to update the contract addresses for the Auth Server in
-`/packages/auth-server/stores/client.ts` under the
-`contractsByChain[zksyncInMemoryNode.id]`
+Contract addresses are defined in the `/packages/auth-server/abi` directory. For
+local development using In Memory Node, edit the contracts' `addressByChain` for
+`260`.
 
 ```sh
 # Start the website and Auth Server

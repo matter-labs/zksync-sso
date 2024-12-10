@@ -87,6 +87,8 @@ import { zksyncInMemoryNode } from "viem/chains";
 import { SessionKeyModuleAbi } from "zksync-sso/abi";
 import type { SessionConfig } from "zksync-sso/utils";
 
+import { ssoContractsByChain } from "~/stores/client";
+
 const { defaultChain, getPublicClient } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
 
@@ -96,7 +98,7 @@ const {
   // error: sessionsFetchError,
   execute: sessionsFetch,
 } = useAsync(async () => {
-  const contracts = contractsByChain[defaultChain.id];
+  const contracts = ssoContractsByChain(defaultChain.id);
   const publicClient = getPublicClient({ chainId: defaultChain.id });
   const logs = await publicClient.getContractEvents({
     abi: SessionKeyModuleAbi,

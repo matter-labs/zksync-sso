@@ -4,6 +4,8 @@ import { deployAccount } from "zksync-sso/client";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
 import type { SessionConfig } from "zksync-sso/utils";
 
+import { ssoContractsByChain } from "~/stores/client";
+
 export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
   const chainId = toRef(_chainId);
   const { login } = useAccountStore();
@@ -33,12 +35,13 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
     }
 
     const deployerClient = getThrowAwayClient({ chainId: chainId.value });
+    const ssoContracts = ssoContractsByChain(chainId.value);
 
     const deployedAccount = await deployAccount(deployerClient, {
       credentialPublicKey,
       uniqueAccountId: credentialId,
-      contracts: contractsByChain[chainId.value],
-      paymasterAddress: contractsByChain[chainId.value].accountPaymaster,
+      contracts: ssoContracts,
+      paymasterAddress: ssoContracts.accountPaymaster,
       initialSession: sessionData || undefined,
     });
 
