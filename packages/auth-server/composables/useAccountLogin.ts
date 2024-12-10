@@ -1,6 +1,8 @@
 import { toHex } from "viem";
 import { fetchAccount } from "zksync-sso/client";
 
+import { ssoContractsByChain } from "~/stores/client";
+
 export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
   const chainId = toRef(_chainId);
   const { login } = useAccountStore();
@@ -10,7 +12,7 @@ export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
     const client = getPublicClient({ chainId: chainId.value });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
-      contracts: contractsByChain[chainId.value],
+      contracts: ssoContractsByChain(chainId.value),
     });
 
     login({

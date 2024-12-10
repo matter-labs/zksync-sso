@@ -1,6 +1,8 @@
 import { watchThrottled } from "@vueuse/core";
 import type { Address } from "viem";
 
+import { ssoContractsByChain } from "~/stores/client";
+
 type AccountData = {
   username: string;
   address: Address;
@@ -15,7 +17,7 @@ export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: Maybe
   /* const { getPublicClient } = useClientStore(); */
 
   const fetchAccountDataByUsername = async (name: string): Promise<AccountData | null> => {
-    const factoryAddress = contractsByChain[chainId.value].accountFactory;
+    const factoryAddress = ssoContractsByChain(chainId.value).accountFactory;
     if (!factoryAddress) throw new Error("Account factory address is not set");
 
     /* TODO: implement account info fetching */

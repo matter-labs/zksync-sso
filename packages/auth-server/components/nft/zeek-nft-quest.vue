@@ -45,12 +45,12 @@
 <script setup lang="ts">
 import type { Address } from "viem";
 
-import { ZeekNftQuestAbi } from "~/abi/ZeekNFTQuest";
+import { NFTQuest } from "~/abi";
 
 const runtimeConfig = useRuntimeConfig();
 const { address } = useAccountStore();
-const chainId = runtimeConfig.public.chainId as SupportedChainId;
-const nftAddress = runtimeConfig.public[chainId].nftQuestAddress as Address;
+const chainId = runtimeConfig.public.defaultChainId as SupportedChainId;
+const nftAddress = NFTQuest.Nft.addressByChain[chainId] as Address;
 const nftMetadata = ref<null | { animation_url: string; background_color: string; description: string; image: string }>(null);
 const hasNft = ref(false);
 
@@ -60,7 +60,7 @@ const getNFTTransactions = async function () {
   const client = getPublicClient({ chainId: chainId ?? defaultChain.id });
   const res = await client.readContract({
     address: nftAddress,
-    abi: ZeekNftQuestAbi,
+    abi: NFTQuest.Nft.Abi,
     functionName: "balanceOf",
     args: [address as Address],
   });
@@ -72,7 +72,7 @@ const getNFTTransactions = async function () {
     return;
   }
 
-  const fetchNftMetadata = await useNftMetadata({ address: nftAddress, abi: ZeekNftQuestAbi });
+  const fetchNftMetadata = await useNftMetadata({ address: nftAddress, abi: NFTQuest.Nft.Abi });
   nftMetadata.value = fetchNftMetadata.data.value as { animation_url: string; background_color: string; description: string; image: string };
 };
 

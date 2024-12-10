@@ -1,6 +1,8 @@
 import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso/client-auth-server";
 import type { SessionConfig } from "zksync-sso/utils";
 
+import { ssoContractsByChain } from "~/stores/client";
+
 export const constructReturn = (address: `0x${string}`, chainId: number, session?: { sessionKey: `0x${string}`; sessionConfig: SessionConfig }): ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> => {
   return {
     account: {
@@ -21,7 +23,7 @@ export const constructReturn = (address: `0x${string}`, chainId: number, session
           supported: true,
         },
       },
-      contracts: contractsByChain[chain.id],
+      contracts: ssoContractsByChain(chain.id),
     })),
   };
 };

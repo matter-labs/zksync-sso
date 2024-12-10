@@ -19,11 +19,7 @@ export default defineNuxtConfig({
   $production: {
     runtimeConfig: {
       public: {
-        chain: zksyncSepoliaTestnet,
-        contracts: {
-          nft: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
-          paymaster: "0x60eef092977DF2738480a6986e2aCD10236b1FA7",
-        },
+        defaultChainId: zksyncSepoliaTestnet.id,
         baseUrl: "https://nft.zksync.dev",
         authServerUrl: "https://auth-test.zksync.dev/confirm",
         explorerUrl: "https://sepolia.explorer.zksync.io",
@@ -57,11 +53,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chain: zksyncInMemoryNode,
-      contracts: {
-        nft: "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb",
-        paymaster: "0x4B5DF730c2e6b28E17013A1485E5d9BC41Efe021",
-      },
+      defaultChainId: zksyncInMemoryNode.id,
       baseUrl: "http://localhost:3006",
       authServerUrl: "http://localhost:3002/confirm",
       explorerUrl: "http://localhost:3010",

@@ -58,6 +58,8 @@ import type { Hash } from "viem";
 import { SessionKeyModuleAbi } from "zksync-sso/abi";
 import { type SessionConfig, type SessionState, SessionStatus } from "zksync-sso/utils";
 
+import { ssoContractsByChain } from "~/stores/client";
+
 const props = defineProps<{
   session: SessionConfig;
   index: number;
@@ -77,13 +79,14 @@ const isExpired = computed(() => timeLeft.value <= 0);
 
 const { defaultChain, getClient, getPublicClient } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
+const ssoContracts = ssoContractsByChain(defaultChain.id);
 
 const {
   inProgress: sessionsInProgress,
   execute: revokeSession,
 } = useAsync(async () => {
   const client = getClient({ chainId: defaultChain.id });
-  const paymasterAddress = contractsByChain[defaultChain.id].accountPaymaster;
+  const paymasterAddress = ssoContracts.accountPaymaster;
   await client.revokeSession({
     sessionId: props.sessionId,
     paymaster: {
@@ -99,7 +102,7 @@ const {
 } = useAsync(async () => {
   const client = getPublicClient({ chainId: defaultChain.id });
   const res = await client.readContract({
-    address: contractsByChain[defaultChain.id].session,
+    address: ssoContracts.session,
     abi: SessionKeyModuleAbi,
     functionName: "sessionState",
     args: [address.value!, props.session],

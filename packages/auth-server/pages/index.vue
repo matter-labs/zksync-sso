@@ -51,7 +51,7 @@ definePageMeta({
 
 const runtimeConfig = useRuntimeConfig();
 
-const chainId = runtimeConfig.public.chainId as SupportedChainId;
+const chainId = runtimeConfig.public.defaultChainId as SupportedChainId;
 
 const { registerInProgress, createAccount } = useAccountCreate(chainId);
 const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(chainId);
