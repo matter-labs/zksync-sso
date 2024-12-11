@@ -26,7 +26,8 @@
     "**/test-results/**",
     "**/playwright-report/**",
     "**/blob-report/**",
-    "**/playwright/.cache/**"
+    "**/playwright/.cache/**",
+    "packages/sdk-platforms/**"
   ],
   "caseSensitive": true,
   "dictionaries": [

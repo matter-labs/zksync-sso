@@ -1,0 +1,45 @@
+name: Swift CI
+
+on:
+  push:
+    paths:
+      - 'packages/sdk-platforms/**'
+
+jobs:
+  swift-sdk:
+    name: Swift Package - latest
+    runs-on: macos-15
+    strategy:
+      matrix:
+        config:
+          - debug
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.4
+      - run: rustup update stable && rustup default stable
+      - name: Select Xcode 16.1
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app
+      - name: Select Simulator
+        run: |
+          UDID=$(xcrun simctl list devices | awk '/-- iOS 18.1 --/{flag=1; next} /--/{flag=0} flag' | grep "iPhone 16 Pro" | awk -F '[()]' '{print $2}' | head -1)
+          if [ -z "$UDID" ]; then
+            echo "Simulator not found!" >&2
+            exit 1
+          fi
+          echo "Simulator UDID: $UDID"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+      - name: Install swiftformat
+        run: brew install swiftformat
+      - name: Build bindings
+        run: sh packages/sdk-platforms/rust/zksync-sso/crates/ffi/build-swift-framework.sh
+      - name: Build & test Swift SDK
+        run: |
+          xcodebuild test \
+            -skipMacroValidation \
+            -configuration debug \
+            -workspace .github/package.xcworkspace \
+            -scheme zksyncsso \
+            -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" || exit 1
