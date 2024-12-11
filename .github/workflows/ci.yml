@@ -17,7 +17,7 @@ jobs:
 
     # Start node
     - name: Era Test Node Action
-      uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
+      uses: dutterbutter/era-test-node-action@66121581304ee2d4f0c1c2de46a3d08f1c2f5264 # v1
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
@@ -76,7 +76,7 @@ jobs:
 
     # Start node
     - name: Era Test Node Action
-      uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
+      uses: dutterbutter/era-test-node-action@66121581304ee2d4f0c1c2de46a3d08f1c2f5264 # v1
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
@@ -138,7 +138,7 @@ jobs:
 
     # Start node
     - name: Era Test Node Action
-      uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
+      uses: dutterbutter/era-test-node-action@66121581304ee2d4f0c1c2de46a3d08f1c2f5264 # v1
 
     # Setup pnpm
     - name: Setup pnpm
