@@ -2,9 +2,9 @@ import { type Account, type Address, type Chain, type Client, encodeFunctionData
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
-import { SessionKeyModuleAbi } from "../../abi/SessionKeyModule.js";
-import { noThrow } from "../../utils/helpers.js";
-import type { SessionConfig } from "../../utils/session.js";
+import { SessionKeyModuleAbi } from "../../../abi/SessionKeyModule.js";
+import { noThrow } from "../../../utils/helpers.js";
+import type { SessionConfig } from "../../../utils/session.js";
 
 export type CreateSessionArgs = {
   sessionConfig: SessionConfig;

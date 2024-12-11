@@ -1,6 +1,9 @@
 import ms from "ms";
 import { type AbiFunction, type AbiParameter, type Address, encodeAbiParameters, type Hash, toHex } from "viem";
 
+import type { Limit, SessionConfig } from "../../utils/session.js";
+import type { ConvertBigIntToString } from "./type-utils.js";
+
 const DYNAMIC_ABI_INPUT_TYPES = ["bytes", "string"];
 
 export const isDynamicInputType = (inputType: string) => {
@@ -33,7 +36,7 @@ export const encodedInputToAbiChunks = (encodedInput: string) => {
   if (!encodedInput.startsWith("0x")) {
     throw new Error("Input is not a valid hex string");
   }
-  return (encodedInput.slice(2).match(/.{1,64}/g) || []) as Hash[]; // 32 bytes abi chunks
+  return (encodedInput.slice(2).match(/.{1,64}/g) || []).map((e) => `0x${e}`) as Hash[]; // 32 bytes abi chunks
 };
 
 const getDummyBytesValue = (type: string) => {
@@ -114,4 +117,33 @@ export const msStringToSeconds = (value: string): bigint => {
   if (millis === 0) throw new Error(`Date can't be zero: ${value}`);
   const seconds = Math.floor(millis / 1000);
   return BigInt(seconds);
+};
+
+export type SessionConfigJSON = ConvertBigIntToString<SessionConfig>;
+export const parseSessionConfigJSON = (sessionConfig: SessionConfigJSON): SessionConfig => {
+  const serializeLimit = (limit: ConvertBigIntToString<Limit>) => ({
+    limitType: limit.limitType,
+    limit: BigInt(limit.limit),
+    period: BigInt(limit.period),
+  });
+  return {
+    ...sessionConfig,
+    expiresAt: BigInt(sessionConfig.expiresAt),
+    feeLimit: serializeLimit(sessionConfig.feeLimit),
+    transferPolicies: sessionConfig.transferPolicies.map((policy) => ({
+      ...policy,
+      maxValuePerUse: BigInt(policy.maxValuePerUse),
+      valueLimit: serializeLimit(policy.valueLimit),
+    })),
+    callPolicies: sessionConfig.callPolicies.map((policy) => ({
+      ...policy,
+      maxValuePerUse: BigInt(policy.maxValuePerUse),
+      valueLimit: serializeLimit(policy.valueLimit),
+      constraints: policy.constraints.map((constraint) => ({
+        ...constraint,
+        index: BigInt(constraint.index),
+        limit: serializeLimit(constraint.limit),
+      })),
+    })),
+  };
 };

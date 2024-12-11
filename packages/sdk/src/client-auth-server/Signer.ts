@@ -2,18 +2,18 @@ import { type Address, type Chain, createWalletClient, custom, type Hash, http, 
 
 import { createZksyncSessionClient, type ZksyncSsoSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
-import { type SessionConfig } from "../utils/session.js";
 import { StorageItem } from "../utils/storage.js";
 import type { AppMetadata, RequestArguments } from "./interface.js";
 import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
 import type { SessionPreferences } from "./session/index.js";
+import { parseSessionConfigJSON, type SessionConfigJSON } from "./session/utils.js";
 
 type Account = {
   address: Address;
   activeChainId: Chain["id"];
   session?: {
     sessionKey: Hash;
-    sessionConfig: SessionConfig;
+    sessionConfig: SessionConfigJSON;
   };
 };
 
@@ -132,7 +132,7 @@ export class Signer implements SignerInterface {
         instance: createZksyncSessionClient({
           address: this.account.address,
           sessionKey: session.sessionKey,
-          sessionConfig: session.sessionConfig,
+          sessionConfig: parseSessionConfigJSON(session.sessionConfig),
           contracts: chainInfo.contracts,
           chain,
           transport: this.transports[chain.id] || http(),

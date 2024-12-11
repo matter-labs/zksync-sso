@@ -3,8 +3,8 @@ import { type Chain, type Transport } from "viem";
 import {
   createSession, type CreateSessionArgs, type CreateSessionReturnType,
   revokeSession, type RevokeSessionArgs, type RevokeSessionReturnType,
-} from "../actions/session.js";
-import type { ClientWithZksyncSsoPasskeyData } from "../clients/passkey.js";
+} from "../../session/actions/session.js";
+import type { ClientWithZksyncSsoPasskeyData } from "../client.js";
 
 export type ZksyncSsoPasskeyActions = {
   createSession: (args: Omit<CreateSessionArgs, "contracts">) => Promise<CreateSessionReturnType>;
