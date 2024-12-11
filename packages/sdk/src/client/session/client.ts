@@ -20,20 +20,17 @@ export const signSessionTransaction = (args: {
     [
       { type: "bytes", name: "sessionKeySignedHash" },
       { type: "address", name: "sessionContract" },
-      { type: "bytes[]", name: "hooks" },
+      { type: "bytes", name: "validatorData" },
     ],
     [
       args.sessionKeySignedHash,
       args.sessionContract,
-      [
-        encodeSessionTx({
-          sessionConfig: args.sessionConfig,
-          to: args.to,
-          callData: args.callData,
-          timestamp: args.timestamp,
-        }),
-        // TODO: this is assuming there are no other hooks
-      ],
+      encodeSessionTx({
+        sessionConfig: args.sessionConfig,
+        to: args.to,
+        callData: args.callData,
+        timestamp: args.timestamp,
+      }),
     ],
   );
 };

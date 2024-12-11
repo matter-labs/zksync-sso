@@ -103,11 +103,6 @@ export const FactoryAbi = [
         type: "bytes[]",
       },
       {
-        internalType: "bytes[]",
-        name: "_initialHooks",
-        type: "bytes[]",
-      },
-      {
         internalType: "address[]",
         name: "_initialK1Owners",
         type: "address[]",
