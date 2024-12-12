@@ -1,28 +1,36 @@
-import { type Account, type Address, type Chain, type Client, createClient, encodeAbiParameters, getAddress, type Hash, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import { type Account, type Address, type Chain, type Client, createClient, createPublicClient, encodeAbiParameters, getAddress, type Hash, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { zksyncInMemoryNode } from "viem/chains";
 
-import { encodeSession } from "../../utils/encoding.js";
+import { encodeSessionTx } from "../../utils/encoding.js";
 import type { SessionConfig } from "../../utils/session.js";
-import { publicActionsRewrite } from "../decorators/publicActionsRewrite.js";
-import { type ZksyncSsoSessionActions, zksyncSsoSessionActions } from "../decorators/session.js";
-import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "../decorators/session_wallet.js";
-import { toSmartAccount } from "../smart-account.js";
+import { toSessionAccount } from "./account.js";
+import { publicActionsRewrite } from "./decorators/publicActionsRewrite.js";
+import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "./decorators/wallet.js";
 
 export const signSessionTransaction = (args: {
   sessionKeySignedHash: Hash;
   sessionContract: Address;
   sessionConfig: SessionConfig;
+  to: Address;
+  callData?: Hash;
+  timestamp?: bigint;
 }) => {
   return encodeAbiParameters(
     [
-      { type: "bytes" },
-      { type: "address" },
-      { type: "bytes[]" },
+      { type: "bytes", name: "sessionKeySignedHash" },
+      { type: "address", name: "sessionContract" },
+      { type: "bytes", name: "validatorData" },
     ],
     [
       args.sessionKeySignedHash,
       args.sessionContract,
-      [encodeSession(args.sessionConfig)], // FIXME: this is assuming there are no other hooks
+      encodeSessionTx({
+        sessionConfig: args.sessionConfig,
+        to: args.to,
+        callData: args.callData,
+        timestamp: args.timestamp,
+      }),
     ],
   );
 };
@@ -43,15 +51,31 @@ export function createZksyncSessionClient<
     name: _parameters.name || "ZKsync SSO Session Client",
   };
 
-  const account = toSmartAccount({
+  const getInMemoryNodeTimestamp = async () => {
+    const publicClient = createPublicClient({ chain: parameters.chain, transport: parameters.transport });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const timestamp: number = await publicClient.request({ method: "config_getCurrentTimestamp" as any });
+    return BigInt(timestamp);
+  };
+
+  const account = toSessionAccount({
     address: parameters.address,
-    sign: async ({ hash }) => {
+    signTransaction: async ({ hash, to, callData }) => {
+      // In Memory Node uses a different timestamp mechanism which isn't equal to actual timestamp
+      const timestamp = parameters.chain.id === zksyncInMemoryNode.id
+        ? await getInMemoryNodeTimestamp()
+        : undefined;
+
       const sessionKeySigner = privateKeyToAccount(parameters.sessionKey);
       const hashSignature = await sessionKeySigner.sign({ hash });
+
       return signSessionTransaction({
         sessionKeySignedHash: hashSignature,
         sessionContract: parameters.contracts.session,
         sessionConfig: parameters.sessionConfig,
+        to,
+        callData,
+        timestamp,
       });
     },
   });
@@ -67,8 +91,7 @@ export function createZksyncSessionClient<
     }))
     .extend(publicActions)
     .extend(publicActionsRewrite)
-    .extend(zksyncSsoWalletActions)
-    .extend(zksyncSsoSessionActions);
+    .extend(zksyncSsoWalletActions);
   return client;
 }
 
@@ -100,7 +123,7 @@ export type ZksyncSsoSessionClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    ZksyncSsoWalletActions<chain, account> & ZksyncSsoSessionActions
+    ZksyncSsoWalletActions<chain, account>
   > & ZksyncSsoSessionData
 >;
 

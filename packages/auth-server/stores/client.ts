@@ -21,16 +21,16 @@ type ChainContracts = PasskeyRequiredContracts & {
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksyncSepoliaTestnet.id]: {
-    session: "0x21fe79B31bE4c54c6B4e13303B379Cd4e4fa9489",
-    passkey: "0x86F20D0701c54019F2f58d0f69767A27BA3E724C",
-    accountFactory: "0xf9a9fFF7E55F4375FF5f736c58e29B7D4d68aEfb",
-    accountPaymaster: "0x0cE4c9b3eA74971210C114cc136eAE41148C8B5a",
+    session: "0x64Bf5C3229CafF50e39Ec58C4BFBbE67bEA90B0F",
+    passkey: "0x0F65cFE984d494DAa7165863f1Eb61C606e45fFb",
+    accountFactory: "0x73CFa70318FD25F2166d47Af9d93Cf72eED48724",
+    accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
   },
   [zksyncInMemoryNode.id]: {
-    session: "0xd2fEB541bdFfA0401abD5dEE403D3C0d2a3FdCFd",
-    passkey: "0x960e1934baB4A82d0F1A3C44B0aFa4FADf161868",
-    accountFactory: "0xd7385ba726A7b72933E63FCb0Dfee8Bcae63478c",
-    accountPaymaster: "0xbE9F933BE4C1273626E209d1DfF751a41997598D",
+    session: "0x62b019c03Db1f4d0C0b857fDabE4AbC9c60c2F70",
+    passkey: "0x21b8397BeF5128662564b8491676baa6754AFD47",
+    accountFactory: "0x26711A4A572a5BBdF967b6385636Bd968e6E883C",
+    accountPaymaster: "0xB29C8Dd9a5E5DFeFB49Adf16885175a07DE8e541",
   },
 };
 

@@ -3,7 +3,7 @@ import { deployContract, getAddresses, getChainId, sendRawTransaction, signMessa
 import { signTransaction, type ZksyncEip712Meta } from "viem/zksync";
 
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
-import type { ClientWithZksyncSsoSessionData } from "../clients/session.js";
+import type { ClientWithZksyncSsoSessionData } from "../client.js";
 
 export type ZksyncSsoWalletActions<chain extends Chain, account extends Account> = Omit<
   WalletActions<chain, account>, "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset" | "prepareTransactionRequest"

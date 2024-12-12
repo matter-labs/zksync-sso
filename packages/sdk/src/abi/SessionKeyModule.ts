@@ -1,27 +1,5 @@
 export const SessionKeyModuleAbi = [
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "smartAccount",
-        type: "address",
-      },
-    ],
-    name: "AlreadyInitialized",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "smartAccount",
-        type: "address",
-      },
-    ],
-    name: "NotInitialized",
-    type: "error",
-  },
-  {
     anonymous: false,
     inputs: [
       {
@@ -509,49 +487,6 @@ export const SessionKeyModuleAbi = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "typeID",
-        type: "uint256",
-      },
-    ],
-    name: "isModuleType",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "hash",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes",
-        name: "signature",
-        type: "bytes",
-      },
-    ],
-    name: "isValidSignature",
-    outputs: [
-      {
-        internalType: "bytes4",
-        name: "magic",
-        type: "bytes4",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
     inputs: [],
     name: "name",
     outputs: [
@@ -562,74 +497,6 @@ export const SessionKeyModuleAbi = [
       },
     ],
     stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "onInstall",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes",
-        name: "",
-        type: "bytes",
-      },
-    ],
-    name: "onUninstall",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes",
-        name: "hookData",
-        type: "bytes",
-      },
-    ],
-    name: "postCheck",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "msgSender",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "msgValue",
-        type: "uint256",
-      },
-      {
-        internalType: "bytes",
-        name: "msgData",
-        type: "bytes",
-      },
-    ],
-    name: "preCheck",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "hookData",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "nonpayable",
     type: "function",
   },
   {

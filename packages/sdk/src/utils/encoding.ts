@@ -1,17 +1,48 @@
-import { type Address, encodeAbiParameters, encodeFunctionData, type Hash, type Hex, parseAbiParameters, toHex } from "viem";
+import { type Address, encodeAbiParameters, getAbiItem, type Hash, type Hex, parseAbiParameters, toHex } from "viem";
 
 import { SessionKeyModuleAbi } from "../abi/SessionKeyModule.js";
-import type { SessionConfig } from "../utils/session.js";
+import { getPeriodIdsForTransaction, type SessionConfig } from "../utils/session.js";
+
+const getSessionSpec = () => {
+  return getAbiItem({
+    abi: SessionKeyModuleAbi,
+    name: "createSession",
+  }).inputs[0];
+};
+
+const extractSelectorFromCallData = (callData: Hash) => {
+  const selector = callData.slice(0, "0x".length + 8); // first 4 bytes for function selector
+  if (selector.length !== 10) return undefined;
+  return selector as Hex;
+};
 
 export const encodeSession = (sessionConfig: SessionConfig) => {
-  const callData = encodeFunctionData({
-    abi: SessionKeyModuleAbi,
-    functionName: "createSession",
-    args: [sessionConfig],
-  });
-  const selector = callData.slice(0, "0x".length + 8) as Hex; // first 4 bytes for function selector
-  const args = `0x${callData.slice(selector.length, callData.length)}` as Hex; // the rest is the arguments
-  return args;
+  return encodeAbiParameters(
+    [getSessionSpec()],
+    [sessionConfig],
+  );
+};
+export const encodeSessionTx = (args: {
+  sessionConfig: SessionConfig;
+  to: Address;
+  callData?: Hash;
+  timestamp?: bigint;
+}) => {
+  return encodeAbiParameters(
+    [
+      getSessionSpec(),
+      { type: "uint64[]" },
+    ],
+    [
+      args.sessionConfig,
+      getPeriodIdsForTransaction({
+        sessionConfig: args.sessionConfig,
+        target: args.to,
+        selector: args.callData ? extractSelectorFromCallData(args.callData) : undefined,
+        timestamp: args.timestamp,
+      }),
+    ],
+  );
 };
 
 export const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
