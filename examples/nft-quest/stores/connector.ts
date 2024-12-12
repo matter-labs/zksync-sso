@@ -1,6 +1,6 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
 import { zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "@wagmi/core/chains";
-import { type Address, type Hash, parseEther } from "viem";
+import type { Address, Hash } from "viem";
 import { callPolicy, zksyncSsoConnector } from "zksync-sso/connector";
 
 import { ZeekNftQuestAbi } from "@/abi/ZeekNFTQuest";
@@ -22,7 +22,7 @@ export const useConnectorStore = defineStore("connector", () => {
     },
     authServerUrl: runtimeConfig.public.authServerUrl,
     session: {
-      feeLimit: parseEther("0.04"),
+      feeLimit: 0n,
       contractCalls: [
         callPolicy({
           address: runtimeConfig.public.contracts.nft as Hash,
