@@ -31,3 +31,19 @@ playwright/.cache/
 .DS_Store
 
 dist
+
+# Rust
+debug/
+target/
+Cargo.lock
+
+# Swift
+xcuserdata/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+.build/
+out/

@@ -28,3 +28,6 @@ deployments-zk
 **/*.tsx
 **/*.mjs
 **/*.cjs
+
+# Ignore Swift/Rust files
+packages/sdk-platforms/*

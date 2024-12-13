@@ -2,6 +2,8 @@ name: CI
 
 on:
   pull_request:
+    paths-ignore:
+      - 'packages/sdk-platforms/**'
   workflow_dispatch:
 
 jobs:
@@ -166,4 +168,3 @@ jobs:
     - name: Run contract test
       run: pnpm test
       working-directory: packages/contracts
-

@@ -1,0 +1,16 @@
+[package]
+name = "ffi"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+uniffi = { version = "0.28.3", features = ["cli"] }
+sdk = { path = "../sdk" }
+
+[build-dependencies]
+uniffi = { version = "0.28.3", features = ["build", "cli"] }
