@@ -131,14 +131,18 @@ This monorepo is comprised of the following packages, products, and examples:
    npx zksync-cli dev start
    ```
 
-4. Compile and deploy contracts to the local node and start the demo
-   application:
+4. Compile and deploy contracts to the local node:
 
    ```bash
    # Compile and deploy contracts
    cd packages/contracts
    pnpm build
    pnpm run deploy
+   ```
+
+5. Start the demo application:
+
+   ```bash
    # Go back to root folder to start demo app
    cd ../..
    pnpm nx dev demo-app
