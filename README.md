@@ -131,20 +131,21 @@ This monorepo is comprised of the following packages, products, and examples:
    npx zksync-cli dev start
    ```
 
-4. Compile and deploy contracts to the local node and start the demo application:
+4. Compile and deploy contracts to the local node and start the demo
+   application:
 
    ```bash
    # Compile and deploy contracts
    cd packages/contracts
    pnpm build
-   pnpm run deploy 
+   pnpm run deploy
    # Go back to root folder to start demo app
    cd ../..
    pnpm nx dev demo-app
    ```
 
-Your local Auth Server will be running at `http://localhost:3002/`,
-and the demo app will be running at `http://localhost:3004/`.
+Your local Auth Server will be running at `http://localhost:3002/`, and the demo
+app will be running at `http://localhost:3004/`.
 
 ## Running commands
 
