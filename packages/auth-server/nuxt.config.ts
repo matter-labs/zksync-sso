@@ -61,6 +61,9 @@ export default defineNuxtConfig({
       [zksyncSepoliaTestnet.id]: {
         nftQuestAddress: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
       },
+      [240]: {
+        nftQuestAddress: process.env.NUXT_PUBLIC_CRONOS_ZKEVM_NFT_QUEST_ADDRESS || "",
+      },
     },
   },
 });

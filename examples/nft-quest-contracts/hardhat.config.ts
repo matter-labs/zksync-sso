@@ -1,10 +1,19 @@
 import "@matterlabs/hardhat-zksync";
 
+import * as dotenv from "dotenv";
+dotenv.config();
+
 import { HardhatUserConfig } from "hardhat/config";
 
 const config: HardhatUserConfig = {
-  defaultNetwork: "zkSyncSepoliaTestnet",
+  defaultNetwork: "cronosZkEvmTestnet",
   networks: {
+    cronosZkEvmTestnet: {
+      url: "https://testnet.zkevm.cronos.org",
+      ethNetwork: "sepolia",
+      zksync: true,
+      verifyURL: `https://explorer-api.testnet.zkevm.cronos.org/api/v1/contract/verify/hardhat?apikey=${process.env.CRONOS_API_KEY}`,
+    },
     zkSyncSepoliaTestnet: {
       url: "https://sepolia.era.zksync.dev",
       ethNetwork: "sepolia",
@@ -32,7 +41,8 @@ const config: HardhatUserConfig = {
     },
   },
   zksolc: {
-    version: "latest",
+    // latest version is not supported by conctract verification backend
+    version: "1.5.7",
     settings: {
       // find all available options in the official documentation
       // https://docs.zksync.io/build/tooling/hardhat/hardhat-zksync-solc#configuration
