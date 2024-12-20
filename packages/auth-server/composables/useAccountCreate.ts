@@ -9,7 +9,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
   const { login } = useAccountStore();
   const { getThrowAwayClient } = useClientStore();
 
-  const fundAccount = async (address: Address) => {
+  const getRichClient = () => {
     const chain = supportedChains.find((c) => c.id === chainId.value);
     if (!chain) throw new Error("Unsupported chain when funding");
     const client = createWalletClient({
@@ -17,10 +17,47 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
       chain,
       transport: http(),
     }).extend(publicActions);
+    return client;
+  };
+  const fundAccount = async (address: Address) => {
+    const client = getRichClient();
     const transactionHash = await client.sendTransaction({
       to: address,
       value: parseEther("0.5"),
       maxPriorityFeePerGas: 0n,
+    });
+    const receipt = await client.waitForTransactionReceipt({ hash: transactionHash });
+    if (receipt.status !== "success") {
+      throw new Error("Failed to fund account");
+    }
+  };
+
+  const mintAAToken = async (address: Address) => {
+    const client = getRichClient();
+    const transactionHash = await client.writeContract({
+      address: "0xd4567AA4Fd1B32A16c16CBFF9D9a69e51CF72293",
+      abi: [
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "to",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "mint",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+      ] as const,
+      functionName: "mint",
+      args: [address, parseEther("10")],
     });
     const receipt = await client.waitForTransactionReceipt({ hash: transactionHash });
     if (receipt.status !== "success") {
@@ -53,6 +90,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
 
     const deployerClient = getThrowAwayClient({ chainId: chainId.value });
 
+    console.log("Deploying account");
     const deployedAccount = await deployAccount(deployerClient, {
       credentialPublicKey,
       uniqueAccountId: credentialId,
@@ -60,7 +98,8 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
       paymasterAddress: contractsByChain[chainId.value].accountPaymaster,
       initialSession: sessionData || undefined,
     });
-    retry(async () => fundAccount(deployedAccount.address), { delay: 1000 });
+    await retry(async () => fundAccount(deployedAccount.address), { delay: 1000 });
+    await mintAAToken(deployedAccount.address);
 
     login({
       username: credentialId,

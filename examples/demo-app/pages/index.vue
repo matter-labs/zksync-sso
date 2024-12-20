@@ -60,7 +60,7 @@ const chain = {
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const zksyncConnector = zksyncSsoConnector({
-  authServerUrl: "https://zksync-interop-auth-server.web.app/confirm",
+  authServerUrl: "https://interop-auth-server.web.app/confirm",
 });
 const wagmiConfig = createConfig({
   chains: [chain],

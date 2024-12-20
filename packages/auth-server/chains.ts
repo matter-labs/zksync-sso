@@ -3,7 +3,7 @@ import { zksyncSepoliaTestnet } from "viem/chains";
 export const chain1 = {
   ...zksyncSepoliaTestnet,
   id: 505,
-  name: "ZKsync Interop",
+  name: "Interop Chain 1",
   network: "zksync-interop-chain",
   rpcUrls: {
     default: {

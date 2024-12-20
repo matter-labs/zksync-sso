@@ -64,10 +64,11 @@ const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(c
 
 const registerAccount = async () => {
   if (!session.value) {
-    // no session defined
     await createAccount();
-    if (!createAccountError) {
+    if (!createAccountError.value) {
       navigateTo("/confirm/connect");
+    } else {
+      console.error(createAccountError.value);
     }
   } else {
     navigateTo({ path: "/confirm/connect", query: { action: "register" } });

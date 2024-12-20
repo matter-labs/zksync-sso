@@ -236,9 +236,7 @@ const confirmTransaction = async () => {
       ...transactionParams.value,
     });
     return {
-      result: {
-        value: transactionHash,
-      },
+      result: transactionHash,
     };
   });
 };
