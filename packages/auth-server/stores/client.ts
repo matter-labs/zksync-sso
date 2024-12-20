@@ -1,18 +1,17 @@
 import { type Address, createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 
-export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
+import { chain1 } from "@/chains";
+
+export const supportedChains = [chain1];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
-  [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.url,
-  [zksyncInMemoryNode.id]: "http://localhost:3010",
+  [chain1.id]: "http://localhost:3010",
 };
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
-  [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
-  [zksyncInMemoryNode.id]: "http://localhost:3020",
+  [chain1.id]: "http://localhost:3020",
 };
 
 type ChainContracts = PasskeyRequiredContracts & {
@@ -20,17 +19,11 @@ type ChainContracts = PasskeyRequiredContracts & {
   accountPaymaster: Address;
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
-  [zksyncSepoliaTestnet.id]: {
-    session: "0x64Bf5C3229CafF50e39Ec58C4BFBbE67bEA90B0F",
-    passkey: "0x0F65cFE984d494DAa7165863f1Eb61C606e45fFb",
-    accountFactory: "0x73CFa70318FD25F2166d47Af9d93Cf72eED48724",
-    accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
-  },
-  [zksyncInMemoryNode.id]: {
-    session: "0xD68963C76ab7FFACbF53B1750325254F40eDe765",
-    passkey: "0x21b8397BeF5128662564b8491676baa6754AFD47",
-    accountFactory: "0x26711A4A572a5BBdF967b6385636Bd968e6E883C",
-    accountPaymaster: "0x61C2F9736eC60C9175Cdc02DB81D730cf06eF0Ee",
+  [chain1.id]: {
+    session: "0xd1DCAEd76B8A950c047CF77F10B0C761b9cf0980",
+    passkey: "0xC159892F43B094CdbABd6C6604f5e8b20C0cf8eb",
+    accountFactory: "0x3Eb77C5b2909Fc5cA31004238dB47ee01EF0DFF5",
+    accountPaymaster: "0x6a44cf40154f682fA056Bf13D1c79B866b2DC231",
   },
 };
 

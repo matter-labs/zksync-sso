@@ -42,24 +42,25 @@
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType } from "@wagmi/core";
 import { zksyncSsoConnector } from "zksync-sso/connector";
-import { zksyncInMemoryNode } from "@wagmi/core/chains";
+import { zksyncSepoliaTestnet } from "@wagmi/core/chains";
 import { createWalletClient, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
-const chain = zksyncInMemoryNode;
+const chain = {
+  ...zksyncSepoliaTestnet,
+  id: 505,
+  name: "ZKsync Interop",
+  network: "zksync-interop-chain",
+  rpcUrls: {
+    default: {
+      http: ["https://www.zk-interop.xyz/chain-1"],
+    },
+  },
+};
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const zksyncConnector = zksyncSsoConnector({
-  authServerUrl: "http://localhost:3002/confirm",
-  session: {
-    feeLimit: parseEther("0.1"),
-    transfers: [
-      {
-        to: testTransferTarget,
-        valueLimit: parseEther("0.1"),
-      },
-    ],
-  },
+  authServerUrl: "https://zksync-interop-auth-server.web.app/confirm",
 });
 const wagmiConfig = createConfig({
   chains: [chain],

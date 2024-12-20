@@ -184,11 +184,14 @@ const advancedInfoOpened = ref(false);
 const { result: preparedTransaction, inProgress: preparingTransaction, error: preparingFailed, execute: prepareTransaction } = useAsync(async () => {
   if (!request.value) return null;
   const client = getClient({ chainId: requestChain.value!.id });
-  return await client.prepareTransactionRequest(transactionParams.value);
+  return await client.prepareTransactionRequest({
+    account: client.account,
+    ...transactionParams.value,
+  });
 });
 const { resume: resumeAutoReEstimation, pause: pauseAutoReEstimation } = useIntervalFn(async () => {
   if (responseInProgress.value) return;
-  await prepareTransaction();
+  await prepareTransaction().catch(console.error);
 }, 20_000, { immediate: false }); // re-estimate every 20 seconds
 watch(transactionParams, (val) => {
   if (!val) {
@@ -196,7 +199,7 @@ watch(transactionParams, (val) => {
     pauseAutoReEstimation();
     return;
   }
-  prepareTransaction();
+  prepareTransaction().catch(console.error);
   resumeAutoReEstimation();
 }, { immediate: true });
 
@@ -228,7 +231,10 @@ const totalFee = computed<bigint>(() => {
 const confirmTransaction = async () => {
   respond(async () => {
     const client = getClient({ chainId: requestChain.value!.id });
-    const transactionHash = await client.sendTransaction(transactionParams.value);
+    const transactionHash = await client.sendTransaction({
+      account: client.account,
+      ...transactionParams.value,
+    });
     return {
       result: {
         value: transactionHash,
