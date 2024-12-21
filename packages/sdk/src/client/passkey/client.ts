@@ -5,6 +5,7 @@ import { passkeyHashSignatureResponseFormat } from "../../utils/passkey.js";
 import { toPasskeyAccount } from "./account.js";
 import { requestPasskeyAuthentication } from "./actions/passkey.js";
 import { type ZksyncSsoPasskeyActions, zksyncSsoPasskeyActions } from "./decorators/passkey.js";
+import { zksyncSsoPasskeyWalletActions } from "./decorators/wallet.js";
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
@@ -47,7 +48,8 @@ export function createZksyncPasskeyClient<
     .extend(publicActions)
     .extend(walletActions)
     .extend(eip712WalletActions())
-    .extend(zksyncSsoPasskeyActions);
+    .extend(zksyncSsoPasskeyActions)
+    .extend(zksyncSsoPasskeyWalletActions);
   return client;
 }
 

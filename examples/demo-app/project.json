@@ -17,7 +17,8 @@
             "prefix": "Demo-App:"
           }
         ]
-      }
+      },
+      "dependsOn": ["deploy-contracts"]
     },
     "build": {
       "executor": "nx:run-commands",
@@ -28,7 +29,23 @@
             "command": "pnpm nuxt generate"
           }
         ]
+      },
+      "dependsOn": ["deploy-contracts"]
+    },
+    "build-contracts": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "forge build smart-contracts/DemoPaymaster.sol --root . --zksync"
       }
+    },
+    "deploy-contracts": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "forge create smart-contracts/DemoPaymaster.sol:DemoPaymaster --private-key 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110 --rpc-url http://localhost:8011 --root . --chain 260 --zksync --json 2>&1 | sed -n 's/.*\\({.*}\\).*/\\1/p' > forge-output.json && ADDRESS=$(sed -n 's/.*\"deployedTo\":\"\\([^\"]*\\)\".*/\\1/p' forge-output.json) && echo $ADDRESS && cast send --private-key 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110 $ADDRESS --rpc-url http://localhost:8011 --value 0.1ether"
+      },
+      "dependsOn": ["build-contracts"]
     },
     "build:local": {
       "executor": "nx:run-commands",
@@ -60,7 +77,8 @@
       "options": {
         "cwd": "examples/demo-app",
         "command": "pnpm exec playwright install chromium"
-      }
+      },
+      "dependsOn": ["deploy-contracts"]
     },
     "e2e": {
       "executor": "nx:run-commands",

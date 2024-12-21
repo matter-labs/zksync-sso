@@ -65,7 +65,7 @@
             data-testid="connect"
             @click="confirmConnection()"
           >
-            Connect
+            {{ isLoggedIn ? 'Connect' : 'Create' }}
           </ZkButton>
         </ZkHighlightWrapper>
       </div>

@@ -52,6 +52,14 @@ jobs:
       run: pnpm run deploy
       working-directory: packages/contracts
 
+    - name: Install zksync-foundry
+      run: |
+        wget -qc https://github.com/matter-labs/foundry-zksync/releases/download/nightly/foundry_nightly_linux_amd64.tar.gz -O - | tar -xz
+        ./forge -V && ./cast -V
+
+    - name: Deploy Demo-App contracts
+      run: pnpm nx deploy-contracts demo-app
+
     # Run E2E tests
     - name: Install Playwright Chromium Browser
       run: pnpm exec playwright install chromium
