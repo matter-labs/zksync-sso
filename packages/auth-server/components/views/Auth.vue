@@ -66,7 +66,7 @@ const registerAccount = async () => {
   if (!session.value) {
     // no session defined
     await createAccount();
-    if (!createAccountError) {
+    if (!createAccountError.value) {
       navigateTo("/confirm/connect");
     }
   } else {

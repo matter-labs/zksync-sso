@@ -125,13 +125,19 @@ This monorepo is comprised of the following packages, products, and examples:
    [workspace protocol](https://pnpm.io/workspaces#workspace-protocol-workspace)
    to link SDK in the new folder.
 
-3. Start a local node:
+3. Install `foundry-zksync`:
+
+   ```bash
+   curl -L https://raw.githubusercontent.com/matter-labs/foundry-zksync/main/install-foundry-zksync | bash
+   ```
+
+4. Start a local node:
 
    ```bash
    npx zksync-cli dev start
    ```
 
-4. Compile and deploy contracts to the local node:
+5. Compile and deploy contracts to the local node:
 
    ```bash
    # Compile and deploy contracts
@@ -140,11 +146,9 @@ This monorepo is comprised of the following packages, products, and examples:
    pnpm run deploy
    ```
 
-5. Start the demo application:
+6. Start the demo application:
 
    ```bash
-   # Go back to root folder to start demo app
-   cd ../..
    pnpm nx dev demo-app
    ```
 

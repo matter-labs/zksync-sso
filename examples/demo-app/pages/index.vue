@@ -4,10 +4,17 @@
       ZKsync SSO Demo
     </h1>
     <button
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      @click="address ? disconnectWallet() : connectWallet()"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4"
+      @click="address ? disconnectWallet() : connectWallet(false)"
     >
       {{ address ? "Disconnect" : "Connect" }}
+    </button>
+    <button
+      v-if="!address"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+      @click="address ? disconnectWallet() : connectWallet(true)"
+    >
+      Connect w/ Session
     </button>
     <div
       v-if="address"
@@ -23,11 +30,19 @@
     </div>
     <button
       v-if="address"
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-3"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-3 mr-4 disabled:bg-slate-300"
       :disabled="isSendingEth"
-      @click="sendTokens()"
+      @click="sendTokens(false)"
     >
       Send 0.1 ETH
+    </button>
+    <button
+      v-if="address"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-3 disabled:bg-slate-300"
+      :disabled="isSendingEth"
+      @click="sendTokens(true)"
+    >
+      Send 0.1 ETH w/ Paymaster
     </button>
 
     <div
@@ -45,11 +60,13 @@ import { zksyncSsoConnector } from "zksync-sso/connector";
 import { zksyncInMemoryNode } from "@wagmi/core/chains";
 import { createWalletClient, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { getGeneralPaymasterInput } from "viem/zksync";
+import PaymasterContract from "../forge-output.json";
 
 const chain = zksyncInMemoryNode;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
-const zksyncConnector = zksyncSsoConnector({
+const zksyncConnectorWithSession = zksyncSsoConnector({
   authServerUrl: "http://localhost:3002/confirm",
   session: {
     feeLimit: parseEther("0.1"),
@@ -60,6 +77,9 @@ const zksyncConnector = zksyncSsoConnector({
       },
     ],
   },
+});
+const zksyncConnector = zksyncSsoConnector({
+  authServerUrl: "http://localhost:3002/confirm",
 });
 const wagmiConfig = createConfig({
   chains: [chain],
@@ -84,9 +104,19 @@ const fundAccount = async () => {
     transport: http(),
   });
 
-  await richClient.sendTransaction({
+  let transactionHash = await richClient.sendTransaction({
     to: address.value,
     value: parseEther("1"),
+  });
+  // FIXME: When not using sessions, sendTransaction returns a map and not a string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((transactionHash as any).value !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transactionHash = (transactionHash as any).value;
+  }
+
+  await waitForTransactionReceipt(wagmiConfig, {
+    hash: transactionHash,
   });
 };
 
@@ -118,11 +148,11 @@ watch(address, async () => {
   balance.value = currentBalance;
 }, { immediate: true });
 
-const connectWallet = async () => {
+const connectWallet = async (useSession: boolean) => {
   try {
     errorMessage.value = "";
     connect(wagmiConfig, {
-      connector: zksyncConnector,
+      connector: useSession ? zksyncConnectorWithSession : zksyncConnector,
       chainId: chain.id,
     });
   } catch (error) {
@@ -133,25 +163,45 @@ const connectWallet = async () => {
 };
 
 const disconnectWallet = async () => {
+  errorMessage.value = "";
   await disconnect(wagmiConfig);
 };
 
-const sendTokens = async () => {
+const sendTokens = async (usePaymaster: boolean) => {
   if (!address.value) return;
 
   errorMessage.value = "";
   isSendingEth.value = true;
   try {
-    const transactionHash = await sendTransaction(wagmiConfig, {
-      to: testTransferTarget,
-      value: parseEther("0.1"),
-    });
+    let transactionHash;
 
+    if (usePaymaster) {
+      transactionHash = await sendTransaction(wagmiConfig, {
+        to: testTransferTarget,
+        value: parseEther("0.1"),
+        paymaster: PaymasterContract.deployedTo as `0x${string}`,
+        paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
+      });
+    } else {
+      transactionHash = await sendTransaction(wagmiConfig, {
+        to: testTransferTarget,
+        value: parseEther("0.1"),
+      });
+    }
+
+    // FIXME: When not using sessions, sendTransaction returns a map and not a string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((transactionHash as any).value !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transactionHash = (transactionHash as any).value;
+    }
+
+    const receipt = await waitForTransactionReceipt(wagmiConfig, {
+      hash: transactionHash,
+    });
     balance.value = await getBalance(wagmiConfig, {
       address: address.value,
     });
-
-    const receipt = await waitForTransactionReceipt(wagmiConfig, { hash: transactionHash });
     if (receipt.status === "reverted") throw new Error("Transaction reverted");
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -161,6 +211,10 @@ const sendTokens = async () => {
     if (!transactionFailureDetails) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       transactionFailureDetails = (error as any).cause?.cause?.data?.originalError?.cause?.details;
+    }
+    if (!transactionFailureDetails) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transactionFailureDetails = (error as any).cause?.details;
     }
 
     if (transactionFailureDetails) {
