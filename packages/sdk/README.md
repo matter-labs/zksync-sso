@@ -67,7 +67,7 @@ const ssoConnector = zksyncSsoConnector({
             value: "0x6cC8cf7f6b488C58AA909B77E6e65c631c204784",
           },
 
-          // Allow transfering up to 0.2 tokens per hour
+          // Allow transferring up to 0.2 tokens per hour
           // until the session expires
           {
             index: 1,
