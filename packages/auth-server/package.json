@@ -29,6 +29,9 @@
     "web3-avatar-vue": "^1.0.4",
     "zksync-sso": "workspace:*"
   },
+  "devDependencies": {
+    "tailwindcss": "^3.4.14"
+  },
   "overrides": {
     "vue": "latest"
   }
