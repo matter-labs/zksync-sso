@@ -1,18 +1,43 @@
 import { type Address, createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
-import { eip712WalletActions } from "viem/zksync";
+import { defineChain } from "viem/utils";
+import { chainConfig, eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 
-export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
+// TODO: temporary fix, PR: https://github.com/wevm/viem/pull/3135
+const cronoszkEVMTestnet = defineChain({
+  ...chainConfig,
+  id: 240,
+  name: "Cronos zkEVM Testnet",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Cronos zkEVM Test Coin",
+    symbol: "zkTCRO",
+  },
+  rpcUrls: {
+    default: { http: ["https://testnet.zkevm.cronos.org"] },
+  },
+  blockExplorers: {
+    default: {
+      name: "Cronos zkEVM Testnet Explorer",
+      url: "https://explorer.zkevm.cronos.org/testnet",
+    },
+  },
+  testnet: true,
+});
+
+export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode, cronoszkEVMTestnet];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
-export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
+export const blockExplorerUrlByChain: Record<number, string> = {
   [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.url,
   [zksyncInMemoryNode.id]: "http://localhost:3010",
+  [cronoszkEVMTestnet.id]: cronoszkEVMTestnet.blockExplorers.default.url,
 };
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
   [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
   [zksyncInMemoryNode.id]: "http://localhost:3020",
+  [cronoszkEVMTestnet.id]: cronoszkEVMTestnet.blockExplorers.default.url,
 };
 
 type ChainContracts = PasskeyRequiredContracts & {
@@ -31,6 +56,12 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     passkey: "0x21b8397BeF5128662564b8491676baa6754AFD47",
     accountFactory: "0x26711A4A572a5BBdF967b6385636Bd968e6E883C",
     accountPaymaster: "0x61C2F9736eC60C9175Cdc02DB81D730cf06eF0Ee",
+  },
+  [cronoszkEVMTestnet.id]: {
+    session: "0xe2f455F7CBeAfc86Ac23f831F008F52da4BEF621",
+    passkey: "0x0194348FC325805e78e8ec81d857305C430221FA",
+    accountFactory: "0x5aAc101468ff14f8BD5bca6643BfD22D87943D62",
+    accountPaymaster: "0x6b1b343e20157D8dA0198AA35FbD9e61e6Ab35B1",
   },
 };
 

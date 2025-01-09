@@ -33,7 +33,7 @@
       <ZkTableCellData class="w-full text-center text-neutral-500 py-4 flex items-center justify-center">
         We can't find any NFTs related to this account.
         <br>Try collecting your first NFT at <a
-          href="https://nft.zksync.dev"
+          href=""
           target="_blank"
           class="text-blue-500"
         >NFT Quest</a>.
