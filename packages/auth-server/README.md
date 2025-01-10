@@ -12,3 +12,19 @@ pnpm nx deploy contracts
 # Start Auth Server
 pnpm nx dev auth-server
 ```
+
+## Deploy
+
+```sh
+pnpm i
+
+cp .env.example .env
+
+# generate artifacts
+nx run auth-server:build
+
+# artifacts will be in ./dist
+
+# serve the artifacts
+npx serve ./dist
+```
