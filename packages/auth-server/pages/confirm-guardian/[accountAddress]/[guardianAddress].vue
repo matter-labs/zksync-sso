@@ -45,61 +45,53 @@
 
       <div
         v-if="isGuardianConfirmed"
-        class="rounded-2xl bg-green-50/50 dark:bg-green-900/20 backdrop-blur-sm p-6 text-center"
+        class="rounded-2xl flex gap-4 bg-green-50/80 dark:bg-green-900/30 backdrop-blur-sm p-6 border border-green-200 dark:border-green-700/50"
       >
-        <div class="inline-flex items-center gap-3 text-green-600 dark:text-green-400 mb-3">
-          <Icon
-            name="heroicons:check-circle"
-            class="w-7 h-7"
-          />
-          <span class="text-lg font-medium">Guardian Already Confirmed</span>
+        <CheckCircleIcon class="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
+        <div class="flex flex-col flex-1">
+          <span class="text-lg font-medium text-green-700 dark:text-green-300">Guardian Already Confirmed</span>
+          <p class="text-green-600 dark:text-green-400">
+            This guardian has already been confirmed for your account.
+          </p>
         </div>
-        <p class="text-green-600 dark:text-green-400">
-          This guardian has already been confirmed for your account.
-        </p>
       </div>
-
       <div
         v-else
-        class="flex flex-col gap-8"
+        class="rounded-2xl flex gap-4 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm p-6 border border-yellow-200 dark:border-yellow-700/50"
       >
-        <div class="rounded-2xl bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm p-6 border border-yellow-200 dark:border-yellow-700/50">
-          <div class="flex items-start gap-4">
-            <ExclamationTriangleIcon class="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-            <div>
-              <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-                Action Required
-              </h3>
-              <p class="text-yellow-700 dark:text-yellow-300">
-                Connect your wallet to confirm this guardian for your account.
-              </p>
-              <ConnectButton
-                class="w-full lg:w-fit mt-6"
-                :type="accountData.isConnected ? 'secondary' : 'primary'"
-              />
-            </div>
-          </div>
+        <ExclamationTriangleIcon class="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+        <div class="flex flex-col flex-1">
+          <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+            Action Required
+          </h3>
+          <p class="text-yellow-700 dark:text-yellow-300">
+            Connect your wallet to confirm this guardian for your account.
+          </p>
+          <ConnectButton
+            class="w-full lg:w-fit mt-6"
+            :type="accountData.isConnected ? 'secondary' : 'primary'"
+          />
         </div>
-
-        <p
-          v-if="accountData.address &&!isAddressEqual(accountData.address as `0x${string}`, guardianAddress.data)"
-          class="text-red-500 font-medium"
-        >
-          The connected wallet is not the guardian address. Please connect the correct wallet.
-        </p>
-        <Button
-          v-else-if="accountData.isConnected"
-          class="w-full lg:w-fit"
-        >
-          Confirm Guardian
-        </Button>
       </div>
+
+      <p
+        v-if="accountData.address &&!isAddressEqual(accountData.address as `0x${string}`, guardianAddress.data)"
+        class="text-red-500 font-medium"
+      >
+        The connected wallet is not the guardian address. Please connect the correct wallet.
+      </p>
+      <Button
+        v-if="accountData.isConnected"
+        class="w-full lg:w-fit"
+      >
+        Confirm Guardian
+      </Button>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
+import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
 import { useAppKitAccount } from "@reown/appkit/vue";
 import { isAddressEqual } from "viem";
 
@@ -123,6 +115,7 @@ if (!accountAddress.success || !guardianAddress.success) {
 }
 
 const isGuardianConfirmed = false;
+
 definePageMeta({
   layout: "dashboard",
 });
