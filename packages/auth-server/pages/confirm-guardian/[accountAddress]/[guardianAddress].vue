@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen">
     <header class="max-w-[1920px] mx-auto mb-12">
-      <Nav />
+      <app-generic-nav />
     </header>
     <main class="max-w-[900px] mx-auto flex flex-col gap-6">
       <div>
@@ -21,7 +21,7 @@
           <div class=" text-gray-900 dark:text-gray-100 break-all">
             <span class="mr-2 font-mono text-lg">
               {{ accountAddress.data }}</span>
-            <CopyToClipboard
+            <common-copy-to-clipboard
               class="!inline-flex"
               :text="accountAddress.data"
             />
@@ -35,7 +35,7 @@
           <div class="text-gray-900 dark:text-gray-100 break-all">
             <span class="mr-2 font-mono text-lg">
               {{ guardianAddress.data }}</span>
-            <CopyToClipboard
+            <common-copy-to-clipboard
               class="!inline-flex"
               :text="guardianAddress.data"
             />
@@ -67,7 +67,7 @@
           <p class="text-yellow-700 dark:text-yellow-300">
             Connect your wallet to confirm this guardian for your account.
           </p>
-          <ConnectButton
+          <common-connect-button
             class="w-full lg:w-fit mt-6"
             :type="accountData.isConnected ? 'secondary' : 'primary'"
           />
@@ -80,12 +80,12 @@
       >
         The connected wallet is not the guardian address. Please connect the correct wallet.
       </p>
-      <Button
+      <ZkButton
         v-if="accountData.isConnected"
         class="w-full lg:w-fit"
       >
         Confirm Guardian
-      </Button>
+      </ZkButton>
     </main>
   </div>
 </template>
@@ -96,10 +96,6 @@ import { useAppKitAccount } from "@reown/appkit/vue";
 import { isAddressEqual } from "viem";
 
 import { AddressSchema } from "@/utils/schemas";
-import CopyToClipboard from "~/components/common/CopyToClipboard.vue";
-import ConnectButton from "~/components/confirm-guardian/connect-button.vue";
-import Nav from "~/components/confirm-guardian/nav.vue";
-import Button from "~/components/zk/button.vue";
 
 const accountData = useAppKitAccount();
 

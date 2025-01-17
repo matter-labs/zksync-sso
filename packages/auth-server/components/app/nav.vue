@@ -35,9 +35,14 @@
     </div>
     <div
       v-show="!showMobileMenu"
-      class="flex items-center pr-2"
+      class="flex gap-2 items-center pr-2"
     >
       <app-color-mode />
+      <ZkButtonIcon
+        icon="Logout"
+        class="mr-1 -ml-1 scale-[-1]"
+        @click="logoutAndRedirect"
+      />
     </div>
     <div
       v-show="showMobileMenu"
@@ -80,6 +85,13 @@ onBeforeUnmount(() => {
 });
 
 watch(windowWidth, checkWidths);
+
+const { logout } = useAccountStore();
+
+const logoutAndRedirect = () => {
+  logout();
+  navigateTo("/");
+};
 </script>
 
 <style lang="scss" scoped>
