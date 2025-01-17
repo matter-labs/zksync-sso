@@ -20,7 +20,8 @@
     "build:types": "tsc --project ./tsconfig.build.json --module esnext --declarationDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
     "clean": "rm -rf *.tsbuildinfo dist",
     "typecheck": "tsc --noEmit",
-    "publish:local": "pnpm publish --no-git-checks --force"
+    "publish:local": "pnpm publish --no-git-checks --force",
+    "test": "vitest"
   },
   "peerDependencies": {
     "@simplewebauthn/browser": "10.x",
@@ -37,7 +38,8 @@
     "@types/ms": "^0.7.34",
     "@types/node": "^22.1.0",
     "eventemitter3": "^5.0.1",
-    "viem": "2.21.14"
+    "viem": "2.21.14",
+    "vitest": "^2.1.8"
   },
   "files": [
     "*",

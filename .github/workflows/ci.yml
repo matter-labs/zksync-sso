@@ -63,6 +63,10 @@ jobs:
     - name: Deploy Demo-App contracts
       run: pnpm nx deploy-contracts demo-app
 
+	- name: Run tests
+      run: pnpm test
+      working-directory: packages/sdk
+
     # Run E2E tests
     - name: Install Playwright Chromium Browser
       run: pnpm exec playwright install chromium
