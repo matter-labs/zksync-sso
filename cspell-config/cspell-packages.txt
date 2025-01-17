@@ -5,3 +5,4 @@ wagmi
 cbor
 levischuck
 ofetch
+reown
