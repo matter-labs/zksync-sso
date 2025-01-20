@@ -92,3 +92,7 @@ export const formatExpiryDate = (args: { now: Date; expiresAt: Date }): { isToda
     formattedTime: formatTime(expiresAt),
   };
 };
+
+export const uint8ArrayToHex = (array: Uint8Array): string => {
+  return Array.from(array).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};

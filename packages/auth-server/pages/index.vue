@@ -25,6 +25,13 @@
       >
         Log In
       </ZkButton>
+
+      <ZkLink
+        class="w-fit mx-auto mt-2"
+        href="/recover"
+      >
+        Recover your account
+      </ZkLink>
     </div>
 
     <CommonHeightTransition :opened="!!accountLoginError">
