@@ -17,7 +17,7 @@
     >
       <CheckIcon
         v-if="copied"
-        class="w-5 h-5 text-green-500 dark:text-green-400"
+        class="w-4 h-4 text-green-600 dark:text-green-400"
       />
       <DocumentDuplicateIcon
         v-else
