@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { createWalletClient, http, type Address, type Chain } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { deployAccount } from "zksync-sso/client";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
 
@@ -32,9 +32,7 @@ const onClickAddCrypto = async () => {
   isLoading.value = false;
 };
 
-const createCryptoAccount = async () => {
-  let credentialPublicKey: Uint8Array;
-
+const getPublicPasskey = async () => {
   // Create new Passkey
   if (!appMeta.value || !appMeta.value.credentialPublicKey) {
     try {
@@ -46,26 +44,37 @@ const createCryptoAccount = async () => {
         ...appMeta.value,
         credentialPublicKey: u8ToString(newCredentialPublicKey),
       };
-      credentialPublicKey = newCredentialPublicKey;
+      return newCredentialPublicKey;
     } catch (error) {
       console.error("Passkey registration failed:", error);
       return;
     }
   } else {
-    credentialPublicKey = new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey));
+    return new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey));
   }
+};
 
-  // Configure deployer account to pay for Account creation
+const getDeployerClient = async () => {
   const config = useRuntimeConfig();
-  const deployerClient = createWalletClient({
+  return createWalletClient({
     account: privateKeyToAccount(deployerKey as Address),
     chain: config.public.network as Chain,
     transport: http()
   });
+};
+
+const createAccountWithPasskey = async () => {
+  const publicPassKey = await getPublicPasskey();
+  if (!publicPassKey) {
+    return false;
+  }
+
+  // Configure deployer account to pay for Account creation
+  const deployerClient = await getDeployerClient();
 
   try {
     const { address, transactionReceipt } = await deployAccount(deployerClient, {
-      credentialPublicKey,
+      credentialPublicKey: publicPassKey,
       contracts,
     });
 
@@ -75,10 +84,32 @@ const createCryptoAccount = async () => {
     };
     console.log(`Successfully created account: ${address}`);
     console.log(`Transaction receipt: ${transactionReceipt.transactionHash}`);
+    return true;
   } catch (error) {
     console.error(error);
-    return;
+    return false;
   }
+};
+
+const createCryptoAccount = async () => {
+  
+  if (!await createAccountWithPasskey()) {
+    // create account with EOA owner
+    const privateKey = generatePrivateKey();
+    const account = privateKeyToAccount(privateKey);
+    
+    const deployerClient = await getDeployerClient();
+    const { address } = await deployAccount(deployerClient, {
+      credentialPublicKey: new Uint8Array(),
+      ownerPublicKeys: [account.address],
+      contracts,
+    });
+
+    appMeta.value = {
+      ...appMeta.value,
+      cryptoAccountAddress: address,
+    };
+  };
 
   navigateTo("/crypto-account");
 };
