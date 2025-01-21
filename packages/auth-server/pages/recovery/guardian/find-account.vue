@@ -38,7 +38,7 @@
 
           <ZkLink
             class="text-sm text-center w-fit text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors hover:border-b-neutral-900 dark:hover:border-b-neutral-100"
-            href="/recover/guardian-unknown-account"
+            href="/recovery/guardian/unknown-account"
           >
             I don't remember my address or the guardian address
           </ZkLink>

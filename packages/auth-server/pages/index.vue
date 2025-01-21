@@ -28,7 +28,7 @@
 
       <ZkLink
         class="w-fit mx-auto mt-2"
-        href="/recover"
+        href="/recovery"
       >
         Recover your account
       </ZkLink>
