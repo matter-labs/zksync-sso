@@ -22,7 +22,7 @@
         <NuxtLink
           v-for="item in mainNav"
           :key="item.href"
-          :href="item.href"
+          :to="item.href"
           class="w-fit border-y-2 border-transparent hover:border-b-neutral-500 px-5 py-3 text-neutral-600 hover:text-neutral-800 flex items-center dark:text-neutral-400 dark:hover:text-neutral-300"
         >
           <zk-icon

@@ -5,7 +5,17 @@ import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 export default defineNuxtConfig({
   compatibilityDate: "2024-07-08",
   devtools: { enabled: false },
-  modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxtjs/tailwindcss", "@nuxtjs/google-fonts", "@vueuse/nuxt", "radix-vue/nuxt", "@nuxtjs/color-mode", "nuxt-gtag"],
+  modules: [
+    "@nuxt/eslint",
+    "@pinia/nuxt",
+    "@nuxtjs/tailwindcss",
+    "@nuxtjs/google-fonts",
+    "@vueuse/nuxt",
+    "radix-vue/nuxt",
+    "@nuxtjs/color-mode",
+    "nuxt-gtag",
+    "nuxt-typed-router",
+  ],
   app: {
     head: {
       title: "ZKsync SSO",

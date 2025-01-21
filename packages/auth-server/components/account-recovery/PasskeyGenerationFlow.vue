@@ -94,11 +94,13 @@ const { registerPasskey } = usePasskeyRegister();
 
 const recoveryUrl = computedAsync(async () => {
   const queryParams = new URLSearchParams();
+
   const credentialId = props.newPasskey?.credentialId ?? "";
   const credentialPublicKey = uint8ArrayToHex(props.newPasskey?.credentialPublicKey ?? new Uint8Array()) ?? "";
 
   queryParams.set("credentialId", credentialId);
   queryParams.set("credentialPublicKey", credentialPublicKey);
+  queryParams.set("accountAddress", props.address);
 
   // Create checksum from concatenated credential data
   const dataToHash = `${props.address}:${credentialId}:${credentialPublicKey}`;
@@ -108,7 +110,7 @@ const recoveryUrl = computedAsync(async () => {
 
   queryParams.set("checksum", checksum);
 
-  return `${appUrl}/init-recovery/${props.address}?${queryParams.toString()}`;
+  return `${appUrl}/recovery/guardian/confirm-recovery?${queryParams.toString()}`;
 });
 
 const handleGeneratePasskeys = async () => {
