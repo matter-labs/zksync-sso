@@ -54,14 +54,44 @@
             </div>
           </div>
 
-          <div class="rounded-2xl flex gap-4 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm p-6 border border-yellow-200 dark:border-yellow-700/50">
-            <ExclamationTriangleIcon class="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+          <div
+            class="rounded-2xl flex gap-4 backdrop-blur-sm p-6 border"
+            :class="{
+              'bg-yellow-50/80 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-700/50': !accountData.isConnected || !isAccountGuardian,
+              'bg-green-50/80 dark:bg-green-900/30 border-green-200 dark:border-green-700/50': accountData.isConnected && isAccountGuardian,
+            }"
+          >
+            <component
+              :is="accountData.isConnected && isAccountGuardian ? CheckCircleIcon : ExclamationTriangleIcon"
+              class="w-6 h-6 flex-shrink-0"
+              :class="{
+                'text-yellow-600 dark:text-yellow-400': !accountData.isConnected || !isAccountGuardian,
+                'text-green-600 dark:text-green-400': accountData.isConnected && isAccountGuardian,
+              }"
+            />
             <div class="flex flex-col flex-1">
-              <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-                Action Required
+              <h3
+                class="text-lg font-semibold mb-2"
+                :class="{
+                  'text-yellow-800 dark:text-yellow-200': !accountData.isConnected || !isAccountGuardian,
+                  'text-green-800 dark:text-green-200': accountData.isConnected && isAccountGuardian,
+                }"
+              >
+                {{ accountData.isConnected && isAccountGuardian ? 'Wallet Connected' : 'Action Required' }}
               </h3>
-              <p class="text-yellow-700 dark:text-yellow-300">
-                Connect your wallet to sign the recovery transaction.
+              <p
+                :class="{
+                  'text-yellow-700 dark:text-yellow-300': !accountData.isConnected || !isAccountGuardian,
+                  'text-green-700 dark:text-green-300': accountData.isConnected && isAccountGuardian,
+                }"
+              >
+                {{
+                  accountData.isConnected && isAccountGuardian
+                    ? 'Guardian wallet successfully connected.'
+                    : accountData.isConnected
+                      ? 'The connected wallet is not a guardian. Please connect a guardian wallet.'
+                      : 'Connect your wallet to sign the recovery transaction.'
+                }}
               </p>
               <common-connect-button
                 class="w-full lg:w-fit mt-6"
@@ -70,20 +100,29 @@
             </div>
           </div>
 
-          <p
-            v-if="accountData.address && !isAddressEqual(accountData.address as `0x${string}`, recoveryParams.accountAddress)"
-            class="text-red-500 dark:text-red-400 font-medium"
-          >
-            The connected wallet is not the account address. Please connect the correct wallet.
-          </p>
-
           <ZkButton
-            v-if="accountData.isConnected"
+            v-if="accountData.isConnected && !isSuccess"
             class="w-full lg:w-fit"
-            :disabled="!isAddressEqual(accountData.address as `0x${string}`, recoveryParams.accountAddress)"
+            :disabled="!isAccountGuardian"
+            @click="handleSuccess"
           >
             Sign Recovery Transaction
           </ZkButton>
+
+          <div
+            v-if="isSuccess"
+            class="rounded-2xl flex gap-4 bg-green-50/80 dark:bg-green-900/30 backdrop-blur-sm p-6 border border-green-200 dark:border-green-700/50"
+          >
+            <CheckCircleIcon class="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
+            <div class="flex flex-col">
+              <h3 class="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+                Done!
+              </h3>
+              <p class="text-green-700 dark:text-green-300">
+                The account will be ready to use with the new credentials in 24hrs.
+              </p>
+            </div>
+          </div>
         </div>
       </template>
     </main>
@@ -91,9 +130,8 @@
 </template>
 
 <script setup lang="ts">
-import { ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
+import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { isAddressEqual } from "viem";
 import { z } from "zod";
 
 import { uint8ArrayToHex } from "@/utils/formatters";
@@ -133,4 +171,11 @@ const recoveryParams = await RecoveryParamsSchema.parseAsync({
 }).catch(() => {
   error.value = "Invalid recovery parameters. Please verify the URL and try again.";
 });
+
+const isAccountGuardian = ref(false);
+const isSuccess = ref(false);
+
+const handleSuccess = () => {
+  isSuccess.value = true;
+};
 </script>
