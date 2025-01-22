@@ -19,7 +19,7 @@ import NoPasskeyDialog from "~/components/app/NoPasskeyDialog.vue";
 
 import { deployAccount } from "zksync-sso/client";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
-import { getDeployerClient } from "../common/CrpytoDeployer";
+import { getDeployerClient } from "../common/CryptoDeployer";
 import type { Hex } from "viem";
 
 const { appMeta, userDisplay, userId, contracts, deployerKey } = useAppMeta();
