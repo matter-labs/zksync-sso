@@ -21,6 +21,7 @@ export type DeployAccountArgs = {
     accountFactory: Address;
     passkey: Address;
     session: Address;
+    recovery: Address;
   };
   initialSession?: SessionConfig;
   salt?: Uint8Array; // Random 32 bytes
@@ -37,6 +38,7 @@ export type FetchAccountArgs = {
     accountFactory: Address;
     passkey: Address;
     session: Address;
+    recovery: Address;
   };
 };
 export type FetchAccountReturnType = {
@@ -85,6 +87,11 @@ export const deployAccount = async <
     parameters: args.initialSession ? encodeSession(args.initialSession) : "0x",
   });
 
+  const encodedGuardianRecoveryModuleData = encodeModuleData({
+    address: args.contracts.recovery,
+    parameters: "0x",
+  });
+
   let deployProxyArgs = {
     account: client.account!,
     chain: client.chain!,
@@ -94,7 +101,7 @@ export const deployAccount = async <
     args: [
       toHex(args.salt),
       accountId,
-      [encodedPasskeyModuleData, encodedSessionKeyModuleData],
+      [encodedPasskeyModuleData, encodedSessionKeyModuleData, encodedGuardianRecoveryModuleData],
       [],
     ],
   } as any;
