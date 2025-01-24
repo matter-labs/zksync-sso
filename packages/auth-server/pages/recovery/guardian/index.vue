@@ -118,7 +118,7 @@ const validateAddress = async () => {
     addressError.value = "The address is not a valid ZKsync SSO account";
     isValidAddress.value = false;
 
-    // At this point we deliberately ignore errors coming form
+    // At this point we deliberately ignore errors coming from
     // account validation, as they could stem from erc-165 not being
     // supported by the input address.
     return;
