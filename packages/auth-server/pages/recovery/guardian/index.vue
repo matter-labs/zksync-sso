@@ -45,7 +45,8 @@
 
           <ZkButton
             class="w-full"
-            :disabled="!isValidAddress"
+            :disabled="!isValidAddress || isValidatingAccount"
+            :loading="isValidatingAccount"
             @click="handleContinue"
           >
             Continue
@@ -71,6 +72,7 @@
 import { ref } from "vue";
 import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
 
+import { useValidateAccount } from "~/composables/useValidateAccount";
 import { AddressSchema } from "~/utils/schemas";
 
 definePageMeta({
@@ -84,6 +86,7 @@ const isValidAddress = ref(false);
 const newPasskey = ref<RegisterNewPasskeyReturnType | null>(null);
 
 const { inProgress: registerInProgress } = usePasskeyRegister();
+const { validateAccount, isValidatingAccount } = useValidateAccount();
 
 const stepTitle = computed(() => {
   switch (currentStep.value) {
@@ -98,15 +101,31 @@ const stepTitle = computed(() => {
   }
 });
 
-const validateAddress = () => {
+const validateAddress = async () => {
   const result = AddressSchema.safeParse(address.value);
-  if (result.success) {
-    addressError.value = "";
-    isValidAddress.value = true;
-  } else {
+  if (!result.success) {
     addressError.value = "Not a valid address";
     isValidAddress.value = false;
+    return;
   }
+
+  // Reset errors without enabling the Continue button just yet
+  addressError.value = "";
+  isValidAddress.value = false;
+
+  const isValid = await validateAccount(result.data);
+  if (!isValid) {
+    addressError.value = "The address is not a valid ZKsync SSO account";
+    isValidAddress.value = false;
+
+    // At this point we deliberately ignore errors coming from
+    // account validation, as they could stem from erc-165 not being
+    // supported by the input address.
+    return;
+  }
+
+  addressError.value = "";
+  isValidAddress.value = true;
 };
 
 const handleContinue = () => {

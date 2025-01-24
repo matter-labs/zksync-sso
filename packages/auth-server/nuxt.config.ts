@@ -72,6 +72,7 @@ export default defineNuxtConfig({
         nftQuestAddress: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
       },
       appUrl: process.env.NUXT_PUBLIC_APP_URL || "https://auth-test.zksync.dev",
+      ssoAccountInterfaceId: "0xb9094997",
     },
   },
 });
