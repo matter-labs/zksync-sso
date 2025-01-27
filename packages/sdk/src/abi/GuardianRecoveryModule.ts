@@ -49,7 +49,33 @@ export const GuardianRecoveryModuleAbi = [
   },
   {
     anonymous: false,
-    inputs: [],
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint8",
+        name: "version",
+        type: "uint8",
+      },
+    ],
+    name: "Initialized",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+    ],
     name: "RecoveryInitiated",
     type: "event",
   },
@@ -109,6 +135,56 @@ export const GuardianRecoveryModuleAbi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "discardRecovery",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "guardedAccounts",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+    ],
+    name: "guardianOf",
+    outputs: [
+      {
+        internalType: "address[]",
+        name: "",
+        type: "address[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
@@ -155,12 +231,30 @@ export const GuardianRecoveryModuleAbi = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "accountToRecover",
+        type: "address",
+      },
+      {
         internalType: "bytes",
         name: "passkey",
         type: "bytes",
       },
     ],
     name: "initRecovery",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_webAuthValidator",
+        type: "address",
+      },
+    ],
+    name: "initialize",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

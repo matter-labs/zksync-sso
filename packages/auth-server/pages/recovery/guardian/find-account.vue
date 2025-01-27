@@ -46,6 +46,7 @@
           <ZkButton
             class="w-full"
             :disabled="!isValidGuardianAddress"
+            :loading="getGuardedAccountsInProgress"
             @click="handleGuardianContinue"
           >
             Continue
@@ -110,7 +111,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import type { Address } from "viem";
+import { computed, ref } from "vue";
 import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
 
 import { AddressSchema } from "~/utils/schemas";
@@ -118,10 +120,6 @@ import { AddressSchema } from "~/utils/schemas";
 definePageMeta({
   layout: "dashboard",
 });
-
-interface Account {
-  address: string;
-}
 
 const currentStep = ref(1);
 const guardianAddress = ref("");
@@ -131,8 +129,10 @@ const address = ref("");
 const addressError = ref("");
 const isValidAddress = ref(false);
 const newPasskey = ref<RegisterNewPasskeyReturnType | null>(null);
-const accounts = ref<Account[]>([]);
+const accounts = ref<Address[]>([]);
 const isLoadingAccounts = ref(false);
+
+const { getGuardedAccounts, getGuardedAccountsInProgress } = useRecoveryGuardian();
 
 const { inProgress: registerInProgress } = usePasskeyRegister();
 
@@ -151,15 +151,27 @@ const stepTitle = computed(() => {
   }
 });
 
-const validateGuardianAddress = () => {
+const validateGuardianAddress = async () => {
   const result = AddressSchema.safeParse(guardianAddress.value);
-  if (result.success) {
-    guardianAddressError.value = "";
-    isValidGuardianAddress.value = true;
-  } else {
+  if (!result.success) {
     guardianAddressError.value = "Not a valid address";
     isValidGuardianAddress.value = false;
+    return;
   }
+
+  // Reset errors without enabling the Continue button just yet
+  guardianAddressError.value = "";
+  isValidGuardianAddress.value = false;
+
+  const guardedAccounts = await getGuardedAccounts(result.data);
+  if (guardedAccounts.length === 0) {
+    guardianAddressError.value = "No accounts found for this guardian";
+    isValidGuardianAddress.value = false;
+    return;
+  }
+
+  accounts.value = [...guardedAccounts]; // Clone the array to avoid mutating the original
+  isValidGuardianAddress.value = true;
 };
 
 const validateAddress = () => {
@@ -184,16 +196,4 @@ const handleAccountContinue = () => {
     currentStep.value = 3;
   }
 };
-
-watch(isValidGuardianAddress, async () => {
-  if (isValidGuardianAddress.value) {
-    accounts.value = [
-      { address: "0x71e6dDfE9074786Fd8e986C53f78D25450d614D5" },
-      { address: "0x71e6dDfE9074786Fd8e986C53f78D25450d614D5" },
-      { address: "0x71e6dDfE9074786Fd8e986C53f78D25450d614D5" },
-    ];
-  } else {
-    accounts.value = [];
-  }
-});
 </script>

@@ -1,11 +1,11 @@
-import { GuardianRecoveryModuleAbi } from "src/abi/GuardianRecoveryModule.js";
-import { encodePasskeyModuleParameters } from "src/utils/index.js";
-import { getPublicKeyBytesFromPasskeySignature } from "src/utils/passkey.js";
 import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, type Prettify, type TransactionReceipt, type Transport } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
+import { GuardianRecoveryModuleAbi } from "../../../abi/GuardianRecoveryModule.js";
 import { noThrow } from "../../../utils/helpers.js";
+import { encodePasskeyModuleParameters } from "../../../utils/index.js";
+import { getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
 
 export type AddGuardianArgs = {
   newGuardian: Address;
@@ -61,6 +61,7 @@ export type InitRecoveryArgs = {
   contracts: {
     recovery: Address; // recovery module
   };
+  account: Address;
   paymaster?: {
     address: Address;
     paymasterInput?: Hex;
@@ -94,7 +95,7 @@ export const initRecovery = async <
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
     functionName: "initRecovery",
-    args: [encodedPasskeyParameters],
+    args: [args.account, encodedPasskeyParameters],
   });
 
   const sendTransactionArgs = {
