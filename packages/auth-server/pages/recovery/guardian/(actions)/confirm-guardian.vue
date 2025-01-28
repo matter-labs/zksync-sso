@@ -51,9 +51,9 @@
       >
         <CheckCircleIcon class="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
         <div class="flex flex-col flex-1">
-          <span class="text-lg font-medium text-green-700 dark:text-green-300">Guardian Already Confirmed</span>
+          <span class="text-lg font-medium text-green-700 dark:text-green-300">Guardian Confirmed</span>
           <p class="text-green-600 dark:text-green-400">
-            This guardian has already been confirmed for your account.
+            This guardian has been added to your account.
           </p>
         </div>
       </div>
@@ -106,9 +106,10 @@
       </div>
 
       <ZkButton
-        v-if="accountData.isConnected"
+        v-if="accountData.isConnected && !isGuardianConfirmed"
         class="w-full lg:w-fit"
         :disabled="!isAddressEqual(accountData.address as `0x${string}`, guardianAddress)"
+        @click="confirmGuardian"
       >
         Confirm Guardian
       </ZkButton>
@@ -147,6 +148,10 @@ if (!params.success) {
 }
 
 const isGuardianConfirmed = ref(false);
+
+function confirmGuardian() {
+  isGuardianConfirmed.value = true;
+}
 
 definePageMeta({
   layout: "dashboard",
