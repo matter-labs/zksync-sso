@@ -107,11 +107,12 @@ const recoveryMethods = ref([] as { method: string; address: Address; addedOn: D
 const { getClient, defaultChain } = useClientStore();
 const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
 watchEffect(() => {
+  const accountAddress = getClient({ chainId: defaultChain.id }).account.address;
   recoveryMethods.value = (getGuardiansData.value ?? []).map((x) => ({
     method: "External Account",
     address: x.addr,
     addedOn: new Date(),
-    ...(!x.isReady && { pendingUrl: "https://auth-test.zksync.dev/dashboard/0x1234567890" }),
+    ...(!x.isReady && { pendingUrl: `${window.location.protocol}//${window.location.host}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
   }));
 });
 
