@@ -1,7 +1,9 @@
 import { type Address, type Chain, createWalletClient, custom, type Hash, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport, type WalletClient } from "viem";
+import type { TransactionRequestEIP712 } from "viem/chains";
 
 import { createZksyncSessionClient, type ZksyncSsoSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
+import { type CustomPaymasterHandler, getTransactionWithPaymasterData } from "../paymaster/index.js";
 import { StorageItem } from "../utils/storage.js";
 import type { AppMetadata, RequestArguments } from "./interface.js";
 import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
@@ -38,6 +40,7 @@ type SignerConstructorParams = {
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
   session?: () => SessionPreferences | Promise<SessionPreferences>;
+  paymasterHandler?: CustomPaymasterHandler;
 };
 
 type ChainsInfo = ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema>["chainsInfo"];
@@ -49,12 +52,13 @@ export class Signer implements SignerInterface {
   private readonly chains: readonly Chain[];
   private readonly transports: Record<number, Transport> = {};
   private readonly sessionParameters?: () => (SessionPreferences | Promise<SessionPreferences>);
+  private readonly paymasterHandler?: CustomPaymasterHandler;
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
   private client: { instance: ZksyncSsoSessionClient; type: "session" } | { instance: WalletClient; type: "auth-server" } | undefined;
 
-  constructor({ metadata, communicator, updateListener, session, chains, transports }: SignerConstructorParams) {
+  constructor({ metadata, communicator, updateListener, session, chains, transports, paymasterHandler }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
 
     this.getMetadata = metadata;
@@ -63,6 +67,7 @@ export class Signer implements SignerInterface {
     this.sessionParameters = session;
     this.chains = chains;
     this.transports = transports || {};
+    this.paymasterHandler = paymasterHandler;
 
     this._account = new StorageItem<Account | null>(StorageItem.scopedStorageKey("account"), null, {
       onChange: (newValue) => {
@@ -136,6 +141,7 @@ export class Signer implements SignerInterface {
           contracts: chainInfo.contracts,
           chain,
           transport: this.transports[chain.id] || http(),
+          paymasterHandler: this.paymasterHandler,
         }),
       };
     } else {
@@ -265,6 +271,23 @@ export class Signer implements SignerInterface {
   >(request: RequestArguments<TMethod, TSchema>): Promise<RPCResponseMessage<ExtractReturnType<TMethod, TSchema>>> {
     // Open popup immediately to make sure popup won't be blocked by Safari
     await this.communicator.ready();
+
+    if (request.method === "eth_sendTransaction") {
+      const params = request.params![0] as TransactionRequestEIP712;
+      if (params) {
+        /* eslint-disable @typescript-eslint/no-unused-vars */
+        const { chainId: _, ...transaction } = await getTransactionWithPaymasterData(
+          this.chain.id,
+          params.from,
+          params,
+          this.paymasterHandler,
+        );
+        request = {
+          method: request.method,
+          params: [transaction] as ExtractParams<TMethod, TSchema>,
+        };
+      }
+    }
 
     const message = this.createRequestMessage<TMethod, TSchema>({
       action: request,

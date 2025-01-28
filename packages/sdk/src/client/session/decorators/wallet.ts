@@ -2,6 +2,7 @@ import { type Account, bytesToHex, type Chain, formatTransaction, type Transport
 import { deployContract, getAddresses, getChainId, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
 import { signTransaction, type ZksyncEip712Meta } from "viem/zksync";
 
+import { getTransactionWithPaymasterData } from "../../../paymaster/index.js";
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
 import type { ClientWithZksyncSsoSessionData } from "../client.js";
 
@@ -33,11 +34,19 @@ export function zksyncSsoWalletActions<
         delete unformattedTx.eip712Meta;
       }
 
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      const { chainId: _, ...unformattedTxWithPaymaster } = await getTransactionWithPaymasterData(
+        client.chain.id,
+        client.account.address,
+        unformattedTx,
+        client.paymasterHandler,
+      );
+
       const formatters = client.chain?.formatters;
       const format = formatters?.transaction?.format || formatTransaction;
 
       const tx = {
-        ...format(unformattedTx),
+        ...format(unformattedTxWithPaymaster as any),
         type: "eip712",
       };
 
