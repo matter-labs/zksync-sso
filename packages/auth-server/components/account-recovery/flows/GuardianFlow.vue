@@ -30,17 +30,28 @@
     class="flex flex-col gap-4 flex-1 text-left justify-center px-6"
   >
     <p>Insert address</p>
-    <Input />
+
+    <ZkInput
+      id="address"
+      v-model="address"
+      placeholder="0x..."
+      :error="!!addressError"
+      :messages="addressError ? [addressError] : undefined"
+      @input="validateAddress"
+    />
     <div class="flex gap-3">
-      <Button @click="currentStep = 'confirm'">
+      <ZkButton
+        :loading="proposeGuardianInProgress"
+        @click="proposeGuardian()"
+      >
         Continue
-      </Button>
-      <Button
+      </ZkButton>
+      <ZkButton
         type="secondary"
         @click="currentStep = 'info'"
       >
         Back
-      </Button>
+      </ZkButton>
     </div>
   </div>
 
@@ -63,14 +74,19 @@
 </template>
 
 <script setup lang="ts">
+import type { Address } from "viem";
 import { ref } from "vue";
 
 import Button from "~/components/zk/button.vue";
-import Input from "~/components/zk/input.vue";
 import Link from "~/components/zk/link.vue";
 
 type GuardianStep = "info" | "add-guardian" | "confirm";
 const currentStep = ref<GuardianStep>("info");
+const { proposeGuardian: proposeGuardianAction, proposeGuardianInProgress } = useRecoveryGuardian();
+
+const address = ref("" as Address);
+const addressError = ref("");
+const isValidAddress = ref(false);
 
 const props = defineProps<{
   closeModal: () => void;
@@ -83,4 +99,20 @@ defineEmits<{
 function completeSetup() {
   props.closeModal();
 }
+
+const proposeGuardian = async () => {
+  await proposeGuardianAction(address.value);
+  currentStep.value = "confirm";
+};
+
+const validateAddress = () => {
+  const result = AddressSchema.safeParse(address.value);
+  if (result.success) {
+    addressError.value = "";
+    isValidAddress.value = true;
+  } else {
+    addressError.value = "Not a valid address";
+    isValidAddress.value = false;
+  }
+};
 </script>

@@ -25,6 +25,7 @@
         <Card
           v-for="method in recoveryMethods"
           :key="method.address"
+          :loading="getGuardiansInProgress && removeGuardianInProgress"
           class="p-6"
           :class="{ 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600': method.pendingUrl }"
         >
@@ -77,7 +78,7 @@
             <Button
               type="danger"
               class="text-sm lg:w-auto w-full"
-              @click="removeRecoveryMethod(method.address)"
+              @click="removeRecoveryAction(method.address)"
             >
               Remove
             </Button>
@@ -92,6 +93,7 @@
 <script setup lang="ts">
 import { WalletIcon } from "@heroicons/vue/24/solid";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
+import type { Address } from "viem";
 
 import AddRecoveryMethodModal from "~/components/account-recovery/AddRecoveryMethodModal.vue";
 import CopyToClipboard from "~/components/common/CopyToClipboard.vue";
@@ -101,15 +103,25 @@ import { shortenAddress } from "~/utils/formatters";
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
-const recoveryMethods = ref([] as { method: string; address: string; addedOn: Date; pendingUrl?: string }[]);
+const recoveryMethods = ref([] as { method: string; address: Address; addedOn: Date; pendingUrl?: string }[]);
+const { getClient, defaultChain } = useClientStore();
+const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
+watchEffect(() => {
+  recoveryMethods.value = (getGuardiansData.value ?? []).map((x) => ({
+    method: "External Account",
+    address: x.addr,
+    addedOn: new Date(),
+    ...(!x.isReady && { pendingUrl: "https://auth-test.zksync.dev/dashboard/0x1234567890" }),
+  }));
+});
 
-recoveryMethods.value = [
-  { method: "External Account", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date() },
-  { method: "External Account", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date(), pendingUrl: "https://auth-test.zksync.dev/dashboard/0x1234567890" },
-];
+const getGuardiansAction = async function () {
+  await getGuardians(getClient({ chainId: defaultChain.id }).account.address);
+};
 
-const removeRecoveryMethod = (address: string) => {
-  // TODO: Implement removal logic
-  recoveryMethods.value = recoveryMethods.value.filter((m) => m.address !== address);
+await getGuardiansAction();
+
+const removeRecoveryAction = async (address: Address) => {
+  await removeGuardian(address);
 };
 </script>
