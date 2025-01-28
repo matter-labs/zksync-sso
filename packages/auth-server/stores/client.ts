@@ -1,4 +1,4 @@
-import { type Address, createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
+import { type Address, createPublicClient, createWalletClient, custom, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
@@ -90,10 +90,25 @@ export const useClientStore = defineStore("client", () => {
     return throwAwayClient;
   };
 
+  const getWalletClient = ({ chainId }: { chainId: SupportedChainId }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+
+    const walletClient = createWalletClient({
+      chain,
+      transport: custom(window.ethereum as never),
+    })
+      .extend(publicActions)
+      .extend(walletActions)
+      .extend(eip712WalletActions());
+    return walletClient;
+  };
+
   return {
     defaultChain,
     getPublicClient,
     getClient,
     getThrowAwayClient,
+    getWalletClient,
   };
 });

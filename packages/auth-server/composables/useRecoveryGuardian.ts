@@ -1,4 +1,4 @@
-import type { Address } from "viem";
+import { type Address, encodeAbiParameters } from "viem";
 import { GuardianRecoveryModuleAbi } from "zksync-sso/abi";
 
 const getGuardiansInProgress = ref(false);
@@ -6,7 +6,7 @@ const getGuardiansError = ref<Error | null>(null);
 const getGuardiansData = ref<readonly { addr: Address; isReady: boolean }[] | null>(null);
 
 export const useRecoveryGuardian = () => {
-  const { getClient, getPublicClient, defaultChain } = useClientStore();
+  const { getClient, getPublicClient, getWalletClient, defaultChain } = useClientStore();
   const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
 
   const getGuardedAccountsInProgress = ref(false);
@@ -78,13 +78,29 @@ export const useRecoveryGuardian = () => {
     return tx;
   });
 
+  const { inProgress: confirmGuardianInProgress, error: confirmGuardianError, execute: confirmGuardian } = useAsync(async (account: Address) => {
+    const client = await getWalletClient({ chainId: defaultChain.id });
+    const [address] = await client.getAddresses();
+    const tx = await client.writeContract({
+      account: address,
+      address: contractsByChain[defaultChain.id].recovery,
+      abi: GuardianRecoveryModuleAbi,
+      functionName: "addValidationKey",
+      args: [encodeAbiParameters([{ type: "address" }], [account])],
+    });
+    return tx;
+  });
+
   return {
-    proposeGuardianInProgress: proposeGuardianInProgress,
-    proposeGuardianError: proposeGuardianError,
-    proposeGuardian: proposeGuardian,
-    removeGuardianInProgress: removeGuardianInProgress,
-    removeGuardianError: removeGuardianError,
-    removeGuardian: removeGuardian,
+    confirmGuardianInProgress,
+    confirmGuardianError,
+    confirmGuardian,
+    proposeGuardianInProgress,
+    proposeGuardianError,
+    proposeGuardian,
+    removeGuardianInProgress,
+    removeGuardianError,
+    removeGuardian,
     getGuardedAccountsInProgress,
     getGuardedAccountsError,
     getGuardedAccounts,
