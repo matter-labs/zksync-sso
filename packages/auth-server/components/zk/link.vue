@@ -24,8 +24,8 @@ const {
     ui?: string;
     type?: "primary" | "secondary" | "ghost" | "tertiary" | "inline";
     as?: string | Component;
-    href?: NuxtRoute<T, P>;
-    to?: NuxtRoute<T, P>;
+    href?: NuxtRoute<T, P> | string;
+    to?: NuxtRoute<T, P> | string;
   }
 >();
 

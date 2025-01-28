@@ -59,16 +59,16 @@
                 <p class="mb-2">
                   This recovery method needs to be confirmed.
                 </p>
-                <div class="space-x-1">
+                <div class="space-x-1 flex items-center max-w-md">
                   <a
                     :href="method.pendingUrl"
                     target="_blank"
-                    class="text-yellow-600 dark:text-yellow-400 hover:underline break-all inline align-middle"
+                    class="text-yellow-600 dark:text-yellow-400 hover:underline truncate"
                   >
                     {{ method.pendingUrl }}
                   </a>
                   <CopyToClipboard
-                    class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 !inline align-middle"
+                    class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700"
                     :text="method.pendingUrl"
                   />
                 </div>
@@ -102,10 +102,11 @@ import { shortenAddress } from "~/utils/formatters";
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
 const recoveryMethods = ref([] as { method: string; address: string; addedOn: Date; pendingUrl?: string }[]);
+const config = useRuntimeConfig();
 
 recoveryMethods.value = [
-  { method: "External Account", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date() },
-  { method: "External Account", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date(), pendingUrl: "https://auth-test.zksync.dev/dashboard/0x1234567890" },
+  { method: "Guardian", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date() },
+  { method: "Guardian", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date(), pendingUrl: `${config.public.appUrl}/recovery/guardian/confirm-guardian?accountAddress=0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e&guardianAddress=0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e` },
 ];
 
 const removeRecoveryMethod = (address: string) => {

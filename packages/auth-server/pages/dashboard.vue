@@ -47,7 +47,7 @@ definePageMeta({
   layout: "dashboard",
 });
 
-const pendingRecovery = ref(true);
+const pendingRecovery = ref(false);
 
 const cancelRecovery = () => {
   // TODO: Implement recovery cancellation

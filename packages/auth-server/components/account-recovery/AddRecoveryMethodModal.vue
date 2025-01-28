@@ -2,7 +2,7 @@
   <Dialog
     ref="modalRef"
     content-class="min-w-[700px] min-h-[500px]"
-    description-class="flex-1 mb-0 flex"
+    description-class="flex-1 mb-0 flex text-base"
     close-class="h-8 max-h-8"
     :title="title"
   >
@@ -28,34 +28,37 @@
     <!-- Method Selection Step -->
     <div
       v-if="currentStep === 'select-method'"
-      class="space-y-4 text-left flex-1 flex flex-col"
+      class="space-y-6 text-left flex-1 flex flex-col"
     >
-      <p class="text-gray-600 mb-6">
-        Choose a recovery method for your account:
-      </p>
-      <div class="flex flex-col gap-5 items-center flex-1 justify-center">
-        <Button
-          class="w-64"
-          @click="selectMethod('guardian')"
-        >
-          <div class="flex items-center justify-between gap-2">
-            <UserIcon class="w-5 h-5" />
-            <span>Guardian Recovery</span>
-          </div>
-        </Button>
-        <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-6 items-center flex-1 justify-center max-w-md mx-auto w-full">
+        <div class="text-center">
+          <p class="text-xl font-medium text-gray-900 mb-2">
+            Choose a Recovery Method
+          </p>
+          <p class="text-base text-gray-600">
+            Select how you'd like to recover your account if you lose access
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-5 w-full max-w-xs">
           <Button
-            disabled
-            class="w-64"
+            class="w-full"
+            @click="selectMethod('guardian')"
           >
-            <div class="flex items-center justify-between gap-2">
-              <EnvelopeIcon class="w-5 h-5" />
-              <span>Email Recovery</span>
-            </div>
+            Recover with Guardian
           </Button>
-          <span class="text-sm text-gray-500 text-center">
-            Coming soon...
-          </span>
+
+          <div class="flex w-full flex-col gap-2">
+            <Button
+              disabled
+              class="w-full"
+            >
+              Recover with Email
+            </Button>
+            <span class="text-sm text-gray-500 text-center">
+              Coming soon...
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -69,7 +72,6 @@
 </template>
 
 <script setup lang="ts">
-import { EnvelopeIcon, UserIcon } from "@heroicons/vue/24/solid";
 import { ref } from "vue";
 
 import GuardianFlow from "~/components/account-recovery/flows/GuardianFlow.vue";
