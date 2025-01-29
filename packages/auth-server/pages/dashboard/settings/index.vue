@@ -25,6 +25,7 @@
         <Card
           v-for="method in recoveryMethods"
           :key="method.address"
+          :loading="getGuardiansInProgress && removeGuardianInProgress"
           class="p-6"
           :class="{ 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600': method.pendingUrl }"
         >
@@ -77,7 +78,7 @@
             <Button
               type="danger"
               class="text-sm lg:w-auto w-full"
-              @click="removeRecoveryMethod(method.address)"
+              @click="removeGuardian(method.address)"
             >
               Remove
             </Button>
@@ -101,15 +102,21 @@ import { shortenAddress } from "~/utils/formatters";
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
-const recoveryMethods = ref([] as { method: string; address: string; addedOn: Date; pendingUrl?: string }[]);
+const { address: accountAddress } = useAccountStore();
+const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
 
-recoveryMethods.value = [
-  { method: "External Account", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date() },
-  { method: "External Account", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date(), pendingUrl: "https://auth-test.zksync.dev/dashboard/0x1234567890" },
-];
+const config = useRuntimeConfig();
+const appUrl = config.public.appUrl;
 
-const removeRecoveryMethod = (address: string) => {
-  // TODO: Implement removal logic
-  recoveryMethods.value = recoveryMethods.value.filter((m) => m.address !== address);
-};
+const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
+  method: "External Account",
+  address: x.addr,
+  addedOn: new Date(),
+  ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
+})));
+
+watchEffect(() => {
+  if (accountAddress)
+    getGuardians(accountAddress);
+});
 </script>
