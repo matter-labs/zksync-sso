@@ -54,7 +54,7 @@ export function createZyfiPaymaster(params: ZyfiPaymasterParams): CustomPaymaste
           "Content-Type": "application/json",
           "X-API-Key": params.apiKey,
         },
-        body: JSON.stringify(payload),
+        body: stringify(payload),
       },
     ).then((response) => {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -102,3 +102,7 @@ type ApiResponse = {
   sponsorshipRatio?: string;
   warnings?: string[];
 };
+
+function stringify(payload: any) {
+  return JSON.stringify(payload, (_, v) => typeof v === "bigint" ? v.toString() : v);
+}
