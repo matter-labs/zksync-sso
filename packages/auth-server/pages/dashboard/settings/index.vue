@@ -78,7 +78,7 @@
             <Button
               type="danger"
               class="text-sm lg:w-auto w-full"
-              @click="removeRecoveryAction(method.address)"
+              @click="removeGuardian(method.address)"
             >
               Remove
             </Button>
@@ -93,7 +93,6 @@
 <script setup lang="ts">
 import { WalletIcon } from "@heroicons/vue/24/solid";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
-import type { Address } from "viem";
 
 import AddRecoveryMethodModal from "~/components/account-recovery/AddRecoveryMethodModal.vue";
 import CopyToClipboard from "~/components/common/CopyToClipboard.vue";
@@ -103,26 +102,21 @@ import { shortenAddress } from "~/utils/formatters";
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
-const recoveryMethods = ref([] as { method: string; address: Address; addedOn: Date; pendingUrl?: string }[]);
-const { getClient, defaultChain } = useClientStore();
+const { address: accountAddress } = useAccountStore();
 const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
+
+const config = useRuntimeConfig();
+const appUrl = config.public.appUrl;
+
+const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
+  method: "External Account",
+  address: x.addr,
+  addedOn: new Date(),
+  ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
+})));
+
 watchEffect(() => {
-  const accountAddress = getClient({ chainId: defaultChain.id }).account.address;
-  recoveryMethods.value = (getGuardiansData.value ?? []).map((x) => ({
-    method: "External Account",
-    address: x.addr,
-    addedOn: new Date(),
-    ...(!x.isReady && { pendingUrl: `${window.location.protocol}//${window.location.host}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
-  }));
+  if (accountAddress)
+    getGuardians(accountAddress);
 });
-
-const getGuardiansAction = async function () {
-  await getGuardians(getClient({ chainId: defaultChain.id }).account.address);
-};
-
-await getGuardiansAction();
-
-const removeRecoveryAction = async (address: Address) => {
-  await removeGuardian(address);
-};
 </script>

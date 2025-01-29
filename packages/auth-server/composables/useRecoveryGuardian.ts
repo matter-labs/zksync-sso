@@ -45,7 +45,7 @@ export const useRecoveryGuardian = () => {
         args: [guardedAccount],
       });
       getGuardiansData.value = data;
-      return data;
+      return;
     } catch (err) {
       getGuardiansError.value = err as Error;
       return [];
