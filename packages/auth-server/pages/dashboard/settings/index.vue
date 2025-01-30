@@ -60,16 +60,16 @@
                 <p class="mb-2">
                   This recovery method needs to be confirmed.
                 </p>
-                <div class="space-x-1">
+                <div class="space-x-1 flex items-center max-w-md">
                   <a
                     :href="method.pendingUrl"
                     target="_blank"
-                    class="text-yellow-600 dark:text-yellow-400 hover:underline break-all inline align-middle"
+                    class="text-yellow-600 dark:text-yellow-400 hover:underline truncate"
                   >
                     {{ method.pendingUrl }}
                   </a>
                   <CopyToClipboard
-                    class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 !inline align-middle"
+                    class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700"
                     :text="method.pendingUrl"
                   />
                 </div>
@@ -109,7 +109,7 @@ const config = useRuntimeConfig();
 const appUrl = config.public.appUrl;
 
 const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
-  method: "External Account",
+  method: "Guardian",
   address: x.addr,
   addedOn: new Date(),
   ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),

@@ -179,7 +179,7 @@ try {
   error.value = "Invalid recovery parameters. Please verify the URL and try again.";
 }
 
-const isAccountGuardian = ref(false);
+const isAccountGuardian = ref(true);
 const isSuccess = ref(false);
 
 const handleSuccess = () => {

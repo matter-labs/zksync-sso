@@ -16,7 +16,7 @@
         @click="open = false"
       />
       <Dialog.Content
-        :class="['data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[350px] translate-x-[-50%] translate-y-[-50%] flex flex-col rounded-zk bg-white focus:outline-none z-[100] p-6 dark:bg-neutral-950 border border-transparent dark:border-neutral-900 dark:text-neutral-100', contentClass]"
+        :class="twMerge(['data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[350px] translate-x-[-50%] translate-y-[-50%] flex flex-col rounded-zk bg-white focus:outline-none z-[100] p-6 dark:bg-neutral-950 border border-transparent dark:border-neutral-900 dark:text-neutral-100', contentClass])"
       >
         <Dialog.Title class="text-lg flex items-center mb-8">
           <span class="flex-auto">{{ title }}</span>
@@ -28,11 +28,11 @@
             <ZkIcon icon="close" />
           </Dialog.Close>
         </Dialog.Title>
-        <Dialog.Description :class="['mb-10 text-lg text-center', descriptionClass]">
+        <Dialog.Description :class="twMerge(['mb-10 text-lg text-center', descriptionClass])">
           <slot />
         </Dialog.Description>
 
-        <div :class="['flex flex-col gap-2 justify-end flex-1', closeClass]">
+        <div :class="twMerge(['flex flex-col gap-2 justify-end flex-1', closeClass])">
           <Dialog.Close as-child>
             <slot name="submit">
               <ZkButton
@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import { Dialog } from "radix-vue/namespaced";
+import { twMerge } from "tailwind-merge";
 
 const open = ref(false);
 
