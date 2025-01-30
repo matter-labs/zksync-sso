@@ -32,10 +32,10 @@
     >
       <div class="flex flex-col gap-6 items-center flex-1 justify-center max-w-md mx-auto w-full">
         <div class="text-center">
-          <p class="text-xl font-medium text-gray-900 mb-2">
+          <p class="text-xl font-medium mb-2">
             Choose a Recovery Method
           </p>
-          <p class="text-base text-gray-600">
+          <p class="text-base text-gray-600 dark:text-gray-400">
             Select how you'd like to recover your account if you lose access
           </p>
         </div>

@@ -25,6 +25,7 @@
         <Card
           v-for="method in recoveryMethods"
           :key="method.address"
+          :loading="getGuardiansInProgress && removeGuardianInProgress"
           class="p-6"
           :class="{ 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600': method.pendingUrl }"
         >
@@ -77,7 +78,7 @@
             <Button
               type="danger"
               class="text-sm lg:w-auto w-full"
-              @click="removeRecoveryMethod(method.address)"
+              @click="removeGuardian(method.address)"
             >
               Remove
             </Button>
@@ -101,16 +102,21 @@ import { shortenAddress } from "~/utils/formatters";
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
-const recoveryMethods = ref([] as { method: string; address: string; addedOn: Date; pendingUrl?: string }[]);
+const { address: accountAddress } = useAccountStore();
+const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
+
 const config = useRuntimeConfig();
+const appUrl = config.public.appUrl;
 
-recoveryMethods.value = [
-  { method: "Guardian", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date() },
-  { method: "Guardian", address: "0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e", addedOn: new Date(), pendingUrl: `${config.public.appUrl}/recovery/guardian/confirm-guardian?accountAddress=0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e&guardianAddress=0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e` },
-];
+const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
+  method: "Guardian",
+  address: x.addr,
+  addedOn: new Date(),
+  ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
+})));
 
-const removeRecoveryMethod = (address: string) => {
-  // TODO: Implement removal logic
-  recoveryMethods.value = recoveryMethods.value.filter((m) => m.address !== address);
-};
+watchEffect(() => {
+  if (accountAddress)
+    getGuardians(accountAddress);
+});
 </script>

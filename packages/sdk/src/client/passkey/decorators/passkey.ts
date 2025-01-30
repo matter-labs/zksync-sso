@@ -1,7 +1,8 @@
 import { type Chain, type Transport } from "viem";
 
 import {
-  addGuardian, type AddGuardianArgs, type AddGuardianReturnType,
+  proposeGuardian, type ProposeGuardianArgs, type ProposeGuardianReturnType,
+  removeGuardian, type RemoveGuardianArgs, type RemoveGuardianReturnType,
 } from "../../recovery/actions/recovery.js";
 import {
   createSession, type CreateSessionArgs, type CreateSessionReturnType,
@@ -12,7 +13,8 @@ import type { ClientWithZksyncSsoPasskeyData } from "../client.js";
 export type ZksyncSsoPasskeyActions = {
   createSession: (args: Omit<CreateSessionArgs, "contracts">) => Promise<CreateSessionReturnType>;
   revokeSession: (args: Omit<RevokeSessionArgs, "contracts">) => Promise<RevokeSessionReturnType>;
-  addGuardian: (args: Omit<AddGuardianArgs, "contracts">) => Promise<AddGuardianReturnType>;
+  proposeGuardian: (args: Omit<ProposeGuardianArgs, "contracts">) => Promise<ProposeGuardianReturnType>;
+  removeGuardian: (args: Omit<RemoveGuardianArgs, "contracts">) => Promise<RemoveGuardianReturnType>;
 };
 
 export function zksyncSsoPasskeyActions<
@@ -32,8 +34,14 @@ export function zksyncSsoPasskeyActions<
         contracts: client.contracts,
       });
     },
-    addGuardian: async (args: Omit<AddGuardianArgs, "contracts">) => {
-      return await addGuardian(client, {
+    proposeGuardian: async (args: Omit<ProposeGuardianArgs, "contracts">) => {
+      return await proposeGuardian(client, {
+        ...args,
+        contracts: client.contracts,
+      });
+    },
+    removeGuardian: async (args: Omit<RemoveGuardianArgs, "contracts">) => {
+      return await removeGuardian(client, {
         ...args,
         contracts: client.contracts,
       });

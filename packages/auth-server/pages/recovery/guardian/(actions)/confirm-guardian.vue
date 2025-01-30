@@ -109,7 +109,8 @@
         v-if="accountData.isConnected && !isGuardianConfirmed"
         class="w-full lg:w-fit"
         :disabled="!isAddressEqual(accountData.address as `0x${string}`, guardianAddress)"
-        @click="confirmGuardian"
+        :loading="confirmGuardianInProgress"
+        @click="confirmGuardianAction"
       >
         Confirm Guardian
       </ZkButton>
@@ -120,13 +121,14 @@
 <script setup lang="ts">
 import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { type Address, isAddressEqual } from "viem";
+import { type Address, isAddressEqual, zeroAddress } from "viem";
 import { z } from "zod";
 
 import { AddressSchema } from "@/utils/schemas";
 
 const accountData = useAppKitAccount();
 const route = useRoute();
+const { confirmGuardian, confirmGuardianInProgress, getGuardians, getGuardiansData } = useRecoveryGuardian();
 
 const accountAddress = ref<Address | null>(null);
 const guardianAddress = ref<Address | null>(null);
@@ -145,13 +147,19 @@ if (!params.success) {
 } else {
   accountAddress.value = params.data.accountAddress;
   guardianAddress.value = params.data.guardianAddress;
+  await getGuardians(accountAddress.value);
 }
 
 const isGuardianConfirmed = ref(false);
 
-function confirmGuardian() {
+watchEffect(() => {
+  isGuardianConfirmed.value = !!(getGuardiansData.value?.find((x) => isAddressEqual(x.addr, guardianAddress.value ?? zeroAddress))?.isReady);
+});
+
+const confirmGuardianAction = async () => {
+  await confirmGuardian(accountAddress.value!);
   isGuardianConfirmed.value = true;
-}
+};
 
 definePageMeta({
   layout: "dashboard",

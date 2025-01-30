@@ -7,7 +7,7 @@ import { noThrow } from "../../../utils/helpers.js";
 import { encodePasskeyModuleParameters } from "../../../utils/index.js";
 import { getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
 
-export type AddGuardianArgs = {
+export type ProposeGuardianArgs = {
   newGuardian: Address;
   contracts: {
     recovery: Address; // recovery module
@@ -18,17 +18,17 @@ export type AddGuardianArgs = {
   };
   onTransactionSent?: (hash: Hash) => void;
 };
-export type AddGuardianReturnType = {
+export type ProposeGuardianReturnType = {
   transactionReceipt: TransactionReceipt;
 };
-export const addGuardian = async <
+export const proposeGuardian = async <
   transport extends Transport,
   chain extends Chain,
   account extends Account,
->(client: Client<transport, chain, account>, args: Prettify<AddGuardianArgs>): Promise<Prettify<AddGuardianReturnType>> => {
+>(client: Client<transport, chain, account>, args: Prettify<ProposeGuardianArgs>): Promise<Prettify<ProposeGuardianReturnType>> => {
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
-    functionName: "addValidationKey",
+    functionName: "proposeValidationKey",
     args: [args.newGuardian],
   });
 
@@ -48,7 +48,54 @@ export const addGuardian = async <
   }
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  if (transactionReceipt.status !== "success") throw new Error("createSession transaction reverted");
+  if (transactionReceipt.status !== "success") throw new Error("proposeGuardian transaction reverted");
+
+  return {
+    transactionReceipt,
+  };
+};
+export type RemoveGuardianArgs = {
+  guardian: Address;
+  contracts: {
+    recovery: Address; // recovery module
+  };
+  paymaster?: {
+    address: Address;
+    paymasterInput?: Hex;
+  };
+  onTransactionSent?: (hash: Hash) => void;
+};
+export type RemoveGuardianReturnType = {
+  transactionReceipt: TransactionReceipt;
+};
+export const removeGuardian = async <
+  transport extends Transport,
+  chain extends Chain,
+  account extends Account,
+>(client: Client<transport, chain, account>, args: Prettify<RemoveGuardianArgs>): Promise<Prettify<RemoveGuardianReturnType>> => {
+  const callData = encodeFunctionData({
+    abi: GuardianRecoveryModuleAbi,
+    functionName: "removeValidationKey",
+    args: [args.guardian],
+  });
+
+  const sendTransactionArgs = {
+    account: client.account,
+    to: args.contracts.recovery,
+    paymaster: args.paymaster?.address,
+    paymasterInput: args.paymaster?.address ? (args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" })) : undefined,
+    data: callData,
+    gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+
+  const transactionHash = await sendTransaction(client, sendTransactionArgs);
+  if (args.onTransactionSent) {
+    noThrow(() => args.onTransactionSent?.(transactionHash));
+  }
+
+  const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
+  if (transactionReceipt.status !== "success") throw new Error("removeGuardian transaction reverted");
 
   return {
     transactionReceipt,
@@ -114,7 +161,7 @@ export const initRecovery = async <
   }
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  if (transactionReceipt.status !== "success") throw new Error("createSession transaction reverted");
+  if (transactionReceipt.status !== "success") throw new Error("initRecovery transaction reverted");
 
   return {
     transactionReceipt,

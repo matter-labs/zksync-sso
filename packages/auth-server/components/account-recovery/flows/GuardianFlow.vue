@@ -44,12 +44,16 @@
         <ZkInput
           v-model="guardianAddress"
           placeholder="0x..."
+          :error="!!guardianAddressError"
+          :messages="guardianAddressError ? [guardianAddressError] : undefined"
+          @input="validateAddress"
         />
         <ZkButton
           type="primary"
-          :disabled="!guardianAddress"
+          :disabled="!guardianAddress || !isValidGuardianAddress"
           class="w-full max-w-xs mt-2"
-          @click="currentStep = 3"
+          :loading="proposeGuardianInProgress"
+          @click="proposeGuardian()"
         >
           Continue
         </ZkButton>
@@ -71,15 +75,14 @@
         </p>
         <div class="flex items-center">
           <a
-            href="http://localhost:3002/recovery/guardian/confirm-guardian?accountAddress=0x71e6dDfE9074786Fd8e986C53f78D25450d614D5&guardianAddress=0x71e6dDfE9074786Fd8e986C53f78D25450d614D5"
+            :href="recoveryUrl"
             class="max-w-md truncate underline"
             target="_blank"
           >
-            http://localhost:3002/recovery/guardian/confirm-guardian?accountAddress=0x71e6dDfE9074786Fd8e986C53f78D25450d614D5&guardianAddress=0x71e6dDfE9074786Fd8e986C53f78D25450d614D5
+            {{ recoveryUrl }}
           </a>
           <common-copy-to-clipboard
-            class=""
-            text="http://localhost:3002/recovery/guardian/confirm-guardian?accountAddress=0x71e6dDfE9074786Fd8e986C53f78D25450d614D5&guardianAddress=0x71e6dDfE9074786Fd8e986C53f78D25450d614D5"
+            :text="recoveryUrl"
           />
         </div>
         <ZkButton
@@ -95,13 +98,10 @@
 </template>
 
 <script setup lang="ts">
+import type { Address } from "viem";
 import { ref } from "vue";
 
-import ZkButton from "~/components/zk/button.vue";
-import ZkInput from "~/components/zk/input.vue";
-
 const currentStep = ref(1);
-const guardianAddress = ref("");
 
 const stepTitle = computed(() => {
   switch (currentStep.value) {
@@ -115,6 +115,17 @@ const stepTitle = computed(() => {
       return "";
   }
 });
+const { proposeGuardian: proposeGuardianAction, proposeGuardianInProgress } = useRecoveryGuardian();
+const config = useRuntimeConfig();
+const { address } = useAccountStore();
+
+const guardianAddress = ref("" as Address);
+const guardianAddressError = ref("");
+const isValidGuardianAddress = ref(false);
+
+const recoveryUrl = computed(() => {
+  return `${config.public.appUrl}/recovery/guardian/confirm-guardian?accountAddress=${address}&guardianAddress=${guardianAddress.value}`;
+});
 
 const props = defineProps<{
   closeModal: () => void;
@@ -127,4 +138,20 @@ defineEmits<{
 function completeSetup() {
   props.closeModal();
 }
+
+const proposeGuardian = async () => {
+  await proposeGuardianAction(guardianAddress.value);
+  currentStep.value = 3;
+};
+
+const validateAddress = () => {
+  const result = AddressSchema.safeParse(guardianAddress.value);
+  if (result.success) {
+    guardianAddressError.value = "";
+    isValidGuardianAddress.value = true;
+  } else {
+    guardianAddressError.value = "Not a valid address";
+    isValidGuardianAddress.value = false;
+  }
+};
 </script>
