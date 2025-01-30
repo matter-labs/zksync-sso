@@ -42,19 +42,28 @@
 <script setup lang="ts">
 import { ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
 
-definePageMeta({
-  middleware: ["logged-in"],
-  layout: "dashboard",
-});
+const { address } = useAccountStore();
+const { getPendingRecoveryData, discardRecovery } = useRecoveryGuardian();
 
 const pendingRecovery = ref(false);
 
-const cancelRecovery = () => {
-  // TODO: Implement recovery cancellation
+watchEffect(async () => {
+  if (!address) return;
+  const recoveryProcessInitiated = await getPendingRecoveryData(address);
+  pendingRecovery.value = recoveryProcessInitiated?.[0] !== "0x" && recoveryProcessInitiated?.[1] !== 0n;
+});
+
+const cancelRecovery = async () => {
+  await discardRecovery();
   pendingRecovery.value = false;
 };
 
 const dismissWarning = () => {
   pendingRecovery.value = false;
 };
+
+definePageMeta({
+  middleware: ["logged-in"],
+  layout: "dashboard",
+});
 </script>
