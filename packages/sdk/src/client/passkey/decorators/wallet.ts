@@ -1,8 +1,8 @@
-import { getTransactionWithPaymasterData } from "src/paymaster/index.js";
 import { type Account, bytesToHex, type Chain, type ExactPartial, formatTransaction, type RpcTransaction, type Transport, type WalletActions } from "viem";
 import { deployContract, getAddresses, getChainId, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
 import { signTransaction, type TransactionRequestEIP712, type ZksyncEip712Meta } from "viem/zksync";
 
+import { getTransactionWithPaymasterData } from "../../../paymaster/index.js";
 import { sendEip712Transaction } from "../../session/actions/sendEip712Transaction.js";
 import type { ClientWithZksyncSsoPasskeyData } from "../client.js";
 
