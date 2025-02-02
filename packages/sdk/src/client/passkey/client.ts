@@ -1,6 +1,7 @@
 import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
 import { eip712WalletActions } from "viem/zksync";
 
+import type { CustomPaymasterHandler } from "../../paymaster/index.js";
 import { passkeyHashSignatureResponseFormat } from "../../utils/passkey.js";
 import { toPasskeyAccount } from "./account.js";
 import { requestPasskeyAuthentication } from "./actions/passkey.js";
@@ -63,6 +64,7 @@ type ZksyncSsoPasskeyData = {
   userName: string; // Basically unique user id (which is called `userName` in webauthn)
   userDisplayName: string; // Also option required for webauthn
   contracts: PasskeyRequiredContracts;
+  paymasterHandler?: CustomPaymasterHandler;
 };
 
 export type ClientWithZksyncSsoPasskeyData<

@@ -1,6 +1,12 @@
-import { type Account, bytesToHex, type Chain, formatTransaction, type Transport, type WalletActions } from "viem";
-import { deployContract, getAddresses, getChainId, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
-import { signTransaction, type ZksyncEip712Meta } from "viem/zksync";
+import {
+  type Account, bytesToHex,
+  type Chain, type ExactPartial, formatTransaction, type RpcTransaction,
+  type Transport, type WalletActions } from "viem";
+import {
+  deployContract, getAddresses, getChainId, sendRawTransaction,
+  signMessage, signTypedData, writeContract,
+} from "viem/actions";
+import { signTransaction, type TransactionRequestEIP712, type ZksyncEip712Meta } from "viem/zksync";
 
 import { getTransactionWithPaymasterData } from "../../../paymaster/index.js";
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
@@ -46,15 +52,26 @@ export function zksyncSsoWalletActions<
       const format = formatters?.transaction?.format || formatTransaction;
 
       const tx = {
-        ...format(unformattedTxWithPaymaster as any),
+        ...format(unformattedTxWithPaymaster as ExactPartial<RpcTransaction>),
         type: "eip712",
       };
 
       return await sendEip712Transaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    signTransaction: (args) => signTransaction(client, args as any),
+
+    signTransaction: async (args) => {
+      const { chainId: _, ...unformattedTxWithPaymaster } = await getTransactionWithPaymasterData(
+        client.chain.id,
+        client.account.address,
+        args as TransactionRequestEIP712,
+        client.paymasterHandler,
+      );
+      return signTransaction(client, {
+        ...args,
+        unformattedTxWithPaymaster,
+      } as any);
+    },
     signTypedData: (args) => signTypedData(client, args),
     writeContract: (args) => writeContract(client, args),
   };
