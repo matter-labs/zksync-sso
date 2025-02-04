@@ -2,8 +2,13 @@ export const GuardianRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "address",
+        internalType: "contract WebAuthValidator",
         name: "_webAuthValidator",
+        type: "address",
+      },
+      {
+        internalType: "contract AAFactory",
+        name: "_aaFactory",
         type: "address",
       },
     ],
@@ -12,7 +17,7 @@ export const GuardianRecoveryModuleAbi = [
   },
   {
     inputs: [],
-    name: "CooldownPerionNotPassed",
+    name: "CooldownPeriodNotPassed",
     type: "error",
   },
   {
@@ -80,6 +85,19 @@ export const GuardianRecoveryModuleAbi = [
     type: "event",
   },
   {
+    inputs: [],
+    name: "aaFactory",
+    outputs: [
+      {
+        internalType: "contract AAFactory",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
@@ -103,6 +121,11 @@ export const GuardianRecoveryModuleAbi = [
         internalType: "bool",
         name: "isReady",
         type: "bool",
+      },
+      {
+        internalType: "uint64",
+        name: "addedAt",
+        type: "uint64",
       },
     ],
     stateMutability: "view",
@@ -128,10 +151,32 @@ export const GuardianRecoveryModuleAbi = [
     type: "function",
   },
   {
-    inputs: [],
-    name: "disable",
-    outputs: [],
-    stateMutability: "nonpayable",
+    inputs: [
+      {
+        internalType: "string",
+        name: "accountId",
+        type: "string",
+      },
+    ],
+    name: "checkRecoveryRequest",
+    outputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "ready",
+        type: "bool",
+      },
+      {
+        internalType: "uint256",
+        name: "remainingTime",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -206,6 +251,11 @@ export const GuardianRecoveryModuleAbi = [
             name: "isReady",
             type: "bool",
           },
+          {
+            internalType: "uint64",
+            name: "addedAt",
+            type: "uint64",
+          },
         ],
         internalType: "struct GuardianRecoveryValidator.Guardian[]",
         name: "",
@@ -213,19 +263,6 @@ export const GuardianRecoveryModuleAbi = [
       },
     ],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes",
-        name: "initData",
-        type: "bytes",
-      },
-    ],
-    name: "init",
-    outputs: [],
-    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -240,6 +277,11 @@ export const GuardianRecoveryModuleAbi = [
         name: "passkey",
         type: "bytes",
       },
+      {
+        internalType: "string",
+        name: "accountId",
+        type: "string",
+      },
     ],
     name: "initRecovery",
     outputs: [],
@@ -249,12 +291,43 @@ export const GuardianRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "address",
+        internalType: "contract WebAuthValidator",
         name: "_webAuthValidator",
+        type: "address",
+      },
+      {
+        internalType: "contract AAFactory",
+        name: "_aaFactory",
         type: "address",
       },
     ],
     name: "initialize",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes",
+      },
+    ],
+    name: "onInstall",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes",
+      },
+    ],
+    name: "onUninstall",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -278,6 +351,11 @@ export const GuardianRecoveryModuleAbi = [
         internalType: "uint256",
         name: "timestamp",
         type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "accountId",
+        type: "string",
       },
     ],
     stateMutability: "view",
@@ -325,19 +403,19 @@ export const GuardianRecoveryModuleAbi = [
         type: "bool",
       },
     ],
-    stateMutability: "view",
+    stateMutability: "pure",
     type: "function",
   },
   {
     inputs: [
       {
         internalType: "bytes32",
-        name: "signedHash",
+        name: "",
         type: "bytes32",
       },
       {
         internalType: "bytes",
-        name: "signature",
+        name: "",
         type: "bytes",
       },
     ],
@@ -349,19 +427,19 @@ export const GuardianRecoveryModuleAbi = [
         type: "bool",
       },
     ],
-    stateMutability: "view",
+    stateMutability: "pure",
     type: "function",
   },
   {
     inputs: [
       {
         internalType: "bytes32",
-        name: "signedHash",
+        name: "",
         type: "bytes32",
       },
       {
         internalType: "bytes",
-        name: "signature",
+        name: "",
         type: "bytes",
       },
       {
@@ -468,7 +546,7 @@ export const GuardianRecoveryModuleAbi = [
     name: "webAuthValidator",
     outputs: [
       {
-        internalType: "address",
+        internalType: "contract WebAuthValidator",
         name: "",
         type: "address",
       },
