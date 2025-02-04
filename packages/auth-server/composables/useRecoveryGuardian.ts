@@ -147,6 +147,17 @@ export const useRecoveryGuardian = () => {
     return tx;
   });
 
+  const { inProgress: checkRecoveryRequestInProgress, error: checkRecoveryRequestError, execute: checkRecoveryRequest } = useAsync(async (accountId: string) => {
+    const client = getPublicClient({ chainId: defaultChain.id });
+    const tx = await client.readContract({
+      address: contractsByChain[defaultChain.id].recovery,
+      abi: GuardianRecoveryModuleAbi,
+      functionName: "checkRecoveryRequest",
+      args: [accountId],
+    });
+    return tx;
+  });
+
   return {
     confirmGuardianInProgress,
     confirmGuardianError,
@@ -177,5 +188,8 @@ export const useRecoveryGuardian = () => {
     getRecoveryInProgress,
     getRecoveryError,
     getRecovery,
+    checkRecoveryRequestInProgress,
+    checkRecoveryRequestError,
+    checkRecoveryRequest,
   };
 };

@@ -68,7 +68,15 @@ const signUp = async () => {
   navigateTo("/dashboard");
 };
 const logIn = async () => {
-  await loginToAccount();
-  navigateTo("/dashboard");
+  const result = await loginToAccount();
+  if (result?.success) {
+    navigateTo("/dashboard");
+    return;
+  }
+  if (result?.recoveryRequest?.isReady === false) {
+    navigateTo("/recovery/account-not-ready");
+    return;
+  }
+  // TODO: handle rest of the cases
 };
 </script>
