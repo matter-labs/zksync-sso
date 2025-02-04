@@ -102,7 +102,7 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: confirmGuardianInProgress, error: confirmGuardianError, execute: confirmGuardian } = useAsync(async (account: Address) => {
-    const client = await getWalletClient({ chainId: defaultChain.id });
+    const client = getWalletClient({ chainId: defaultChain.id });
     const [address] = await client.getAddresses();
     const tx = await client.writeContract({
       account: address,
@@ -112,6 +112,25 @@ export const useRecoveryGuardian = () => {
       args: [encodeAbiParameters([{ type: "address" }], [account])],
     });
     return tx;
+  });
+
+  const { inProgress: getPendingRecoveryDataInProgress, error: getPendingRecoveryDataError, execute: getPendingRecoveryData, result: getPendingRecoveryDataResult } = useAsync(async (account: Address) => {
+    const client = getPublicClient({ chainId: defaultChain.id });
+    return await client.readContract({
+      address: contractsByChain[defaultChain.id].recovery,
+      abi: GuardianRecoveryModuleAbi,
+      functionName: "pendingRecoveryData",
+      args: [account],
+    });
+  });
+
+  const { inProgress: discardRecoveryInProgress, error: discardRecoveryError, execute: discardRecovery } = useAsync(async () => {
+    const client = getClient({ chainId: defaultChain.id });
+    return await client.writeContract({
+      address: contractsByChain[defaultChain.id].recovery,
+      abi: GuardianRecoveryModuleAbi,
+      functionName: "discardRecovery",
+    });
   });
 
   const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async (account: Address, passKey: `0x${string}`, accountId: string) => {
@@ -148,6 +167,13 @@ export const useRecoveryGuardian = () => {
     getGuardiansError,
     getGuardiansData,
     getGuardians,
+    getPendingRecoveryDataInProgress,
+    getPendingRecoveryDataError,
+    getPendingRecoveryData,
+    getPendingRecoveryDataResult,
+    discardRecoveryInProgress,
+    discardRecoveryError,
+    discardRecovery,
     getRecoveryInProgress,
     getRecoveryError,
     getRecovery,
