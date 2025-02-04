@@ -54,6 +54,29 @@ export const useRecoveryGuardian = () => {
     }
   }
 
+  const getRecoveryInProgress = ref(false);
+  const getRecoveryError = ref<Error | null>(null);
+
+  async function getRecovery(account: Address) {
+    getRecoveryInProgress.value = true;
+    getRecoveryError.value = null;
+
+    try {
+      const client = getPublicClient({ chainId: defaultChain.id });
+      return await client.readContract({
+        address: contractsByChain[defaultChain.id].recovery,
+        abi: GuardianRecoveryModuleAbi,
+        functionName: "pendingRecoveryData",
+        args: [account],
+      });
+    } catch (err) {
+      getRecoveryError.value = err as Error;
+      return [];
+    } finally {
+      getRecoveryInProgress.value = false;
+    }
+  }
+
   const { inProgress: proposeGuardianInProgress, error: proposeGuardianError, execute: proposeGuardian } = useAsync(async (address: Address) => {
     const client = getClient({ chainId: defaultChain.id });
     const tx = await client.proposeGuardian({
@@ -91,6 +114,20 @@ export const useRecoveryGuardian = () => {
     return tx;
   });
 
+  const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async (account: Address, passKey: `0x${string}`, accountId: string) => {
+    const client = await getWalletClient({ chainId: defaultChain.id });
+    const [address] = await client.getAddresses();
+
+    const tx = await client.writeContract({
+      account: address,
+      address: contractsByChain[defaultChain.id].recovery,
+      abi: GuardianRecoveryModuleAbi,
+      functionName: "initRecovery",
+      args: [account, passKey, accountId],
+    });
+    return tx;
+  });
+
   return {
     confirmGuardianInProgress,
     confirmGuardianError,
@@ -101,6 +138,9 @@ export const useRecoveryGuardian = () => {
     removeGuardianInProgress,
     removeGuardianError,
     removeGuardian,
+    initRecoveryInProgress,
+    initRecoveryError,
+    initRecovery,
     getGuardedAccountsInProgress,
     getGuardedAccountsError,
     getGuardedAccounts,
@@ -108,5 +148,8 @@ export const useRecoveryGuardian = () => {
     getGuardiansError,
     getGuardiansData,
     getGuardians,
+    getRecoveryInProgress,
+    getRecoveryError,
+    getRecovery,
   };
 };

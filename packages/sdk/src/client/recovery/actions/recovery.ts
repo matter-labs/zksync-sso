@@ -105,6 +105,7 @@ export const removeGuardian = async <
 export type InitRecoveryArgs = {
   expectedOrigin: string | undefined;
   credentialPublicKey: Uint8Array;
+  accountId: string;
   contracts: {
     recovery: Address; // recovery module
   };
@@ -142,7 +143,7 @@ export const initRecovery = async <
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
     functionName: "initRecovery",
-    args: [args.account, encodedPasskeyParameters],
+    args: [args.account, encodedPasskeyParameters, args.accountId],
   });
 
   const sendTransactionArgs = {

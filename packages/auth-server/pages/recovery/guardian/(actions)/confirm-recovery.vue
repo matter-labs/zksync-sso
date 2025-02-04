@@ -104,7 +104,8 @@
             v-if="accountData.isConnected && !isSuccess"
             class="w-full lg:w-fit"
             :disabled="!isAccountGuardian"
-            @click="handleSuccess"
+            :loading="initRecoveryInProgress"
+            @click="confirmRecoveryAction"
           >
             Sign Recovery Transaction
           </ZkButton>
@@ -132,6 +133,8 @@
 <script setup lang="ts">
 import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
 import { useAppKitAccount } from "@reown/appkit/vue";
+import { hexToBytes, isAddressEqual, zeroAddress } from "viem";
+import { encodePasskeyModuleParameters, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
 import { z } from "zod";
 
 import { uint8ArrayToHex } from "@/utils/formatters";
@@ -139,6 +142,7 @@ import { AddressSchema } from "@/utils/schemas";
 
 const error = ref<string | null>(null);
 const accountData = useAppKitAccount();
+const { getRecovery, initRecovery, initRecoveryInProgress, getGuardians, getGuardiansData } = useRecoveryGuardian();
 
 definePageMeta({
   layout: "dashboard",
@@ -167,6 +171,8 @@ const RecoveryParamsSchema = z
   );
 
 const recoveryParams = ref<z.infer<typeof RecoveryParamsSchema> | null>(null);
+const isAccountGuardian = ref(false);
+const isSuccess = ref(false);
 
 try {
   recoveryParams.value = await RecoveryParamsSchema.parseAsync({
@@ -175,14 +181,37 @@ try {
     credentialPublicKey: route.query.credentialPublicKey,
     checksum: route.query.checksum,
   });
+  await getGuardians(recoveryParams.value.accountAddress);
+
+  const recoveryStatus = await getRecovery(recoveryParams.value.accountAddress);
+  isSuccess.value = recoveryStatus[2] === route.query.credentialId;
 } catch {
   error.value = "Invalid recovery parameters. Please verify the URL and try again.";
 }
 
-const isAccountGuardian = ref(true);
-const isSuccess = ref(false);
+watchEffect(() => {
+  isAccountGuardian.value = !!(getGuardiansData.value?.find((x) => isAddressEqual(x.addr, (accountData.value.address as `0x${string}`) ?? zeroAddress))?.isReady);
+});
 
-const handleSuccess = () => {
+const confirmRecoveryAction = async () => {
+  let origin: string | undefined = undefined;
+  if (!origin) {
+    try {
+      origin = window.location.origin;
+    } catch {
+      throw new Error("Can't identify expectedOrigin, please provide it manually");
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+  const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(hexToBytes(`0x${recoveryParams.value?.credentialPublicKey!}`));
+  const encodedPasskeyParameters = encodePasskeyModuleParameters({
+    passkeyPublicKey,
+    expectedOrigin: origin,
+  });
+  const accountId = recoveryParams.value?.credentialId || encodedPasskeyParameters;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+  await initRecovery(recoveryParams.value?.accountAddress!, encodedPasskeyParameters, accountId);
   isSuccess.value = true;
 };
 </script>
