@@ -1,12 +1,15 @@
-import { type Address, encodeAbiParameters } from "viem";
+import { type Address, createClient, encodeAbiParameters, encodeFunctionData, hashMessage, hashTypedData, http, publicActions, walletActions } from "viem";
+import { toAccount } from "viem/accounts";
+import { eip712WalletActions, getGeneralPaymasterInput, sendTransaction, serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
 import { GuardianRecoveryModuleAbi } from "zksync-sso/abi";
+import { getEip712Domain } from "zksync-sso/client";
 
 const getGuardiansInProgress = ref(false);
 const getGuardiansError = ref<Error | null>(null);
 const getGuardiansData = ref<readonly { addr: Address; isReady: boolean }[] | null>(null);
 
 export const useRecoveryGuardian = () => {
-  const { getClient, getPublicClient, getWalletClient, defaultChain } = useClientStore();
+  const { getClient, getPublicClient, getWalletClient, getThrowAwayClient, defaultChain } = useClientStore();
   const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
 
   const getGuardedAccountsInProgress = ref(false);
@@ -137,6 +140,7 @@ export const useRecoveryGuardian = () => {
     const client = await getWalletClient({ chainId: defaultChain.id });
     const [address] = await client.getAddresses();
 
+    console.log(passKey);
     const tx = await client.writeContract({
       account: address,
       address: contractsByChain[defaultChain.id].recovery,
@@ -154,6 +158,82 @@ export const useRecoveryGuardian = () => {
       abi: GuardianRecoveryModuleAbi,
       functionName: "checkRecoveryRequest",
       args: [accountId],
+    });
+    return tx;
+  });
+
+  const { inProgress: executeRecoveryInProgress, error: executeRecoveryError, execute: executeRecovery } = useAsync(async (address: Address) => {
+    const throwAwayClient = await getThrowAwayClient({ chainId: defaultChain.id });
+    const pendingRecovery = await getPendingRecoveryData(address);
+
+    const sign = async ({ hash: digest }: { hash: `0x${string}` }) => {
+      return encodeAbiParameters(
+        [{ type: "bytes" }, { type: "address" }, { type: "bytes" }],
+        [
+          await throwAwayClient.account.sign({ hash: digest }),
+          contractsByChain[defaultChain.id].recovery,
+          encodeAbiParameters(
+            [{ type: "uint256" }],
+            [123n],
+          ),
+        ],
+      );
+    };
+    const account = toAccount({
+      address,
+      type: "local",
+      async signTransaction(transaction) {
+        const signableTransaction = {
+          ...transaction,
+          from: address!,
+          type: "eip712",
+        } as ZksyncTransactionSerializableEIP712;
+
+        const eip712DomainAndMessage = getEip712Domain(signableTransaction);
+        const digest = hashTypedData(eip712DomainAndMessage);
+
+        const data = await sign({ hash: digest });
+        return serializeTransaction({
+          ...signableTransaction,
+          customSignature: data,
+        });
+      },
+
+      sign,
+      async signMessage({ message }) {
+        return sign({
+          hash: hashMessage(message),
+        });
+      },
+      async signTypedData(typedData) {
+        return sign({
+          hash: hashTypedData(typedData),
+        });
+      },
+    });
+
+    const client = await createClient({
+      chain: throwAwayClient.chain,
+      transport: http(),
+      account,
+      type: "local",
+    })
+      .extend(publicActions)
+      .extend(walletActions)
+      .extend(eip712WalletActions());
+
+    const callData = encodeFunctionData({
+      abi: GuardianRecoveryModuleAbi,
+      functionName: "addValidationKey",
+      args: [pendingRecovery![0]!],
+    });
+    const tx = await sendTransaction(client, {
+      account,
+      paymaster: contractsByChain[defaultChain.id].accountPaymaster,
+      paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
+      to: contractsByChain[defaultChain.id].passkey,
+      data: callData,
+      type: "eip712",
     });
     return tx;
   });
@@ -191,5 +271,8 @@ export const useRecoveryGuardian = () => {
     checkRecoveryRequestInProgress,
     checkRecoveryRequestError,
     checkRecoveryRequest,
+    executeRecoveryInProgress,
+    executeRecoveryError,
+    executeRecovery,
   };
 };

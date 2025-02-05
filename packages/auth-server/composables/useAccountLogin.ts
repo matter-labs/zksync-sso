@@ -33,9 +33,25 @@ export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
       });
       return { success: true } as const;
     } catch {
-      const { checkRecoveryRequest } = useRecoveryGuardian();
+      const { checkRecoveryRequest, executeRecovery } = useRecoveryGuardian();
       const recoveryRequest = await checkRecoveryRequest(credential.id);
       if (recoveryRequest) {
+        const isReady = recoveryRequest[1];
+        if (isReady) {
+          await executeRecovery(recoveryRequest[0]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
+            contracts: contractsByChain[chainId.value],
+            uniqueAccountId: credential.id,
+          });
+          login({
+            username,
+            address,
+            passkey: toHex(passkeyPublicKey),
+          });
+          return { success: true } as const;
+        }
+
         return {
           success: false,
           recoveryRequest: {
