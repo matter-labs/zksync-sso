@@ -305,6 +305,7 @@ function toArrayBuffer(data: string, isUrl: boolean) {
 };
 
 export function passkeyHashSignatureResponseFormat(
+  passkeyId: string,
   passkeyResponse: {
     authenticatorData: string;
     clientDataJSON: string;
@@ -320,11 +321,13 @@ export function passkeyHashSignatureResponseFormat(
       { type: "bytes" }, // authData
       { type: "bytes" }, // clientDataJson
       { type: "bytes32[2]" }, // signature (two elements)
+      { type: "string" }, // unique passkey id
     ],
     [
       toHex(base64UrlToUint8Array(passkeyResponse.authenticatorData)),
       toHex(base64UrlToUint8Array(passkeyResponse.clientDataJSON)),
       [toHex(signature.r), toHex(signature.s)],
+      toHex(base64UrlToUint8Array(passkeyId)),
     ],
   );
   const fullFormattedSig = encodeAbiParameters(

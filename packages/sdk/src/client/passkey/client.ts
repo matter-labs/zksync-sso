@@ -31,7 +31,10 @@ export function createZksyncPasskeyClient<
         credentialPublicKey: parameters.credentialPublicKey,
       });
 
-      return passkeyHashSignatureResponseFormat(passkeySignature.passkeyAuthenticationResponse.response, parameters.contracts);
+      return passkeyHashSignatureResponseFormat(
+        passkeySignature.passkeyAuthenticationResponse.id,
+        passkeySignature.passkeyAuthenticationResponse.response,
+        parameters.contracts);
     },
   });
   const client = createClient<transport, chain, Account, rpcSchema>({
