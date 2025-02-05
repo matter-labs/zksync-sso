@@ -14,7 +14,7 @@ import { IPaymaster, ExecutionResult, PAYMASTER_VALIDATION_SUCCESS_MAGIC } from 
 import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 import { TransactionHelper, Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 
-import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import { BOOTLOADER_FORMAL_ADDRESS } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 
 /// @author Matter Labs
 /// @notice DO NOT USE THIS FOR PRODUCTION. This contract does not include any validations other than using the paymaster general flow.
