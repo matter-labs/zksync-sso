@@ -5,11 +5,8 @@
 </template>
 
 <script lang="ts" setup>
-import type { AppKitNetwork } from "@reown/appkit/networks";
 import { createAppKit } from "@reown/appkit/vue";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-
-import { supportedChains } from "./stores/client";
 
 // BigInt polyfill
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,21 +15,24 @@ import { supportedChains } from "./stores/client";
 };
 
 // AppKit Configuration
-const projectId = "9bc5059f6eed355858cc56a3388e9b50";
+const { defaultChain } = useClientStore();
+const runtimeConfig = useRuntimeConfig();
+
+const projectId = runtimeConfig.public.appKitProjectId;
 const metadata = {
   name: "ZKsync SSO Auth Server",
   description: "ZKsync SSO Auth Server",
-  url: "https://auth-test.zksync.dev",
-  icons: ["https://auth-test.zksync.dev/icon-512.png"],
+  url: runtimeConfig.public.appUrl,
+  icons: [`${runtimeConfig.public.appUrl}/icon-512.png`],
 };
 const wagmiAdapter = new WagmiAdapter({
-  networks: supportedChains,
+  networks: [defaultChain],
   projectId,
 });
 
 createAppKit({
   adapters: [wagmiAdapter],
-  networks: supportedChains as unknown as [AppKitNetwork, ...AppKitNetwork[]],
+  networks: [defaultChain],
   projectId,
   metadata,
 });
