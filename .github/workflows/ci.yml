@@ -63,7 +63,7 @@ jobs:
     - name: Deploy Demo-App contracts
       run: pnpm nx deploy-contracts demo-app
 
-	- name: Run tests
+    - name: Run tests
       run: pnpm test
       working-directory: packages/sdk
 
