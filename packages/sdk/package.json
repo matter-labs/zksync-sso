@@ -104,6 +104,11 @@
       "import": "./dist/_esm/abi/index.js",
       "require": "./dist/_cjs/abi/index.js"
     },
+    "./paymaster": {
+      "types": "./dist/_types/paymaster/index.d.ts",
+      "import": "./dist/_esm/paymaster/index.js",
+      "require": "./dist/_cjs/paymaster/index.js"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
