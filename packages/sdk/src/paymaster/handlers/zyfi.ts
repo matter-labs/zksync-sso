@@ -42,7 +42,7 @@ export function createZyfiPaymaster(params: ZyfiPaymasterParams): CustomPaymaste
       txData: {
         from: args.from,
         to: args.to,
-        data: args.data,
+        data: args.data ?? "0x",
         value: args.value,
       },
     };
