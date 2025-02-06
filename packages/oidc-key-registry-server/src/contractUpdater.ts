@@ -32,7 +32,7 @@ export class ContractUpdater {
   public async updateContract(iss: string, keys: Key[]): Promise<void> {
     console.log(`Updating contract for issuer: ${iss}`);
 
-    const issHash = this.getIssHash(iss);
+    const issHash = await this.getIssHash(iss);
     const newKeys = await this.getNewKeys(issHash, keys);
 
     if (newKeys.length === 0) {
@@ -85,11 +85,13 @@ export class ContractUpdater {
     return network;
   }
 
-  private getIssHash(iss: string): string {
+  private async getIssHash(iss: string): Promise<string> {
     let issHash = this.issHashes.get(iss);
     if (!issHash) {
-      issHash = keccak256(toBytes(iss));
-      console.log("issHash:", issHash);
+      issHash = await this.contract.hashIssuer.staticCall(iss);
+      if (!issHash) {
+        throw new Error("Failed to get issuer hash");
+      }
       this.issHashes.set(iss, issHash);
     }
     return issHash;
