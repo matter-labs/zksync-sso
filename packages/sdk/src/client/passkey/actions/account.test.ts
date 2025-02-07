@@ -10,6 +10,9 @@ vi.mock("../../../utils/passkey.js", () => ({
     Buffer.from("0000000000000000000000000000000000000000000000000000000000000001", "hex"),
     Buffer.from("0000000000000000000000000000000000000000000000000000000000000002", "hex"),
   ]),
+  base64UrlToUint8Array: vi.fn().mockReturnValue([
+    Buffer.from("lWIw_JbKgvtxKTLAYtNkGDu55lvtvTaBEveBVeiTqaTf3wkajGocKNnfkT_rk6r7", "base64url"),
+  ]),
 }));
 
 // Mock viem actions

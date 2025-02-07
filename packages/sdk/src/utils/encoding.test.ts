@@ -6,6 +6,7 @@ describe("encoding utils", () => {
   describe("encodePasskeyModuleParameters", () => {
     test("correctly encodes passkey parameters", () => {
       const passkey = {
+        credentialId: "lWIw_JbKgvtxKTLAYtNkGDu55lvtvTaBEveBVeiTqaTf3wkajGocKNnfkT_rk6r7",
         passkeyPublicKey: [
           Buffer.from("1234567890123456789012345678901234567890123456789012345678901234", "hex"),
           Buffer.from("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd", "hex"),
@@ -22,7 +23,8 @@ describe("encoding utils", () => {
       expect(encoded).toContain("1234567890123456789012345678901234567890123456789012345678901234");
       expect(encoded).toContain("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd");
       expect(encoded).toContain(Buffer.from("https://example.com").toString("hex"));
-      expect(encoded).toEqual("0x1234567890123456789012345678901234567890123456789012345678901234abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd0000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000001368747470733a2f2f6578616d706c652e636f6d00000000000000000000000000");
+      expect(encoded).toContain(Buffer.from("lWIw_JbKgvtxKTLAYtNkGDu55lvtvTaBEveBVeiTqaTf3wkajGocKNnfkT_rk6r7", "base64url").toString("hex"));
+      expect(encoded).toEqual("0x00000000000000000000000000000000000000000000000000000000000000801234567890123456789012345678901234567890123456789012345678901234abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd00000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000030956230fc96ca82fb712932c062d364183bb9e65bedbd368112f78155e893a9a4dfdf091a8c6a1c28d9df913feb93aafb00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001368747470733a2f2f6578616d706c652e636f6d00000000000000000000000000");
     });
   });
 

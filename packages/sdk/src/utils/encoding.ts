@@ -1,8 +1,8 @@
 import { type Address, encodeAbiParameters, getAbiItem, type Hash, type Hex, parseAbiParameters, toHex } from "viem";
 
 import { SessionKeyModuleAbi } from "../abi/SessionKeyModule.js";
+import { base64UrlToUint8Array } from "../utils/passkey.js";
 import { getPeriodIdsForTransaction, type SessionConfig } from "../utils/session.js";
-import { base64UrlToUint8Array } from "./passkey.js";
 
 const getSessionSpec = () => {
   return getAbiItem({
