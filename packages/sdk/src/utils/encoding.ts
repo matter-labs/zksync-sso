@@ -1,4 +1,5 @@
 import { type Address, encodeAbiParameters, getAbiItem, type Hash, type Hex, parseAbiParameters, toHex } from "viem";
+import { base64UrlToUint8Array } from "zksync-sso/utils";
 
 import { SessionKeyModuleAbi } from "../abi/SessionKeyModule.js";
 import { getPeriodIdsForTransaction, type SessionConfig } from "../utils/session.js";
@@ -45,13 +46,15 @@ export const encodeSessionTx = (args: {
   );
 };
 
-export const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
+export const encodePasskeyModuleParameters = (passkey: { credentialId: string; passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
   return encodeAbiParameters(
     [
+      { type: "bytes", name: "credentialId" },
       { type: "bytes32[2]", name: "xyPublicKeys" },
       { type: "string", name: "expectedOrigin" },
     ],
     [
+      toHex(base64UrlToUint8Array(passkey.credentialId)),
       [toHex(passkey.passkeyPublicKey[0]), toHex(passkey.passkeyPublicKey[1])],
       passkey.expectedOrigin,
     ],

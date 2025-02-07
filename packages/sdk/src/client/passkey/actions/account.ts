@@ -11,6 +11,7 @@ import type { SessionConfig } from "../../../utils/session.js";
 /* TODO: try to get rid of most of the contract params like passkey, session */
 /* it should come from factory, not passed manually each time */
 export type DeployAccountArgs = {
+  credentialId: string; // Unique id of the passkey public key (base64)
   credentialPublicKey: Uint8Array; // Public key of the previously registered
   paymasterAddress?: Address; // Paymaster used to pay the fees of creating accounts
   paymasterInput?: Hex; // Input for paymaster (if provided)
@@ -69,6 +70,7 @@ export const deployAccount = async <
 
   const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
   const encodedPasskeyParameters = encodePasskeyModuleParameters({
+    credentialId: args.credentialId,
     passkeyPublicKey,
     expectedOrigin: origin,
   });
