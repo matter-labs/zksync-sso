@@ -143,7 +143,7 @@ This monorepo is comprised of the following packages, products, and examples:
    # Compile and deploy contracts
    cd packages/contracts
    pnpm build
-   pnpm run deploy
+   pnpm run deploy --file ../auth-server/stores/local-node.json
    ```
 
 6. Start the demo application:
