@@ -3,6 +3,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
+import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 
 export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
@@ -28,11 +29,11 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
   },
   [zksyncInMemoryNode.id]: {
-    session: "0xC153c69fB89D6EA7A5092C83C72F8D3aE88EA596",
-    passkey: "0x0EEE632e4e370EaA4A0109F9062d470c71554cbD",
-    recovery: "0xDf8F9b39Cd69Cb8Dc29137f83E89fE1AdA26912D",
-    accountFactory: "0x14F950AB5021152964887b95e5f2d15969DA3214",
-    accountPaymaster: "0x2fF1F2fd575d3b65Ab6A0b3B1Eea3963D278AdA3",
+    session: "0x045b82c1e4F36442Bbc16FAde8aDf898B3D67Fd3",
+    passkey: "0x5F8Ef9E98ad0C51648B16d977F07F75bE3DE082a",
+    recovery: "0x740Ec29efae9c1119B5F9bDC24b6a55fE22E00dB",
+    accountFactory: "0x90953AEAe78a8995E917B7Ff29d277271737D9ab",
+    accountPaymaster: "0xe70CA3795abec2cd49cbd300Ed4dFFBF2F7f5180",
   },
 };
 
@@ -67,6 +68,21 @@ export const useClientStore = defineStore("client", () => {
       credentialPublicKey: passkey.value!,
       userName: username.value!,
       userDisplayName: username.value!,
+      contracts,
+      chain: chain,
+      transport: http(),
+    });
+
+    return client;
+  };
+
+  const getRecoveryClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+
+    const client = createZksyncRecoveryGuardianClient({
+      address,
       contracts,
       chain: chain,
       transport: http(),
@@ -110,5 +126,6 @@ export const useClientStore = defineStore("client", () => {
     getClient,
     getThrowAwayClient,
     getWalletClient,
+    getRecoveryClient,
   };
 });
