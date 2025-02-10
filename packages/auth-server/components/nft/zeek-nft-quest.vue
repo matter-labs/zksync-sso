@@ -58,6 +58,7 @@ const getNFTTransactions = async function () {
   const { getPublicClient, defaultChain } = useClientStore();
 
   const client = getPublicClient({ chainId: chainId ?? defaultChain.id });
+  console.log("nftAddress", nftAddress, "ZeekNftQuestAbi", ZeekNftQuestAbi, "address", address);
   const res = await client.readContract({
     address: nftAddress,
     abi: ZeekNftQuestAbi,
