@@ -321,7 +321,7 @@ export function passkeyHashSignatureResponseFormat(
       { type: "bytes" }, // authData
       { type: "bytes" }, // clientDataJson
       { type: "bytes32[2]" }, // signature (two elements)
-      { type: "string" }, // unique passkey id
+      { type: "bytes" }, // unique passkey id
     ],
     [
       toHex(base64UrlToUint8Array(passkeyResponse.authenticatorData)),
