@@ -1,4 +1,4 @@
-import { type Address, encodeAbiParameters, getAbiItem, type Hash, type Hex, parseAbiParameters, toHex } from "viem";
+import { type Address, encodeAbiParameters, getAbiItem, type Hash, type Hex, pad, parseAbiParameters, toHex } from "viem";
 
 import { SessionKeyModuleAbi } from "../abi/SessionKeyModule.js";
 import { getPeriodIdsForTransaction, type SessionConfig } from "../utils/session.js";
@@ -52,7 +52,7 @@ export const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buff
       { type: "string", name: "expectedOrigin" },
     ],
     [
-      [toHex(passkey.passkeyPublicKey[0]), toHex(passkey.passkeyPublicKey[1])],
+      [pad(toHex(passkey.passkeyPublicKey[0])), pad(toHex(passkey.passkeyPublicKey[1]))],
       passkey.expectedOrigin,
     ],
   );
