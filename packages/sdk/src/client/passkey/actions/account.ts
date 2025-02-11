@@ -5,7 +5,7 @@ import { getGeneralPaymasterInput } from "viem/zksync";
 import { FactoryAbi } from "../../../abi/Factory.js";
 import { encodeModuleData, encodePasskeyModuleParameters, encodeSession } from "../../../utils/encoding.js";
 import { noThrow } from "../../../utils/helpers.js";
-import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
+import { base64UrlToUint8Array, getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
 import type { SessionConfig } from "../../../utils/session.js";
 
 /* TODO: try to get rid of most of the contract params like passkey, session */
@@ -174,17 +174,18 @@ export const fetchAccount = async <
 
   if (!accountAddress || accountAddress == NULL_ADDRESS) throw new Error(`No account found for username: ${username}`);
 
+  const credentialId = toHex(base64UrlToUint8Array(username));
   const lowerKeyHalfBytes = await readContract(client, {
-    abi: parseAbi(["function lowerKeyHalf(string,address) view returns (bytes32)"]),
+    abi: parseAbi(["function lowerKeyHalf(string,bytes,address) view returns (bytes32)"]),
     address: args.contracts.passkey,
     functionName: "lowerKeyHalf",
-    args: [origin, accountAddress],
+    args: [origin, credentialId, accountAddress],
   });
   const upperKeyHalfBytes = await readContract(client, {
-    abi: parseAbi(["function upperKeyHalf(string,address) view returns (bytes32)"]),
+    abi: parseAbi(["function upperKeyHalf(string,bytes,address) view returns (bytes32)"]),
     address: args.contracts.passkey,
     functionName: "upperKeyHalf",
-    args: [origin, accountAddress],
+    args: [origin, credentialId, accountAddress],
   });
 
   if (!lowerKeyHalfBytes || !upperKeyHalfBytes) throw new Error(`Passkey credentials not found in on-chain module for passkey ${username}`);

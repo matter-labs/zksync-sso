@@ -20,8 +20,6 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     const nftQuestAddress = await nftContract.getAddress();
     const paymasterContractAddress = await paymasterContract.getAddress();
 
-    const configPath = path.join(__dirname, "../../../packages/auth-server/local-node.json");
-    fs.writeFileSync(configPath, JSON.stringify({ nftQuestAddress, paymasterContractAddress }), { encoding: "utf8" });
     // Update the .env.local file with the contract addresses for NFT Quest app
     const envFilePath = path.join(__dirname, "../../nft-quest/.env.local");
 
