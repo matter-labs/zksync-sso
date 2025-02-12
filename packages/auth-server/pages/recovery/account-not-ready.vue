@@ -14,7 +14,7 @@
     <div class="flex flex-col items-center mt-8">
       <div class="p-6 rounded-lg bg-gray-50 dark:bg-gray-800 max-w-md w-full text-center">
         <p class="text-gray-600 dark:text-gray-300 mb-4">
-          Your account is currently in the recovery process. It will be ready in <span class="font-semibold text-gray-900 dark:text-white">XXhs</span>.
+          Your account is currently in the recovery process. It will be ready in <span class="font-semibold text-gray-900 dark:text-white">24hs</span>.
         </p>
         <p class="text-sm text-gray-500 dark:text-gray-400">
           Please check back later
