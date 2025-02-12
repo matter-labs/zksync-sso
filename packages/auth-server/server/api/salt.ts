@@ -40,11 +40,10 @@ export default defineEventHandler(async (event) => {
     const aud = payload.aud;
     const sub = payload.sub;
 
-    const data = `${iss}${aud}${sub}${SALT_ENTROPY}`;
-
+    const data = Buffer.from(`${iss}${aud}${sub}${SALT_ENTROPY}`, "ascii");
     const hash = crypto.createHash("sha256").update(data).digest("hex");
 
-    return { salt: hash, data };
+    return { salt: hash };
   } catch {
     throw createError({
       statusCode: 401,
