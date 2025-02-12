@@ -1,5 +1,5 @@
-import crypto from 'crypto';
-import axios from 'axios';
+import crypto from "crypto";
+import axios from "axios";
 import { defineEventHandler, getHeader } from "h3";
 import jwt from "jsonwebtoken";
 import jwkToPem from "jwk-to-pem";
@@ -13,6 +13,7 @@ const SALT_ENTROPY = process.env.SALT_ENTROPY || "entropy";
 
 async function getGooglePublicKey(kid: string) {
   const { data } = await axios.get(GOOGLE_JWKS_URL);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const jwk = data.keys.find((key: any) => key.kid === kid);
 
   if (!jwk) {
@@ -35,6 +36,7 @@ export default defineEventHandler(async (event) => {
   const token = authHeader.split(" ")[1];
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const decoded = jwt.decode(token, { complete: true }) as any;
     if (!decoded?.payload?.iss || !GOOGLE_ISSUERS.includes(decoded.payload.iss)) {
       throw new Error("Invalid issuer");
@@ -58,7 +60,7 @@ export default defineEventHandler(async (event) => {
     const hash = crypto.createHash("sha256").update(JSON.stringify(data)).digest("hex");
 
     return { salt: hash };
-  } catch (error) {
+  } catch {
     throw createError({
       statusCode: 401,
       message: "Unauthorized - Invalid token or verification failed",
