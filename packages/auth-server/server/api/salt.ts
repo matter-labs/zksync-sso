@@ -8,7 +8,11 @@ const GOOGLE_ISSUERS = [
   "https://accounts.google.com",
   "accounts.google.com",
 ];
-const SALT_ENTROPY = process.env.SALT_ENTROPY || "entropy";
+const SALT_ENTROPY = process.env.SALT_ENTROPY;
+
+if (!SALT_ENTROPY) {
+  throw new Error("SALT_ENTROPY environment variable is required but not set");
+}
 
 async function getGooglePublicKey(kid: string) {
   const response = await fetch(GOOGLE_JWKS_URL);
