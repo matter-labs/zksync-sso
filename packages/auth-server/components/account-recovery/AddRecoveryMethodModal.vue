@@ -74,7 +74,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-import GuardianFlow from "~/components/account-recovery/flows/GuardianFlow.vue";
+import GuardianFlow from "~/components/account-recovery/guardian-flow/Root.vue";
 import Button from "~/components/zk/button.vue";
 import Dialog from "~/components/zk/dialog.vue";
 
@@ -82,7 +82,12 @@ type Step = "select-method" | "guardian" | "email";
 const currentStep = ref<Step>("select-method");
 const modalRef = ref<InstanceType<typeof Dialog>>();
 
+const emit = defineEmits<{
+  (e: "closed"): void;
+}>();
+
 function closeModal() {
+  emit("closed");
   modalRef.value?.close();
 }
 

@@ -84,7 +84,9 @@
             </Button>
           </div>
         </Card>
-        <AddRecoveryMethodModal />
+        <AddRecoveryMethodModal
+          @closed="refreshGuardians"
+        />
       </div>
     </div>
   </div>
@@ -106,6 +108,7 @@ const { address: accountAddress } = useAccountStore();
 const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
 
 const config = useRuntimeConfig();
+
 const appUrl = config.public.appUrl;
 
 const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
@@ -115,8 +118,15 @@ const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) =>
   ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
 })));
 
-watchEffect(() => {
-  if (accountAddress)
+const refreshGuardians = () => {
+  if (accountAddress) {
     getGuardians(accountAddress);
+  }
+};
+
+watchEffect(async () => {
+  if (accountAddress) {
+    await getGuardians(accountAddress);
+  }
 });
 </script>

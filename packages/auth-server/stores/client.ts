@@ -42,7 +42,8 @@ export const useClientStore = defineStore("client", () => {
 
   const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
   const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
-  if (!defaultChain) throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
+  if (!defaultChain)
+    throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
 
   const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -68,11 +69,37 @@ export const useClientStore = defineStore("client", () => {
       userName: username.value!,
       userDisplayName: username.value!,
       contracts,
-      chain: chain,
+      chain,
       transport: http(),
     });
 
     return client;
+  };
+
+  const getConfigurableClient = ({
+    chainId,
+    address,
+    credentialPublicKey,
+    username,
+  }: {
+    chainId: SupportedChainId;
+    address: Address;
+    credentialPublicKey: Uint8Array<ArrayBufferLike>;
+    username: string;
+  }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+
+    return createZksyncPasskeyClient({
+      address,
+      credentialPublicKey,
+      userName: username,
+      userDisplayName: username,
+      contracts,
+      chain,
+      transport: http(),
+    });
   };
 
   const getThrowAwayClient = ({ chainId }: { chainId: SupportedChainId }) => {
@@ -90,18 +117,25 @@ export const useClientStore = defineStore("client", () => {
     return throwAwayClient;
   };
 
-  const getWalletClient = ({ chainId }: { chainId: SupportedChainId }) => {
+  const getWalletClient = async ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
 
-    const walletClient = createWalletClient({
+    if (!window?.ethereum) throw new Error("No ethereum provider found");
+
+    const accounts = await (window.ethereum as { request: (args: { method: string }) => Promise<Address[]> }).request({
+      method: "eth_requestAccounts",
+    });
+
+    return createWalletClient({
       chain,
-      transport: custom(window.ethereum as never),
+      account: accounts[0],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transport: custom(window!.ethereum as any),
     })
       .extend(publicActions)
       .extend(walletActions)
       .extend(eip712WalletActions());
-    return walletClient;
   };
 
   return {
@@ -110,5 +144,6 @@ export const useClientStore = defineStore("client", () => {
     getClient,
     getThrowAwayClient,
     getWalletClient,
+    getConfigurableClient,
   };
 });
