@@ -9,12 +9,7 @@ export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
   const { inProgress: loginInProgress, error: accountLoginError, execute: loginToAccount } = useAsync(async () => {
     const client = getPublicClient({ chainId: chainId.value });
 
-    const credential = await navigator.credentials.get({
-      publicKey: {
-        challenge: new Uint8Array(32),
-        userVerification: "discouraged",
-      },
-    }) as PublicKeyCredential | null;
+    const credential = await getPasskeyCredential();
     if (!credential) {
       throw new Error("No credential found");
     }
