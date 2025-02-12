@@ -4,6 +4,11 @@ import axios from 'axios';
 import jwkToPem from 'jwk-to-pem';
 
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
+const GOOGLE_ISSUERS = [
+  'https://accounts.google.com',
+  'accounts.google.com',
+];
+const SALT_ENTROPY = process.env.SALT_ENTROPY || 'entropy';
 
 async function getGooglePublicKey(kid: string) {
   const { data } = await axios.get(GOOGLE_JWKS_URL);
@@ -30,6 +35,10 @@ export default defineEventHandler(async (event) => {
 
   try {
     const decoded = jwt.decode(token, { complete: true }) as any;
+    if (!decoded?.payload?.iss || !GOOGLE_ISSUERS.includes(decoded.payload.iss)) {
+      throw new Error('Invalid issuer');
+    }
+
     if (!decoded?.header?.kid) {
       throw new Error('JWT missing "kid"');
     }
@@ -44,7 +53,7 @@ export default defineEventHandler(async (event) => {
     const aud = verifiedToken.aud;
     const sub = verifiedToken.sub;
 
-    return {iss, aud, sub};
+    return { iss, aud, sub , entropy: SALT_ENTROPY };
   } catch (error) {
     throw createError({
       statusCode: 401,
