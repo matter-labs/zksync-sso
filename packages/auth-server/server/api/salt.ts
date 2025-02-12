@@ -2,6 +2,7 @@ import { defineEventHandler, getHeader } from 'h3';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import jwkToPem from 'jwk-to-pem';
+import crypto from 'crypto';
 
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
 const GOOGLE_ISSUERS = [
@@ -53,7 +54,10 @@ export default defineEventHandler(async (event) => {
     const aud = verifiedToken.aud;
     const sub = verifiedToken.sub;
 
-    return { iss, aud, sub , entropy: SALT_ENTROPY };
+    const data =  { iss, aud, sub , entropy: SALT_ENTROPY };
+    const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
+
+    return { salt: hash };
   } catch (error) {
     throw createError({
       statusCode: 401,
