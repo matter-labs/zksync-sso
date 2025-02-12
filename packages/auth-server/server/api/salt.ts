@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import axios from "axios";
 import { defineEventHandler, getHeader } from "h3";
 import jwt from "jsonwebtoken";
 import jwkToPem from "jwk-to-pem";
@@ -12,7 +11,13 @@ const GOOGLE_ISSUERS = [
 const SALT_ENTROPY = process.env.SALT_ENTROPY || "entropy";
 
 async function getGooglePublicKey(kid: string) {
-  const { data } = await axios.get(GOOGLE_JWKS_URL);
+  const response = await fetch(GOOGLE_JWKS_URL);
+  if (!response.ok) {
+    throw new Error('Failed to fetch JWKS');
+  }
+
+  const data = await response.json();
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const jwk = data.keys.find((key: any) => key.kid === kid);
 
@@ -41,7 +46,6 @@ export default defineEventHandler(async (event) => {
     if (!decoded?.payload?.iss || !GOOGLE_ISSUERS.includes(decoded.payload.iss)) {
       throw new Error("Invalid issuer");
     }
-
     if (!decoded?.header?.kid) {
       throw new Error("JWT missing \"kid\"");
     }
@@ -56,7 +60,13 @@ export default defineEventHandler(async (event) => {
     const aud = verifiedToken.aud;
     const sub = verifiedToken.sub;
 
-    const data = { iss, aud, sub, entropy: SALT_ENTROPY };
+    const data = {
+      iss,
+      aud,
+      sub,
+      entropy: SALT_ENTROPY,
+    };
+
     const hash = crypto.createHash("sha256").update(JSON.stringify(data)).digest("hex");
 
     return { salt: hash };
