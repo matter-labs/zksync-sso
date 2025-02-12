@@ -1,36 +1,20 @@
 import crypto from "crypto";
 import { defineEventHandler, getHeader } from "h3";
-import jwt from "jsonwebtoken";
-import jwkToPem from "jwk-to-pem";
+import * as jose from 'jose';
 
-const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
-const GOOGLE_ISSUERS = [
-  "https://accounts.google.com",
-  "accounts.google.com",
-];
+const GOOGLE_JWKS_URL = new URL("https://www.googleapis.com/oauth2/v3/certs");
+const GOOGLE_ISSUER = "https://accounts.google.com";
+
+const APP_AUD = process.env.APP_AUD;
+if (!APP_AUD) {
+  throw new Error("APP_AUD environment variable is required but not set");
+}
+
 const SALT_ENTROPY = process.env.SALT_ENTROPY;
-
 if (!SALT_ENTROPY) {
   throw new Error("SALT_ENTROPY environment variable is required but not set");
 }
 
-async function getGooglePublicKey(kid: string) {
-  const response = await fetch(GOOGLE_JWKS_URL);
-  if (!response.ok) {
-    throw new Error('Failed to fetch JWKS');
-  }
-
-  const data = await response.json();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const jwk = data.keys.find((key: any) => key.kid === kid);
-
-  if (!jwk) {
-    throw new Error("Public key not found");
-  }
-
-  return jwkToPem(jwk);
-}
 
 export default defineEventHandler(async (event) => {
   const authHeader = getHeader(event, "Authorization");
@@ -42,42 +26,29 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const token = authHeader.split(" ")[1];
+  const jwt = authHeader.split(" ")[1];
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const decoded = jwt.decode(token, { complete: true }) as any;
-    if (!decoded?.payload?.iss || !GOOGLE_ISSUERS.includes(decoded.payload.iss)) {
-      throw new Error("Invalid issuer");
-    }
-    if (!decoded?.header?.kid) {
-      throw new Error("JWT missing \"kid\"");
-    }
+    const JWKS = jose.createRemoteJWKSet(GOOGLE_JWKS_URL)
 
-    const publicKey = await getGooglePublicKey(decoded.header.kid);
-
-    const verifiedToken = jwt.verify(token, publicKey, {
-      algorithms: ["RS256"],
+    const { payload } = await jose.jwtVerify(jwt, JWKS, {
+      issuer: GOOGLE_ISSUER,
+      audience: APP_AUD,
     });
 
-    const iss = verifiedToken.iss;
-    const aud = verifiedToken.aud;
-    const sub = verifiedToken.sub;
+    const iss = payload.iss;
+    const aud = payload.aud;
+    const sub = payload.sub;
 
-    const data = {
-      iss,
-      aud,
-      sub,
-      entropy: SALT_ENTROPY,
-    };
+    const data = `${iss}${aud}${sub}${SALT_ENTROPY}`;
 
-    const hash = crypto.createHash("sha256").update(JSON.stringify(data)).digest("hex");
+    const hash = crypto.createHash("sha256").update(data).digest("hex");
 
-    return { salt: hash };
+    return { salt: hash, data };
   } catch {
     throw createError({
       statusCode: 401,
-      message: "Unauthorized - Invalid token or verification failed",
+      message: "Unauthorized - Invalid token",
     });
   }
 });
