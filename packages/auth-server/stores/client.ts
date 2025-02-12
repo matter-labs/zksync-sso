@@ -3,6 +3,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
+import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 
 import localChainData from "./local-node.json";
 
@@ -72,6 +73,21 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
+  const getRecoveryClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+
+    const client = createZksyncRecoveryGuardianClient({
+      address,
+      contracts,
+      chain: chain,
+      transport: http(),
+    });
+
+    return client;
+  };
+
   const getConfigurableClient = ({
     chainId,
     address,
@@ -86,7 +102,6 @@ export const useClientStore = defineStore("client", () => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
     const contracts = contractsByChain[chainId];
-
     return createZksyncPasskeyClient({
       address,
       credentialPublicKey,
@@ -140,6 +155,7 @@ export const useClientStore = defineStore("client", () => {
     getClient,
     getThrowAwayClient,
     getWalletClient,
+    getRecoveryClient,
     getConfigurableClient,
   };
 });

@@ -1,4 +1,5 @@
 import type { Account, Address, Chain, Client, Transport } from "viem";
+import { hexToBytes } from "viem";
 import { GuardianRecoveryModuleAbi } from "zksync-sso/abi";
 import { confirmGuardian as sdkConfirmGuardian } from "zksync-sso/client";
 
@@ -7,7 +8,7 @@ const getGuardiansError = ref<Error | null>(null);
 const getGuardiansData = ref<readonly { addr: Address; isReady: boolean }[] | null>(null);
 
 export const useRecoveryGuardian = () => {
-  const { getClient, getPublicClient, getWalletClient, defaultChain } = useClientStore();
+  const { getClient, getPublicClient, getWalletClient, getRecoveryClient, defaultChain } = useClientStore();
   const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
 
   const getGuardedAccountsInProgress = ref(false);
@@ -156,6 +157,19 @@ export const useRecoveryGuardian = () => {
     return tx;
   });
 
+  const { inProgress: executeRecoveryInProgress, error: executeRecoveryError, execute: executeRecovery } = useAsync(async (address: Address) => {
+    const recoveryClient = await getRecoveryClient({ chainId: defaultChain.id, address });
+    const pendingRecovery = await getPendingRecoveryData(address);
+
+    const tx = await recoveryClient.addAccountOwnerPasskey({
+      passkeyPublicKey: hexToBytes(pendingRecovery![0]!),
+      paymaster: {
+        address: paymasterAddress,
+      },
+    });
+    return tx;
+  });
+
   return {
     confirmGuardianInProgress,
     confirmGuardianError,
@@ -189,5 +203,8 @@ export const useRecoveryGuardian = () => {
     checkRecoveryRequestInProgress,
     checkRecoveryRequestError,
     checkRecoveryRequest,
+    executeRecoveryInProgress,
+    executeRecoveryError,
+    executeRecovery,
   };
 };
