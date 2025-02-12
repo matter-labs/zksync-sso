@@ -1,5 +1,7 @@
-import { type Address, encodeAbiParameters, hexToBytes } from "viem";
+import type { Account, Address, Chain, Client, Transport } from "viem";
+import { hexToBytes } from "viem";
 import { GuardianRecoveryModuleAbi } from "zksync-sso/abi";
+import { confirmGuardian as sdkConfirmGuardian } from "zksync-sso/client";
 
 const getGuardiansInProgress = ref(false);
 const getGuardiansError = ref<Error | null>(null);
@@ -79,14 +81,12 @@ export const useRecoveryGuardian = () => {
 
   const { inProgress: proposeGuardianInProgress, error: proposeGuardianError, execute: proposeGuardian } = useAsync(async (address: Address) => {
     const client = getClient({ chainId: defaultChain.id });
-    const tx = await client.proposeGuardian({
+    return await client.proposeGuardian({
       newGuardian: address,
       paymaster: {
         address: paymasterAddress,
       },
     });
-    await getGuardians(client.account.address);
-    return tx;
   });
 
   const { inProgress: removeGuardianInProgress, error: removeGuardianError, execute: removeGuardian } = useAsync(async (address: Address) => {
@@ -101,17 +101,16 @@ export const useRecoveryGuardian = () => {
     return tx;
   });
 
-  const { inProgress: confirmGuardianInProgress, error: confirmGuardianError, execute: confirmGuardian } = useAsync(async (account: Address) => {
-    const client = getWalletClient({ chainId: defaultChain.id });
-    const [address] = await client.getAddresses();
-    const tx = await client.writeContract({
-      account: address,
-      address: contractsByChain[defaultChain.id].recovery,
-      abi: GuardianRecoveryModuleAbi,
-      functionName: "addValidationKey",
-      args: [encodeAbiParameters([{ type: "address" }], [account])],
+  const { inProgress: confirmGuardianInProgress, error: confirmGuardianError, execute: confirmGuardian } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ client, accountToGuard }: { client: Client<transport, chain, account>; accountToGuard: Address }) => {
+    return await sdkConfirmGuardian(client, {
+      accountToGuard,
+      contracts: {
+        recovery: contractsByChain[defaultChain.id].recovery,
+      },
+      paymaster: {
+        address: paymasterAddress,
+      },
     });
-    return tx;
   });
 
   const { inProgress: getPendingRecoveryDataInProgress, error: getPendingRecoveryDataError, execute: getPendingRecoveryData, result: getPendingRecoveryDataResult } = useAsync(async (account: Address) => {
