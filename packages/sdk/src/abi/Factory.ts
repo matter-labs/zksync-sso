@@ -8,12 +8,60 @@ export const FactoryAbi = [
       },
       {
         internalType: "address",
-        name: "_implementation",
+        name: "_beacon",
         type: "address",
       },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "uniqueAccountId",
+        type: "string",
+      },
+      {
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
+    ],
+    name: "AccountAlreadyRegistered",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "uniqueAccountId",
+        type: "string",
+      },
+      {
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
+    ],
+    name: "AccountNotRegistered",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "uniqueAccountId",
+        type: "string",
+      },
+      {
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
+    ],
+    name: "AccountUsedForRecovery",
+    type: "error",
   },
   {
     anonymous: false,
@@ -35,36 +83,23 @@ export const FactoryAbi = [
     type: "event",
   },
   {
-    anonymous: false,
     inputs: [
       {
-        indexed: true,
         internalType: "address",
-        name: "previousOwner",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "newOwner",
+        name: "",
         type: "address",
       },
     ],
-    name: "OwnershipTransferred",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
+    name: "accountIds",
+    outputs: [
       {
-        indexed: true,
-        internalType: "address",
-        name: "implementation",
-        type: "address",
+        internalType: "string",
+        name: "",
+        type: "string",
       },
     ],
-    name: "Upgraded",
-    type: "event",
+    stateMutability: "view",
+    type: "function",
   },
   {
     inputs: [
@@ -80,6 +115,32 @@ export const FactoryAbi = [
         internalType: "address",
         name: "",
         type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "beacon",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "beaconProxyBytecodeHash",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
       },
     ],
     stateMutability: "view",
@@ -121,7 +182,26 @@ export const FactoryAbi = [
   },
   {
     inputs: [],
-    name: "implementation",
+    name: "getEncodedBeacon",
+    outputs: [
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    name: "recoveryAccountIds",
     outputs: [
       {
         internalType: "address",
@@ -133,21 +213,19 @@ export const FactoryAbi = [
     type: "function",
   },
   {
-    inputs: [],
-    name: "owner",
-    outputs: [
+    inputs: [
+      {
+        internalType: "string",
+        name: "_uniqueAccountId",
+        type: "string",
+      },
       {
         internalType: "address",
-        name: "",
+        name: "_accountAddress",
         type: "address",
       },
     ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "renounceOwnership",
+    name: "registerAccount",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -155,12 +233,17 @@ export const FactoryAbi = [
   {
     inputs: [
       {
+        internalType: "string",
+        name: "_uniqueAccountId",
+        type: "string",
+      },
+      {
         internalType: "address",
-        name: "newOwner",
+        name: "_accountAddress",
         type: "address",
       },
     ],
-    name: "transferOwnership",
+    name: "registerRecoveryBlockedAccount",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -168,12 +251,35 @@ export const FactoryAbi = [
   {
     inputs: [
       {
+        internalType: "string",
+        name: "_uniqueAccountId",
+        type: "string",
+      },
+      {
         internalType: "address",
-        name: "newImplementation",
+        name: "_accountAddress",
         type: "address",
       },
     ],
-    name: "upgradeTo",
+    name: "unregisterAccount",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "_uniqueAccountId",
+        type: "string",
+      },
+      {
+        internalType: "address",
+        name: "_accountAddress",
+        type: "address",
+      },
+    ],
+    name: "unregisterRecoveryBlockedAccount",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
