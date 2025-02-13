@@ -8,16 +8,57 @@ export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
 
   const { inProgress: loginInProgress, error: accountLoginError, execute: loginToAccount } = useAsync(async () => {
     const client = getPublicClient({ chainId: chainId.value });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
-      contracts: contractsByChain[chainId.value],
-    });
 
-    login({
-      username,
-      address,
-      passkey: toHex(passkeyPublicKey),
-    });
+    const credential = await getPasskeyCredential();
+    if (!credential) {
+      throw new Error("No credential found");
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
+        contracts: contractsByChain[chainId.value],
+        uniqueAccountId: credential.id,
+      });
+
+      login({
+        username,
+        address,
+        passkey: toHex(passkeyPublicKey),
+      });
+      return { success: true } as const;
+    } catch {
+      const { checkRecoveryRequest, executeRecovery } = useRecoveryGuardian();
+      const recoveryRequest = await checkRecoveryRequest(credential.id);
+      if (recoveryRequest) {
+        const isReady = recoveryRequest[1];
+        if (isReady) {
+          await executeRecovery(recoveryRequest[0]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
+            contracts: contractsByChain[chainId.value],
+            uniqueAccountId: credential.id,
+          });
+          login({
+            username,
+            address,
+            passkey: toHex(passkeyPublicKey),
+          });
+          return { success: true } as const;
+        }
+
+        return {
+          success: false,
+          recoveryRequest: {
+            account: recoveryRequest[0],
+            isReady: recoveryRequest[1],
+            remainingTime: recoveryRequest[2],
+          },
+        } as const;
+      } else {
+        return { success: false } as const;
+      }
+    }
   });
 
   return {

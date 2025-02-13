@@ -22,7 +22,7 @@
         <NuxtLink
           v-for="item in mainNav"
           :key="item.href"
-          :href="item.href"
+          :to="item.href"
           class="w-fit border-y-2 border-transparent hover:border-b-neutral-500 px-5 py-3 text-neutral-600 hover:text-neutral-800 flex items-center dark:text-neutral-400 dark:hover:text-neutral-300"
         >
           <zk-icon
@@ -35,9 +35,14 @@
     </div>
     <div
       v-show="!showMobileMenu"
-      class="flex items-center pr-2"
+      class="flex gap-2 items-center pr-2"
     >
       <app-color-mode />
+      <ZkButtonIcon
+        icon="Logout"
+        class="mr-1 -ml-1 scale-[-1]"
+        @click="logoutAndRedirect"
+      />
     </div>
     <div
       v-show="showMobileMenu"
@@ -80,6 +85,13 @@ onBeforeUnmount(() => {
 });
 
 watch(windowWidth, checkWidths);
+
+const { logout } = useAccountStore();
+
+const logoutAndRedirect = () => {
+  logout();
+  navigateTo("/");
+};
 </script>
 
 <style lang="scss" scoped>
