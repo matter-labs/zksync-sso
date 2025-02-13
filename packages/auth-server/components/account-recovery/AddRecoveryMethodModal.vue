@@ -48,17 +48,12 @@
             Recover with Guardian
           </Button>
 
-          <div class="flex w-full flex-col gap-2">
-            <Button
-              disabled
-              class="w-full"
-            >
-              Recover with Email
-            </Button>
-            <span class="text-sm text-gray-500 text-center">
-              Coming soon...
-            </span>
-          </div>
+          <Button
+            class="w-full"
+            @click="selectMethod('guardian')"
+          >
+            Recover with Google
+          </Button>
         </div>
       </div>
     </div>
