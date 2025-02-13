@@ -1,0 +1,19 @@
+{
+  "name": "oidc-key-registry-server",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "^0.12.0",
+    "ethers": "6",
+    "install": "^0.13.0",
+    "viem": "^2.22.19",
+    "zksync-ethers": "^6.16.0",
+    "zod": "^3.24.1"
+  }
+}
