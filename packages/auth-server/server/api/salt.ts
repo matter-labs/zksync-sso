@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
     const sub = payload.sub;
 
     const data = Buffer.from(`${iss}${aud}${sub}${SALT_ENTROPY}`, "ascii");
-    const hash = crypto.createHash("sha256").update(data).digest("hex");
+    const hash = crypto.createHash("sha256").update(data).digest("hex").slice(0, 62);
 
     return { salt: hash };
   } catch {
