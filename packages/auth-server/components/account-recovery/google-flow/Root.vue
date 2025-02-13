@@ -18,9 +18,10 @@
           @next="currentStep++"
           @back="$emit('back')"
         />
-        <Step5
-          v-if="currentStep === 2"
-          @next="completeSetup"
+        <Step2 
+          v-if="currentStep === 2" 
+          ref="step2Ref" 
+          @next="completeSetup" 
         />
       </div>
     </div>
@@ -31,16 +32,17 @@
 import { ref } from "vue";
 
 import Step1 from "./Step1.vue";
-import Step5 from "./Step5.vue";
+import Step2 from "./Step2.vue";
 
 const currentStep = ref(1);
+const step2Ref = ref<InstanceType<typeof Step2> | null>(null);
 
 const stepTitle = computed(() => {
   switch (currentStep.value) {
     case 1:
       return "Google Recovery";
     case 2:
-      return "Google Account Linked";
+      return step2Ref.value?.isLoading ? "" : "Google Account Linked";
     default:
       return "";
   }
