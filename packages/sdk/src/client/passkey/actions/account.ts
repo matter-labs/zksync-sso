@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseAbi, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseAbi, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
@@ -115,13 +115,17 @@ export const deployAccount = async <
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
   if (transactionReceipt.status !== "success") throw new Error("Account deployment transaction reverted");
 
-  const proxyAccountAddress = transactionReceipt.contractAddress;
-  if (!proxyAccountAddress) {
+  const accountCreatedEvent = parseEventLogs({ abi: FactoryAbi, logs: transactionReceipt.logs })
+    .find((log) => log && log.eventName === "AccountCreated");
+
+  if (!accountCreatedEvent) {
     throw new Error("No contract address in transaction receipt");
   }
 
+  const { accountAddress } = accountCreatedEvent.args;
+
   return {
-    address: getAddress(proxyAccountAddress),
+    address: getAddress(accountAddress),
     transactionReceipt: transactionReceipt,
   };
 };
