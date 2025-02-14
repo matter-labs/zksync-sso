@@ -1,7 +1,7 @@
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { generateAuthenticationOptions, type GenerateAuthenticationOptionsOpts, generateRegistrationOptions, type GenerateRegistrationOptionsOpts, type VerifiedRegistrationResponse, verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
 import { type AuthenticationResponseJSON, type PublicKeyCredentialCreationOptionsJSON, type PublicKeyCredentialRequestOptionsJSON, type RegistrationResponseJSON } from "@simplewebauthn/types";
-import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, toBytes, toHex, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, toBytes, type TransactionReceipt, type Transport } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
@@ -150,7 +150,9 @@ export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthentic
 };
 
 export type AddAccountOwnerPasskeyArgs = {
-  passkeyPublicKey: Uint8Array;
+  domain: string;
+  credentialId: `0x${string}`;
+  passkeyPublicKey: [`0x${string}`, `0x${string}`];
   contracts: { passkey: Address };
   paymaster?: {
     address: Address;
@@ -169,7 +171,7 @@ export const addAccountOwnerPasskey = async <
   const callData = encodeFunctionData({
     abi: WebAuthModuleAbi,
     functionName: "addValidationKey",
-    args: [toHex(args.passkeyPublicKey)],
+    args: [args.credentialId, args.passkeyPublicKey, args.domain],
   });
 
   const sendTransactionArgs = {
@@ -188,7 +190,54 @@ export const addAccountOwnerPasskey = async <
   }
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  if (transactionReceipt.status !== "success") throw new Error("initRecovery transaction reverted");
+  if (transactionReceipt.status !== "success") throw new Error("AddAccountOwnerPasskey transaction reverted");
+
+  return {
+    transactionReceipt,
+  };
+};
+
+export type RemovePasskeyArgs = {
+  domain: string;
+  credentialId: `0x${string}`;
+  contracts: { passkey: Address };
+  paymaster?: {
+    address: Address;
+    paymasterInput?: Hex;
+  };
+  onTransactionSent?: (hash: Hash) => void;
+};
+export type RemovePasskeyReturnType = {
+  transactionReceipt: TransactionReceipt;
+};
+export const removePasskey = async <
+  transport extends Transport,
+  chain extends Chain,
+  account extends Account,
+>(client: Client<transport, chain, account>, args: RemovePasskeyArgs): Promise<RemovePasskeyReturnType> => {
+  const callData = encodeFunctionData({
+    abi: WebAuthModuleAbi,
+    functionName: "removeValidationKey",
+    args: [args.credentialId, args.domain],
+  });
+
+  const sendTransactionArgs = {
+    account: client.account,
+    to: args.contracts.passkey,
+    paymaster: args.paymaster?.address,
+    paymasterInput: args.paymaster?.address ? (args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" })) : undefined,
+    data: callData,
+    gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+
+  const transactionHash = await sendTransaction(client, sendTransactionArgs);
+  if (args.onTransactionSent) {
+    noThrow(() => args.onTransactionSent?.(transactionHash));
+  }
+
+  const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
+  if (transactionReceipt.status !== "success") throw new Error("removePasskey transaction reverted");
 
   return {
     transactionReceipt,

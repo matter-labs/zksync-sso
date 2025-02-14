@@ -186,6 +186,7 @@ export const initRecovery = async <
 
   const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
   const encodedPasskeyParameters = encodePasskeyModuleParameters({
+    credentialId: args.accountId,
     passkeyPublicKey,
     expectedOrigin: origin,
   });

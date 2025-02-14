@@ -1,5 +1,5 @@
 import type { Account, Address, Chain, Client, Transport } from "viem";
-import { hexToBytes } from "viem";
+import { decodeAbiParameters } from "viem";
 import { GuardianRecoveryModuleAbi } from "zksync-sso/abi";
 import { confirmGuardian as sdkConfirmGuardian } from "zksync-sso/client";
 
@@ -132,7 +132,7 @@ export const useRecoveryGuardian = () => {
     });
   });
 
-  const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async (account: Address, passKey: `0x${string}`, accountId: string) => {
+  const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async (account: Address, encodedPassKeyParams: `0x${string}`, accountId: `0x${string}`) => {
     const client = await getWalletClient({ chainId: defaultChain.id });
     const [address] = await client.getAddresses();
 
@@ -141,7 +141,7 @@ export const useRecoveryGuardian = () => {
       address: contractsByChain[defaultChain.id].recovery,
       abi: GuardianRecoveryModuleAbi,
       functionName: "initRecovery",
-      args: [account, passKey, accountId],
+      args: [account, encodedPassKeyParams, accountId],
     });
     return tx;
   });
@@ -161,8 +161,25 @@ export const useRecoveryGuardian = () => {
     const recoveryClient = await getRecoveryClient({ chainId: defaultChain.id, address });
     const pendingRecovery = await getPendingRecoveryData(address);
 
+    const [credentialId, passkeyPublicKey, domain] = decodeAbiParameters([
+      {
+        name: "credentialId",
+        type: "bytes",
+      },
+      {
+        name: "rawPublicKey",
+        type: "bytes32[2]",
+      },
+      {
+        name: "originDomain",
+        type: "string",
+      },
+    ], pendingRecovery![0]!);
     const tx = await recoveryClient.addAccountOwnerPasskey({
-      passkeyPublicKey: hexToBytes(pendingRecovery![0]!),
+      credentialId,
+
+      passkeyPublicKey: [...passkeyPublicKey],
+      domain,
       paymaster: {
         address: paymasterAddress,
       },

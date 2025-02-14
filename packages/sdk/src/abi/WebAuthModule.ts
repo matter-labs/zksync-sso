@@ -14,16 +14,57 @@ export const WebAuthModuleAbi = [
         name: "originDomain",
         type: "string",
       },
+      {
+        indexed: false,
+        internalType: "bytes",
+        name: "credentialId",
+        type: "bytes",
+      },
     ],
     name: "PasskeyCreated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "keyOwner",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "originDomain",
+        type: "string",
+      },
+      {
+        indexed: false,
+        internalType: "bytes",
+        name: "credentialId",
+        type: "bytes",
+      },
+    ],
+    name: "PasskeyRemoved",
     type: "event",
   },
   {
     inputs: [
       {
         internalType: "bytes",
-        name: "key",
+        name: "credentialId",
         type: "bytes",
+      },
+      {
+        internalType: "bytes32[2]",
+        name: "rawPublicKey",
+        type: "bytes32[2]",
+      },
+      {
+        internalType: "string",
+        name: "originDomain",
+        type: "string",
       },
     ],
     name: "addValidationKey",
@@ -49,12 +90,94 @@ export const WebAuthModuleAbi = [
         name: "accountAddress",
         type: "address",
       },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "domainAccountKeys",
+    outputs: [
+      {
+        internalType: "bytes",
+        name: "credentialIds",
+        type: "bytes",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "originDomain",
+        type: "string",
+      },
+      {
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
+    ],
+    name: "getDomainAccountKeys",
+    outputs: [
+      {
+        internalType: "bytes[]",
+        name: "",
+        type: "bytes[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "originDomain",
+        type: "string",
+      },
+      {
+        internalType: "bytes",
+        name: "credentialId",
+        type: "bytes",
+      },
+    ],
+    name: "keyExistsOnDomain",
+    outputs: [
+      {
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "originDomain",
+        type: "string",
+      },
+      {
+        internalType: "bytes",
+        name: "credentialId",
+        type: "bytes",
+      },
+      {
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
     ],
     name: "lowerKeyHalf",
     outputs: [
       {
         internalType: "bytes32",
-        name: "",
+        name: "publicKey",
         type: "bytes32",
       },
     ],
@@ -90,30 +213,19 @@ export const WebAuthModuleAbi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "message",
-        type: "bytes32",
+        internalType: "bytes",
+        name: "credentialId",
+        type: "bytes",
       },
       {
-        internalType: "bytes32[2]",
-        name: "rs",
-        type: "bytes32[2]",
-      },
-      {
-        internalType: "bytes32[2]",
-        name: "pubKey",
-        type: "bytes32[2]",
+        internalType: "string",
+        name: "domain",
+        type: "string",
       },
     ],
-    name: "rawVerify",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "valid",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
+    name: "removeValidationKey",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -143,6 +255,11 @@ export const WebAuthModuleAbi = [
         type: "string",
       },
       {
+        internalType: "bytes",
+        name: "credentialId",
+        type: "bytes",
+      },
+      {
         internalType: "address",
         name: "accountAddress",
         type: "address",
@@ -152,7 +269,7 @@ export const WebAuthModuleAbi = [
     outputs: [
       {
         internalType: "bytes32",
-        name: "",
+        name: "publicKey",
         type: "bytes32",
       },
     ],

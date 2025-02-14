@@ -205,13 +205,16 @@ const confirmRecoveryAction = async () => {
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
   const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(hexToBytes(`0x${recoveryParams.value?.credentialPublicKey!}`));
+  // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+  const accountId = recoveryParams.value?.credentialId!;
   const encodedPasskeyParameters = encodePasskeyModuleParameters({
+    // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+    credentialId: recoveryParams.value?.credentialId!,
     passkeyPublicKey,
     expectedOrigin: origin,
   });
-  const accountId = recoveryParams.value?.credentialId || encodedPasskeyParameters;
   // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-  await initRecovery(recoveryParams.value?.accountAddress!, encodedPasskeyParameters, accountId);
+  await initRecovery(recoveryParams.value?.accountAddress!, encodedPasskeyParameters, accountId as `0x${string}`);
   isSuccess.value = true;
 };
 </script>

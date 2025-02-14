@@ -30,7 +30,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     accountFactory: "0x73CFa70318FD25F2166d47Af9d93Cf72eED48724",
     accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
   },
-  [zksyncInMemoryNode.id]: localChainData,
+  [zksyncInMemoryNode.id]: localChainData as ChainContracts,
 };
 
 export const useClientStore = defineStore("client", () => {

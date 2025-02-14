@@ -38,7 +38,12 @@ const NavLinks = [
   {
     title: "Account Recovery",
     description: "Configure your account recovery settings.",
-    path: "/dashboard/settings",
+    path: "/dashboard/settings/recovery",
+  },
+  {
+    title: "Passkeys",
+    description: "Manage your active passkeys.",
+    path: "/dashboard/settings/passkeys",
   },
 ];
 

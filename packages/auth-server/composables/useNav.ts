@@ -6,7 +6,7 @@ export function useNav() {
       icon: "dashboard",
     },
     {
-      href: "/dashboard/settings",
+      href: "/dashboard/settings/recovery",
       name: "Settings",
       icon: "settings",
     },
