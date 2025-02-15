@@ -32,6 +32,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     session: "0x045b82c1e4F36442Bbc16FAde8aDf898B3D67Fd3",
     passkey: "0x5F8Ef9E98ad0C51648B16d977F07F75bE3DE082a",
     recovery: "0x971AFC8451cEfB03d679c47455F973Dd42554AAa",
+    recoveryOidc: "0xB6F8dEfD632E67a6E5f72F8B8F992d4b1F41B0Be",
     accountFactory: "0x90953AEAe78a8995E917B7Ff29d277271737D9ab",
     accountPaymaster: "0x13e7b3b311a2b020572f421d27779639ce9ab40F",
   },
