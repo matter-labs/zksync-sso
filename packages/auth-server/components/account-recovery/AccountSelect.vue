@@ -13,7 +13,7 @@
         value=""
         disabled
       >
-        {{ accounts.length ? 'Select an account' : 'No accounts found' }}
+        {{ accounts.length ? placeholder : noAccountsText }}
       </option>
       <option
         v-for="account in accounts"
@@ -55,6 +55,8 @@ const props = defineProps<{
   error?: boolean;
   messages?: string[];
   disabled?: boolean;
+  placeholder?: string;
+  noAccountsText?: string;
 }>();
 
 const emit = defineEmits<{
@@ -65,4 +67,7 @@ const selectedValue = computed({
   get: () => props.modelValue,
   set: (value) => emit("update:modelValue", value),
 });
+
+const placeholder = computed(() => props.placeholder ?? "Select an account");
+const noAccountsText = computed(() => props.noAccountsText ?? "No accounts found");
 </script>
