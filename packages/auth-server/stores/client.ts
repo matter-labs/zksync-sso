@@ -34,7 +34,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     recovery: "0x971AFC8451cEfB03d679c47455F973Dd42554AAa",
     recoveryOidc: "0xB6F8dEfD632E67a6E5f72F8B8F992d4b1F41B0Be",
     accountFactory: "0x90953AEAe78a8995E917B7Ff29d277271737D9ab",
-    accountPaymaster: "0x13e7b3b311a2b020572f421d27779639ce9ab40F",
+    accountPaymaster: "0x3470806D0B7B8D21bED2B2F82378AC8a7eee9F6A",
   },
 };
 

@@ -242,7 +242,20 @@ account extends Account,
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
     functionName: "addValidationKey",
-    args: ["0x"],
+    args: [
+      encodeAbiParameters(
+        [
+          { type: "bytes", name: "oidcDigest" },
+          { type: "bytes", name: "iss" },
+          { type: "bytes", name: "aud" },
+        ],
+        [
+          "0xdeadbeef",
+          "0xdeadbeef",
+          "0xdeadbeef",
+        ],
+      )
+    ],
   });
 
   const sendTransactionArgs = {
