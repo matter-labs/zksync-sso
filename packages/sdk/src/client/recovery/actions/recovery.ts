@@ -3,6 +3,7 @@ import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
 import { GuardianRecoveryModuleAbi } from "../../../abi/GuardianRecoveryModule.js";
+import { OidcRecoveryModuleAbi } from "../../../abi/OidcRecoveryModule.js";
 import { noThrow } from "../../../utils/helpers.js";
 import { encodePasskeyModuleParameters } from "../../../utils/index.js";
 import { getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
@@ -240,7 +241,7 @@ chain extends Chain,
 account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<AddOidcAccountArgs>): Promise<Prettify<AddOidcAccountReturnType>> => {
   const callData = encodeFunctionData({
-    abi: GuardianRecoveryModuleAbi,
+    abi: OidcRecoveryModuleAbi,
     functionName: "addValidationKey",
     args: [
       encodeAbiParameters(
