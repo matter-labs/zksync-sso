@@ -6,7 +6,7 @@
     </p>
     <ZkButton
       type="primary"
-      class="w-full md:max-w-36 mt-6"
+      class="w-full mt-6"
       @click="emit('next')"
     >
       Done
