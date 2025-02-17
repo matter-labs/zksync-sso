@@ -20,9 +20,9 @@
 </template>
 
 <script setup lang="ts">
-import { useAddOidcAccount } from '~/composables/useAddOidcAccount';
+import { useRecoveryOidc } from '~/composables/useRecoveryOidc';
 
-const { addOidcAccount, isLoading, error: addOidcAccountError } = useAddOidcAccount();
+const { addOidcAccount, isLoading, error: addOidcAccountError } = useRecoveryOidc();
 addOidcAccount();
 
 const emit = defineEmits<{
