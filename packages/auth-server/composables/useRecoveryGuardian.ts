@@ -1,14 +1,15 @@
 import type { Account, Address, Chain, Client, Transport } from "viem";
 import { hexToBytes } from "viem";
+import { waitForTransactionReceipt } from "viem/actions";
 import { GuardianRecoveryModuleAbi } from "zksync-sso/abi";
-import { confirmGuardian as sdkConfirmGuardian } from "zksync-sso/client";
+import { confirmGuardian as sdkConfirmGuardian, initRecovery as sdkInitRecovery } from "zksync-sso/client";
 
 const getGuardiansInProgress = ref(false);
 const getGuardiansError = ref<Error | null>(null);
 const getGuardiansData = ref<readonly { addr: Address; isReady: boolean }[] | null>(null);
 
 export const useRecoveryGuardian = () => {
-  const { getClient, getPublicClient, getWalletClient, getRecoveryClient, defaultChain } = useClientStore();
+  const { getClient, getPublicClient, getRecoveryClient, defaultChain } = useClientStore();
   const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
 
   const getGuardedAccountsInProgress = ref(false);
@@ -47,7 +48,7 @@ export const useRecoveryGuardian = () => {
         args: [guardedAccount],
       });
       getGuardiansData.value = data;
-      return;
+      return data;
     } catch (err) {
       getGuardiansError.value = err as Error;
       return [];
@@ -125,25 +126,31 @@ export const useRecoveryGuardian = () => {
 
   const { inProgress: discardRecoveryInProgress, error: discardRecoveryError, execute: discardRecovery } = useAsync(async () => {
     const client = getClient({ chainId: defaultChain.id });
-    return await client.writeContract({
+    const tx = await client.writeContract({
       address: contractsByChain[defaultChain.id].recovery,
       abi: GuardianRecoveryModuleAbi,
       functionName: "discardRecovery",
     });
+
+    const transactionReceipt = await waitForTransactionReceipt(client, { hash: tx });
+    if (transactionReceipt.status !== "success") {
+      throw new Error("Account recovery transaction reverted");
+    };
   });
 
-  const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async (account: Address, passKey: `0x${string}`, accountId: string) => {
-    const client = await getWalletClient({ chainId: defaultChain.id });
-    const [address] = await client.getAddresses();
-
-    const tx = await client.writeContract({
-      account: address,
-      address: contractsByChain[defaultChain.id].recovery,
-      abi: GuardianRecoveryModuleAbi,
-      functionName: "initRecovery",
-      args: [account, passKey, accountId],
+  const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ accountToRecover, credentialPublicKey, accountId, client }: { accountToRecover: Address; credentialPublicKey: Uint8Array<ArrayBufferLike>; accountId: string; client: Client<transport, chain, account> }) => {
+    return await sdkInitRecovery(client, {
+      accountId,
+      expectedOrigin: window.location.origin,
+      credentialPublicKey,
+      contracts: {
+        recovery: contractsByChain[defaultChain.id].recovery,
+      },
+      account: accountToRecover,
+      paymaster: {
+        address: paymasterAddress,
+      },
     });
-    return tx;
   });
 
   const { inProgress: checkRecoveryRequestInProgress, error: checkRecoveryRequestError, execute: checkRecoveryRequest } = useAsync(async (accountId: string) => {
@@ -158,7 +165,7 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: executeRecoveryInProgress, error: executeRecoveryError, execute: executeRecovery } = useAsync(async (address: Address) => {
-    const recoveryClient = await getRecoveryClient({ chainId: defaultChain.id, address });
+    const recoveryClient = getRecoveryClient({ chainId: defaultChain.id, address });
     const pendingRecovery = await getPendingRecoveryData(address);
 
     const tx = await recoveryClient.addAccountOwnerPasskey({
