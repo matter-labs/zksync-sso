@@ -1,6 +1,9 @@
 import { type Chain, type Transport } from "viem";
 
 import {
+  addOidcAccount,
+  type AddOidcAccountArgs,
+  type AddOidcAccountReturnType,
   confirmGuardian, type ConfirmGuardianArgs, type ConfirmGuardianReturnType,
   proposeGuardian, type ProposeGuardianArgs, type ProposeGuardianReturnType,
   removeGuardian, type RemoveGuardianArgs, type RemoveGuardianReturnType,
@@ -17,6 +20,7 @@ export type ZksyncSsoPasskeyActions = {
   proposeGuardian: (args: Omit<ProposeGuardianArgs, "contracts">) => Promise<ProposeGuardianReturnType>;
   confirmGuardian: (args: Omit<ConfirmGuardianArgs, "contracts">) => Promise<ConfirmGuardianReturnType>;
   removeGuardian: (args: Omit<RemoveGuardianArgs, "contracts">) => Promise<RemoveGuardianReturnType>;
+  addOidcAccount: (args: Omit<AddOidcAccountArgs, "contracts">) => Promise<AddOidcAccountReturnType>;
 };
 
 export function zksyncSsoPasskeyActions<
@@ -54,5 +58,11 @@ export function zksyncSsoPasskeyActions<
         contracts: client.contracts,
       });
     },
+    addOidcAccount: async (args: Omit<AddOidcAccountArgs, "contracts">) => {
+      return await addOidcAccount(client, {
+        ...args,
+        contracts: client.contracts,
+      });
+    }
   };
 }

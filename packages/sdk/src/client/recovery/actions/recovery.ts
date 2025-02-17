@@ -218,3 +218,52 @@ export const initRecovery = async <
     transactionReceipt,
   };
 };
+
+export type AddOidcAccountArgs = {
+  contracts: {
+    recoveryOidc: Address; // oidc recovery module
+  };
+  paymaster?: {
+    address: Address;
+    paymasterInput?: Hex;
+  };
+  onTransactionSent?: (hash: Hash) => void;
+};
+
+export type AddOidcAccountReturnType = {
+  transactionReceipt: TransactionReceipt;
+};
+
+export const addOidcAccount = async <
+transport extends Transport,
+chain extends Chain,
+account extends Account,
+>(client: Client<transport, chain, account>, args: Prettify<AddOidcAccountArgs>): Promise<Prettify<AddOidcAccountReturnType>> => {
+  const callData = encodeFunctionData({
+    abi: GuardianRecoveryModuleAbi,
+    functionName: "addValidationKey",
+    args: ["0x"],
+  });
+
+  const sendTransactionArgs = {
+    account: client.account,
+    to: args.contracts.recoveryOidc,
+    paymaster: args.paymaster?.address,
+    paymasterInput: args.paymaster?.address ? (args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" })) : undefined,
+    data: callData,
+    gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+
+  const transactionHash = await sendTransaction(client, sendTransactionArgs);
+  if (args.onTransactionSent) {
+    noThrow(() => args.onTransactionSent?.(transactionHash));
+  }
+
+  const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
+  if (transactionReceipt.status !== "success") throw new Error("addOidcAccount transaction reverted");
+
+  return {
+    transactionReceipt,
+  };
+};
