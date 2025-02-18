@@ -24,9 +24,9 @@ export default defineNuxtConfig({
       aaveAddress: "0xBC989fDe9e54cAd2aB4392Af6dF60f04873A033A", // Rich Account 0
       bankDemoDeployerKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e", // Rich Account 0
       network: zksyncInMemoryNode,
-      session: "0x476F23ef274F244282252341792c8a610feF78ee",
-      passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc",
-      accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
+      session: "0x4Cf66C1CADcaCb14f380E347d0434479545Cbe8D",
+      passkey: "0xECcED2CB000f39E402B73ae868255a2a20B944c8",
+      accountFactory: "0x3391c36d2f5315Ff5f6f909ee9D8c58aAD7DAE06",
       explorerUrl: "http://localhost:3010/",
     }
   },
@@ -43,9 +43,9 @@ export default defineNuxtConfig({
             },
           },
         },
-        session: "0xdCdAC285612841db9Fa732098EAF04A917A71A28",
-        passkey: "0xCeC63BD0f35e04F3Bef1128bA3A856A7BB4D88f1",
-        accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
+        session: "0x4Cf66C1CADcaCb14f380E347d0434479545Cbe8D",
+        passkey: "0xECcED2CB000f39E402B73ae868255a2a20B944c8",
+        accountFactory: "0x3391c36d2f5315Ff5f6f909ee9D8c58aAD7DAE06",
         explorerUrl: "http://34.121.229.57:3010/",
       }
     }
