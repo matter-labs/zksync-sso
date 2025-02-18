@@ -63,6 +63,6 @@ export function zksyncSsoPasskeyActions<
         ...args,
         contracts: client.contracts,
       });
-    }
+    },
   };
 }

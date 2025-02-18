@@ -224,7 +224,7 @@ export type OidcData = {
   oidcDigest: Hex;
   iss: Hex;
   aud: Hex;
-}
+};
 
 export type AddOidcAccountArgs = {
   contracts: {
@@ -253,9 +253,9 @@ export const addOidcAccount = async <
         type: "tuple", name: "OidcData", components: [
           { type: "bytes", name: "oidcDigest" },
           { type: "bytes", name: "iss" },
-          { type: "bytes", name: "aud" }
-        ]
-      }
+          { type: "bytes", name: "aud" },
+        ],
+      },
     ],
     [args.oidcData],
   );
