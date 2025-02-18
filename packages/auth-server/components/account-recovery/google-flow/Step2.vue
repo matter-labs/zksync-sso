@@ -20,10 +20,16 @@
 </template>
 
 <script setup lang="ts">
+import type { OidcData } from 'zksync-sso/client';
 import { useRecoveryOidc } from '~/composables/useRecoveryOidc';
 
 const { addOidcAccount, isLoading, error: addOidcAccountError } = useRecoveryOidc();
-addOidcAccount();
+const oidcData = {
+  oidcDigest: '0xdeadbeef',
+  iss: '0xdeadbeef',
+  aud: '0xdeadbeef',
+} as OidcData;
+addOidcAccount(oidcData);
 
 const emit = defineEmits<{
   (e: "next"): void;

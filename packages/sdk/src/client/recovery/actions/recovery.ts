@@ -220,6 +220,12 @@ export const initRecovery = async <
   };
 };
 
+export type OidcData = {
+  oidcDigest: Hex;
+  iss: Hex;
+  aud: Hex;
+}
+
 export type AddOidcAccountArgs = {
   contracts: {
     recoveryOidc: Address; // oidc recovery module
@@ -228,6 +234,7 @@ export type AddOidcAccountArgs = {
     address: Address;
     paymasterInput?: Hex;
   };
+  oidcData: OidcData;
   onTransactionSent?: (hash: Hash) => void;
 };
 
@@ -236,23 +243,21 @@ export type AddOidcAccountReturnType = {
 };
 
 export const addOidcAccount = async <
-transport extends Transport,
-chain extends Chain,
-account extends Account,
+  transport extends Transport,
+  chain extends Chain,
+  account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<AddOidcAccountArgs>): Promise<Prettify<AddOidcAccountReturnType>> => {
   const encodedOidcData = encodeAbiParameters(
     [
       {
         type: "tuple", name: "OidcData", components: [
-        { type: "bytes", name: "oidcDigest" },
-        { type: "bytes", name: "iss" },
-        { type: "bytes", name: "aud" }
+          { type: "bytes", name: "oidcDigest" },
+          { type: "bytes", name: "iss" },
+          { type: "bytes", name: "aud" }
         ]
       }
     ],
-    [
-      {oidcDigest: "0x", iss: "0x", aud: "0x"}
-    ],
+    [args.oidcData],
   );
 
   const callData = encodeFunctionData({
