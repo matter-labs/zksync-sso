@@ -1,10 +1,10 @@
 import { Wallet } from "ethers";
-import { Provider, types } from "zksync-ethers";
-import { config } from "./config";
 import { Contract } from "ethers";
-import type { Key } from "./types";
-import { keccak256, toBytes } from "viem";
+import { Provider, types } from "zksync-ethers";
+
 import { abi } from "./abi";
+import { config } from "./config";
+import type { Key } from "./types";
 
 export class ContractUpdater {
   private wallet: Wallet;
@@ -25,8 +25,8 @@ export class ContractUpdater {
     this.contract = new Contract(
       config.CONTRACT_ADDRESS,
       abi,
-      this.wallet
-    )
+      this.wallet,
+    );
   }
 
   public async updateContract(iss: string, keys: Key[]): Promise<void> {
@@ -51,16 +51,14 @@ export class ContractUpdater {
   }
 
   private async getNewKeys(issHash: string, keys: Key[]): Promise<Key[]> {
-    const results = await Promise.all(
-      keys.map(async (key) => {
-        try {
-          const stored = await this.contract.getKey(issHash, key.kid);
-          return stored.kid !== key.kid ? key : null;
-        } catch (error) {
-          return key;
-        }
-      })
+    const promises = keys.map((key) =>
+      this.contract.getKey(issHash, key.kid).then(
+        () => null,
+        () => key,
+      ),
     );
+
+    const results = await Promise.all(promises);
 
     return results.filter((key): key is Key => key !== null);
   }
