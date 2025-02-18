@@ -11,6 +11,7 @@ testid
 vueuse
 dockerized
 ethereum
+oidc
 
 // examples/bank-demo
 ctap
