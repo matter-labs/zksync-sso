@@ -12,6 +12,7 @@ vueuse
 dockerized
 ethereum
 oidc
+sepolia
 
 // examples/bank-demo
 ctap
