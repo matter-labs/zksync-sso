@@ -1,6 +1,5 @@
 import { Wallet } from "ethers";
 import { Contract } from "ethers";
-import { keccak256, toBytes } from "viem";
 import { Provider, types } from "zksync-ethers";
 
 import { abi } from "./abi";
@@ -52,16 +51,14 @@ export class ContractUpdater {
   }
 
   private async getNewKeys(issHash: string, keys: Key[]): Promise<Key[]> {
-    const results = await Promise.all(
-      keys.map(async (key) => {
-        try {
-          const stored = await this.contract.getKey(issHash, key.kid);
-          return stored.kid !== key.kid ? key : null;
-        } catch (error) {
-          return key;
-        }
-      }),
+    const promises = keys.map((key) =>
+      this.contract.getKey(issHash, key.kid).then(
+        () => null,
+        () => key,
+      ),
     );
+
+    const results = await Promise.all(promises);
 
     return results.filter((key): key is Key => key !== null);
   }
