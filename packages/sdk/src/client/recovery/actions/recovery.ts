@@ -240,23 +240,25 @@ transport extends Transport,
 chain extends Chain,
 account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<AddOidcAccountArgs>): Promise<Prettify<AddOidcAccountReturnType>> => {
+  const encodedOidcData = encodeAbiParameters(
+    [
+      {
+        type: "tuple", name: "OidcData", components: [
+        { type: "bytes", name: "oidcDigest" },
+        { type: "bytes", name: "iss" },
+        { type: "bytes", name: "aud" }
+        ]
+      }
+    ],
+    [
+      {oidcDigest: "0x", iss: "0x", aud: "0x"}
+    ],
+  );
+
   const callData = encodeFunctionData({
     abi: OidcRecoveryModuleAbi,
     functionName: "addValidationKey",
-    args: [
-      encodeAbiParameters(
-        [
-          { type: "bytes", name: "oidcDigest" },
-          { type: "bytes", name: "iss" },
-          { type: "bytes", name: "aud" },
-        ],
-        [
-          "0xdeadbeef",
-          "0xdeadbeef",
-          "0xdeadbeef",
-        ],
-      )
-    ],
+    args: [encodedOidcData],
   });
 
   const sendTransactionArgs = {
