@@ -18,10 +18,10 @@
           @next="currentStep++"
           @back="$emit('back')"
         />
-        <Step2 
-          v-if="currentStep === 2" 
-          ref="step2Ref" 
-          @next="completeSetup" 
+        <Step2
+          v-if="currentStep === 2"
+          ref="step2Ref"
+          @next="completeSetup"
         />
       </div>
     </div>

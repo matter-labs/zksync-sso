@@ -74,8 +74,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-import GuardianFlow from "~/components/account-recovery/guardian-flow/Root.vue";
 import GoogleFlow from "~/components/account-recovery/google-flow/Root.vue";
+import GuardianFlow from "~/components/account-recovery/guardian-flow/Root.vue";
 import Button from "~/components/zk/button.vue";
 import Dialog from "~/components/zk/dialog.vue";
 

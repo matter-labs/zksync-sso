@@ -16,10 +16,10 @@ export class GoogleFetcher implements KeyFetcher {
   }
 
   toBytes32(str: string): string {
-    return `0x${str.padStart(64, '0')}`;
+    return `0x${str.padStart(64, "0")}`;
   }
 
   toHex(str: string): string {
-    return `0x${Buffer.from(str, 'base64url').toString('hex')}`;
+    return `0x${Buffer.from(str, "base64url").toString("hex")}`;
   }
 }

@@ -1,10 +1,11 @@
 import { Wallet } from "ethers";
-import { Provider, types } from "zksync-ethers";
-import { config } from "./config";
 import { Contract } from "ethers";
-import type { Key } from "./types";
 import { keccak256, toBytes } from "viem";
+import { Provider, types } from "zksync-ethers";
+
 import { abi } from "./abi";
+import { config } from "./config";
+import type { Key } from "./types";
 
 export class ContractUpdater {
   private wallet: Wallet;
@@ -25,8 +26,8 @@ export class ContractUpdater {
     this.contract = new Contract(
       config.CONTRACT_ADDRESS,
       abi,
-      this.wallet
-    )
+      this.wallet,
+    );
   }
 
   public async updateContract(iss: string, keys: Key[]): Promise<void> {
@@ -59,7 +60,7 @@ export class ContractUpdater {
         } catch (error) {
           return key;
         }
-      })
+      }),
     );
 
     return results.filter((key): key is Key => key !== null);
