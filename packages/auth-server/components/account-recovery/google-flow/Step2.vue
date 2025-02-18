@@ -9,32 +9,28 @@
     </p>
   </div>
 
-  <div 
+  <div
     v-else
     class="flex flex-col items-center justify-center h-full"
   >
     <p class="text-center text-gray-600 dark:text-gray-400">
       Your Google account has been linked and is ready to help you recover your account.
-    </p>  
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { OidcData } from 'zksync-sso/client';
-import { useRecoveryOidc } from '~/composables/useRecoveryOidc';
+import type { OidcData } from "zksync-sso/client";
 
-const { addOidcAccount, isLoading, error: addOidcAccountError } = useRecoveryOidc();
+import { useRecoveryOidc } from "~/composables/useRecoveryOidc";
+
+const { addOidcAccount, isLoading } = useRecoveryOidc();
 const oidcData = {
-  oidcDigest: '0xdeadbeef',
-  iss: '0xdeadbeef',
-  aud: '0xdeadbeef',
+  oidcDigest: "0xdeadbeef",
+  iss: "0xdeadbeef",
+  aud: "0xdeadbeef",
 } as OidcData;
 addOidcAccount(oidcData);
 
-const emit = defineEmits<{
-  (e: "next"): void;
-}>();
-
 defineExpose({ isLoading });
-
 </script>
