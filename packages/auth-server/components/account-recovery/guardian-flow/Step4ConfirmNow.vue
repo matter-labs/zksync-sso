@@ -58,7 +58,7 @@
       type="primary"
       class="w-full md:max-w-48 mt-4"
       :loading="confirmGuardianInProgress || getConfigurableAccountInProgress"
-      @click="confirmGuardianAction"
+      @click="handleConfirmGuardian"
     >
       Confirm Guardian
     </ZkButton>
@@ -114,7 +114,7 @@ const handleCheck = async () => {
   isSsoAccount.value = result ?? false;
 };
 
-const confirmGuardianAction = async () => {
+const handleConfirmGuardian = async () => {
   try {
     if (!address) {
       throw new Error("No account logged in");

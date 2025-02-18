@@ -4,13 +4,13 @@
       <app-generic-nav />
     </header>
     <main class="max-w-[900px] mx-auto flex flex-col gap-6">
-      <div
-        v-if="error"
-        class="rounded-2xl flex gap-4 bg-red-50/80 dark:bg-red-900/30 backdrop-blur-sm p-6 border border-red-200 dark:border-red-700/50"
+      <account-recovery-confirm-action-card
+        v-if="generalError"
+        title="Error"
+        type="error"
       >
-        <ExclamationTriangleIcon class="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0" />
-        <span class="text-red-700 dark:text-red-300">{{ error }}</span>
-      </div>
+        {{ generalError }}
+      </account-recovery-confirm-action-card>
 
       <template v-else>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-3">
@@ -20,22 +20,16 @@
           Review the recovery details below:
         </p>
 
-        <div class="space-y-4">
-          <div class="rounded-2xl bg-neutral-100/50 backdrop-blur-sm dark:bg-gray-800/50 p-6">
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2"> Account Address </label>
-            <div class="text-gray-900 dark:text-gray-100 break-all">
-              <span class="mr-2 font-mono text-lg">{{ recoveryParams?.accountAddress }}</span>
-              <common-copy-to-clipboard
-                class="!inline-flex"
-                :text="recoveryParams?.accountAddress ?? ''"
-              />
-            </div>
-          </div>
+        <div class="flex flex-col gap-4">
+          <account-recovery-confirm-info-card title="Account Address">
+            <span class="mr-2 font-mono text-lg">{{ recoveryParams?.accountAddress }}</span>
+            <common-copy-to-clipboard
+              class="!inline-flex"
+              :text="recoveryParams?.accountAddress ?? ''"
+            />
+          </account-recovery-confirm-info-card>
 
-          <div class="rounded-2xl bg-neutral-100/50 backdrop-blur-sm dark:bg-gray-800/50 p-6">
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              Recovery Credentials
-            </label>
+          <account-recovery-confirm-info-card title="Recovery Credentials">
             <div class="space-y-4">
               <div>
                 <span class="block text-sm text-gray-600 dark:text-gray-400 mb-1">ID:</span>
@@ -50,80 +44,57 @@
                 </div>
               </div>
             </div>
-          </div>
+          </account-recovery-confirm-info-card>
 
-          <div
-            class="rounded-2xl flex gap-4 backdrop-blur-sm p-6 border"
-            :class="{
-              'bg-yellow-50/80 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-700/50':
-                !accountData.isConnected || !isAccountGuardian,
-              'bg-green-50/80 dark:bg-green-900/30 border-green-200 dark:border-green-700/50':
-                accountData.isConnected && isAccountGuardian,
-            }"
+          <account-recovery-confirm-action-card
+            v-if="!recoveryCompleted"
+            :title="selectedGuardian ? 'Guardian Selected' : 'Select Guardian'"
+            :type="selectedGuardian ? 'success' : 'warning'"
           >
-            <component
-              :is="accountData.isConnected && isAccountGuardian ? CheckCircleIcon : ExclamationTriangleIcon"
-              class="w-6 h-6 flex-shrink-0"
-              :class="{
-                'text-yellow-600 dark:text-yellow-400': !accountData.isConnected || !isAccountGuardian,
-                'text-green-600 dark:text-green-400': accountData.isConnected && isAccountGuardian,
-              }"
+            <account-recovery-account-select
+              v-model="selectedGuardian"
+              :accounts="guardians?.map((x) => x.address) ?? []"
+              class="max-w-fit w-full"
             />
-            <div class="flex flex-col flex-1">
-              <h3
-                class="text-lg font-semibold mb-2"
-                :class="{
-                  'text-yellow-800 dark:text-yellow-200': !accountData.isConnected || !isAccountGuardian,
-                  'text-green-800 dark:text-green-200': accountData.isConnected && isAccountGuardian,
-                }"
-              >
-                {{ accountData.isConnected && isAccountGuardian ? "Wallet Connected" : "Action Required" }}
-              </h3>
-              <p
-                :class="{
-                  'text-yellow-700 dark:text-yellow-300': !accountData.isConnected || !isAccountGuardian,
-                  'text-green-700 dark:text-green-300': accountData.isConnected && isAccountGuardian,
-                }"
-              >
-                {{
-                  accountData.isConnected && isAccountGuardian
-                    ? "Guardian wallet successfully connected."
-                    : accountData.isConnected
-                      ? "The connected wallet is not a guardian. Please connect a guardian wallet."
-                      : "Connect your wallet to sign the recovery transaction."
-                }}
-              </p>
-              <common-connect-button
-                class="w-full lg:w-fit mt-6"
-                :type="accountData.isConnected ? 'secondary' : 'primary'"
-              />
+            <div
+              v-if="selectedGuardianInfo"
+              class="text-xs font-mono mt-2"
+            >
+              {{ selectedGuardianInfo.isSsoAccount ? "ZKsync SSO Account" : "Standard Account" }}
             </div>
-          </div>
+          </account-recovery-confirm-action-card>
 
-          <ZkButton
-            v-if="accountData.isConnected && !isSuccess"
-            class="w-full lg:w-fit"
-            :disabled="!isAccountGuardian"
-            :loading="initRecoveryInProgress"
-            @click="confirmRecoveryAction"
-          >
-            Sign Recovery Transaction
-          </ZkButton>
+          <template v-if="selectedGuardian && !recoveryCompleted">
+            <p
+              v-if="!selectedGuardianInfo?.isSsoAccount && accountData.isConnected && !isConnectedWalletGuardian"
+              class="text-center text-error-500 dark:text-error-400 mt-4"
+            >
+              Please connect with the guardian wallet address ({{ shortenAddress(selectedGuardian) }})
+            </p>
+            <ZkButton
+              v-if="selectedGuardianInfo?.isSsoAccount || isConnectedWalletGuardian"
+              type="primary"
+              class="w-full max-w-56"
+              :loading="initRecoveryInProgress || getConfigurableAccountInProgress"
+              @click="handleConfirmRecovery"
+            >
+              Confirm Recovery
+            </ZkButton>
+            <CommonConnectButton
+              v-if="!selectedGuardianInfo?.isSsoAccount"
+              type="primary"
+              class="w-full max-w-56"
+              :disabled="initRecoveryInProgress || getConfigurableAccountInProgress"
+            />
+          </template>
 
-          <div
-            v-if="isSuccess"
-            class="rounded-2xl flex gap-4 bg-green-50/80 dark:bg-green-900/30 backdrop-blur-sm p-6 border border-green-200 dark:border-green-700/50"
+          <account-recovery-confirm-action-card
+            v-if="recoveryCompleted"
+            title="Done!"
+            type="success"
           >
-            <CheckCircleIcon class="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
-            <div class="flex flex-col">
-              <h3 class="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
-                Done!
-              </h3>
-              <p class="text-green-700 dark:text-green-300">
-                The account will be ready to use with the new credentials in 24hrs.
-              </p>
-            </div>
-          </div>
+            The account will be ready to use with the new credentials in 24hrs.
+          </account-recovery-confirm-action-card>
         </div>
       </template>
     </main>
@@ -131,24 +102,23 @@
 </template>
 
 <script setup lang="ts">
-import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { hexToBytes, isAddressEqual, zeroAddress } from "viem";
-import { encodePasskeyModuleParameters, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
+import { type Address, hexToBytes, isAddressEqual } from "viem";
 import { z } from "zod";
 
 import { uint8ArrayToHex } from "@/utils/formatters";
 import { AddressSchema } from "@/utils/schemas";
 
-const error = ref<string | null>(null);
 const accountData = useAppKitAccount();
-const { getRecovery, initRecovery, initRecoveryInProgress, getGuardians, getGuardiansData } = useRecoveryGuardian();
+const { getRecovery, initRecovery, initRecoveryInProgress, getGuardians } = useRecoveryGuardian();
+const { getWalletClient, defaultChain } = useClientStore();
+const { checkIsSsoAccount } = useCheckSsoAccount(defaultChain.id);
+const route = useRoute();
+const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
 
 definePageMeta({
   layout: "dashboard",
 });
-
-const route = useRoute();
 
 const RecoveryParamsSchema = z
   .object({
@@ -170,48 +140,86 @@ const RecoveryParamsSchema = z
     },
   );
 
-const recoveryParams = ref<z.infer<typeof RecoveryParamsSchema> | null>(null);
-const isAccountGuardian = ref(false);
-const isSuccess = ref(false);
+const generalError = ref<string | null>(null);
 
-try {
-  recoveryParams.value = await RecoveryParamsSchema.parseAsync({
-    accountAddress: route.query.accountAddress,
-    credentialId: route.query.credentialId,
-    credentialPublicKey: route.query.credentialPublicKey,
-    checksum: route.query.checksum,
-  });
-  await getGuardians(recoveryParams.value.accountAddress);
+const isLoadingGuardians = ref(false);
+const loadingGuardiansError = ref<string | null>(null);
 
-  const recoveryStatus = await getRecovery(recoveryParams.value.accountAddress);
-  isSuccess.value = recoveryStatus[2] === route.query.credentialId;
-} catch {
-  error.value = "Invalid recovery parameters. Please verify the URL and try again.";
-}
+const isConnectedWalletGuardian = computed(() => (
+  accountData.value.isConnected && isAddressEqual(selectedGuardian.value, accountData.value.address as Address)
+));
 
-watchEffect(() => {
-  isAccountGuardian.value = !!(getGuardiansData.value?.find((x) => isAddressEqual(x.addr, (accountData.value.address as `0x${string}`) ?? zeroAddress))?.isReady);
+const confirmGuardianErrorMessage = ref<string | null>(null);
+
+const recoveryParams = computedAsync(async () => RecoveryParamsSchema.parseAsync({
+  accountAddress: route.query.accountAddress,
+  credentialId: route.query.credentialId,
+  credentialPublicKey: route.query.credentialPublicKey,
+  checksum: route.query.checksum,
+}).catch((err) => {
+  console.error(err);
+  generalError.value = "Invalid recovery parameters. Please verify the URL and try again.";
+}));
+
+const recoveryCompleted = computedAsync(async () => {
+  if (!recoveryParams.value?.accountAddress) return false;
+  const status = await getRecovery(recoveryParams.value.accountAddress);
+  return status[2] === route.query.credentialId;
 });
 
-const confirmRecoveryAction = async () => {
-  let origin: string | undefined = undefined;
-  if (!origin) {
-    try {
-      origin = window.location.origin;
-    } catch {
-      throw new Error("Can't identify expectedOrigin, please provide it manually");
-    }
-  }
+const guardians = computedAsync(async () => {
+  isLoadingGuardians.value = true;
+  loadingGuardiansError.value = null;
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-  const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(hexToBytes(`0x${recoveryParams.value?.credentialPublicKey!}`));
-  const encodedPasskeyParameters = encodePasskeyModuleParameters({
-    passkeyPublicKey,
-    expectedOrigin: origin,
-  });
-  const accountId = recoveryParams.value?.credentialId || encodedPasskeyParameters;
-  // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-  await initRecovery(recoveryParams.value?.accountAddress!, encodedPasskeyParameters, accountId);
-  isSuccess.value = true;
+  if (!recoveryParams.value?.accountAddress) return [];
+
+  try {
+    const result = await getGuardians(recoveryParams.value?.accountAddress);
+    return await Promise.all(
+      result
+        .filter((guardian) => guardian.isReady)
+        .map(async (guardian) => ({
+          address: guardian.addr,
+          isSsoAccount: !!(await checkIsSsoAccount(guardian.addr)),
+        })),
+    );
+  } catch (err) {
+    loadingGuardiansError.value = "An error occurred while loading the guardians. Please try again.";
+    console.error(err);
+  } finally {
+    isLoadingGuardians.value = false;
+  }
+});
+
+const selectedGuardian = ref<Address>("" as Address);
+const selectedGuardianInfo = computed(() => selectedGuardian.value && guardians.value?.find((guardian) => isAddressEqual(guardian.address, selectedGuardian.value)));
+
+const handleConfirmRecovery = async () => {
+  try {
+    let client: Parameters<typeof initRecovery>[0]["client"];
+
+    if (selectedGuardianInfo.value?.isSsoAccount) {
+      const configurableAccount = await getConfigurableAccount({ address: selectedGuardian.value });
+      if (!configurableAccount) {
+        throw new Error("No configurable account found");
+      }
+      client = configurableAccount;
+    } else {
+      client = await getWalletClient({ chainId: defaultChain.id });
+    }
+
+    if (!recoveryParams.value) return;
+
+    await initRecovery({
+      client,
+      accountToRecover: recoveryParams.value.accountAddress,
+      credentialPublicKey: hexToBytes(`0x${recoveryParams.value.credentialPublicKey}`),
+      accountId: recoveryParams.value.credentialId,
+    });
+    confirmGuardianErrorMessage.value = null;
+  } catch (err) {
+    confirmGuardianErrorMessage.value = "An error occurred while confirming the guardian. Please try again.";
+    console.error(err);
+  }
 };
 </script>
