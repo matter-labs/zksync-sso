@@ -11,6 +11,7 @@ testid
 vueuse
 dockerized
 ethereum
+sepolia
 
 // examples/bank-demo
 ctap
@@ -28,3 +29,7 @@ usdc
 Fren
 fren
 nfts
+
+// auth-server
+oidc
+Oidc
