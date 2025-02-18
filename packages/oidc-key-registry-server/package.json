@@ -2,14 +2,19 @@
   "name": "oidc-key-registry-server",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "tsx": "^4.19.2"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.12.0",
+    "dotenv": "^16.4.7",
     "ethers": "6",
     "install": "^0.13.0",
     "viem": "^2.22.19",

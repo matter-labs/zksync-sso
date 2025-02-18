@@ -694,6 +694,9 @@ importers:
       '@t3-oss/env-core':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.6.2)(zod@3.24.1)
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
       ethers:
         specifier: '6'
         version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
@@ -716,6 +719,9 @@ importers:
       '@types/bun':
         specifier: latest
         version: 1.2.2
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
 
   packages/sdk:
     dependencies:
@@ -25539,7 +25545,7 @@ snapshots:
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
       cliui: 8.0.1
-      dotenv: 16.4.5
+      dotenv: 16.4.7
       dotenv-expand: 11.0.6
       enquirer: 2.3.6
       figures: 3.2.0
