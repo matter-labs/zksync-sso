@@ -1,6 +1,12 @@
 import crypto from "crypto";
-import { defineEventHandler, getHeader } from "h3";
+import { config } from "dotenv";
+import express from "express";
 import * as jose from "jose";
+
+config();
+
+const app = express();
+const PORT = process.env.SALT_SERVICE_PORT || 3003;
 
 const GOOGLE_JWKS_URL = new URL("https://www.googleapis.com/oauth2/v3/certs");
 const GOOGLE_ISSUER = "https://accounts.google.com";
@@ -15,14 +21,11 @@ if (!SALT_ENTROPY) {
   throw new Error("SALT_ENTROPY environment variable is required but not set");
 }
 
-export default defineEventHandler(async (event) => {
-  const authHeader = getHeader(event, "Authorization");
+app.get("/salt", async (req, res) => {
+  const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw createError({
-      statusCode: 401,
-      message: "Unauthorized - Missing or invalid token",
-    });
+    return res.status(401).json({ error: "Unauthorized - Missing or invalid token" });
   }
 
   const jwt = authHeader.split(" ")[1];
@@ -35,18 +38,19 @@ export default defineEventHandler(async (event) => {
       audience: APP_AUD,
     });
 
-    const iss = payload.iss;
-    const aud = payload.aud;
-    const sub = payload.sub;
+    const iss = payload.iss as string;
+    const aud = payload.aud as string;
+    const sub = payload.sub as string;
 
     const data = Buffer.from(`${iss}${aud}${sub}${SALT_ENTROPY}`, "ascii");
     const hash = crypto.createHash("sha256").update(data).digest("hex").slice(0, 62);
 
-    return { salt: hash };
+    return res.json({ salt: hash });
   } catch {
-    throw createError({
-      statusCode: 401,
-      message: "Unauthorized - Invalid token",
-    });
+    return res.status(401).json({ error: "Unauthorized - Invalid token" });
   }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });

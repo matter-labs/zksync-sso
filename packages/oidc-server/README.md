@@ -6,8 +6,14 @@ To install dependencies:
 pnpm install
 ```
 
-To run:
+To run `key-registry`:
 
 ```bash
-pnpm dev
+pnpm dev:key-registry
+```
+
+To run `salt-service`:
+
+```bash
+pnpm dev:salt
 ```
