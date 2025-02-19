@@ -18,14 +18,14 @@
     </p>
     <ZkButton
       type="primary"
-      class="w-full md:max-w-48 mt-4"
-      @click="handleRetry"
+      class="w-full mt-4"
+      @click="handleCheck"
     >
       Retry
     </ZkButton>
     <ZkButton
       type="secondary"
-      class="w-full md:max-w-48"
+      class="w-full"
       @click="emit('back')"
     >
       Back
@@ -58,7 +58,7 @@
       type="primary"
       class="w-full md:max-w-48 mt-4"
       :loading="confirmGuardianInProgress || getConfigurableAccountInProgress"
-      @click="confirmGuardianAction"
+      @click="handleConfirmGuardian"
     >
       Confirm Guardian
     </ZkButton>
@@ -114,11 +114,7 @@ const handleCheck = async () => {
   isSsoAccount.value = result ?? false;
 };
 
-const handleRetry = async () => {
-  await handleCheck();
-};
-
-const confirmGuardianAction = async () => {
+const handleConfirmGuardian = async () => {
   try {
     if (!address) {
       throw new Error("No account logged in");
@@ -155,8 +151,19 @@ watchEffect(() => {
 });
 
 watchEffect(() => {
-  if (!isSsoAccount.value && accountData.value.isConnected) {
-    confirmGuardianErrorMessage.value = isConnectedWalletGuardian.value ? null : `Please connect with the guardian wallet address (${shortenAddress(props.guardianAddress)})`;
+  if (isSsoAccount.value) {
+    confirmGuardianErrorMessage.value = null;
+    return;
+  }
+
+  if (!isSsoAccount.value && accountData.value.isConnected && isConnectedWalletGuardian.value) {
+    confirmGuardianErrorMessage.value = null;
+    return;
+  }
+
+  if (!isSsoAccount.value && accountData.value.isConnected && !isConnectedWalletGuardian.value) {
+    confirmGuardianErrorMessage.value = `Please connect with the guardian wallet address (${shortenAddress(props.guardianAddress)})`;
+    return;
   }
 });
 </script>

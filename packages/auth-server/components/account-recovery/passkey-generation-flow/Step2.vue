@@ -1,7 +1,13 @@
 <template>
-  <p class="text-center text-gray-600 dark:text-gray-400">
-    Do you wish to confirm your guardian now?
-  </p>
+  <div class="flex flex-col gap-4 text-center text-neutral-700 dark:text-neutral-300">
+    <p>
+      Your passkeys have been generated successfully.
+    </p>
+    <p>
+      Do you wish to confirm the recovery now?
+    </p>
+  </div>
+
   <ZkButton
     type="primary"
     class="w-full mt-4"
