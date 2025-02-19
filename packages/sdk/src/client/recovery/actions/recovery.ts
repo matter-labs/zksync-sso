@@ -226,6 +226,23 @@ export type OidcData = {
   aud: Hex;
 };
 
+export type ParsedOidcData = {
+  oidcDigest: string;
+  iss: string;
+  aud: string;
+};
+
+export const parseOidcData = (oidcData: OidcData): ParsedOidcData => {
+  const hexToAscii = (hex: Hex): string =>
+    Buffer.from(hex.slice(2), "hex").toString("ascii");
+
+  return {
+    oidcDigest: oidcData.oidcDigest.toString(), // Do not convert. oidcDigest is just a hash
+    iss: hexToAscii(oidcData.iss),
+    aud: hexToAscii(oidcData.aud),
+  };
+};
+
 export type AddOidcAccountArgs = {
   contracts: {
     recoveryOidc: Address; // oidc recovery module

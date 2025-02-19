@@ -1,10 +1,46 @@
-import type { OidcData } from "zksync-sso/client";
+import type { Address, Hex } from "viem";
+import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
+import { type OidcData, type ParsedOidcData, parseOidcData } from "zksync-sso/client";
 
 export const useRecoveryOidc = () => {
-  const { getClient, defaultChain } = useClientStore();
+  const { getClient, getPublicClient, defaultChain } = useClientStore();
   const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
 
-  const { inProgress: isLoading, error, execute: addOidcAccount } = useAsync(async (oidcData: OidcData) => {
+  const getOidcAccountsInProgress = ref(false);
+  const getOidcAccountsError = ref<Error | null>(null);
+  const getOidcAccountsData = ref<readonly ParsedOidcData[] | null>(null);
+
+  async function getOidcAccounts(oidcAddress: Address) {
+    getOidcAccountsInProgress.value = true;
+    getOidcAccountsError.value = null;
+
+    try {
+      const client = getPublicClient({ chainId: defaultChain.id });
+      const data = await client.readContract({
+        address: contractsByChain[defaultChain.id].recoveryOidc,
+        abi: OidcRecoveryModuleAbi,
+        functionName: "accountData",
+        args: [oidcAddress],
+      });
+      console.log(data);
+      const oidcData = {
+        oidcDigest: data[0] as Hex,
+        iss: data[1] as Hex,
+        aud: data[2] as Hex,
+      };
+      const parsedOidcData = parseOidcData(oidcData);
+      console.log(parsedOidcData);
+      getOidcAccountsData.value = [parsedOidcData];
+      return;
+    } catch (err) {
+      getOidcAccountsError.value = err as Error;
+      return [];
+    } finally {
+      getOidcAccountsInProgress.value = false;
+    }
+  }
+
+  const { inProgress: addOidcAccountIsLoading, error: addOidcAccountError, execute: addOidcAccount } = useAsync(async (oidcData: OidcData) => {
     const client = getClient({ chainId: defaultChain.id });
 
     return await client.addOidcAccount({
@@ -16,8 +52,12 @@ export const useRecoveryOidc = () => {
   });
 
   return {
+    getOidcAccounts,
+    getOidcAccountsInProgress,
+    getOidcAccountsError,
+    getOidcAccountsData,
     addOidcAccount,
-    isLoading,
-    error,
+    addOidcAccountIsLoading,
+    addOidcAccountError,
   };
 };

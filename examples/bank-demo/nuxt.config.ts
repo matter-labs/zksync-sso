@@ -15,9 +15,9 @@ export default defineNuxtConfig({
   app: {
     head: {
       bodyAttrs: {
-        class: "bg-khaki"
-      }
-    }
+        class: "bg-khaki",
+      },
+    },
   },
   runtimeConfig: {
     public: {
@@ -28,7 +28,7 @@ export default defineNuxtConfig({
       passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc",
       accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
       explorerUrl: "http://localhost:3010/",
-    }
+    },
   },
   $production: {
     runtimeConfig: {
@@ -47,8 +47,8 @@ export default defineNuxtConfig({
         passkey: "0xCeC63BD0f35e04F3Bef1128bA3A856A7BB4D88f1",
         accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
         explorerUrl: "http://34.121.229.57:3010/",
-      }
-    }
+      },
+    },
   },
   vite: {
     css: {

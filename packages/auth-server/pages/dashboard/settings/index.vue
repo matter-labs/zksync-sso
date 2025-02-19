@@ -106,6 +106,7 @@ const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
 const { address: accountAddress } = useAccountStore();
 const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
+const { getOidcAccounts } = useRecoveryOidc();
 
 const config = useRuntimeConfig();
 
@@ -121,12 +122,14 @@ const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) =>
 const refreshGuardians = () => {
   if (accountAddress) {
     getGuardians(accountAddress);
+    getOidcAccounts(accountAddress);
   }
 };
 
 watchEffect(async () => {
   if (accountAddress) {
     await getGuardians(accountAddress);
+    await getOidcAccounts(accountAddress);
   }
 });
 </script>
