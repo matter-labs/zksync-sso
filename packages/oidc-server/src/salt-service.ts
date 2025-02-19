@@ -37,9 +37,9 @@ app.get("/salt", async (req, res) => {
   const jwt = authHeader.split(" ")[1];
 
   try {
-    const JWKS = jose.createRemoteJWKSet(GOOGLE_JWKS_URL);
+    const jwks = jose.createRemoteJWKSet(GOOGLE_JWKS_URL);
 
-    const { payload } = await jose.jwtVerify(jwt, JWKS, {
+    const { payload } = await jose.jwtVerify(jwt, jwks, {
       issuer: GOOGLE_ISSUER,
       audience: env.APP_AUD,
     });
