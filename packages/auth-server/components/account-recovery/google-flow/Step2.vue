@@ -20,10 +20,17 @@
 </template>
 
 <script setup lang="ts">
-import { useAddOidcAccount } from "~/composables/useAddOidcAccount";
+import type { OidcData } from "zksync-sso/client";
 
-const { addOidcAccount, isLoading } = useAddOidcAccount();
-addOidcAccount();
+import { useRecoveryOidc } from "~/composables/useRecoveryOidc";
+
+const { addOidcAccount, isLoading } = useRecoveryOidc();
+const oidcData = {
+  oidcDigest: "0xdeadbeef",
+  iss: "0xdeadbeef",
+  aud: "0xdeadbeef",
+} as OidcData;
+addOidcAccount(oidcData);
 
 defineExpose({ isLoading });
 </script>
