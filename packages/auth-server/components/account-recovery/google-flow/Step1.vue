@@ -90,7 +90,6 @@ async function loginWithGoogle() {
   }
 
   const jwt = await waitForJwt(nonce, popup);
-  console.log(jwt);
   setJwt(jwt);
   emit("next");
 }
