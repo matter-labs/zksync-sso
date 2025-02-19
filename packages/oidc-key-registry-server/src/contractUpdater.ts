@@ -3,7 +3,7 @@ import { Contract } from "ethers";
 import { Provider, types } from "zksync-ethers";
 
 import { abi } from "./abi";
-import { config } from "./config";
+import { env } from "./env.ts";
 import type { Key } from "./types";
 
 export class ContractUpdater {
@@ -13,17 +13,17 @@ export class ContractUpdater {
   private issHashes = new Map<string, string>();
 
   constructor() {
-    if (config.RPC_URL) {
-      this.provider = new Provider(config.RPC_URL);
-    } else if (config.NETWORK) {
+    if (env.RPC_URL) {
+      this.provider = new Provider(env.RPC_URL);
+    } else if (env.NETWORK) {
       this.provider = Provider.getDefaultProvider(this.getNetwork());
     } else {
       throw new Error("Either RPC_URL or NETWORK must be set");
     }
-    this.wallet = new Wallet(config.ZKSYNC_PRIVATE_KEY, this.provider);
+    this.wallet = new Wallet(env.ZKSYNC_PRIVATE_KEY, this.provider);
 
     this.contract = new Contract(
-      config.CONTRACT_ADDRESS,
+      env.CONTRACT_ADDRESS,
       abi,
       this.wallet,
     );
@@ -64,7 +64,7 @@ export class ContractUpdater {
   }
 
   private getNetwork(): types.Network {
-    if (!config.NETWORK) {
+    if (!env.NETWORK) {
       throw new Error("NETWORK is not set in config");
     }
 
@@ -74,10 +74,10 @@ export class ContractUpdater {
       localhost: types.Network.Localhost,
     };
 
-    const network = networkMap[config.NETWORK.toLowerCase()];
+    const network = networkMap[env.NETWORK.toLowerCase()];
 
     if (!network) {
-      throw new Error(`Unknown or unsupported network: ${config.NETWORK}`);
+      throw new Error(`Unknown or unsupported network: ${env.NETWORK}`);
     }
 
     return network;
