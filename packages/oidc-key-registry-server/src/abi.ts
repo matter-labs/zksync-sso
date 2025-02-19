@@ -1,275 +1,275 @@
 export const abi = [
   {
-    "type": "constructor",
-    "inputs": [],
-    "stateMutability": "nonpayable"
+    type: "constructor",
+    inputs: [],
+    stateMutability: "nonpayable",
   },
   {
-    "type": "function",
-    "name": "MAX_KEYS",
-    "inputs": [],
-    "outputs": [
+    type: "function",
+    name: "MAX_KEYS",
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
+        name: "",
+        type: "uint8",
+        internalType: "uint8",
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: "view",
   },
   {
-    "type": "function",
-    "name": "OIDCKeys",
-    "inputs": [
+    type: "function",
+    name: "OIDCKeys",
+    inputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: "",
+        type: "bytes32",
+        internalType: "bytes32",
       },
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "kid",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: "kid",
+        type: "bytes32",
+        internalType: "bytes32",
       },
       {
-        "name": "n",
-        "type": "bytes",
-        "internalType": "bytes"
+        name: "n",
+        type: "bytes",
+        internalType: "bytes",
       },
       {
-        "name": "e",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+        name: "e",
+        type: "bytes",
+        internalType: "bytes",
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: "view",
   },
   {
-    "type": "function",
-    "name": "getKey",
-    "inputs": [
+    type: "function",
+    name: "getKey",
+    inputs: [
       {
-        "name": "issHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: "issHash",
+        type: "bytes32",
+        internalType: "bytes32",
       },
       {
-        "name": "kid",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: "kid",
+        type: "bytes32",
+        internalType: "bytes32",
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct OidcKeyRegistry.Key",
-        "components": [
+        name: "",
+        type: "tuple",
+        internalType: "struct OidcKeyRegistry.Key",
+        components: [
           {
-            "name": "kid",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: "kid",
+            type: "bytes32",
+            internalType: "bytes32",
           },
           {
-            "name": "n",
-            "type": "bytes",
-            "internalType": "bytes"
+            name: "n",
+            type: "bytes",
+            internalType: "bytes",
           },
           {
-            "name": "e",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
+            name: "e",
+            type: "bytes",
+            internalType: "bytes",
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: "view",
   },
   {
-    "type": "function",
-    "name": "hashIssuer",
-    "inputs": [
+    type: "function",
+    name: "hashIssuer",
+    inputs: [
       {
-        "name": "iss",
-        "type": "string",
-        "internalType": "string"
-      }
+        name: "iss",
+        type: "string",
+        internalType: "string",
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: "",
+        type: "bytes32",
+        internalType: "bytes32",
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: "pure",
   },
   {
-    "type": "function",
-    "name": "initialize",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    type: "function",
+    name: "initialize",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
-    "type": "function",
-    "name": "keyIndexes",
-    "inputs": [
+    type: "function",
+    name: "keyIndexes",
+    inputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: "",
+        type: "bytes32",
+        internalType: "bytes32",
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
+        name: "",
+        type: "uint8",
+        internalType: "uint8",
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: "view",
   },
   {
-    "type": "function",
-    "name": "owner",
-    "inputs": [],
-    "outputs": [
+    type: "function",
+    name: "owner",
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: "view",
   },
   {
-    "type": "function",
-    "name": "renounceOwnership",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    type: "function",
+    name: "renounceOwnership",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
-    "type": "function",
-    "name": "setKey",
-    "inputs": [
+    type: "function",
+    name: "setKey",
+    inputs: [
       {
-        "name": "issHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: "issHash",
+        type: "bytes32",
+        internalType: "bytes32",
       },
       {
-        "name": "key",
-        "type": "tuple",
-        "internalType": "struct OidcKeyRegistry.Key",
-        "components": [
+        name: "key",
+        type: "tuple",
+        internalType: "struct OidcKeyRegistry.Key",
+        components: [
           {
-            "name": "kid",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: "kid",
+            type: "bytes32",
+            internalType: "bytes32",
           },
           {
-            "name": "n",
-            "type": "bytes",
-            "internalType": "bytes"
+            name: "n",
+            type: "bytes",
+            internalType: "bytes",
           },
           {
-            "name": "e",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
+            name: "e",
+            type: "bytes",
+            internalType: "bytes",
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
-    "type": "function",
-    "name": "setKeys",
-    "inputs": [
+    type: "function",
+    name: "setKeys",
+    inputs: [
       {
-        "name": "issHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: "issHash",
+        type: "bytes32",
+        internalType: "bytes32",
       },
       {
-        "name": "keys",
-        "type": "tuple[]",
-        "internalType": "struct OidcKeyRegistry.Key[]",
-        "components": [
+        name: "keys",
+        type: "tuple[]",
+        internalType: "struct OidcKeyRegistry.Key[]",
+        components: [
           {
-            "name": "kid",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: "kid",
+            type: "bytes32",
+            internalType: "bytes32",
           },
           {
-            "name": "n",
-            "type": "bytes",
-            "internalType": "bytes"
+            name: "n",
+            type: "bytes",
+            internalType: "bytes",
           },
           {
-            "name": "e",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
+            name: "e",
+            type: "bytes",
+            internalType: "bytes",
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
-    "type": "function",
-    "name": "transferOwnership",
-    "inputs": [
+    type: "function",
+    name: "transferOwnership",
+    inputs: [
       {
-        "name": "newOwner",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: "newOwner",
+        type: "address",
+        internalType: "address",
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
-    "type": "event",
-    "name": "Initialized",
-    "inputs": [
+    type: "event",
+    name: "Initialized",
+    inputs: [
       {
-        "name": "version",
-        "type": "uint8",
-        "indexed": false,
-        "internalType": "uint8"
-      }
+        name: "version",
+        type: "uint8",
+        indexed: false,
+        internalType: "uint8",
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "OwnershipTransferred",
-    "inputs": [
+    type: "event",
+    name: "OwnershipTransferred",
+    inputs: [
       {
-        "name": "previousOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: "previousOwner",
+        type: "address",
+        indexed: true,
+        internalType: "address",
       },
       {
-        "name": "newOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: "newOwner",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
     ],
-    "anonymous": false
-  }
-]
+    anonymous: false,
+  },
+];
