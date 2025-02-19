@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { defineEventHandler, getHeader } from "h3";
-import * as jose from 'jose';
+import * as jose from "jose";
 
 const GOOGLE_JWKS_URL = new URL("https://www.googleapis.com/oauth2/v3/certs");
 const GOOGLE_ISSUER = "https://accounts.google.com";
@@ -15,7 +15,6 @@ if (!SALT_ENTROPY) {
   throw new Error("SALT_ENTROPY environment variable is required but not set");
 }
 
-
 export default defineEventHandler(async (event) => {
   const authHeader = getHeader(event, "Authorization");
 
@@ -29,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const jwt = authHeader.split(" ")[1];
 
   try {
-    const JWKS = jose.createRemoteJWKSet(GOOGLE_JWKS_URL)
+    const JWKS = jose.createRemoteJWKSet(GOOGLE_JWKS_URL);
 
     const { payload } = await jose.jwtVerify(jwt, JWKS, {
       issuer: GOOGLE_ISSUER,

@@ -1,14 +1,16 @@
 import { createEnv } from "@t3-oss/env-core";
-import { types } from "zksync-ethers";
+import { config } from "dotenv";
 import { z } from "zod";
+
+config();
 
 const validNetworks = ["mainnet", "sepolia", "localhost"] as const;
 
-export const config = createEnv({
+export const env = createEnv({
   server: {
     FETCH_INTERVAL: z.preprocess(
       (val) => (val === undefined ? 60 * 1000 : Number(val)),
-      z.number()
+      z.number(),
     ),
     ZKSYNC_PRIVATE_KEY: z.string(),
     CONTRACT_ADDRESS: z.string(),
