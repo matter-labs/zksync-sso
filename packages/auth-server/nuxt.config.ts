@@ -27,7 +27,7 @@ export default defineNuxtConfig({
       ],
     },
   },
-  ssr: true,
+  ssr: false,
   devServer: {
     port: 3002,
   },
@@ -40,7 +40,19 @@ export default defineNuxtConfig({
   colorMode: {
     preference: "dark",
   },
+  nitro: {
+    esbuild: {
+      options: {
+        target: "es2022",
+      },
+    },
+  },
   vite: {
+    optimizeDeps: {
+      esbuildOptions: {
+        target: "es2022",
+      },
+    },
     css: {
       preprocessorOptions: {
         scss: {

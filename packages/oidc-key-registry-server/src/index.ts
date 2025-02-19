@@ -1,5 +1,5 @@
-import { config } from "./config";
 import { ContractUpdater } from "./contractUpdater";
+import { env } from "./env.ts";
 import { GoogleFetcher } from "./fetchers/google";
 
 const main = async () => {
@@ -13,7 +13,7 @@ const main = async () => {
     console.error("Error fetching keys:", error);
   }
 
-  setTimeout(main, config.FETCH_INTERVAL);
+  setTimeout(main, env.FETCH_INTERVAL);
 };
 
 main();
