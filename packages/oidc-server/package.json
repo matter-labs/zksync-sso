@@ -1,5 +1,5 @@
 {
-  "name": "oidc-key-registry-server",
+  "name": "oidc-server",
   "module": "index.ts",
   "type": "module",
   "scripts": {

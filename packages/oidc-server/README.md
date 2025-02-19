@@ -1,4 +1,4 @@
-# oidc-key-registry-server
+# oidc-server
 
 To install dependencies:
 
