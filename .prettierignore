@@ -31,3 +31,6 @@ deployments-zk
 
 # Ignore Swift/Rust files
 packages/sdk-platforms/*
+
+**/*.ptau
+packages/contracts/test/**/*
