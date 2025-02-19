@@ -16,12 +16,16 @@ const env = createEnv({
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
 });
-
-const app = express();
-const PORT = process.env.SALT_SERVICE_PORT || 3003;
-
 const GOOGLE_JWKS_URL = new URL("https://www.googleapis.com/oauth2/v3/certs");
 const GOOGLE_ISSUER = "https://accounts.google.com";
+
+const JwtPayloadSchema = z.object({
+  iss: z.string(),
+  aud: z.string(),
+  sub: z.string(),
+});
+
+const app = express();
 
 app.get("/salt", async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -40,9 +44,7 @@ app.get("/salt", async (req, res) => {
       audience: env.APP_AUD,
     });
 
-    const iss = payload.iss as string;
-    const aud = payload.aud as string;
-    const sub = payload.sub as string;
+    const { iss, aud, sub } = JwtPayloadSchema.parse(payload);
 
     const data = Buffer.from(`${iss}${aud}${sub}${env.SALT_ENTROPY}`, "ascii");
     const hash = crypto.createHash("sha256").update(data).digest("hex").slice(0, 62);
@@ -53,6 +55,6 @@ app.get("/salt", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.listen(env.SALT_SERVICE_PORT, () => {
   console.log(`Server listening on port ${env.SALT_SERVICE_PORT}`);
 });
