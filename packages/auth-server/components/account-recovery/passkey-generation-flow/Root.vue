@@ -25,10 +25,7 @@
       :new-passkey="newPasskey!"
       @back="currentStep--"
     />
-    <Step4
-      v-if="relativeStep === 4"
-      @back="currentStep--"
-    />
+    <Step4 v-if="relativeStep === 4" />
   </div>
 </template>
 
@@ -64,13 +61,10 @@ watchEffect(() => {
       stepTitle.value = "Recovery Started";
       break;
     case 3:
-      stepTitle.value = "Confirm Recovery";
+      stepTitle.value = isConfirmLater.value ? "Save Recovery URL" : "Confirm Recovery";
       break;
     case 4:
-      stepTitle.value = isConfirmLater.value ? "Save Recovery URL" : "Connect Guardian Account";
-      break;
-    case 5:
-      stepTitle.value = "Guardian Confirmed";
+      stepTitle.value = "Recovery Completed";
       break;
   }
 });

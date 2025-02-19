@@ -65,27 +65,29 @@
           </account-recovery-confirm-action-card>
 
           <template v-if="selectedGuardian && !recoveryCompleted">
+            <div class="flex gap-4 mt-3">
+              <ZkButton
+                v-if="selectedGuardianInfo?.isSsoAccount || isConnectedWalletGuardian"
+                type="primary"
+                class="w-full max-w-56"
+                :loading="initRecoveryInProgress || getConfigurableAccountInProgress"
+                @click="handleConfirmRecovery"
+              >
+                Confirm Recovery
+              </ZkButton>
+              <CommonConnectButton
+                v-if="!selectedGuardianInfo?.isSsoAccount"
+                type="primary"
+                class="w-full max-w-56"
+                :disabled="initRecoveryInProgress || getConfigurableAccountInProgress"
+              />
+            </div>
             <p
               v-if="!selectedGuardianInfo?.isSsoAccount && accountData.isConnected && !isConnectedWalletGuardian"
-              class="text-center text-error-500 dark:text-error-400 mt-4"
+              class="text-error-500 dark:text-error-400"
             >
               Please connect with the guardian wallet address ({{ shortenAddress(selectedGuardian) }})
             </p>
-            <ZkButton
-              v-if="selectedGuardianInfo?.isSsoAccount || isConnectedWalletGuardian"
-              type="primary"
-              class="w-full max-w-56"
-              :loading="initRecoveryInProgress || getConfigurableAccountInProgress"
-              @click="handleConfirmRecovery"
-            >
-              Confirm Recovery
-            </ZkButton>
-            <CommonConnectButton
-              v-if="!selectedGuardianInfo?.isSsoAccount"
-              type="primary"
-              class="w-full max-w-56"
-              :disabled="initRecoveryInProgress || getConfigurableAccountInProgress"
-            />
           </template>
 
           <account-recovery-confirm-action-card
