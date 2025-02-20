@@ -31,7 +31,7 @@ export const useRecoveryOidc = () => {
       return;
     } catch (err) {
       getOidcAccountsError.value = err as Error;
-      return [];
+      return;
     } finally {
       getOidcAccountsInProgress.value = false;
     }
