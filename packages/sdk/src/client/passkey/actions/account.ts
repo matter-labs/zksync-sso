@@ -123,7 +123,7 @@ export const deployAccount = async <
     throw new Error("No contract address in transaction receipt");
   }
 
-  const { accountAddress } = accountCreatedEvent["args"];
+  const { accountAddress } = accountCreatedEvent.args;
 
   return {
     address: getAddress(accountAddress),
@@ -180,23 +180,16 @@ export const fetchAccount = async <
   if (!accountAddress || accountAddress == NULL_ADDRESS) throw new Error(`No account found for username: ${username}`);
 
   const credentialId = toHex(base64UrlToUint8Array(username));
-  const publicKeyLow = await readContract(client, {
+  const publicKey = await readContract(client, {
     abi: WebAuthValidatorAbi,
     address: args.contracts.passkey,
-    functionName: "publicKeyByDomainByIdByAddress",
-    args: [origin, credentialId, accountAddress, 0],
-  });
-  const readAbi = WebAuthValidatorAbi.find((abiObj) => abiObj.name == "publicKeyByDomainByIdByAddress");
-  const publicKeyHigh = await readContract(client, {
-    abi: [readAbi],
-    address: args.contracts.passkey,
-    functionName: "publicKeyByDomainByIdByAddress",
-    args: [origin, credentialId, accountAddress, 0],
+    functionName: "getAccountKey",
+    args: [origin, credentialId, accountAddress],
   });
 
-  if (!publicKeyLow || !publicKeyHigh) throw new Error(`Passkey credentials not found in on-chain module for passkey ${username}`);
+  if (!publicKey || !publicKey[0] || !publicKey[1]) throw new Error(`Passkey credentials not found in on-chain module for passkey ${username}`);
 
-  const passkeyPublicKey = getPasskeySignatureFromPublicKeyBytes([publicKeyLow, publicKeyHigh]);
+  const passkeyPublicKey = getPasskeySignatureFromPublicKeyBytes(publicKey);
 
   return {
     username,

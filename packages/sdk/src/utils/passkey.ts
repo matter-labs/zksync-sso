@@ -155,7 +155,7 @@ export const getPublicKeyBytesFromPasskeySignature = (publicPasskey: Uint8Array)
   return [Buffer.from(x), Buffer.from(y)];
 };
 
-export const getPasskeySignatureFromPublicKeyBytes = (coordinates: [Hex, Hex]): Uint8Array => {
+export const getPasskeySignatureFromPublicKeyBytes = (coordinates: readonly [Hex, Hex]): Uint8Array => {
   const [xHex, yHex] = coordinates;
   const x = Buffer.from(xHex.slice(2), "hex");
   const y = Buffer.from(yHex.slice(2), "hex");
