@@ -22,15 +22,12 @@ export const useRecoveryOidc = () => {
         functionName: "accountData",
         args: [oidcAddress],
       });
-      console.log(data);
       const oidcData = {
         oidcDigest: data[0] as Hex,
         iss: data[1] as Hex,
         aud: data[2] as Hex,
       };
-      const parsedOidcData = parseOidcData(oidcData);
-      console.log(parsedOidcData);
-      getOidcAccountsData.value = [parsedOidcData];
+      getOidcAccountsData.value = [parseOidcData(oidcData)];
       return;
     } catch (err) {
       getOidcAccountsError.value = err as Error;
