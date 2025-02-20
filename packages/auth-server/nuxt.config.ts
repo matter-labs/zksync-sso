@@ -78,7 +78,7 @@ export default defineNuxtConfig({
     public: {
       chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncInMemoryNode.id,
       [zksyncInMemoryNode.id]: {
-        nftQuestAddress: "0x4B5DF730c2e6b28E17013A1485E5d9BC41Efe021",
+        nftQuestAddress: "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb",
       },
       [zksyncSepoliaTestnet.id]: {
         nftQuestAddress: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
@@ -86,6 +86,7 @@ export default defineNuxtConfig({
       appUrl: process.env.NUXT_PUBLIC_APP_URL || "https://auth-test.zksync.dev",
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "",
+      googlePublicClient: "866068535821-e9em0h73pee93q4evoajtnnkldsjhqdk.apps.googleusercontent.com",
     },
   },
 });
