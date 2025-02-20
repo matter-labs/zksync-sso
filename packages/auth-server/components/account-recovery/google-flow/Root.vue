@@ -15,13 +15,14 @@
       >
         <Step1
           v-if="currentStep === 1"
-          @next="currentStep++"
+          @next="onFinishStep1"
           @back="$emit('back')"
         />
         <Step2
           v-if="currentStep === 2"
           ref="step2Ref"
-          @next="completeSetup"
+          :jwt="jwt"
+          @finish="completeSetup"
         />
       </div>
     </div>
@@ -30,19 +31,21 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import type { JWT } from "zksync-sso-circuits";
 
 import Step1 from "./Step1.vue";
 import Step2 from "./Step2.vue";
 
 const currentStep = ref(1);
-const step2Ref = ref<InstanceType<typeof Step2> | null>(null);
+const jwt = ref<JWT | null>(null);
+const finished = ref(false);
 
 const stepTitle = computed(() => {
   switch (currentStep.value) {
     case 1:
       return "Google Recovery";
     case 2:
-      return step2Ref.value?.isLoading ? "" : "Google Account Linked";
+      return finished.value ? "" : "Linking google account...";
     default:
       return "";
   }
@@ -50,6 +53,11 @@ const stepTitle = computed(() => {
 
 function completeSetup() {
   props.closeModal();
+}
+
+function onFinishStep1(newJwt: JWT): void {
+  jwt.value = newJwt!;
+  currentStep.value = 2;
 }
 
 const props = defineProps<{

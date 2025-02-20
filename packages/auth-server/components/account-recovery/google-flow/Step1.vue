@@ -22,12 +22,12 @@
 import { toHex } from "viem";
 import { JWT } from "zksync-sso-circuits";
 
-const emit = defineEmits<{
-  (e: "next" | "back"): void;
-}>();
-
 const runtimeConfig = useRuntimeConfig();
-const { setJwt } = useRecoveryOidc();
+
+const emit = defineEmits<{
+  (e: "next", jwt: JWT): void;
+  (e: "back"): void;
+}>();
 
 function extractJwt(hashStr: string): JWT {
   const parts = hashStr.replace("#", "").split("&");
@@ -90,7 +90,6 @@ async function loginWithGoogle() {
   }
 
   const jwt = await waitForJwt(nonce, popup);
-  setJwt(jwt);
-  emit("next");
+  emit("next", jwt);
 }
 </script>
