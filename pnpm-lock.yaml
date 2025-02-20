@@ -455,6 +455,9 @@ importers:
       zksync-sso:
         specifier: workspace:*
         version: link:../sdk
+      zksync-sso-circuits:
+        specifier: workspace:*
+        version: link:../circuits
       zod:
         specifier: ^3.24.1
         version: 3.24.1
