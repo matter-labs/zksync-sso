@@ -38,14 +38,13 @@ import Step2 from "./Step2.vue";
 
 const currentStep = ref(1);
 const jwt = ref<JWT | null>(null);
-const finished = ref(false);
 
 const stepTitle = computed(() => {
   switch (currentStep.value) {
     case 1:
       return "Google Recovery";
     case 2:
-      return finished.value ? "" : "Linking google account...";
+      return "Linking google account...";
     default:
       return "";
   }
