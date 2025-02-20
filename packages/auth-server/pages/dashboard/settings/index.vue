@@ -25,7 +25,7 @@
         <Card
           v-for="method in recoveryMethods"
           :key="method.address"
-          :loading="getGuardiansInProgress && removeGuardianInProgress"
+          :loading="getGuardiansInProgress && removeGuardianInProgress && getOidcAccountsInProgress"
           class="p-6"
           :class="{ 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600': method.pendingUrl }"
         >
@@ -42,13 +42,29 @@
                   (Pending)
                 </span>
               </div>
-              <div class="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+              <div
+                v-if="method.method === 'Guardian'"
+                class="flex items-center gap-3 text-gray-600 dark:text-gray-400"
+              >
                 <WalletIcon class="w-5 h-5 flex-shrink-0" />
                 <span class="font-mono text-sm">{{ isMobile ? shortenAddress(method.address) : method.address }}</span>
                 <CopyToClipboard
                   class="-ml-2"
                   :text="method.address"
                 />
+              </div>
+              <div
+                v-else-if="method.method === 'OIDC'"
+                class="flex flex-col items-start gap-3 text-gray-600 dark:text-gray-400"
+              >
+                <div class="flex items-center gap-3">
+                  <ShieldCheckIcon class="w-5 h-5 flex-shrink-0" />
+                  <span class="font-mono text-sm">{{ method.iss }}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <SparklesIcon class="w-5 h-5 flex-shrink-0" />
+                  <span class="font-mono text-sm">{{ method.digest }}</span>
+                </div>
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-500">
                 Added on {{ method.addedOn.toLocaleDateString() }} {{ method.addedOn.toLocaleTimeString() }}
@@ -79,6 +95,7 @@
               type="danger"
               class="text-sm lg:w-auto w-full"
               @click="removeGuardian(method.address)"
+              v-if="method.method === 'Guardian'"
             >
               Remove
             </Button>
@@ -93,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { WalletIcon } from "@heroicons/vue/24/solid";
+import { ShieldCheckIcon, SparklesIcon, WalletIcon } from "@heroicons/vue/24/solid";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 
 import AddRecoveryMethodModal from "~/components/account-recovery/AddRecoveryMethodModal.vue";
@@ -106,18 +123,26 @@ const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
 const { address: accountAddress } = useAccountStore();
 const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
-const { getOidcAccounts } = useRecoveryOidc();
+const { getOidcAccounts, getOidcAccountsData, getOidcAccountsInProgress } = useRecoveryOidc();
 
 const config = useRuntimeConfig();
 
 const appUrl = config.public.appUrl;
 
-const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
-  method: "Guardian",
-  address: x.addr,
-  addedOn: new Date(),
-  ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
-})));
+const recoveryMethods = computed(() => [
+  ...(getGuardiansData.value ?? []).map((x) => ({
+    method: "Guardian",
+    address: x.addr,
+    addedOn: new Date(),
+    ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
+  })),
+  ...(getOidcAccountsData.value ?? []).map((x) => ({
+    method: "OIDC",
+    iss: x.iss,
+    digest: x.oidcDigest,
+    addedOn: new Date(),
+  })),
+]);
 
 const refreshGuardians = () => {
   if (accountAddress) {
