@@ -1,6 +1,7 @@
 import { type Account, type Address, type Chain, type Client, encodeAbiParameters, encodeFunctionData, type Hash, type Hex, type Prettify, type TransactionReceipt, type Transport } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
+import { ByteVector } from "zksync-sso-circuits";
 
 import { GuardianRecoveryModuleAbi } from "../../../abi/GuardianRecoveryModule.js";
 import { OidcRecoveryModuleAbi } from "../../../abi/OidcRecoveryModule.js";
@@ -233,8 +234,7 @@ export type ParsedOidcData = {
 };
 
 export const parseOidcData = (oidcData: OidcData): ParsedOidcData => {
-  const hexToAscii = (hex: Hex): string =>
-    Buffer.from(hex.slice(2), "hex").toString("ascii");
+  const hexToAscii = (hex: Hex): string => ByteVector.fromHex(hex).toAsciiStr();
 
   return {
     oidcDigest: oidcData.oidcDigest.toString(), // Do not convert. oidcDigest is just a hash
