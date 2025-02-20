@@ -480,9 +480,6 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.6.2
-      yargs:
-        specifier: ^17.7.2
-        version: 17.7.2
     devDependencies:
       '@types/express':
         specifier: ^5.0.0
@@ -499,9 +496,15 @@ importers:
       express:
         specifier: ^4.21.2
         version: 4.21.2
+      nx:
+        specifier: 19.8.6
+        version: 19.8.6(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13))
       tsx:
         specifier: ^4.19.2
         version: 4.19.3
+      yargs:
+        specifier: ^17.7.2
+        version: 17.7.2
 
   packages/contracts:
     devDependencies:
@@ -25840,12 +25843,12 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.0-rc.46
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.7.7
+      axios: 1.7.9(debug@4.3.7)
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
       cliui: 8.0.1
-      dotenv: 16.4.5
+      dotenv: 16.4.7
       dotenv-expand: 11.0.6
       enquirer: 2.3.6
       figures: 3.2.0
