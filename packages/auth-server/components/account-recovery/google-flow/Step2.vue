@@ -5,7 +5,7 @@
   >
     <common-spinner class="w-8 h-8" />
     <p class="text-center text-gray-600 dark:text-gray-400">
-      Linking your Google account...
+      Please wait...
     </p>
   </div>
 
@@ -16,21 +16,38 @@
     <p class="text-center text-gray-600 dark:text-gray-400">
       Your Google account has been linked and is ready to help you recover your account.
     </p>
+    <ZkButton
+      type="secondary"
+      class="w-full md:max-w-48"
+      @click="$emit('finish')"
+    >
+      Finish
+    </ZkButton>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { OidcData } from "zksync-sso/client";
+import { ByteVector, type JWT } from "zksync-sso-circuits";
 
 import { useRecoveryOidc } from "~/composables/useRecoveryOidc";
 
-const { addOidcAccount, addOidcAccountIsLoading } = useRecoveryOidc();
-const oidcData = {
-  oidcDigest: "0xdeadbeef",
-  iss: "0x68747470733a2f2f6163636f756e74732e676f6f676c652e636f6d",
-  aud: "0x7367696e2e617070732e676f6f676c6575736572636f6e74656e742e636f6d",
-} as OidcData;
-addOidcAccount(oidcData);
+defineEmits<{
+  (e: "finish"): void;
+}>();
 
-defineExpose({ addOidcAccountIsLoading });
+const props = defineProps<{
+  jwt: JWT | null;
+}>();
+const { addOidcAccount, addOidcAccountIsLoading } = useRecoveryOidc();
+
+if (props.jwt !== null) {
+  const oidcData = {
+    oidcDigest: "0xdeadbeef",
+    iss: ByteVector.fromAsciiString(props.jwt.iss).toHex(),
+    aud: ByteVector.fromAsciiString(props.jwt.aud).toHex(),
+  } as OidcData;
+
+  addOidcAccount(oidcData);
+}
 </script>
