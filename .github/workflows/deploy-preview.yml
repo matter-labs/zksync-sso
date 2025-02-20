@@ -37,10 +37,8 @@ jobs:
       - name: Install contract dependencies
         run: pnpm install -r --frozen-lockfile
         working-directory: packages/contracts
-      - name: Build and publish contracts
-        run: |
-          pnpm build
-          pnpm run publish ../sdk/src/abi/
+      - name: Build contracts
+        run: pnpm build
         working-directory: packages/contracts
       - name: Deploy contracts
         run: pnpm run deploy --file ../auth-server/stores/local-node.json
