@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="isLoading"
+    v-if="addOidcAccountIsLoading"
     class="flex flex-col items-center gap-4"
   >
     <common-spinner class="w-8 h-8" />
@@ -24,13 +24,13 @@ import type { OidcData } from "zksync-sso/client";
 
 import { useRecoveryOidc } from "~/composables/useRecoveryOidc";
 
-const { addOidcAccount, isLoading } = useRecoveryOidc();
+const { addOidcAccount, addOidcAccountIsLoading } = useRecoveryOidc();
 const oidcData = {
   oidcDigest: "0xdeadbeef",
-  iss: "0xdeadbeef",
-  aud: "0xdeadbeef",
+  iss: "0x68747470733a2f2f6163636f756e74732e676f6f676c652e636f6d",
+  aud: "0x7367696e2e617070732e676f6f676c6575736572636f6e74656e742e636f6d",
 } as OidcData;
 addOidcAccount(oidcData);
 
-defineExpose({ isLoading });
+defineExpose({ addOidcAccountIsLoading });
 </script>
