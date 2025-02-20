@@ -41,8 +41,10 @@ jobs:
       run: pnpm install -r --frozen-lockfile
       working-directory: packages/contracts
 
-    - name: Build contracts
-      run: pnpm build
+    - name: Build and publish contracts
+      run: |
+        pnpm build
+        pnpm run publish ../sdk/src/abi/
       working-directory: packages/contracts
 
     - name: Deploy contracts
@@ -115,8 +117,10 @@ jobs:
       run: pnpm install -r --frozen-lockfile
       working-directory: packages/contracts
 
-    - name: Build contracts
-      run: pnpm build
+    - name: Build and publish contracts
+      run: |
+        pnpm build
+        pnpm run publish ../sdk/src/abi/
       working-directory: packages/contracts
 
     - name: Deploy contracts

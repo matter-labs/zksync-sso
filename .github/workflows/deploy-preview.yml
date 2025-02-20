@@ -33,6 +33,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
+      # SDK depends on contracts
+      - name: Install contract dependencies
+        run: pnpm install -r --frozen-lockfile
+        working-directory: packages/contracts
+      - name: Build and publish contracts
+        run: |
+          pnpm build
+          pnpm run publish ../sdk/src/abi/
+        working-directory: packages/contracts
+      - name: Deploy contracts
+        run: pnpm run deploy --file ../auth-server/stores/local-node.json
+        working-directory: packages/contracts
+
       - name: Build Auth Server
         env:
           NUXT_PUBLIC_DEFAULT_CHAIN_ID: 300

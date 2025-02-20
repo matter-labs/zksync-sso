@@ -2,7 +2,8 @@ import { type Account, type Address, type Chain, type Client, getAddress, type H
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
-import { FactoryAbi } from "../../../abi/Factory.js";
+import { AAFactoryAbi } from "../../../abi/AAFactory.js";
+import { WebAuthValidatorAbi } from "../../../abi/WebAuthValidator.js";
 import { encodeModuleData, encodePasskeyModuleParameters, encodeSession } from "../../../utils/encoding.js";
 import { noThrow } from "../../../utils/helpers.js";
 import { base64UrlToUint8Array, getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
@@ -89,7 +90,7 @@ export const deployAccount = async <
     account: client.account!,
     chain: client.chain!,
     address: args.contracts.accountFactory,
-    abi: FactoryAbi,
+    abi: AAFactoryAbi,
     functionName: "deployProxySsoAccount",
     args: [
       toHex(args.salt),
@@ -115,14 +116,14 @@ export const deployAccount = async <
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
   if (transactionReceipt.status !== "success") throw new Error("Account deployment transaction reverted");
 
-  const accountCreatedEvent = parseEventLogs({ abi: FactoryAbi, logs: transactionReceipt.logs })
+  const accountCreatedEvent = parseEventLogs({ abi: AAFactoryAbi, logs: transactionReceipt.logs })
     .find((log) => log && log.eventName === "AccountCreated");
 
   if (!accountCreatedEvent) {
     throw new Error("No contract address in transaction receipt");
   }
 
-  const { accountAddress } = accountCreatedEvent.args;
+  const { accountAddress } = accountCreatedEvent["args"];
 
   return {
     address: getAddress(accountAddress),
@@ -179,22 +180,23 @@ export const fetchAccount = async <
   if (!accountAddress || accountAddress == NULL_ADDRESS) throw new Error(`No account found for username: ${username}`);
 
   const credentialId = toHex(base64UrlToUint8Array(username));
-  const lowerKeyHalfBytes = await readContract(client, {
-    abi: parseAbi(["function lowerKeyHalf(string,bytes,address) view returns (bytes32)"]),
+  const publicKeyLow = await readContract(client, {
+    abi: WebAuthValidatorAbi,
     address: args.contracts.passkey,
-    functionName: "lowerKeyHalf",
-    args: [origin, credentialId, accountAddress],
+    functionName: "publicKeyByDomainByIdByAddress",
+    args: [origin, credentialId, accountAddress, 0],
   });
-  const upperKeyHalfBytes = await readContract(client, {
-    abi: parseAbi(["function upperKeyHalf(string,bytes,address) view returns (bytes32)"]),
+  const readAbi = WebAuthValidatorAbi.find((abiObj) => abiObj.name == "publicKeyByDomainByIdByAddress");
+  const publicKeyHigh = await readContract(client, {
+    abi: [readAbi],
     address: args.contracts.passkey,
-    functionName: "upperKeyHalf",
-    args: [origin, credentialId, accountAddress],
+    functionName: "publicKeyByDomainByIdByAddress",
+    args: [origin, credentialId, accountAddress, 0],
   });
 
-  if (!lowerKeyHalfBytes || !upperKeyHalfBytes) throw new Error(`Passkey credentials not found in on-chain module for passkey ${username}`);
+  if (!publicKeyLow || !publicKeyHigh) throw new Error(`Passkey credentials not found in on-chain module for passkey ${username}`);
 
-  const passkeyPublicKey = getPasskeySignatureFromPublicKeyBytes([lowerKeyHalfBytes, upperKeyHalfBytes]);
+  const passkeyPublicKey = getPasskeySignatureFromPublicKeyBytes([publicKeyLow, publicKeyHigh]);
 
   return {
     username,
