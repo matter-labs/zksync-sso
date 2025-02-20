@@ -75,7 +75,7 @@ async function loginWithGoogle() {
   const randomValues = new Uint8Array(32);
   const nonce = toHex(crypto.getRandomValues(randomValues));
 
-  const clientId = encodeURIComponent(runtimeConfig.public.googlePubblicClient);
+  const clientId = encodeURIComponent(runtimeConfig.public.googlePublicClient);
   const responseType = encodeURIComponent("id_token");
   const scope = encodeURIComponent("openid");
   const redirectUri = encodeURI(`${window.location.origin}/oauth/plain`);
