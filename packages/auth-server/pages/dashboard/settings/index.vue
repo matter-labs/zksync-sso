@@ -63,7 +63,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                   <SparklesIcon class="w-5 h-5 flex-shrink-0" />
-                  <span class="font-mono text-sm">{{ method.digest }}</span>
+                  <span class="font-mono text-sm">{{ shortenAddress(method.digest) }}</span>
                 </div>
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-500">
