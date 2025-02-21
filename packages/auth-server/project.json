@@ -10,6 +10,13 @@
       },
       "dependsOn": ["^build"]
     },
+    "dev:salt": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "pnpm nx run zksync-sso-oidc-server:salt"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "options": {
