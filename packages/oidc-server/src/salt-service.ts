@@ -13,6 +13,7 @@ const env = createEnv({
     APP_AUD: z.string(),
     SALT_SERVICE_PORT: z.string().optional(),
     SALT_ENTROPY: z.string(),
+    AUTH_SERVER_URL: z.string(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
@@ -28,7 +29,7 @@ const JwtPayloadSchema = z.object({
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:3002" }));
+app.use(cors({ origin: env.AUTH_SERVER_URL }));
 
 app.get("/salt", async (req, res) => {
   const authHeader = req.headers.authorization;
