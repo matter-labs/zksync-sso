@@ -40,9 +40,10 @@ const props = defineProps<{
   jwt: JWT | null;
 }>();
 const { addOidcAccount, addOidcAccountIsLoading } = useRecoveryOidc();
+const runtimeConfig = useRuntimeConfig();
 
 if (props.jwt !== null) {
-  const response = await fetch("http://127.0.0.1:3003/salt", {
+  const response = await fetch(runtimeConfig.public.saltServiceUrl, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${props.jwt.raw}`,
