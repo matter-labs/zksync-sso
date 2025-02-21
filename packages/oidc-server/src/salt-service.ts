@@ -1,4 +1,5 @@
 import { createEnv } from "@t3-oss/env-core";
+import cors from "cors";
 import crypto from "crypto";
 import { config } from "dotenv";
 import express from "express";
@@ -26,6 +27,8 @@ const JwtPayloadSchema = z.object({
 });
 
 const app = express();
+
+app.use(cors({ origin: "http://localhost:3002" }));
 
 app.get("/salt", async (req, res) => {
   const authHeader = req.headers.authorization;
