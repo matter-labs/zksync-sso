@@ -68,6 +68,7 @@ const stepTitle = computed(() => {
 });
 
 async function generateProf(): Promise<void> {
+  // TODO: replace with real txHash.
   const txHash = toHex(new Uint8Array(32));
   const blindingFactor = 10n;
   const nonce = createNonce(txHash, blindingFactor);
