@@ -2,7 +2,7 @@ import { ECDSASigValue } from "@peculiar/asn1-ecc";
 import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { Buffer } from "buffer";
-import { type Address, encodeAbiParameters, type Hex, toHex } from "viem";
+import { type Address, encodeAbiParameters, type Hex, pad, toHex } from "viem";
 
 enum COSEKEYS {
   kty = 1, // Key Type
@@ -326,7 +326,7 @@ export function passkeyHashSignatureResponseFormat(
     [
       toHex(base64UrlToUint8Array(passkeyResponse.authenticatorData)),
       toHex(base64UrlToUint8Array(passkeyResponse.clientDataJSON)),
-      [toHex(signature.r), toHex(signature.s)],
+      [pad(toHex(signature.r)), pad(toHex(signature.s))],
       toHex(base64UrlToUint8Array(passkeyId)),
     ],
   );
