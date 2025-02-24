@@ -64,9 +64,9 @@ export const OidcRecoveryModuleAbi = [
     name: "accountData",
     outputs: [
       {
-        internalType: "bytes",
+        internalType: "bytes32",
         name: "oidcDigest",
-        type: "bytes",
+        type: "bytes32",
       },
       {
         internalType: "bytes",
@@ -99,6 +99,44 @@ export const OidcRecoveryModuleAbi = [
       },
     ],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "digest",
+        type: "bytes32",
+      },
+    ],
+    name: "addressFor",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    name: "digestIndex",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {
