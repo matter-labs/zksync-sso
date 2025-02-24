@@ -41,7 +41,7 @@ const props = defineProps<{
 }>();
 const { addOidcAccount, addOidcAccountIsLoading, buildOidcDigest } = useRecoveryOidc();
 if (props.jwt !== null) {
-  const oidcDigest = await buildOidcDigest(props.jwt);
+  const oidcDigest = await buildOidcDigest(props.jwt).toHex();
   const oidcData = {
     oidcDigest,
     iss: ByteVector.fromAsciiString(props.jwt.iss).toHex(),

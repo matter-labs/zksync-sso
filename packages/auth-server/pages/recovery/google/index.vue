@@ -25,27 +25,23 @@
           </ZkButton>
         </div>
 
-        <account-recovery-passkey-generation-flow
-          v-if="currentStep >= 2"
-          v-model:current-step="currentStep"
-          v-model:new-passkey="newPasskey"
-          :generate-passkeys-step="2"
-          :confirmation-step="3"
-          :address="address"
-          :register-in-progress="registerInProgress"
-          @back="currentStep = 1"
-        />
+        <google-recovery-flow />
       </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import { toHex } from "viem";
 import { ref } from "vue";
+import { createNonce, JwtTxValidationInputs } from "zksync-sso-circuits";
 
 definePageMeta({
   layout: "dashboard",
 });
+const { buildOidcDigest } = useRecoveryOidc();
+const { startGoogleOauth } = useGoogleOauth();
+const { snarkJs } = useSnarkJs();
 
 const currentStep = ref(1);
 
@@ -59,6 +55,39 @@ const stepTitle = computed(() => {
 });
 
 async function generateProf(): Promise<void> {
-  throw new Error("Not implemented");
+  const txHash = toHex(new Uint8Array(32));
+  const blindingFactor = 10n;
+  const nonce = createNonce(txHash, blindingFactor);
+
+  const jwt = await startGoogleOauth(nonce);
+  if (jwt === undefined) {
+    throw new Error("jwt should not be undefined");
+  }
+
+  const digest = await buildOidcDigest(jwt);
+
+  type KeysType = {
+    keys: {
+      n: string;
+      kid: string;
+    }[];
+  };
+
+  const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/certs").then((r) => r.json()) as KeysType;
+  const key = googleResponse.keys.find((key) => key.kid === jwt.kid);
+
+  if (key === undefined) {
+    throw new Error("Signed key not found in google exposed keys");
+  }
+
+  const inputs = new JwtTxValidationInputs(
+    jwt.raw,
+    key.n,
+    digest.salt.toBigInt(),
+    txHash,
+    blindingFactor,
+  );
+
+  await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
 }
 </script>

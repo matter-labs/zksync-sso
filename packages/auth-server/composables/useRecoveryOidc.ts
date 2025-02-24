@@ -1,4 +1,4 @@
-import type { Address, Hex } from "viem";
+import type { Address } from "viem";
 import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
 import { type OidcData, type ParsedOidcData, parseOidcData } from "zksync-sso/client";
 import { ByteVector, type JWT, OidcDigest } from "zksync-sso-circuits";
@@ -14,7 +14,7 @@ export const useRecoveryOidc = () => {
   const getOidcAccountsError = ref<Error | null>(null);
   const getOidcAccountsData = ref<readonly ParsedOidcData[] | null>(null);
 
-  async function buildOidcDigest(jwt: JWT): Promise<Hex> {
+  async function buildOidcDigest(jwt: JWT): Promise<OidcDigest> {
     const response = await fetch(saltServiceUrl, {
       method: "GET",
       headers: {
@@ -24,7 +24,7 @@ export const useRecoveryOidc = () => {
       .then((res) => res.json());
 
     const salt = response.salt;
-    return new OidcDigest(jwt.iss, jwt.aud, jwt.sub, ByteVector.fromHex(salt)).toHex();
+    return new OidcDigest(jwt.iss, jwt.aud, jwt.sub, ByteVector.fromHex(salt));
   }
 
   async function getOidcAccounts(oidcAddress: Address) {
