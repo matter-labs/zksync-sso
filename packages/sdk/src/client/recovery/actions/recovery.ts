@@ -268,7 +268,7 @@ export const addOidcAccount = async <
     [
       {
         type: "tuple", name: "OidcData", components: [
-          { type: "bytes", name: "oidcDigest" },
+          { type: "bytes32", name: "oidcDigest" },
           { type: "bytes", name: "iss" },
           { type: "bytes", name: "aud" },
         ],

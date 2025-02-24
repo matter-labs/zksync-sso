@@ -22,3 +22,7 @@ logs
 .env
 .env.*
 !.env.example
+
+# Auto generated files
+public/circuit
+public/snarkjs.min.js

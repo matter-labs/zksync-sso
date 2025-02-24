@@ -21,14 +21,10 @@
       <div class="flex flex-col gap-2">
         <ZkLink
           type="primary"
-          as="button"
-          disabled
+          href="/recovery/google"
         >
-          Recover with Email
+          Recover with Google Account
         </ZkLink>
-        <p class="text-sm text-gray-500 text-center">
-          Coming soon...
-        </p>
       </div>
     </div>
 

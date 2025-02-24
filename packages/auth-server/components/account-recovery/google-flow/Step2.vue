@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import type { OidcData } from "zksync-sso/client";
-import { ByteVector, type JWT, OidcDigest } from "zksync-sso-circuits";
+import { ByteVector, type JWT } from "zksync-sso-circuits";
 
 import { useRecoveryOidc } from "~/composables/useRecoveryOidc";
 
@@ -39,24 +39,9 @@ defineEmits<{
 const props = defineProps<{
   jwt: JWT | null;
 }>();
-const { addOidcAccount, addOidcAccountIsLoading } = useRecoveryOidc();
-const runtimeConfig = useRuntimeConfig();
-
+const { addOidcAccount, addOidcAccountIsLoading, buildOidcDigest } = useRecoveryOidc();
 if (props.jwt !== null) {
-  const response = await fetch(runtimeConfig.public.saltServiceUrl, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${props.jwt.raw}`,
-    },
-  })
-    .then((res) => res.json())
-    .catch((e) => {
-      console.error(e);
-    });
-
-  const salt = response.salt;
-  const oidcDigest = new OidcDigest(props.jwt.iss, props.jwt.aud, props.jwt.sub, ByteVector.fromHex(salt)).serialize();
-
+  const oidcDigest = await buildOidcDigest(props.jwt).toHex();
   const oidcData = {
     oidcDigest,
     iss: ByteVector.fromAsciiString(props.jwt.iss).toHex(),
