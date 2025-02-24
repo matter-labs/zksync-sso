@@ -25,6 +25,17 @@
           </ZkButton>
         </div>
 
+        <span
+          v-if="calculating"
+        >
+          Calculating...
+        </span>
+        <pre
+          v-if="proof !== null"
+        >
+          {{ proof }}
+        </pre>
+
         <google-recovery-flow />
       </div>
     </main>
@@ -44,6 +55,8 @@ const { startGoogleOauth } = useGoogleOauth();
 const { snarkJs } = useSnarkJs();
 
 const currentStep = ref(1);
+const proof = ref<string | null>(null);
+const calculating = ref(false);
 
 const stepTitle = computed(() => {
   switch (currentStep.value) {
@@ -87,7 +100,9 @@ async function generateProf(): Promise<void> {
     txHash,
     blindingFactor,
   );
-
-  await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
+  calculating.value = true;
+  const res = await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
+  calculating.value = false;
+  proof.value = JSON.stringify(res, null, 2);
 }
 </script>

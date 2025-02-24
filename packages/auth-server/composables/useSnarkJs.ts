@@ -10,9 +10,9 @@ type SnarkJs = {
 };
 
 declare global {
-  const snarkJS: SnarkJs;
+  const snarkjs: SnarkJs;
 }
 
 export const useSnarkJs = () => {
-  return { snarkJs: snarkJS };
+  return { snarkJs: snarkjs };
 };
