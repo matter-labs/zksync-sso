@@ -18,6 +18,8 @@ jobs:
       output_urls: "${{ steps.preview_deploy.outputs.urls }}"
     steps:
       - uses: actions/checkout@v4 # v4
+        with:
+          submodules: recursive
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
