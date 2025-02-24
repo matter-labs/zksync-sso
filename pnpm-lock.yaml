@@ -471,7 +471,7 @@ importers:
         specifier: ^0.6.1
         version: 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)
       '@nomad-xyz/excessively-safe-call':
-        specifier: ^0.0.1-rc.1
+        specifier: 0.0.1-rc.1
         version: 0.0.1-rc.1
       '@nomicfoundation/hardhat-chai-matchers':
         specifier: 2.0.8
