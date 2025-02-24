@@ -26,9 +26,9 @@ export default defineNuxtConfig({
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       ],
       script: [
-        {
-          src: "/snarkjs.min.js",
-        },
+        // {
+        //   src: "/snarkjs.min.js",
+        // },
       ],
     },
   },
