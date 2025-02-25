@@ -30,11 +30,7 @@
         >
           Calculating...
         </span>
-        <pre
-          v-if="proof !== null"
-        >
-          {{ proof }}
-        </pre>
+        <pre v-if="proof !== null">{{ proof }}</pre>
 
         <google-recovery-flow />
       </div>
@@ -43,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { toHex } from "viem";
+import { bytesToBigInt, toHex } from "viem";
 import { ref } from "vue";
 import { createNonce, JwtTxValidationInputs } from "zksync-sso-circuits";
 
@@ -58,6 +54,13 @@ const currentStep = ref(1);
 const proof = ref<string | null>(null);
 const calculating = ref(false);
 
+type KeysType = {
+  keys: {
+    n: string;
+    kid: string;
+  }[];
+};
+
 const stepTitle = computed(() => {
   switch (currentStep.value) {
     case 1:
@@ -67,11 +70,17 @@ const stepTitle = computed(() => {
   }
 });
 
+function buildBlindingFactor(): bigint {
+  const randomValues = new Uint8Array(31);
+  crypto.getRandomValues(randomValues);
+  return bytesToBigInt(randomValues);
+}
+
 async function generateProf(): Promise<void> {
   // TODO: replace with real txHash.
   const txHash = toHex(new Uint8Array(32));
   // TODO: replace with secure blinding factor calculation.
-  const blindingFactor = 10n;
+  const blindingFactor = buildBlindingFactor();
   const nonce = createNonce(txHash, blindingFactor);
 
   const jwt = await startGoogleOauth(nonce);
@@ -81,18 +90,11 @@ async function generateProf(): Promise<void> {
 
   const digest = await buildOidcDigest(jwt);
 
-  type KeysType = {
-    keys: {
-      n: string;
-      kid: string;
-    }[];
-  };
-
   const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/certs").then((r) => r.json()) as KeysType;
   const key = googleResponse.keys.find((key) => key.kid === jwt.kid);
 
   if (key === undefined) {
-    throw new Error("Signed key not found in google exposed keys");
+    throw new Error("Signer key not found in google exposed keys");
   }
 
   const inputs = new JwtTxValidationInputs(
