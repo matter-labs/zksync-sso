@@ -6,7 +6,8 @@
     <main class="max-w-[900px] mx-auto flex flex-col gap-6">
       <CommonStepper
         :current-step="currentStep"
-        :total-steps="3"
+        :total-steps="5"
+        :disabled-steps="disabledSteps"
       />
 
       <div class="flex flex-col items-center gap-8 mt-4">
@@ -53,15 +54,13 @@
           </ZkButton>
         </div>
 
-        <account-recovery-passkey-generation-flow
+        <account-recovery-passkey-generation-flow-root
           v-if="currentStep >= 2"
+          v-model:step-title="stepTitle"
           v-model:current-step="currentStep"
-          v-model:new-passkey="newPasskey"
-          :generate-passkeys-step="2"
-          :confirmation-step="3"
-          :address="address"
-          :register-in-progress="registerInProgress"
-          @back="currentStep = 1"
+          v-model:disabled-steps="disabledSteps"
+          :starting-step="2"
+          :account-address="address"
         />
       </div>
     </main>
@@ -69,36 +68,30 @@
 </template>
 
 <script setup lang="ts">
+import type { Address } from "viem";
 import { ref } from "vue";
-import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
 
 import { useValidateAccount } from "~/composables/useValidateAccount";
 import { AddressSchema } from "~/utils/schemas";
+
+const { validateAccount, isValidatingAccount } = useValidateAccount();
 
 definePageMeta({
   layout: "dashboard",
 });
 
 const currentStep = ref(1);
-const address = ref("");
+const address = ref("" as Address);
 const addressError = ref("");
 const isValidAddress = ref(false);
-const newPasskey = ref<RegisterNewPasskeyReturnType | null>(null);
+const stepTitle = ref("");
+const disabledSteps = ref<number[]>([]);
 
-const { inProgress: registerInProgress } = usePasskeyRegister();
-const { validateAccount, isValidatingAccount } = useValidateAccount();
-
-const stepTitle = computed(() => {
-  switch (currentStep.value) {
-    case 1:
-      return "Start Recovery";
-    case 2:
-      return "Generate Passkeys";
-    case 3:
-      return "Recovery Started";
-    default:
-      return "";
+watchEffect(() => {
+  if (currentStep.value === 1) {
+    stepTitle.value = "Start Recovery";
   }
+  // Rest of step titles are handled inside the flow component
 });
 
 const validateAddress = async () => {
