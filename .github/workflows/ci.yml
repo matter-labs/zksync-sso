@@ -41,16 +41,16 @@ jobs:
       run: pnpm install -r --frozen-lockfile
       working-directory: packages/contracts
 
-    - name: Build SDK
-      run: pnpm nx build sdk
-
     - name: Build contracts
       run: pnpm build
       working-directory: packages/contracts
 
     - name: Deploy contracts
-      run: pnpm run deploy
+      run: pnpm run deploy --file ../auth-server/stores/local-node.json
       working-directory: packages/contracts
+
+    - name: Build SDK
+      run: pnpm nx build sdk
 
     - name: Install zksync-foundry
       run: |
@@ -63,7 +63,7 @@ jobs:
     - name: Deploy Demo-App contracts
       run: pnpm nx deploy-contracts demo-app
 
-	- name: Run tests
+    - name: Run tests
       run: pnpm test
       working-directory: packages/sdk
 
@@ -115,16 +115,16 @@ jobs:
       run: pnpm install -r --frozen-lockfile
       working-directory: packages/contracts
 
-    - name: Build SDK
-      run: pnpm nx build sdk
-
     - name: Build contracts
       run: pnpm build
       working-directory: packages/contracts
 
     - name: Deploy contracts
-      run: pnpm run deploy
+      run: pnpm run deploy --file ../auth-server/stores/local-node.json
       working-directory: packages/contracts
+
+    - name: Build SDK
+      run: pnpm nx build sdk
 
     - name: Deploy NFT contracts
       run: pnpm nx deploy:local nft-quest-contracts

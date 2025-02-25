@@ -11,6 +11,7 @@ testid
 vueuse
 dockerized
 ethereum
+foundryup
 
 // examples/bank-demo
 ctap
@@ -28,3 +29,11 @@ usdc
 Fren
 fren
 nfts
+
+// examples/demo-app
+zkout
+cancun
+EVMLA
+
+// paymasters
+zyfi

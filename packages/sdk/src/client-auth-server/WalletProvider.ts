@@ -4,6 +4,7 @@ import { toHex } from "viem";
 
 import { PopupCommunicator } from "../communicator/PopupCommunicator.js";
 import { serializeError, standardErrors } from "../errors/index.js";
+import type { CustomPaymasterHandler } from "../paymaster/index.js";
 import { getFavicon, getWebsiteName } from "../utils/helpers.js";
 import type {
   AppMetadata,
@@ -22,13 +23,14 @@ export type WalletProviderConstructorOptions = {
   transports?: Record<number, Transport>;
   session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   authServerUrl?: string;
+  paymasterHandler?: CustomPaymasterHandler;
 };
 
 export class WalletProvider extends EventEmitter implements ProviderInterface {
   readonly isZksyncSso = true;
   private signer: Signer;
 
-  constructor({ metadata, chains, transports, session, authServerUrl }: WalletProviderConstructorOptions) {
+  constructor({ metadata, chains, transports, session, authServerUrl, paymasterHandler }: WalletProviderConstructorOptions) {
     super();
     const communicator = new PopupCommunicator(authServerUrl || DEFAULT_AUTH_SERVER_URL);
     this.signer = new Signer({
@@ -41,6 +43,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       chains,
       transports,
       session: typeof session === "object" ? () => session : session,
+      paymasterHandler,
     });
   }
 

@@ -5,6 +5,8 @@ import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 
+import localChainData from "./local-node.json";
+
 export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
@@ -28,13 +30,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     accountFactory: "0x73CFa70318FD25F2166d47Af9d93Cf72eED48724",
     accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
   },
-  [zksyncInMemoryNode.id]: {
-    session: "0x045b82c1e4F36442Bbc16FAde8aDf898B3D67Fd3",
-    passkey: "0x5F8Ef9E98ad0C51648B16d977F07F75bE3DE082a",
-    recovery: "0x740Ec29efae9c1119B5F9bDC24b6a55fE22E00dB",
-    accountFactory: "0x90953AEAe78a8995E917B7Ff29d277271737D9ab",
-    accountPaymaster: "0xe70CA3795abec2cd49cbd300Ed4dFFBF2F7f5180",
-  },
+  [zksyncInMemoryNode.id]: localChainData,
 };
 
 export const useClientStore = defineStore("client", () => {
