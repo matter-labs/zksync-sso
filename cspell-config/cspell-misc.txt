@@ -35,3 +35,10 @@ oidc
 Oidc
 jwks
 merkle
+
+// zk and circom
+Groth
+groth
+zkey
+snark
+snarkjs
