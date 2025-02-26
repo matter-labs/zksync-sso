@@ -1,10 +1,9 @@
-import { type Chain, type Hex, type Transport } from "viem";
+import { type Chain, type Transport } from "viem";
 
 import {
   addOidcAccount,
   type AddOidcAccountArgs,
-  type AddOidcAccountReturnType, type CalculateAddKeyHashArgs,
-  calculateAddKeyTxHash,
+  type AddOidcAccountReturnType,
 } from "../../recovery/actions/oidc.js";
 import {
   confirmGuardian, type ConfirmGuardianArgs, type ConfirmGuardianReturnType,
@@ -24,7 +23,6 @@ export type ZksyncSsoPasskeyActions = {
   confirmGuardian: (args: Omit<ConfirmGuardianArgs, "contracts">) => Promise<ConfirmGuardianReturnType>;
   removeGuardian: (args: Omit<RemoveGuardianArgs, "contracts">) => Promise<RemoveGuardianReturnType>;
   addOidcAccount: (args: Omit<AddOidcAccountArgs, "contracts">) => Promise<AddOidcAccountReturnType>;
-  calculateAddKeyTxHash: (args: Omit<CalculateAddKeyHashArgs, "contracts">) => Promise<Hex>;
 };
 
 export function zksyncSsoPasskeyActions<
@@ -64,12 +62,6 @@ export function zksyncSsoPasskeyActions<
     },
     addOidcAccount: async (args: Omit<AddOidcAccountArgs, "contracts">) => {
       return await addOidcAccount(client, {
-        ...args,
-        contracts: client.contracts,
-      });
-    },
-    calculateAddKeyTxHash: async (args: Omit<CalculateAddKeyHashArgs, "contracts">) => {
-      return await calculateAddKeyTxHash(client, {
         ...args,
         contracts: client.contracts,
       });
