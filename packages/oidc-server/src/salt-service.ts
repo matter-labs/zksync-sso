@@ -31,11 +31,12 @@ const app = express();
 
 app.use(cors({ origin: env.AUTH_SERVER_URL }));
 
-app.get("/salt", async (req, res) => {
+app.get("/salt", async (req, res): Promise<void> => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Unauthorized - Missing or invalid token" });
+    res.status(401).json({ error: "Unauthorized - Missing or invalid token" });
+    return;
   }
 
   const jwt = authHeader.split(" ")[1];
@@ -51,11 +52,13 @@ app.get("/salt", async (req, res) => {
     const { iss, aud, sub } = JwtPayloadSchema.parse(payload);
 
     const data = Buffer.from(`${iss}${aud}${sub}${env.SALT_ENTROPY}`, "ascii");
+
+    // We use 31 byte salt in order to make it fit in a field.
     const hash = crypto.createHash("sha256").update(data).digest("hex").slice(0, 62);
 
-    return res.json({ salt: hash });
+    res.json({ salt: hash });
   } catch {
-    return res.status(401).json({ error: "Unauthorized - Invalid token" });
+    res.status(401).json({ error: "Unauthorized - Invalid token" });
   }
 });
 
