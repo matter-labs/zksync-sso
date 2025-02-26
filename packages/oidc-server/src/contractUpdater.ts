@@ -29,11 +29,19 @@ export class ContractUpdater {
     );
   }
 
+  private addIssHashToKeys(keys: Key[], issHash: string): Key[] {
+    return keys.map((key) => ({
+      ...key,
+      issHash,
+    }));
+  }
+
   public async updateContract(iss: string, keys: Key[]): Promise<void> {
     console.log(`Updating contract for issuer: ${iss}`);
 
     const issHash = await this.getIssHash(iss);
-    const newKeys = await this.getNewKeys(issHash, keys);
+    const keysWithIssHash = this.addIssHashToKeys(keys, issHash);
+    const newKeys = await this.getNewKeys(issHash, keysWithIssHash);
 
     if (newKeys.length === 0) {
       console.log("No new keys to add.");
@@ -41,7 +49,7 @@ export class ContractUpdater {
     }
 
     try {
-      const tx = await this.contract.setKeys(issHash, newKeys);
+      const tx = await this.contract.addKeys(newKeys);
       console.log(`Transaction sent: ${tx.hash}`);
       await tx.wait();
       console.log("Transaction confirmed!");
