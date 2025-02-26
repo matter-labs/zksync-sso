@@ -90,8 +90,7 @@ export const deployAccount = async <
     abi: FactoryAbi,
     functionName: "deployProxySsoAccount",
     args: [
-      toHex(args.salt),
-      accountId,
+      toHex(accountId),
       [encodedPasskeyModuleData, encodedSessionKeyModuleData],
       [],
     ],
