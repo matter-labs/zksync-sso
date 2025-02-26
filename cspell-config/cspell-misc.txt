@@ -34,3 +34,11 @@ nfts
 oidc
 Oidc
 jwks
+
+
+// zk and circom
+Groth
+groth
+zkey
+snark
+snarkjs

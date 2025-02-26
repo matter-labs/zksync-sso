@@ -56,35 +56,6 @@ export const OidcRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    name: "accountData",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "oidcDigest",
-        type: "bytes",
-      },
-      {
-        internalType: "bytes",
-        name: "iss",
-        type: "bytes",
-      },
-      {
-        internalType: "bytes",
-        name: "aud",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "bytes",
         name: "key",
         type: "bytes",
@@ -99,6 +70,44 @@ export const OidcRecoveryModuleAbi = [
       },
     ],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "digest",
+        type: "bytes32",
+      },
+    ],
+    name: "addressForDigest",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    name: "digestIndex",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -127,6 +136,42 @@ export const OidcRecoveryModuleAbi = [
         internalType: "address",
         name: "",
         type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+    ],
+    name: "oidcDataForAddress",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "bytes32",
+            name: "oidcDigest",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes",
+            name: "iss",
+            type: "bytes",
+          },
+          {
+            internalType: "bytes",
+            name: "aud",
+            type: "bytes",
+          },
+        ],
+        internalType: "struct OidcRecoveryValidator.OidcData[]",
+        name: "",
+        type: "tuple[]",
       },
     ],
     stateMutability: "view",
