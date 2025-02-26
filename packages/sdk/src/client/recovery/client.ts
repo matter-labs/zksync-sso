@@ -61,6 +61,7 @@ export function createZksyncRecoveryGuardianClient<
 export type RecoveryRequiredContracts = {
   recovery: Address; // Recovery
   passkey: Address; // Passkey
+  recoveryOidc: Address; // Oidc
 };
 type ZksyncSsoRecoveryData = {
   contracts: RecoveryRequiredContracts;

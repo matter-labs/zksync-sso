@@ -23,6 +23,12 @@
           >
             Test
           </ZkButton>
+          <ZkButton
+            class="w-full"
+            @click="generateTxHash"
+          >
+            Test 2
+          </ZkButton>
         </div>
 
         <span
@@ -41,25 +47,27 @@
 <script setup lang="ts">
 import { bytesToBigInt, toHex } from "viem";
 import { ref } from "vue";
-import { createNonce, JwtTxValidationInputs } from "zksync-sso-circuits";
+import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
+import { createNonce } from "zksync-sso-circuits";
 
 definePageMeta({
   layout: "dashboard",
 });
 const { buildOidcDigest } = useRecoveryOidc();
 const { startGoogleOauth } = useGoogleOauth();
-const { snarkJs } = useSnarkJs();
+// const { snarkJs } = useSnarkJs();
+const { getRecoveryClient, defaultChain, getPublicClient } = useClientStore();
 
 const currentStep = ref(1);
 const proof = ref<string | null>(null);
 const calculating = ref(false);
 
-type KeysType = {
-  keys: {
-    n: string;
-    kid: string;
-  }[];
-};
+// type KeysType = {
+//   keys: {
+//     n: string;
+//     kid: string;
+//   }[];
+// };
 
 const stepTitle = computed(() => {
   switch (currentStep.value) {
@@ -90,23 +98,53 @@ async function generateProf(): Promise<void> {
 
   const digest = await buildOidcDigest(jwt);
 
-  const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/certs").then((r) => r.json()) as KeysType;
-  const key = googleResponse.keys.find((key) => key.kid === jwt.kid);
+  const publicClient = getPublicClient({ chainId: defaultChain.id });
 
-  if (key === undefined) {
-    throw new Error("Signer key not found in google exposed keys");
-  }
+  // recover address
+  const addressToRecover = await publicClient.readContract({
+    address: contractsByChain[defaultChain.id].recoveryOidc,
+    abi: OidcRecoveryModuleAbi,
+    functionName: "addressForDigest",
+    args: [digest.toHex()],
+  }) as Address;
 
-  const inputs = new JwtTxValidationInputs(
-    jwt.raw,
-    key.n,
-    digest.salt.toBigInt(),
-    txHash,
-    blindingFactor,
-  );
-  calculating.value = true;
-  const res = await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
-  calculating.value = false;
-  proof.value = JSON.stringify(res, null, 2);
+  const recoveryClient = getRecoveryClient({ chainId: defaultChain.id, address: addressToRecover });
+
+  proof.value = await recoveryClient.calculateAddKeyTxHash({
+    passkeyPubKey: ["0x" + "00".repeat(32), "0x" + "00".repeat(32)],
+    passkeyDomain: window.location.origin,
+  });
+  // console.log(newTxHash);
+
+  // const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/certs").then((r) => r.json()) as KeysType;
+  // const key = googleResponse.keys.find((key) => key.kid === jwt.kid);
+  //
+  // if (key === undefined) {
+  //   throw new Error("Signer key not found in google exposed keys");
+  // }
+  //
+  // const inputs = new JwtTxValidationInputs(
+  //   jwt.raw,
+  //   key.n,
+  //   digest.salt.toBigInt(),
+  //   txHash,
+  //   blindingFactor,
+  // );
+  // calculating.value = true;
+  // const res = await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
+  // calculating.value = false;
+  // proof.value = JSON.stringify(res, null, 2);
+}
+
+async function generateTxHash() {
+  // const address = zeroAddress;
+  // const client = getRecoveryClient({ chainId: defaultChain.id, address });
+  // // const client = getPublicClient({ chainId: defaultChain.id });
+  // const request = await client.prepareTransactionRequest({
+  //   to: client.contracts.recoveryOidc,
+  //   data: "0x",
+  //   gas: 20_000_000n, // TODO: Remove when gas estimation is fixed
+  // });
+  // console.log(request);
 }
 </script>
