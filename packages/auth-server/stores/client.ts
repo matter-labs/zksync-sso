@@ -25,6 +25,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     session: "0x64Bf5C3229CafF50e39Ec58C4BFBbE67bEA90B0F",
     passkey: "0x0F65cFE984d494DAa7165863f1Eb61C606e45fFb",
     recovery: "0xDf8F9b39Cd69Cb8Dc29137f83E89fE1AdA26912D",
+    recoveryOidc: "0x3ad654fC38bb5Abe789c912cfE900A867d52A164",
     accountFactory: "0x73CFa70318FD25F2166d47Af9d93Cf72eED48724",
     accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
   },
@@ -32,9 +33,9 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     session: "0x644040Bc7f2b243BB5ba28ccFa67Ec3dD7f9a77F",
     passkey: "0x1Ec1126fab9eE89d0babC8669076e1dd1e36cd09",
     recovery: "0x4E619cA9DDb3A207E4764F3Ee5D36DD478212335",
-    recoveryOidc: "0x3ad654fC38bb5Abe789c912cfE900A867d52A164",
+    recoveryOidc: "0x7D0F42206C127b3919b7FDed5569781430464a8E",
     accountFactory: "0x01F99512191c036FcA9Fcd416dE73b19e93B7D60",
-    accountPaymaster: "0x2A2869fa5a1E94474798C02ED930278C154EE213",
+    accountPaymaster: "0x8669D63151aB9E17413d0d8017A7670d3fF646b3",
   },
 };
 
@@ -101,7 +102,7 @@ export const useClientStore = defineStore("client", () => {
   }: {
     chainId: SupportedChainId;
     address: Address;
-    credentialPublicKey: Uint8Array<ArrayBufferLike>;
+    credentialPublicKey: Uint8Array;
     username: string;
   }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);

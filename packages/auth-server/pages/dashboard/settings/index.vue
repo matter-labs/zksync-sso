@@ -63,7 +63,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                   <SparklesIcon class="w-5 h-5 flex-shrink-0" />
-                  <span class="font-mono text-sm">{{ shortenAddress(method.digest) }}</span>
+                  <span class="font-mono text-sm">{{ shortenAddress(method.digest, 6) }}</span>
                 </div>
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-500">
@@ -136,10 +136,10 @@ const recoveryMethods = computed(() => [
     addedOn: new Date(),
     ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
   })),
-  ...(getOidcAccountsData.value ?? []).map((x) => ({
+  ...(getOidcAccountsData.value ?? []).map((oidcData) => ({
     method: "OIDC",
-    iss: x.iss,
-    digest: x.oidcDigest,
+    iss: oidcData.iss,
+    digest: oidcData.oidcDigest,
     addedOn: new Date(),
   })),
 ]);

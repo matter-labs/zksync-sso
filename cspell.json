@@ -31,7 +31,8 @@
     "packages/sdk-platforms/**",
     "**/*.ptau",
     "**/*.zkey",
-    "packages/circuits/**"
+    "packages/circuits/**",
+    "packages/auth-server/public/snarkjs.min.js"
   ],
   "caseSensitive": true,
   "dictionaries": [
