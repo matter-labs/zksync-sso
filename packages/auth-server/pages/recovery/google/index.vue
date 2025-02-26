@@ -87,9 +87,9 @@ function buildBlindingFactor(): bigint {
 async function generateProf(): Promise<void> {
   const buf = new Uint8Array(16);
   crypto.getRandomValues(buf);
-  const identyJwt = await startGoogleOauth(bytesToHex(buf));
+  const identityJwt = await startGoogleOauth(bytesToHex(buf));
 
-  const digest = await buildOidcDigest(identyJwt);
+  const digest = await buildOidcDigest(identityJwt);
   const publicClient = getPublicClient({ chainId: defaultChain.id });
 
   // recover address
@@ -110,7 +110,7 @@ async function generateProf(): Promise<void> {
   const blindingFactor = buildBlindingFactor();
   const nonce = createNonce(txHash, blindingFactor);
 
-  const txJwt = await startGoogleOauth(nonce, identyJwt.sub);
+  const txJwt = await startGoogleOauth(nonce, identityJwt.sub);
 
   if (txJwt === undefined) {
     throw new Error("jwt should not be undefined");
