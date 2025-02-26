@@ -29,13 +29,6 @@ export class ContractUpdater {
     );
   }
 
-  private addIssHashToKeys(keys: Key[], issHash: string): Key[] {
-    return keys.map((key) => ({
-      ...key,
-      issHash,
-    }));
-  }
-
   public async updateContract(iss: string, keys: BaseKey[]): Promise<void> {
     console.log(`Updating contract for issuer: ${iss}`);
 
