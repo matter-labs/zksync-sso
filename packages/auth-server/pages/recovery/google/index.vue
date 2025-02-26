@@ -89,6 +89,10 @@ async function generateProf(): Promise<void> {
   crypto.getRandomValues(buf);
   const identityJwt = await startGoogleOauth(bytesToHex(buf));
 
+  if (identityJwt === undefined) {
+    throw new Error("jwt should be defined");
+  }
+
   const digest = await buildOidcDigest(identityJwt);
   const publicClient = getPublicClient({ chainId: defaultChain.id });
 
