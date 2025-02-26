@@ -23,12 +23,6 @@
           >
             Test
           </ZkButton>
-          <ZkButton
-            class="w-full"
-            @click="generateTxHash"
-          >
-            Test 2
-          </ZkButton>
         </div>
 
         <span
@@ -138,17 +132,5 @@ async function generateProf(): Promise<void> {
   const res = await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
   calculating.value = false;
   proof.value = JSON.stringify(res, null, 2);
-}
-
-async function generateTxHash() {
-  // const address = zeroAddress;
-  // const client = getRecoveryClient({ chainId: defaultChain.id, address });
-  // // const client = getPublicClient({ chainId: defaultChain.id });
-  // const request = await client.prepareTransactionRequest({
-  //   to: client.contracts.recoveryOidc,
-  //   data: "0x",
-  //   gas: 20_000_000n, // TODO: Remove when gas estimation is fixed
-  // });
-  // console.log(request);
 }
 </script>
