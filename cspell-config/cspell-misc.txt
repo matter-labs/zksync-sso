@@ -34,3 +34,4 @@ nfts
 oidc
 Oidc
 jwks
+merkle
