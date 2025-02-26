@@ -1,275 +1,373 @@
 export const abi = [
   {
-    type: "constructor",
-    inputs: [],
+    inputs: [
+      {
+        internalType: "address",
+        name: "_keyRegistry",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "_verifier",
+        type: "address",
+      },
+    ],
     stateMutability: "nonpayable",
+    type: "constructor",
   },
   {
-    type: "function",
-    name: "MAX_KEYS",
-    inputs: [],
-    outputs: [
+    anonymous: false,
+    inputs: [
       {
-        name: "",
-        type: "uint8",
+        indexed: false,
         internalType: "uint8",
+        name: "version",
+        type: "uint8",
+      },
+    ],
+    name: "Initialized",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes",
+        name: "iss",
+        type: "bytes",
+      },
+      {
+        indexed: false,
+        internalType: "bool",
+        name: "isNew",
+        type: "bool",
+      },
+    ],
+    name: "OidcKeyUpdated",
+    type: "event",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes",
+        name: "key",
+        type: "bytes",
+      },
+    ],
+    name: "addValidationKey",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "digest",
+        type: "bytes32",
+      },
+    ],
+    name: "addressForDigest",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
       },
     ],
     stateMutability: "view",
+    type: "function",
   },
   {
-    type: "function",
-    name: "OIDCKeys",
     inputs: [
       {
+        internalType: "bytes32",
         name: "",
         type: "bytes32",
-        internalType: "bytes32",
-      },
-      {
-        name: "",
-        type: "uint256",
-        internalType: "uint256",
       },
     ],
+    name: "digestIndex",
     outputs: [
       {
-        name: "kid",
-        type: "bytes32",
-        internalType: "bytes32",
-      },
-      {
-        name: "n",
-        type: "bytes",
-        internalType: "bytes",
-      },
-      {
-        name: "e",
-        type: "bytes",
-        internalType: "bytes",
+        internalType: "address",
+        name: "",
+        type: "address",
       },
     ],
     stateMutability: "view",
+    type: "function",
   },
   {
-    type: "function",
-    name: "getKey",
     inputs: [
       {
-        name: "issHash",
-        type: "bytes32",
-        internalType: "bytes32",
+        internalType: "address",
+        name: "_keyRegistry",
+        type: "address",
       },
       {
-        name: "kid",
-        type: "bytes32",
-        internalType: "bytes32",
+        internalType: "address",
+        name: "_verifier",
+        type: "address",
       },
     ],
+    name: "initialize",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "keyRegistry",
     outputs: [
       {
+        internalType: "address",
         name: "",
-        type: "tuple",
-        internalType: "struct OidcKeyRegistry.Key",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+    ],
+    name: "oidcDataForAddress",
+    outputs: [
+      {
         components: [
           {
-            name: "kid",
-            type: "bytes32",
             internalType: "bytes32",
+            name: "oidcDigest",
+            type: "bytes32",
           },
           {
-            name: "n",
-            type: "bytes",
             internalType: "bytes",
+            name: "iss",
+            type: "bytes",
           },
           {
-            name: "e",
-            type: "bytes",
             internalType: "bytes",
+            name: "aud",
+            type: "bytes",
           },
         ],
+        internalType: "struct OidcRecoveryValidator.OidcData[]",
+        name: "",
+        type: "tuple[]",
       },
     ],
     stateMutability: "view",
+    type: "function",
   },
   {
-    type: "function",
-    name: "hashIssuer",
     inputs: [
       {
-        name: "iss",
-        type: "string",
-        internalType: "string",
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
       },
     ],
+    name: "onInstall",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
+      },
+    ],
+    name: "onUninstall",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes4",
+        name: "interfaceId",
+        type: "bytes4",
+      },
+    ],
+    name: "supportsInterface",
     outputs: [
       {
+        internalType: "bool",
         name: "",
-        type: "bytes32",
-        internalType: "bytes32",
+        type: "bool",
       },
     ],
     stateMutability: "pure",
+    type: "function",
   },
   {
-    type: "function",
-    name: "initialize",
-    inputs: [],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "keyIndexes",
     inputs: [
       {
-        name: "",
-        type: "bytes32",
         internalType: "bytes32",
+        name: "signedHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes",
+        name: "signature",
+        type: "bytes",
       },
     ],
+    name: "validateSignature",
     outputs: [
       {
+        internalType: "bool",
         name: "",
-        type: "uint8",
-        internalType: "uint8",
+        type: "bool",
       },
     ],
     stateMutability: "view",
+    type: "function",
   },
   {
-    type: "function",
-    name: "owner",
-    inputs: [],
-    outputs: [
-      {
-        name: "",
-        type: "address",
-        internalType: "address",
-      },
-    ],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "renounceOwnership",
-    inputs: [],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "setKey",
     inputs: [
       {
-        name: "issHash",
-        type: "bytes32",
         internalType: "bytes32",
+        name: "signedHash",
+        type: "bytes32",
       },
       {
-        name: "key",
+        internalType: "bytes",
+        name: "signature",
+        type: "bytes",
+      },
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "txType",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "from",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "to",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "gasLimit",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "gasPerPubdataByteLimit",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "maxFeePerGas",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "maxPriorityFeePerGas",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "paymaster",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "nonce",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "value",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256[4]",
+            name: "reserved",
+            type: "uint256[4]",
+          },
+          {
+            internalType: "bytes",
+            name: "data",
+            type: "bytes",
+          },
+          {
+            internalType: "bytes",
+            name: "signature",
+            type: "bytes",
+          },
+          {
+            internalType: "bytes32[]",
+            name: "factoryDeps",
+            type: "bytes32[]",
+          },
+          {
+            internalType: "bytes",
+            name: "paymasterInput",
+            type: "bytes",
+          },
+          {
+            internalType: "bytes",
+            name: "reservedDynamic",
+            type: "bytes",
+          },
+        ],
+        internalType: "struct Transaction",
+        name: "transaction",
         type: "tuple",
-        internalType: "struct OidcKeyRegistry.Key",
-        components: [
-          {
-            name: "kid",
-            type: "bytes32",
-            internalType: "bytes32",
-          },
-          {
-            name: "n",
-            type: "bytes",
-            internalType: "bytes",
-          },
-          {
-            name: "e",
-            type: "bytes",
-            internalType: "bytes",
-          },
-        ],
       },
     ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
+    name: "validateTransaction",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
-    name: "setKeys",
-    inputs: [
-      {
-        name: "issHash",
-        type: "bytes32",
-        internalType: "bytes32",
-      },
-      {
-        name: "keys",
-        type: "tuple[]",
-        internalType: "struct OidcKeyRegistry.Key[]",
-        components: [
-          {
-            name: "kid",
-            type: "bytes32",
-            internalType: "bytes32",
-          },
-          {
-            name: "n",
-            type: "bytes",
-            internalType: "bytes",
-          },
-          {
-            name: "e",
-            type: "bytes",
-            internalType: "bytes",
-          },
-        ],
-      },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
   },
   {
+    inputs: [],
+    name: "verifier",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
-    name: "transferOwnership",
-    inputs: [
-      {
-        name: "newOwner",
-        type: "address",
-        internalType: "address",
-      },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "event",
-    name: "Initialized",
-    inputs: [
-      {
-        name: "version",
-        type: "uint8",
-        indexed: false,
-        internalType: "uint8",
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: "event",
-    name: "OwnershipTransferred",
-    inputs: [
-      {
-        name: "previousOwner",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
-      {
-        name: "newOwner",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
-    ],
-    anonymous: false,
   },
 ];
