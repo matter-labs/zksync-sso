@@ -45,29 +45,29 @@
 </template>
 
 <script setup lang="ts">
-import { bytesToBigInt, toHex } from "viem";
+import { type Address, bytesToBigInt, bytesToHex } from "viem";
 import { ref } from "vue";
 import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
-import { createNonce } from "zksync-sso-circuits";
+import { createNonce, JwtTxValidationInputs } from "zksync-sso-circuits";
 
 definePageMeta({
   layout: "dashboard",
 });
 const { buildOidcDigest } = useRecoveryOidc();
 const { startGoogleOauth } = useGoogleOauth();
-// const { snarkJs } = useSnarkJs();
+const { snarkJs } = useSnarkJs();
 const { getRecoveryClient, defaultChain, getPublicClient } = useClientStore();
 
 const currentStep = ref(1);
 const proof = ref<string | null>(null);
 const calculating = ref(false);
 
-// type KeysType = {
-//   keys: {
-//     n: string;
-//     kid: string;
-//   }[];
-// };
+type KeysType = {
+  keys: {
+    n: string;
+    kid: string;
+  }[];
+};
 
 const stepTitle = computed(() => {
   switch (currentStep.value) {
@@ -85,19 +85,11 @@ function buildBlindingFactor(): bigint {
 }
 
 async function generateProf(): Promise<void> {
-  // TODO: replace with real txHash.
-  const txHash = toHex(new Uint8Array(32));
-  // TODO: replace with secure blinding factor calculation.
-  const blindingFactor = buildBlindingFactor();
-  const nonce = createNonce(txHash, blindingFactor);
+  const buf = new Uint8Array(16);
+  crypto.getRandomValues(buf);
+  const identyJwt = await startGoogleOauth(bytesToHex(buf));
 
-  const jwt = await startGoogleOauth(nonce);
-  if (jwt === undefined) {
-    throw new Error("jwt should not be undefined");
-  }
-
-  const digest = await buildOidcDigest(jwt);
-
+  const digest = await buildOidcDigest(identyJwt);
   const publicClient = getPublicClient({ chainId: defaultChain.id });
 
   // recover address
@@ -110,30 +102,38 @@ async function generateProf(): Promise<void> {
 
   const recoveryClient = getRecoveryClient({ chainId: defaultChain.id, address: addressToRecover });
 
-  proof.value = await recoveryClient.calculateAddKeyTxHash({
+  const txHash = await recoveryClient.calculateAddKeyTxHash({
     passkeyPubKey: ["0x" + "00".repeat(32), "0x" + "00".repeat(32)],
     passkeyDomain: window.location.origin,
   });
-  // console.log(newTxHash);
+  // TODO: replace with secure blinding factor calculation.
+  const blindingFactor = buildBlindingFactor();
+  const nonce = createNonce(txHash, blindingFactor);
 
-  // const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/certs").then((r) => r.json()) as KeysType;
-  // const key = googleResponse.keys.find((key) => key.kid === jwt.kid);
-  //
-  // if (key === undefined) {
-  //   throw new Error("Signer key not found in google exposed keys");
-  // }
-  //
-  // const inputs = new JwtTxValidationInputs(
-  //   jwt.raw,
-  //   key.n,
-  //   digest.salt.toBigInt(),
-  //   txHash,
-  //   blindingFactor,
-  // );
-  // calculating.value = true;
-  // const res = await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
-  // calculating.value = false;
-  // proof.value = JSON.stringify(res, null, 2);
+  const txJwt = await startGoogleOauth(nonce, identyJwt.sub);
+
+  if (txJwt === undefined) {
+    throw new Error("jwt should not be undefined");
+  }
+
+  const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/certs").then((r) => r.json()) as KeysType;
+  const key = googleResponse.keys.find((key) => key.kid === txJwt.kid);
+
+  if (key === undefined) {
+    throw new Error("Signer key not found in google exposed keys");
+  }
+
+  const inputs = new JwtTxValidationInputs(
+    txJwt.raw,
+    key.n,
+    digest.salt.toBigInt(),
+    txHash,
+    blindingFactor,
+  );
+  calculating.value = true;
+  const res = await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
+  calculating.value = false;
+  proof.value = JSON.stringify(res, null, 2);
 }
 
 async function generateTxHash() {
