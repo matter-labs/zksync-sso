@@ -31,8 +31,6 @@
           Calculating...
         </span>
         <pre v-if="proof !== null">{{ proof }}</pre>
-
-        <google-recovery-flow />
       </div>
     </main>
   </div>
@@ -42,6 +40,7 @@
 import { type Address, bytesToBigInt, bytesToHex } from "viem";
 import { ref } from "vue";
 import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
+import { getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
 import { createNonce, JwtTxValidationInputs } from "zksync-sso-circuits";
 
 definePageMeta({
@@ -51,6 +50,7 @@ const { buildOidcDigest } = useRecoveryOidc();
 const { startGoogleOauth } = useGoogleOauth();
 const { snarkJs } = useSnarkJs();
 const { getRecoveryClient, defaultChain, getPublicClient } = useClientStore();
+const { registerPasskey } = usePasskeyRegister();
 
 const currentStep = ref(1);
 const proof = ref<string | null>(null);
@@ -99,9 +99,9 @@ async function generateProf(): Promise<void> {
   }) as Address;
 
   const recoveryClient = getRecoveryClient({ chainId: defaultChain.id, address: addressToRecover });
-
+  const passkeyPubKey = await getNewPasskey();
   const txHash = await recoveryClient.calculateAddKeyTxHash({
-    passkeyPubKey: ["0x" + "00".repeat(32), "0x" + "00".repeat(32)],
+    passkeyPubKey: passkeyPubKey,
     passkeyDomain: window.location.origin,
   });
   // TODO: replace with secure blinding factor calculation.
@@ -132,5 +132,25 @@ async function generateProf(): Promise<void> {
   const res = await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
   calculating.value = false;
   proof.value = JSON.stringify(res, null, 2);
+}
+
+async function getNewPasskey(): Promise<[Buffer, Buffer]> {
+  const result = await registerPasskey();
+  if (!result) {
+    throw new Error("Failed to register passkey");
+  }
+  const { credentialPublicKey } = result;
+
+  const [buf1, buf2] = getPublicKeyBytesFromPasskeySignature(credentialPublicKey);
+
+  if (buf1 === undefined || buf2 === undefined) {
+    throw new Error("Could not recover passkey");
+  }
+
+  return [buf1, buf2];
+  // const encoded = encodePasskeyModuleParameters({
+  //   passkeyPublicKey: getPublicKeyBytesFromPasskeySignature(credentialPublicKey),
+  //   expectedOrigin: window.location.origin,
+  // });
 }
 </script>

@@ -18,6 +18,7 @@ import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 import { ByteVector } from "zksync-sso-circuits";
 
 import { OidcRecoveryModuleAbi, WebAuthModuleAbi } from "../../../abi/index.js";
+import { encodePasskeyModuleParameters } from "../../../utils/encoding.js";
 import { noThrow } from "../../../utils/helpers.js";
 import { getEip712Domain } from "../../utils/getEip712Domain.js";
 
@@ -102,7 +103,7 @@ export const addOidcAccount = async <
 };
 
 export type CalculateAddKeyHashArgs = {
-  passkeyPubKey: [Hex, Hex];
+  passkeyPubKey: [Buffer, Buffer];
   passkeyDomain: string;
   contracts: {
     recoveryOidc: Address; // oidc recovery module
@@ -115,18 +116,10 @@ export const calculateAddKeyTxHash = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<CalculateAddKeyHashArgs>): Promise<Hex> => {
-  // (bytes32[2], string)
-  const encoded = encodeAbiParameters(
-    [
-      {
-        type: "tuple", name: "OidcData", components: [
-          { type: "bytes32[2]" },
-          { type: "string" },
-        ],
-      },
-    ],
-    [[args.passkeyPubKey, args.passkeyDomain]],
-  );
+  const encoded = encodePasskeyModuleParameters({
+    passkeyPublicKey: args.passkeyPubKey,
+    expectedOrigin: args.passkeyDomain,
+  });
 
   const callData = encodeFunctionData({
     abi: WebAuthModuleAbi,
