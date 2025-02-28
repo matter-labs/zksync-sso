@@ -27,7 +27,7 @@ export const useRecoveryGuardian = () => {
         address: contractsByChain[defaultChain.id].recovery,
         abi: GuardianRecoveryModuleAbi,
         functionName: "guardianOf",
-        args: [guardianAddress],
+        args: [keccak256(toHex(window.location.origin)), guardianAddress],
       });
     } catch (err) {
       getGuardedAccountsError.value = err as Error;
@@ -47,7 +47,7 @@ export const useRecoveryGuardian = () => {
         address: contractsByChain[defaultChain.id].recovery,
         abi: GuardianRecoveryModuleAbi,
         functionName: "guardiansFor",
-        args: [guardedAccount],
+        args: [keccak256(toHex(window.location.origin)), guardedAccount],
       });
       getGuardiansData.value = data;
       return data;
@@ -206,9 +206,9 @@ export const useRecoveryGuardian = () => {
       abi: GuardianRecoveryModuleAbi,
       args,
       fromBlock: validFromBlock,
-      toBlock: "latest" as const,
+      toBlock: "latest",
       strict: true,
-    };
+    } as const;
 
     const [initiatedEvents, finishedEvents, discardedEvents] = await Promise.all([
       client.getContractEvents({

@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, encodeAbiParameters, encodeFunctionData, type Hash, type Hex, type Prettify, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, keccak256, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
@@ -10,6 +10,7 @@ export type ProposeGuardianArgs = {
   contracts: {
     recovery: Address; // recovery module
   };
+  origin?: string;
   paymaster?: {
     address: Address;
     paymasterInput?: Hex;
@@ -24,10 +25,19 @@ export const proposeGuardian = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<ProposeGuardianArgs>): Promise<Prettify<ProposeGuardianReturnType>> => {
+  let origin: string | undefined = args.origin;
+  if (!origin) {
+    try {
+      origin = window.location.origin;
+    } catch {
+      throw new Error("Can't identify expectedOrigin, please provide it manually");
+    }
+  }
+
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
     functionName: "proposeValidationKey",
-    args: [args.newGuardian],
+    args: [keccak256(toHex(origin)), args.newGuardian],
   });
 
   const sendTransactionArgs = {
@@ -57,6 +67,7 @@ export type ConfirmGuardianArgs = {
   contracts: {
     recovery: Address; // recovery module
   };
+  origin?: string;
   paymaster?: {
     address: Address;
     paymasterInput?: Hex;
@@ -71,13 +82,18 @@ export const confirmGuardian = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<ConfirmGuardianArgs>): Promise<Prettify<ConfirmGuardianReturnType>> => {
+  let origin: string | undefined = args.origin;
+  if (!origin) {
+    try {
+      origin = window.location.origin;
+    } catch {
+      throw new Error("Can't identify expectedOrigin, please provide it manually");
+    }
+  }
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
     functionName: "addValidationKey",
-    args: [encodeAbiParameters(
-      [{ type: "address" }],
-      [args.accountToGuard],
-    )],
+    args: [keccak256(toHex(origin)), args.accountToGuard],
   });
 
   const sendTransactionArgs = {
@@ -107,6 +123,7 @@ export type RemoveGuardianArgs = {
   contracts: {
     recovery: Address; // recovery module
   };
+  origin?: string;
   paymaster?: {
     address: Address;
     paymasterInput?: Hex;
@@ -121,10 +138,18 @@ export const removeGuardian = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<RemoveGuardianArgs>): Promise<Prettify<RemoveGuardianReturnType>> => {
+  let origin: string | undefined = args.origin;
+  if (!origin) {
+    try {
+      origin = window.location.origin;
+    } catch {
+      throw new Error("Can't identify expectedOrigin, please provide it manually");
+    }
+  }
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
     functionName: "removeValidationKey",
-    args: [args.guardian],
+    args: [keccak256(toHex(origin)), args.guardian],
   });
 
   const sendTransactionArgs = {
