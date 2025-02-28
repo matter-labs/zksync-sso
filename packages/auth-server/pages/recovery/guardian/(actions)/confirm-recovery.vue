@@ -105,7 +105,7 @@
 
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { type Address, hexToBytes, isAddressEqual } from "viem";
+import { type Address, hexToBytes, isAddressEqual, keccak256, toHex } from "viem";
 import { z } from "zod";
 
 import { uint8ArrayToHex } from "@/utils/formatters";
@@ -114,7 +114,7 @@ import { AddressSchema } from "@/utils/schemas";
 const accountData = useAppKitAccount();
 const { getRecovery, initRecovery, initRecoveryInProgress, getGuardians } = useRecoveryGuardian();
 const { getWalletClient, defaultChain } = useClientStore();
-const { checkIsSsoAccount } = useCheckSsoAccount(defaultChain.id);
+const { isSsoAccount: checkIsSsoAccount } = useIsSsoAccount();
 const route = useRoute();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
 
@@ -165,8 +165,8 @@ const recoveryParams = computedAsync(async () => RecoveryParamsSchema.parseAsync
 
 const recoveryCompleted = computedAsync(async () => {
   if (!recoveryParams.value?.accountAddress) return false;
-  const status = await getRecovery(recoveryParams.value.accountAddress);
-  return status[2] === route.query.credentialId;
+  const result = await getRecovery(recoveryParams.value.accountAddress);
+  return result?.hashedCredentialId === keccak256(toHex(recoveryParams.value.credentialId));
 });
 
 const guardians = computedAsync(async () => {

@@ -82,7 +82,7 @@ import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
 
 const { getWalletClient, defaultChain } = useClientStore();
 const { getGuardians, initRecovery, initRecoveryInProgress } = useRecoveryGuardian();
-const { checkIsSsoAccount } = useCheckSsoAccount(defaultChain.id);
+const { isSsoAccount } = useIsSsoAccount();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
 const accountData = useAppKitAccount();
 
@@ -114,7 +114,7 @@ const guardians = computedAsync(async () => {
         .filter((guardian) => guardian.isReady)
         .map(async (guardian) => ({
           address: guardian.addr,
-          isSsoAccount: !!(await checkIsSsoAccount(guardian.addr)),
+          isSsoAccount: (await isSsoAccount(guardian.addr)),
         })),
     );
   } catch (err) {

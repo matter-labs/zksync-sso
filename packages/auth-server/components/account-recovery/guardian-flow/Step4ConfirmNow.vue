@@ -94,7 +94,7 @@ const emit = defineEmits<{
 }>();
 
 const { getWalletClient, defaultChain } = useClientStore();
-const { checkIsSsoAccount, isLoading, error: isSsoAccountError } = useCheckSsoAccount(defaultChain.id);
+const { isSsoAccount: checkIsSsoAccount, isLoading, error: isSsoAccountError } = useIsSsoAccount();
 const { confirmGuardian, confirmGuardianInProgress } = useRecoveryGuardian();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
 const { address } = useAccountStore();

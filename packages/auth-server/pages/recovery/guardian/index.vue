@@ -46,8 +46,8 @@
 
           <ZkButton
             class="w-full"
-            :disabled="!isValidAddress || isValidatingAccount"
-            :loading="isValidatingAccount"
+            :disabled="!isValidAddress || isLoadingSsoAccount"
+            :loading="isLoadingSsoAccount"
             @click="handleContinue"
           >
             Continue
@@ -71,10 +71,9 @@
 import type { Address } from "viem";
 import { ref } from "vue";
 
-import { useValidateAccount } from "~/composables/useValidateAccount";
 import { AddressSchema } from "~/utils/schemas";
 
-const { validateAccount, isValidatingAccount } = useValidateAccount();
+const { isSsoAccount, isLoading: isLoadingSsoAccount } = useIsSsoAccount();
 
 definePageMeta({
   layout: "dashboard",
@@ -106,7 +105,7 @@ const validateAddress = async () => {
   addressError.value = "";
   isValidAddress.value = false;
 
-  const isValid = await validateAccount(result.data);
+  const isValid = await isSsoAccount(result.data);
   if (!isValid) {
     addressError.value = "The address is not a valid ZKsync SSO account";
     isValidAddress.value = false;
