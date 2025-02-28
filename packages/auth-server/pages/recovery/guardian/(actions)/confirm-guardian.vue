@@ -35,7 +35,10 @@
         </template>
       </account-recovery-confirm-info-card>
 
-      <account-recovery-confirm-info-card v-if="isSsoAccountLoading">
+      <account-recovery-confirm-info-card
+        v-if="isSsoAccountLoading"
+        title="Checking Account Type"
+      >
         <div class="flex flex-col items-center w-full gap-4">
           <common-spinner class="w-8 h-8" />
           <p class="text-center text-gray-600 dark:text-gray-400">
@@ -107,7 +110,7 @@ const route = useRoute();
 const { confirmGuardian, confirmGuardianInProgress, getGuardians, getGuardiansData } = useRecoveryGuardian();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
 const { getWalletClient, defaultChain } = useClientStore();
-const { checkIsSsoAccount, isLoading: isSsoAccountLoading, error: isSsoAccountError } = useCheckSsoAccount(defaultChain.id);
+const { isSsoAccount: checkIsSsoAccount, isLoading: isSsoAccountLoading, error: isSsoAccountError } = useIsSsoAccount();
 
 // Parse and validate URL params
 const params = z.object({
@@ -150,7 +153,7 @@ const status = computed(() => {
       title: "SSO Account Detected",
       message: "The guardian is detected as a ZKSync SSO account.",
       type: "success",
-    };
+    } as const;
   }
 
   if (isConnectedWalletGuardian.value) {
@@ -158,7 +161,7 @@ const status = computed(() => {
       title: "Wallet Connected",
       message: "Guardian wallet successfully connected.",
       type: "success",
-    };
+    } as const;
   }
 
   return {
@@ -167,7 +170,7 @@ const status = computed(() => {
       ? `Please connect with the guardian wallet address (${shortenAddress(guardianAddress.value)})`
       : "Connect your wallet to confirm this guardian for your account.",
     type: "warning",
-  };
+  } as const;
 });
 
 const confirmGuardianAction = async () => {

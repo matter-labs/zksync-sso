@@ -114,7 +114,7 @@ import { AddressSchema } from "@/utils/schemas";
 const accountData = useAppKitAccount();
 const { getRecovery, initRecovery, initRecoveryInProgress, getGuardians } = useRecoveryGuardian();
 const { getWalletClient, defaultChain } = useClientStore();
-const { checkIsSsoAccount } = useCheckSsoAccount(defaultChain.id);
+const { isSsoAccount: checkIsSsoAccount } = useIsSsoAccount();
 const route = useRoute();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
 
