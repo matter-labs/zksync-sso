@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseAbi, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
@@ -155,7 +155,6 @@ export const fetchAccount = async <
     }
   }
 
-  if (!args.contracts.accountFactory) throw new Error("Account factory address is not set");
   if (!args.contracts.passkey) throw new Error("Passkey module address is not set");
 
   let username: string | undefined = args.uniqueAccountId;
@@ -178,10 +177,10 @@ export const fetchAccount = async <
   if (!username) throw new Error("No account found");
 
   const accountAddress = await readContract(client, {
-    abi: parseAbi(["function accountMappings(string) view returns (address)"]),
-    address: args.contracts.accountFactory,
-    functionName: "accountMappings",
-    args: [username],
+    abi: WebAuthValidatorAbi,
+    address: args.contracts.passkey,
+    functionName: "accountAddressByDomainById",
+    args: [origin, toHex(username)],
   });
 
   if (!accountAddress || accountAddress == NULL_ADDRESS) throw new Error(`No account found for username: ${username}`);

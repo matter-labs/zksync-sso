@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { FactoryAbi } from "zksync-sso/abi";
+import { AAFactoryAbi } from "zksync-sso/abi";
 import { fetchAccount } from "zksync-sso/client";
 
 export const useConfigurableAccount = () => {
@@ -11,8 +11,8 @@ export const useConfigurableAccount = () => {
 
     const accountId = await publicClient.readContract({
       address: factoryAddress,
-      abi: FactoryAbi,
-      functionName: "accountIds",
+      abi: AAFactoryAbi,
+      functionName: "accountMappings", // FIXME: grab from WebAuthValidator
       args: [address],
     });
     if (!accountId) {
