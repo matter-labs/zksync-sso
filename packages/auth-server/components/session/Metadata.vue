@@ -27,6 +27,9 @@
     >
       {{ domain }}
     </p>
+    <div v-if="appMeta.configData && appMeta.configData[0] && appMeta.configData[0]['message']">
+      {{ appMeta.configData[0]['message'] }}
+    </div>
   </div>
 </template>
 

@@ -67,6 +67,9 @@ const chain = zksyncInMemoryNode;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const zksyncConnectorWithSession = zksyncSsoConnector({
+  metadata: {
+    configData: [{ message: "Thanks for using the demo app with session support!" }],
+  },
   authServerUrl: "http://localhost:3002/confirm",
   session: {
     feeLimit: parseEther("0.1"),
@@ -80,6 +83,9 @@ const zksyncConnectorWithSession = zksyncSsoConnector({
 });
 const zksyncConnector = zksyncSsoConnector({
   authServerUrl: "http://localhost:3002/confirm",
+  metadata: {
+    configData: [{ message: "Thanks for using the demo app!" }],
+  },
 });
 const wagmiConfig = createConfig({
   chains: [chain],
