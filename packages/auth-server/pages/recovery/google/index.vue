@@ -23,6 +23,12 @@
           >
             Test
           </ZkButton>
+          <ZkButton
+            class="w-full"
+            @click="testBroadcastTx"
+          >
+            Test 2
+          </ZkButton>
         </div>
 
         <span
@@ -37,7 +43,8 @@
 </template>
 
 <script setup lang="ts">
-import { type Address, bytesToBigInt, bytesToHex } from "viem";
+import { type Address, bytesToBigInt, bytesToHex, createWalletClient, http, parseEther } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { ref } from "vue";
 import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
 import { getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
@@ -49,7 +56,7 @@ definePageMeta({
 const { buildOidcDigest } = useRecoveryOidc();
 const { startGoogleOauth } = useGoogleOauth();
 const { snarkJs } = useSnarkJs();
-const { getRecoveryClient, defaultChain, getPublicClient } = useClientStore();
+const { getRecoveryClient, defaultChain, getPublicClient, getOidcClient } = useClientStore();
 const { registerPasskey } = usePasskeyRegister();
 
 const currentStep = ref(1);
@@ -148,9 +155,51 @@ async function getNewPasskey(): Promise<[Buffer, Buffer]> {
   }
 
   return [buf1, buf2];
-  // const encoded = encodePasskeyModuleParameters({
-  //   passkeyPublicKey: getPublicKeyBytesFromPasskeySignature(credentialPublicKey),
-  //   expectedOrigin: window.location.origin,
-  // });
+}
+
+async function testBroadcastTx() {
+  const buf = new Uint8Array(16);
+  crypto.getRandomValues(buf);
+  const identityJwt = await startGoogleOauth(bytesToHex(buf));
+
+  if (identityJwt === undefined) {
+    throw new Error("jwt should be defined");
+  }
+
+  const digest = await buildOidcDigest(identityJwt);
+  const publicClient = getPublicClient({ chainId: defaultChain.id });
+
+  // recover address
+  const addressToRecover = await publicClient.readContract({
+    address: contractsByChain[defaultChain.id].recoveryOidc,
+    abi: OidcRecoveryModuleAbi,
+    functionName: "addressForDigest",
+    args: [digest.toHex()],
+  }) as Address;
+
+  const wallet = createWalletClient({
+    account: privateKeyToAccount("0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"),
+    transport: http("http://localhost:8011"),
+    chain: publicClient.chain,
+  });
+
+  await wallet.sendTransaction({
+    to: addressToRecover,
+    value: parseEther("1"),
+  });
+
+  const recoveryClient = getRecoveryClient({ chainId: defaultChain.id, address: addressToRecover });
+  const oidcClient = getOidcClient({ chainId: defaultChain.id, address: addressToRecover });
+  const passkeyPubKey = await getNewPasskey();
+  const txHash = await recoveryClient.calculateAddKeyTxHash({
+    passkeyPubKey: passkeyPubKey,
+    passkeyDomain: window.location.origin,
+  });
+
+  await oidcClient.addNewPasskeyViaOidc({
+    expectedTxHash: txHash,
+    passkeyPubKey: passkeyPubKey,
+    passkeyDomain: window.location.origin,
+  });
 }
 </script>

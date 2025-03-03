@@ -2,6 +2,7 @@ import { type Address, createPublicClient, createWalletClient, custom, http, pub
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
+import { createZkSyncOidcClient } from "zksync-sso/client/oidc";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 
@@ -33,9 +34,9 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     session: "0x644040Bc7f2b243BB5ba28ccFa67Ec3dD7f9a77F",
     passkey: "0x1Ec1126fab9eE89d0babC8669076e1dd1e36cd09",
     recovery: "0x4E619cA9DDb3A207E4764F3Ee5D36DD478212335",
-    recoveryOidc: "0xcC31745F406Dc2f090DAd022D4d62801541a9358",
+    recoveryOidc: "0x48C357C930B4932873c1e56E4226Ae9e57455031",
     accountFactory: "0x01F99512191c036FcA9Fcd416dE73b19e93B7D60",
-    accountPaymaster: "0x865D411751Bdc5B59268cBD5BE8d48B6d6bEf1C5",
+    accountPaymaster: "0xCf7bbbd434b11dB996b03392CcCf9902CA6FB448",
   },
 };
 
@@ -92,6 +93,19 @@ export const useClientStore = defineStore("client", () => {
     });
 
     return client;
+  };
+
+  const getOidcClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+
+    return createZkSyncOidcClient({
+      address,
+      contracts,
+      chain: chain,
+      transport: http(),
+    });
   };
 
   const getConfigurableClient = ({
@@ -163,5 +177,6 @@ export const useClientStore = defineStore("client", () => {
     getWalletClient,
     getRecoveryClient,
     getConfigurableClient,
+    getOidcClient,
   };
 });

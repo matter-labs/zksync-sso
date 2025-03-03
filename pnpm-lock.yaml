@@ -3167,10 +3167,6 @@ packages:
   '@noble/curves@1.4.2':
     resolution: {integrity: sha512-TavHr8qycMChk8UwMld0ZDRvatedkzWfH8IiaeGCfymOP5i0hSCozz9vHOL0nkwk7HRMlFnAiKpS2jrUmSybcw==}
 
-  '@noble/curves@1.6.0':
-    resolution: {integrity: sha512-TlaHRXDehJuRNR9TfZDNQ45mMEd5dwUwmicsafcIX4SsNiqnCHKjE/1alYPd/lDRVhxdhUAlv8uEhMCI5zjIJQ==}
-    engines: {node: ^14.21.3 || >=16}
-
   '@noble/curves@1.8.0':
     resolution: {integrity: sha512-j84kjAbzEnQHaSIhRPUmB3/eVXu2k3dKPl2LOrR8fSOIL+89U+7lV117EWHtq/GHM3ReGHM46iRBdZfpc4HRUQ==}
     engines: {node: ^14.21.3 || >=16}
@@ -11641,6 +11637,14 @@ packages:
       typescript:
         optional: true
 
+  viem@2.23.5:
+    resolution: {integrity: sha512-cUfBHdFQHmBlPW0loFXda0uZcoU+uJw3NRYQRwYgkrpH6PgovH8iuVqDn6t1jZk82zny4wQL54c9dCX2W9kLMg==}
+    peerDependencies:
+      typescript: '>=5.0.4'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   vite-hot-client@0.2.3:
     resolution: {integrity: sha512-rOGAV7rUlUHX89fP2p2v0A2WWvV3QMX2UYq0fRqsWSvFvev4atHWqjwGoKaZT1VTKyLGk533ecu3eyd0o59CAg==}
     peerDependencies:
@@ -15488,10 +15492,6 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.4.0
 
-  '@noble/curves@1.6.0':
-    dependencies:
-      '@noble/hashes': 1.5.0
-
   '@noble/curves@1.8.0':
     dependencies:
       '@noble/hashes': 1.7.0
@@ -17699,7 +17699,7 @@ snapshots:
     dependencies:
       big.js: 6.2.2
       dayjs: 1.11.10
-      viem: 2.23.1(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
+      viem: 2.23.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -17710,7 +17710,7 @@ snapshots:
     dependencies:
       big.js: 6.2.2
       dayjs: 1.11.10
-      viem: 2.23.1(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
+      viem: 2.23.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -17723,7 +17723,7 @@ snapshots:
       '@reown/appkit-wallet': 1.6.8(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)
       '@walletconnect/universal-provider': 2.18.0(bufferutil@4.0.8)(ioredis@5.4.1)(utf-8-validate@5.0.10)
       valtio: 1.13.2(react@18.3.1)
-      viem: 2.23.1(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
+      viem: 2.23.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -17797,7 +17797,7 @@ snapshots:
       '@walletconnect/logger': 2.1.2
       '@walletconnect/universal-provider': 2.18.0(bufferutil@4.0.8)(ioredis@5.4.1)(utf-8-validate@5.0.10)
       valtio: 1.13.2(react@18.3.1)
-      viem: 2.23.1(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
+      viem: 2.23.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -18061,7 +18061,7 @@ snapshots:
   '@safe-global/safe-apps-sdk@9.1.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)':
     dependencies:
       '@safe-global/safe-gateway-typescript-sdk': 3.22.2
-      viem: 2.23.1(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
+      viem: 2.23.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -28512,7 +28512,24 @@ snapshots:
       - utf-8-validate
       - zod
 
-  viem@2.23.1(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4):
+  viem@2.23.1(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1):
+    dependencies:
+      '@noble/curves': 1.8.1
+      '@noble/hashes': 1.7.1
+      '@scure/bip32': 1.6.2
+      '@scure/bip39': 1.5.4
+      abitype: 1.0.8(typescript@5.6.2)(zod@3.24.1)
+      isows: 1.0.6(ws@8.18.0(bufferutil@4.0.8)(utf-8-validate@5.0.10))
+      ox: 0.6.7(typescript@5.6.2)(zod@3.24.1)
+      ws: 8.18.0(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+    optionalDependencies:
+      typescript: 5.6.2
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+      - zod
+
+  viem@2.23.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4):
     dependencies:
       '@noble/curves': 1.8.1
       '@noble/hashes': 1.7.1
@@ -28529,7 +28546,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  viem@2.23.1(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1):
+  viem@2.23.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1):
     dependencies:
       '@noble/curves': 1.8.1
       '@noble/hashes': 1.7.1
@@ -29010,8 +29027,8 @@ snapshots:
 
   webauthn-p256@0.0.5:
     dependencies:
-      '@noble/curves': 1.6.0
-      '@noble/hashes': 1.5.0
+      '@noble/curves': 1.8.1
+      '@noble/hashes': 1.7.1
 
   webextension-polyfill@0.10.0: {}
 
