@@ -164,6 +164,7 @@ export class Signer implements SignerInterface {
     let metadata: AppMetadata = {
       name: "Unknown DApp",
       icon: null,
+      configData: {},
     };
     try {
       metadata = this.getMetadata();
