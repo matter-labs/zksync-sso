@@ -2,14 +2,13 @@ import {
   type Account,
   type Address,
   type Chain, type Client, createClient,
-  encodeAbiParameters, getAddress,
+  encodeAbiParameters, getAddress, type Hex,
   type Prettify, publicActions, type PublicRpcSchema,
   type RpcSchema,
   type Transport,
   type WalletClientConfig, type WalletRpcSchema,
 } from "viem";
 
-import { publicActionsRewrite } from "../recovery/decorators/publicActionsRewrite.js";
 import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "../recovery/decorators/wallet.js";
 import type { RecoveryRequiredContracts } from "../recovery/index.js";
 import { toOidcAccount } from "./account.js";
@@ -18,7 +17,13 @@ import type { ZksyncSsoOidcActions } from "./decorators/actions.js";
 
 export const signOidcTransaction = (
   recoveryValidatorAddress: Address,
+  hash: Hex,
 ) => {
+  const payload = encodeAbiParameters(
+    [{ type: "bytes32" }],
+    [hash],
+  );
+
   return encodeAbiParameters(
     [
       { type: "bytes", name: "signature" },
@@ -26,7 +31,7 @@ export const signOidcTransaction = (
       { type: "bytes", name: "validatorData" },
     ],
     [
-      "0x",
+      payload,
       recoveryValidatorAddress,
       "0x",
     ],
@@ -95,9 +100,8 @@ export function createZkSyncOidcClient<
 
   const account = toOidcAccount({
     address: parameters.address,
-    signTransaction: async () => {
-      console.log("Signing transaction from right place");
-      return signOidcTransaction(parameters.contracts.recoveryOidc);
+    signTransaction: async ({ hash }) => {
+      return signOidcTransaction(parameters.contracts.recoveryOidc, hash);
     },
   });
 
@@ -110,7 +114,6 @@ export function createZkSyncOidcClient<
       contracts: parameters.contracts,
     }))
     .extend(publicActions)
-    .extend(publicActionsRewrite)
     .extend(zksyncSsoWalletActions)
     .extend(zksyncSsoRecoveryActions);
 }

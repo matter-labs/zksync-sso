@@ -188,10 +188,10 @@ async function testBroadcastTx() {
     value: parseEther("1"),
   });
 
-  const recoveryClient = getRecoveryClient({ chainId: defaultChain.id, address: addressToRecover });
   const oidcClient = getOidcClient({ chainId: defaultChain.id, address: addressToRecover });
   const passkeyPubKey = await getNewPasskey();
-  const txHash = await recoveryClient.calculateAddKeyTxHash({
+
+  const txHash = await oidcClient.calculateTxHash({
     passkeyPubKey: passkeyPubKey,
     passkeyDomain: window.location.origin,
   });
