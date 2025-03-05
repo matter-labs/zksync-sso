@@ -25,6 +25,11 @@ export function useNav() {
       name: "Sessions",
       icon: "link",
     },
+    {
+      href: "/dashboard/wallet-connect",
+      name: "Wallet Connect",
+      icon: "link",
+    },
   ];
 
   return { mainNav };
