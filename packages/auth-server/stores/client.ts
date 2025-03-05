@@ -1,3 +1,4 @@
+import { useAppKitProvider } from "@reown/appkit/vue";
 import { type Address, createPublicClient, createWalletClient, custom, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
@@ -138,12 +139,15 @@ export const useClientStore = defineStore("client", () => {
   };
 
   const getWalletClient = async ({ chainId }: { chainId: SupportedChainId }) => {
+    const accountProvider = useAppKitProvider("eip155");
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
 
-    if (!window?.ethereum) throw new Error("No ethereum provider found");
+    if (!accountProvider.walletProvider) throw new Error("No ethereum provider found");
 
-    const accounts = await (window.ethereum as { request: (args: { method: string }) => Promise<Address[]> }).request({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = accountProvider.walletProvider as any;
+    const accounts = await (provider as { request: (args: { method: string }) => Promise<Address[]> }).request({
       method: "eth_requestAccounts",
     });
 
@@ -151,7 +155,7 @@ export const useClientStore = defineStore("client", () => {
       chain,
       account: accounts[0],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      transport: custom(window!.ethereum as any),
+      transport: custom(provider as any),
     })
       .extend(publicActions)
       .extend(walletActions)
