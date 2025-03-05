@@ -106,6 +106,7 @@
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
 import { type Address, hexToBytes, isAddressEqual, keccak256, toHex } from "viem";
+import { base64UrlToUint8Array } from "zksync-sso/utils";
 import { z } from "zod";
 
 import { uint8ArrayToHex } from "@/utils/formatters";
