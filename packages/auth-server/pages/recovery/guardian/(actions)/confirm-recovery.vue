@@ -166,7 +166,7 @@ const recoveryParams = computedAsync(async () => RecoveryParamsSchema.parseAsync
 const recoveryCompleted = computedAsync(async () => {
   if (!recoveryParams.value?.accountAddress) return false;
   const result = await getRecovery(recoveryParams.value.accountAddress);
-  return result?.hashedCredentialId === keccak256(toHex(recoveryParams.value.credentialId));
+  return result?.hashedCredentialId === keccak256(toHex(base64UrlToUint8Array(recoveryParams.value.credentialId)));
 });
 
 const guardians = computedAsync(async () => {

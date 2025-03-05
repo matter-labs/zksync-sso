@@ -7,6 +7,7 @@ import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
 import { WebAuthValidatorAbi } from "../../../abi/WebAuthValidator.js";
 import { noThrow } from "../../../utils/helpers.js";
+import { base64UrlToUint8Array } from "../../../utils/passkey.js";
 
 const identifyPasskeyParams = () => {
   let rpName: string | undefined;
@@ -170,7 +171,7 @@ export const addAccountOwnerPasskey = async <
   const callData = encodeFunctionData({
     abi: WebAuthValidatorAbi,
     functionName: "addValidationKey",
-    args: [toHex(args.credentialId), args.rawPublicKey, args.origin],
+    args: [toHex(base64UrlToUint8Array(args.credentialId)), args.rawPublicKey, args.origin],
   });
 
   const sendTransactionArgs = {

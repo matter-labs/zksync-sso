@@ -176,16 +176,16 @@ export const fetchAccount = async <
 
   if (!username) throw new Error("No account found");
 
+  const credentialId = toHex(base64UrlToUint8Array(username));
   const accountAddress = await readContract(client, {
     abi: WebAuthValidatorAbi,
     address: args.contracts.passkey,
     functionName: "accountAddressByDomainById",
-    args: [origin, toHex(username)],
+    args: [origin, credentialId],
   });
 
   if (!accountAddress || accountAddress == NULL_ADDRESS) throw new Error(`No account found for username: ${username}`);
 
-  const credentialId = toHex(base64UrlToUint8Array(username));
   const publicKey = await readContract(client, {
     abi: WebAuthValidatorAbi,
     address: args.contracts.passkey,

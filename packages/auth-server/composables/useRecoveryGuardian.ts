@@ -4,7 +4,7 @@ import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 import { GuardianRecoveryModuleAbi } from "zksync-sso/abi";
 import { confirmGuardian as sdkConfirmGuardian } from "zksync-sso/client";
-import { getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
+import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
 
 const getGuardiansInProgress = ref(false);
 const getGuardiansError = ref<Error | null>(null);
@@ -143,7 +143,7 @@ export const useRecoveryGuardian = () => {
       functionName: "initRecovery",
       args: [
         accountToRecover,
-        keccak256(toHex(accountId)),
+        keccak256(toHex(base64UrlToUint8Array(accountId))),
         publicKeyHex,
         keccak256(toHex(window.location.origin)),
       ],
@@ -198,7 +198,7 @@ export const useRecoveryGuardian = () => {
       args.account = address;
     }
     if (credentialId) {
-      args.hashedCredentialId = keccak256(toHex(credentialId));
+      args.hashedCredentialId = keccak256(toHex(base64UrlToUint8Array(credentialId)));
     }
 
     const eventsFilter = {
