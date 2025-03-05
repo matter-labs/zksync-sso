@@ -64,14 +64,14 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncInMemoryNode.id,
+      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncSepoliaTestnet.id,
       [zksyncInMemoryNode.id]: {
         nftQuestAddress: "0x4B5DF730c2e6b28E17013A1485E5d9BC41Efe021",
       },
       [zksyncSepoliaTestnet.id]: {
         nftQuestAddress: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
       },
-      appUrl: process.env.NUXT_PUBLIC_APP_URL || "https://auth-test.zksync.dev",
+      appUrl: process.env.NUXT_PUBLIC_APP_URL || "https://zksync-auth-server-staging--pr52-guardian-recovery-tu1nymjf.web.app",
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
     },
