@@ -3,7 +3,7 @@ import { type Account, type Address, type Chain, type Client, createClient, enco
 import { toRecoveryAccount } from "./account.js";
 import { publicActionsRewrite } from "./decorators/publicActionsRewrite.js";
 import { type ZksyncSsoRecoveryActions, zksyncSsoRecoveryActions } from "./decorators/recovery.js";
-import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "./decorators/wallet.js";
+import { type ZKsyncSsoWalletActions, zksyncSsoWalletActions } from "./decorators/wallet.js";
 
 export const signRecoveryTransaction = (recoveryValidatorAddress: `0x${string}`) => {
   return encodeAbiParameters(
@@ -86,7 +86,7 @@ export type ZksyncSsoRecoveryClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    ZksyncSsoWalletActions<chain, account> & ZksyncSsoRecoveryActions
+    ZKsyncSsoWalletActions<chain, account> & ZksyncSsoRecoveryActions
   > & ZksyncSsoRecoveryData
 >;
 

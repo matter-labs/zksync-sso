@@ -1,27 +1,62 @@
 import {
   type Account,
   type Address,
-  type Chain, type Client, createClient,
-  encodeAbiParameters, getAddress, type Hex,
-  type Prettify, publicActions, type PublicRpcSchema,
+  type Chain,
+  type Client,
+  createClient,
+  encodeAbiParameters,
+  getAddress,
+  type Hex,
+  type Prettify,
+  publicActions,
+  type PublicRpcSchema,
   type RpcSchema,
   type Transport,
-  type WalletClientConfig, type WalletRpcSchema,
+  type WalletClientConfig,
+  type WalletRpcSchema,
 } from "viem";
 
-import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "../recovery/decorators/wallet.js";
+import { type ZKsyncSsoWalletActions, zksyncSsoWalletActions } from "../recovery/decorators/wallet.js";
 import type { RecoveryRequiredContracts } from "../recovery/index.js";
-import { toOidcAccount } from "./account.js";
+import { type OidcAccount, toOidcAccount, type ZkProof } from "./account.js";
 import { zksyncSsoRecoveryActions } from "./actions/index.js";
 import type { ZksyncSsoOidcActions } from "./decorators/actions.js";
 
 export const signOidcTransaction = (
   recoveryValidatorAddress: Address,
-  hash: Hex,
+  _hash: Hex,
+  proof: ZkProof,
 ) => {
-  const payload = encodeAbiParameters(
-    [{ type: "bytes32" }],
-    [hash],
+  if (proof.public.length !== 151) {
+    throw new Error("Should be 151 elements long");
+  }
+
+  const encodedProof = encodeAbiParameters(
+    [
+      {
+        type: "tuple",
+        components: [
+          { name: "piA", type: "uint256[2]" },
+          { name: "piB", type: "uint256[2][2]" },
+          { name: "piC", type: "uint256[2]" },
+        ],
+      },
+      {
+        type: "uint256[151]",
+        name: "public",
+      },
+    ],
+    [
+      {
+        piA: [BigInt(proof.groth16Proof.pi_a[0]), BigInt(proof.groth16Proof.pi_a[1])],
+        piB: [
+          [BigInt(proof.groth16Proof.pi_b[0][0]), BigInt(proof.groth16Proof.pi_b[0][1])],
+          [BigInt(proof.groth16Proof.pi_b[1][0]), BigInt(proof.groth16Proof.pi_b[1][1])],
+        ],
+        piC: [BigInt(proof.groth16Proof.pi_c[0]), BigInt(proof.groth16Proof.pi_c[1])],
+      },
+      proof.public,
+    ],
   );
 
   return encodeAbiParameters(
@@ -31,7 +66,7 @@ export const signOidcTransaction = (
       { type: "bytes", name: "validatorData" },
     ],
     [
-      payload,
+      encodedProof,
       recoveryValidatorAddress,
       "0x",
     ],
@@ -55,7 +90,7 @@ export type OidcRequiredContracts = {
   recoveryOidc: Address; // Oidc
 };
 
-export type ZksynSsoOidcData = {
+export type ZKsyncSsoOidcData = {
   contracts: OidcRequiredContracts;
 };
 
@@ -63,30 +98,33 @@ export type ZkSyncSsoClient<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
   rpcSchema extends RpcSchema | undefined = undefined,
-  account extends Account = Account,
 > = Prettify<
   Client<
     transport,
     chain,
-    account,
+    OidcAccount,
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    ZksyncSsoWalletActions<chain, account> & ZksyncSsoOidcActions
-  > & ZksynSsoOidcData
+    ZKsyncSsoWalletActions<chain, OidcAccount> & ZksyncSsoOidcActions
+  > & ZKsyncSsoOidcData
 >;
 
 export type ClientWithOidcData<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
   account extends Account = Account,
-> = Client<transport, chain, account> & ZksynSsoOidcData;
+> = Client<transport, chain, account> & ZKsyncSsoOidcData;
 
 export function createZkSyncOidcClient<
   transport extends Transport,
   chain extends Chain,
   rpcSchema extends RpcSchema | undefined = undefined,
->(givenParams: SsoClientConfig<transport, chain, rpcSchema>) {
+>(givenParams: SsoClientConfig<transport, chain, rpcSchema>): ZkSyncSsoClient<
+  transport,
+  chain,
+  rpcSchema
+> {
   type WalletClientParameters = typeof givenParams;
   const parameters: WalletClientParameters & {
     key: NonNullable<WalletClientParameters["key"]>;
@@ -100,12 +138,12 @@ export function createZkSyncOidcClient<
 
   const account = toOidcAccount({
     address: parameters.address,
-    signTransaction: async ({ hash }) => {
-      return signOidcTransaction(parameters.contracts.recoveryOidc, hash);
+    signTransaction: async ({ hash, proof }) => {
+      return signOidcTransaction(parameters.contracts.recoveryOidc, hash, proof);
     },
   });
 
-  return createClient<transport, chain, Account, rpcSchema>({
+  return createClient<transport, chain, OidcAccount, rpcSchema>({
     ...parameters,
     account,
     type: "walletClient",

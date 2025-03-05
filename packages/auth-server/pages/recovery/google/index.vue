@@ -19,32 +19,19 @@
         >
           <ZkButton
             class="w-full"
-            @click="generateProf"
+            @click="tryToGenerateProof"
           >
             Test
           </ZkButton>
-          <ZkButton
-            class="w-full"
-            @click="testBroadcastTx"
-          >
-            Test 2
-          </ZkButton>
         </div>
-
-        <span
-          v-if="calculating"
-        >
-          Calculating...
-        </span>
-        <pre v-if="proof !== null">{{ proof }}</pre>
+        <pre>{{ guideText }}</pre>
       </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { type Address, bytesToBigInt, bytesToHex, createWalletClient, http, parseEther } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { type Address, bytesToBigInt, bytesToHex } from "viem";
 import { ref } from "vue";
 import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
 import { getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
@@ -55,13 +42,12 @@ definePageMeta({
 });
 const { buildOidcDigest } = useRecoveryOidc();
 const { startGoogleOauth } = useGoogleOauth();
-const { snarkJs } = useSnarkJs();
-const { getRecoveryClient, defaultChain, getPublicClient, getOidcClient } = useClientStore();
+const { snarkjs } = useSnarkJs();
+const { defaultChain, getPublicClient, getOidcClient } = useClientStore();
 const { registerPasskey } = usePasskeyRegister();
 
 const currentStep = ref(1);
-const proof = ref<string | null>(null);
-const calculating = ref(false);
+const guideText = ref<string>("Starting");
 
 type KeysType = {
   keys: {
@@ -85,9 +71,23 @@ function buildBlindingFactor(): bigint {
   return bytesToBigInt(randomValues);
 }
 
+async function tryToGenerateProof() {
+  try {
+    await generateProf();
+  } catch (e) {
+    guide(`An error ocurred: ${e.message}`);
+  }
+}
+
+function guide(text: string) {
+  guideText.value = (text);
+  console.log(text);
+}
+
 async function generateProf(): Promise<void> {
   const buf = new Uint8Array(16);
   crypto.getRandomValues(buf);
+  guide("Looking for address...");
   const identityJwt = await startGoogleOauth(bytesToHex(buf));
 
   if (identityJwt === undefined) {
@@ -105,13 +105,16 @@ async function generateProf(): Promise<void> {
     args: [digest.toHex()],
   }) as Address;
 
-  const recoveryClient = getRecoveryClient({ chainId: defaultChain.id, address: addressToRecover });
+  guide("Generating signature jwt...");
+  const oidcClient = getOidcClient({ chainId: defaultChain.id, address: addressToRecover });
+
+  guide("Asking for new passkey...");
   const passkeyPubKey = await getNewPasskey();
-  const txHash = await recoveryClient.calculateAddKeyTxHash({
+  const txHash = await oidcClient.calculateTxHash({
     passkeyPubKey: passkeyPubKey,
     passkeyDomain: window.location.origin,
   });
-  // TODO: replace with secure blinding factor calculation.
+
   const blindingFactor = buildBlindingFactor();
   const nonce = createNonce(txHash, blindingFactor);
 
@@ -135,10 +138,23 @@ async function generateProf(): Promise<void> {
     txHash,
     blindingFactor,
   );
-  calculating.value = true;
-  const res = await snarkJs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey");
-  calculating.value = false;
-  proof.value = JSON.stringify(res, null, 2);
+
+  guide("Generating proof...");
+  const res = await snarkjs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey", console);
+
+  guide("Adding proof...");
+  oidcClient.account.addProof({
+    public: res.publicSignals.map((str) => BigInt(str)),
+    groth16Proof: res.proof,
+    txHash,
+  });
+
+  guide("Broadcasting tx...");
+  await oidcClient.addNewPasskeyViaOidc({
+    passkeyPubKey: passkeyPubKey,
+    passkeyDomain: window.location.origin,
+  });
+  guide("Success!");
 }
 
 async function getNewPasskey(): Promise<[Buffer, Buffer]> {
@@ -155,51 +171,5 @@ async function getNewPasskey(): Promise<[Buffer, Buffer]> {
   }
 
   return [buf1, buf2];
-}
-
-async function testBroadcastTx() {
-  const buf = new Uint8Array(16);
-  crypto.getRandomValues(buf);
-  const identityJwt = await startGoogleOauth(bytesToHex(buf));
-
-  if (identityJwt === undefined) {
-    throw new Error("jwt should be defined");
-  }
-
-  const digest = await buildOidcDigest(identityJwt);
-  const publicClient = getPublicClient({ chainId: defaultChain.id });
-
-  // recover address
-  const addressToRecover = await publicClient.readContract({
-    address: contractsByChain[defaultChain.id].recoveryOidc,
-    abi: OidcRecoveryModuleAbi,
-    functionName: "addressForDigest",
-    args: [digest.toHex()],
-  }) as Address;
-
-  const wallet = createWalletClient({
-    account: privateKeyToAccount("0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"),
-    transport: http("http://localhost:8011"),
-    chain: publicClient.chain,
-  });
-
-  await wallet.sendTransaction({
-    to: addressToRecover,
-    value: parseEther("1"),
-  });
-
-  const oidcClient = getOidcClient({ chainId: defaultChain.id, address: addressToRecover });
-  const passkeyPubKey = await getNewPasskey();
-
-  const txHash = await oidcClient.calculateTxHash({
-    passkeyPubKey: passkeyPubKey,
-    passkeyDomain: window.location.origin,
-  });
-
-  await oidcClient.addNewPasskeyViaOidc({
-    expectedTxHash: txHash,
-    passkeyPubKey: passkeyPubKey,
-    passkeyDomain: window.location.origin,
-  });
 }
 </script>

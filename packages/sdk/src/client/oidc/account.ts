@@ -1,17 +1,36 @@
 import type { Address } from "abitype";
-import { type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, type LocalAccount } from "viem";
+import {
+  type CustomSource,
+  type Hash,
+  hashTypedData,
+  type Hex,
+  type LocalAccount,
+} from "viem";
 import { toAccount } from "viem/accounts";
 import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
+import { type Groth16Proof } from "zksync-sso-circuits";
 
 import { getEip712Domain } from "../utils/getEip712Domain.js";
 
 export type ToOidcAccountParameters = {
   address: Address;
-  signTransaction: (parameters: { hash: Hash }) => Promise<Hex>;
+  signTransaction: (parameters: {
+    hash: Hash;
+    proof: ZkProof;
+  }) => Promise<Hex>;
+};
+
+export type ZkProof = {
+  txHash: Hex;
+  groth16Proof: Groth16Proof;
+  public: bigint[];
 };
 
 export type OidcAccount = LocalAccount<"ssoOidcAccount"> & {
   sign: NonNullable<CustomSource["sign"]>;
+} & {
+  addProof: (proof: ZkProof) => void;
+  findProof: (txHash: Hex) => ZkProof;
 };
 
 export function toOidcAccount(
@@ -19,6 +38,17 @@ export function toOidcAccount(
 ): OidcAccount {
   const { address, signTransaction } = parameters;
 
+  const proofs: ZkProof[] = [];
+
+  const findProof = (txHash: Hex) => {
+    const found = proofs.find((proof) => proof.txHash === txHash);
+    if (!found) throw new Error("Missing proof");
+    return found;
+  };
+
+  const addProof = (proof: ZkProof) => {
+    proofs.push(proof);
+  };
   const account = toAccount({
     address,
     async signTransaction(transaction) {
@@ -35,20 +65,18 @@ export function toOidcAccount(
         ...signableTransaction,
         customSignature: await signTransaction({
           hash: digest,
+          proof: findProof(digest),
         }),
       });
     },
-    async sign({ hash }) {
-      return signTransaction({ hash });
-    },
-    async signMessage({ message }) {
-      return signTransaction({
-        hash: hashMessage(message),
-      });
+    async signMessage() {
+      throw new Error("Oidc account cannot sign messages");
     },
     async signTypedData(typedData) {
+      const digest = hashTypedData(typedData);
       return signTransaction({
-        hash: hashTypedData(typedData),
+        hash: digest,
+        proof: findProof(digest),
       });
     },
   });
@@ -57,5 +85,7 @@ export function toOidcAccount(
     ...account,
     source: "ssoOidcAccount",
     type: "local",
+    addProof,
+    findProof,
   } as OidcAccount;
 };
