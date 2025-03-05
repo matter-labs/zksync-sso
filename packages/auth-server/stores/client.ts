@@ -1,8 +1,12 @@
-import { type Address, createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
+import { useAppKitProvider } from "@reown/appkit/vue";
+import { type Address, createPublicClient, createWalletClient, custom, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
+import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
+
+import localChainData from "./local-node.json";
 
 export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
@@ -21,16 +25,21 @@ type ChainContracts = PasskeyRequiredContracts & {
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksyncSepoliaTestnet.id]: {
-    session: "0x64Bf5C3229CafF50e39Ec58C4BFBbE67bEA90B0F",
-    passkey: "0x0F65cFE984d494DAa7165863f1Eb61C606e45fFb",
-    accountFactory: "0x73CFa70318FD25F2166d47Af9d93Cf72eED48724",
-    accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
+    session: "0x8Ed0b0AE232f59D0FFb1343c900d8e15C490044A",
+    passkey: "0x272814b0125380dC65a63570ABf903d0A434b597",
+    recovery: "0x20CeCd389022D9283028842fE699fAB70834204A",
+    accountFactory: "0x2ab6b20a2dA7C2f45c986989bC558aD838DF6A86",
+    accountPaymaster: "0xABD8dA08aeBB7150e2194100F48bEfc6B3286Ff5",
+  },
+  [zksyncInMemoryNode.id]: localChainData as ChainContracts,
+};
+
+export const chainParameters: Record<SupportedChainId, { blockTime: number }> = {
+  [zksyncSepoliaTestnet.id]: {
+    blockTime: 15,
   },
   [zksyncInMemoryNode.id]: {
-    session: "0xD68963C76ab7FFACbF53B1750325254F40eDe765",
-    passkey: "0x21b8397BeF5128662564b8491676baa6754AFD47",
-    accountFactory: "0x26711A4A572a5BBdF967b6385636Bd968e6E883C",
-    accountPaymaster: "0x61C2F9736eC60C9175Cdc02DB81D730cf06eF0Ee",
+    blockTime: 1,
   },
 };
 
@@ -40,7 +49,8 @@ export const useClientStore = defineStore("client", () => {
 
   const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
   const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
-  if (!defaultChain) throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
+  if (!defaultChain)
+    throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
 
   const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -66,11 +76,51 @@ export const useClientStore = defineStore("client", () => {
       userName: username.value!,
       userDisplayName: username.value!,
       contracts,
+      chain,
+      transport: http(),
+    });
+
+    return client;
+  };
+
+  const getRecoveryClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+
+    const client = createZksyncRecoveryGuardianClient({
+      address,
+      contracts,
       chain: chain,
       transport: http(),
     });
 
     return client;
+  };
+
+  const getConfigurableClient = ({
+    chainId,
+    address,
+    credentialPublicKey,
+    username,
+  }: {
+    chainId: SupportedChainId;
+    address: Address;
+    credentialPublicKey: Uint8Array<ArrayBufferLike>;
+    username: string;
+  }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+    return createZksyncPasskeyClient({
+      address,
+      credentialPublicKey,
+      userName: username,
+      userDisplayName: username,
+      contracts,
+      chain,
+      transport: http(),
+    });
   };
 
   const getThrowAwayClient = ({ chainId }: { chainId: SupportedChainId }) => {
@@ -88,10 +138,37 @@ export const useClientStore = defineStore("client", () => {
     return throwAwayClient;
   };
 
+  const getWalletClient = async ({ chainId }: { chainId: SupportedChainId }) => {
+    const accountProvider = useAppKitProvider("eip155");
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+
+    if (!accountProvider.walletProvider) throw new Error("No ethereum provider found");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = accountProvider.walletProvider as any;
+    const accounts = await (provider as { request: (args: { method: string }) => Promise<Address[]> }).request({
+      method: "eth_requestAccounts",
+    });
+
+    return createWalletClient({
+      chain,
+      account: accounts[0],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transport: custom(provider as any),
+    })
+      .extend(publicActions)
+      .extend(walletActions)
+      .extend(eip712WalletActions());
+  };
+
   return {
     defaultChain,
     getPublicClient,
     getClient,
     getThrowAwayClient,
+    getWalletClient,
+    getRecoveryClient,
+    getConfigurableClient,
   };
 });

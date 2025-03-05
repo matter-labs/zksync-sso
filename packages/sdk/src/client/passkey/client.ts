@@ -32,7 +32,10 @@ export function createZksyncPasskeyClient<
         credentialPublicKey: parameters.credentialPublicKey,
       });
 
-      return passkeyHashSignatureResponseFormat(passkeySignature.passkeyAuthenticationResponse.response, parameters.contracts);
+      return passkeyHashSignatureResponseFormat(
+        passkeySignature.passkeyAuthenticationResponse.id,
+        passkeySignature.passkeyAuthenticationResponse.response,
+        parameters.contracts);
     },
   });
   const client = createClient<transport, chain, Account, rpcSchema>({
@@ -57,6 +60,7 @@ export function createZksyncPasskeyClient<
 export type PasskeyRequiredContracts = {
   session: Address; // Session, spend limit, etc.
   passkey: Address; // Validator for passkey signature
+  recovery: Address; // Validator for account recovery
   accountFactory?: Address; // For account creation
 };
 type ZksyncSsoPasskeyData = {

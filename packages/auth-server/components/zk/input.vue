@@ -1,7 +1,7 @@
 <template>
   <div class="w-full">
     <div class="flex w-full">
-      <div class="relative grow items-center flex min-w-[380px]">
+      <div class="relative grow items-center flex">
         <input
           v-model="model"
           :placeholder

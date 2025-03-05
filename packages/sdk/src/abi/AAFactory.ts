@@ -1,4 +1,4 @@
-export const FactoryAbi = [
+export const AAFactoryAbi = [
   {
     inputs: [
       {
@@ -8,12 +8,23 @@ export const FactoryAbi = [
       },
       {
         internalType: "address",
-        name: "_implementation",
+        name: "_beacon",
         type: "address",
       },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+    ],
+    name: "ACCOUNT_ALREADY_EXISTS",
+    type: "error",
   },
   {
     anonymous: false,
@@ -35,46 +46,27 @@ export const FactoryAbi = [
     type: "event",
   },
   {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "previousOwner",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
-    ],
-    name: "OwnershipTransferred",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "implementation",
-        type: "address",
-      },
-    ],
-    name: "Upgraded",
-    type: "event",
-  },
-  {
     inputs: [
       {
         internalType: "string",
-        name: "",
+        name: "accountId",
         type: "string",
       },
     ],
     name: "accountMappings",
+    outputs: [
+      {
+        internalType: "address",
+        name: "deployedAccount",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "beacon",
     outputs: [
       {
         internalType: "address",
@@ -86,25 +78,38 @@ export const FactoryAbi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "beaconProxyBytecodeHash",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "bytes32",
-        name: "_salt",
+        name: "salt",
         type: "bytes32",
       },
       {
         internalType: "string",
-        name: "_uniqueAccountId",
+        name: "uniqueAccountId",
         type: "string",
       },
       {
         internalType: "bytes[]",
-        name: "_initialValidators",
+        name: "initialValidators",
         type: "bytes[]",
       },
       {
         internalType: "address[]",
-        name: "_initialK1Owners",
+        name: "initialK1Owners",
         type: "address[]",
       },
     ],
@@ -121,61 +126,15 @@ export const FactoryAbi = [
   },
   {
     inputs: [],
-    name: "implementation",
+    name: "getEncodedBeacon",
     outputs: [
       {
-        internalType: "address",
+        internalType: "bytes",
         name: "",
-        type: "address",
+        type: "bytes",
       },
     ],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "owner",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "renounceOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
-    ],
-    name: "transferOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "newImplementation",
-        type: "address",
-      },
-    ],
-    name: "upgradeTo",
-    outputs: [],
-    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;
