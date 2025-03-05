@@ -73,7 +73,7 @@ export default defineNuxtConfig({
       },
       appUrl: process.env.NUXT_PUBLIC_APP_URL || "https://auth-test.zksync.dev",
       ssoAccountInterfaceId: "0xb9094997",
-      appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "",
+      appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
     },
   },
 });
