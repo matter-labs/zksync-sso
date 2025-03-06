@@ -168,7 +168,7 @@ export const fetchAccount = async <
   const accountAddress = await readContract(client, {
     abi: WebAuthValidatorAbi,
     address: args.contracts.passkey,
-    functionName: "accountAddressByDomainById",
+    functionName: "registeredAddress",
     args: [origin, credentialId],
   });
 
