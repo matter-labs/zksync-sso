@@ -1,4 +1,5 @@
-import { type Address, type Hash, type TransactionReceipt } from "viem";
+import { randomBytes } from "crypto";
+import { type Address, type Hash, keccak256, type TransactionReceipt } from "viem";
 import { waitForTransactionReceipt, writeContract } from "viem/actions";
 import { describe, expect, test, vi } from "vitest";
 
@@ -19,42 +20,6 @@ vi.mock("../../../utils/passkey.js", () => ({
 vi.mock("viem/actions", () => ({
   writeContract: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
-}));
-
-// Add FactoryAbi mock at the top with other mocks
-vi.mock("../../../abi/Factory.js", () => ({
-  FactoryAbi: [
-    {
-      inputs: [
-        { type: "bytes32", name: "_accountId" },
-        { type: "bytes[]", name: "_initialValidators" },
-        { type: "address[]", name: "_initialK1Owners" },
-      ],
-      name: "deployProxySsoAccount",
-      outputs: [{ type: "address", name: "accountAddress" }],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-    {
-      anonymous: false,
-      inputs: [
-        {
-          indexed: true,
-          internalType: "address",
-          name: "accountAddress",
-          type: "address",
-        },
-        {
-          indexed: false,
-          internalType: "string",
-          name: "uniqueAccountId",
-          type: "string",
-        },
-      ],
-      name: "AccountCreated",
-      type: "event",
-    },
-  ],
 }));
 
 describe("deployAccount", () => {
@@ -88,7 +53,7 @@ describe("deployAccount", () => {
   const mockTransactionHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hash;
   const mockTransactionReceipt: TransactionReceipt = {
     status: "success",
-    contractAddress: null,
+    contractAddress: "0x4234567890123456789012345678901234567890",
     blockNumber: 1n,
     blockHash: "0x5e1d3a76f1b1c3a2b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7" as Hash,
     transactionHash: mockTransactionHash,
@@ -101,7 +66,7 @@ describe("deployAccount", () => {
         logIndex: 0,
         removed: false,
         topics: [
-          "0xb3202828e8e55b43ee1a77a1ee6ffbe19f0205767feb21e28cadd26390ff0501", // event AccountCreated(address,string)
+          "0xb3202828e8e55b43ee1a77a1ee6ffbe19f0205767feb21e28cadd26390ff0501", // #84: event AccountCreated(address,bytes32)
           "0x0000000000000000000000004234567890123456789012345678901234567890",
         ],
         transactionHash: "0x0b8154f57a02650c3cf622c19f1d90899d4779b3d181dfd03a53b3b257d76dd5",
@@ -124,6 +89,7 @@ describe("deployAccount", () => {
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
 
     const result = await deployAccount(mockClient, {
+      credentialId: keccak256(randomBytes(32)),
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
       expectedOrigin: "https://example.com",
@@ -155,6 +121,7 @@ describe("deployAccount", () => {
 
     await expect(
       deployAccount(mockClient, {
+        credentialId: keccak256(randomBytes(32)),
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
         expectedOrigin: "https://example.com",
@@ -162,7 +129,7 @@ describe("deployAccount", () => {
     ).rejects.toThrow("Account deployment transaction reverted");
   });
 
-  test("handles missing contract address in receipt", async () => {
+  test("handles missing events in receipt", async () => {
     // Setup mock for missing contract address
     vi.mocked(writeContract).mockResolvedValue(mockTransactionHash);
     vi.mocked(waitForTransactionReceipt).mockResolvedValue({
@@ -172,6 +139,26 @@ describe("deployAccount", () => {
 
     await expect(
       deployAccount(mockClient, {
+        credentialId: keccak256(randomBytes(32)),
+        credentialPublicKey: mockCredentialPublicKey,
+        contracts: mockContracts,
+        expectedOrigin: "https://example.com",
+      }),
+    );
+  });
+
+  test("handles missing contract address in receipt", async () => {
+    // Setup mock for missing contract address
+    vi.mocked(writeContract).mockResolvedValue(mockTransactionHash);
+    vi.mocked(waitForTransactionReceipt).mockResolvedValue({
+      ...mockTransactionReceipt,
+      contractAddress: null,
+      logs: [],
+    });
+
+    await expect(
+      deployAccount(mockClient, {
+        credentialId: keccak256(randomBytes(32)),
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
         expectedOrigin: "https://example.com",
@@ -185,6 +172,7 @@ describe("deployAccount", () => {
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
 
     await deployAccount(mockClient, {
+      credentialId: keccak256(randomBytes(32)),
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
       expectedOrigin: "https://example.com",
@@ -210,6 +198,7 @@ describe("deployAccount", () => {
 
     const writeContractSpy = vi.mocked(writeContract);
     await deployAccount(mockClient, {
+      credentialId: keccak256(randomBytes(32)),
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
     });
@@ -234,6 +223,7 @@ describe("deployAccount", () => {
     const paymasterInput = "0x1234" as const;
 
     await deployAccount(mockClient, {
+      credentialId: keccak256(randomBytes(32)),
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
       expectedOrigin: "https://example.com",

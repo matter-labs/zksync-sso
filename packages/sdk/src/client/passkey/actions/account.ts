@@ -109,15 +109,22 @@ export const deployAccount = async <
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
   if (transactionReceipt.status !== "success") throw new Error("Account deployment transaction reverted");
+  const getAccountId = () => {
+    if (transactionReceipt.contractAddress) {
+      return transactionReceipt.contractAddress;
+    }
+    const accountCreatedEvent = parseEventLogs({ abi: AAFactoryAbi, logs: transactionReceipt.logs })
+      .find((log) => log && log.eventName === "AccountCreated");
 
-  const accountCreatedEvent = parseEventLogs({ abi: AAFactoryAbi, logs: transactionReceipt.logs })
-    .find((log) => log && log.eventName === "AccountCreated");
+    if (!accountCreatedEvent) {
+      throw new Error("No contract address in transaction receipt");
+    }
 
-  if (!accountCreatedEvent) {
-    throw new Error("No contract address in transaction receipt");
-  }
+    const { accountAddress } = accountCreatedEvent.args;
+    return accountAddress;
+  };
 
-  const { accountAddress } = accountCreatedEvent.args;
+  const accountAddress = getAccountId();
 
   return {
     address: getAddress(accountAddress),
