@@ -50,8 +50,9 @@ export const signOidcTransaction = (
       {
         piA: [BigInt(proof.groth16Proof.pi_a[0]), BigInt(proof.groth16Proof.pi_a[1])],
         piB: [
-          [BigInt(proof.groth16Proof.pi_b[0][0]), BigInt(proof.groth16Proof.pi_b[0][1])],
-          [BigInt(proof.groth16Proof.pi_b[1][0]), BigInt(proof.groth16Proof.pi_b[1][1])],
+          // Order here is inverted because that's what the verifier expects TODO better explanation
+          [BigInt(proof.groth16Proof.pi_b[0][1]), BigInt(proof.groth16Proof.pi_b[0][0])],
+          [BigInt(proof.groth16Proof.pi_b[1][1]), BigInt(proof.groth16Proof.pi_b[1][0])],
         ],
         piC: [BigInt(proof.groth16Proof.pi_c[0]), BigInt(proof.groth16Proof.pi_c[1])],
       },
