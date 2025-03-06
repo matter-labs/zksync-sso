@@ -1,5 +1,16 @@
 export const WebAuthValidatorAbi = [
   {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+    ],
+    name: "NOT_KEY_OWNER",
+    type: "error",
+  },
+  {
     inputs: [],
     name: "WEBAUTHN_KEY_EXISTS",
     type: "error",
@@ -53,30 +64,6 @@ export const WebAuthValidatorAbi = [
     ],
     name: "PasskeyRemoved",
     type: "event",
-  },
-  {
-    inputs: [
-      {
-        internalType: "string",
-        name: "originDomain",
-        type: "string",
-      },
-      {
-        internalType: "bytes",
-        name: "credentialId",
-        type: "bytes",
-      },
-    ],
-    name: "accountAddressByDomainById",
-    outputs: [
-      {
-        internalType: "address",
-        name: "accountAddress",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
   },
   {
     inputs: [
@@ -185,12 +172,36 @@ export const WebAuthValidatorAbi = [
         type: "uint256",
       },
     ],
-    name: "publicKeyByDomainByIdByAddress",
+    name: "publicKeys",
     outputs: [
       {
         internalType: "bytes32",
         name: "publicKey",
         type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "originDomain",
+        type: "string",
+      },
+      {
+        internalType: "bytes",
+        name: "credentialId",
+        type: "bytes",
+      },
+    ],
+    name: "registeredAddress",
+    outputs: [
+      {
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
       },
     ],
     stateMutability: "view",

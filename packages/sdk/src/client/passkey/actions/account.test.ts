@@ -26,8 +26,7 @@ vi.mock("../../../abi/Factory.js", () => ({
   FactoryAbi: [
     {
       inputs: [
-        { type: "bytes32", name: "_salt" },
-        { type: "string", name: "_uniqueAccountId" },
+        { type: "bytes32", name: "_accountId" },
         { type: "bytes[]", name: "_initialValidators" },
         { type: "address[]", name: "_initialK1Owners" },
       ],

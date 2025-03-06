@@ -37,9 +37,9 @@ export const AAFactoryAbi = [
       },
       {
         indexed: false,
-        internalType: "string",
+        internalType: "bytes32",
         name: "uniqueAccountId",
-        type: "string",
+        type: "bytes32",
       },
     ],
     name: "AccountCreated",
@@ -48,9 +48,9 @@ export const AAFactoryAbi = [
   {
     inputs: [
       {
-        internalType: "string",
+        internalType: "bytes32",
         name: "accountId",
-        type: "string",
+        type: "bytes32",
       },
     ],
     name: "accountMappings",
@@ -94,13 +94,8 @@ export const AAFactoryAbi = [
     inputs: [
       {
         internalType: "bytes32",
-        name: "salt",
+        name: "uniqueId",
         type: "bytes32",
-      },
-      {
-        internalType: "string",
-        name: "uniqueAccountId",
-        type: "string",
       },
       {
         internalType: "bytes[]",
