@@ -3,7 +3,6 @@ import {
   type Address,
   type Chain,
   type Client, encodeFunctionData,
-  type Hex,
   type Prettify, type TransactionReceipt,
   type Transport,
 } from "viem";
@@ -14,7 +13,6 @@ import { WebAuthModuleAbi } from "../../../abi/index.js";
 import { encodePasskeyModuleParameters } from "../../../utils/encoding.js";
 
 export type AddNewPasskeyViaOidcArgs = {
-  expectedTxHash: Hex;
   passkeyPubKey: [Buffer, Buffer];
   passkeyDomain: string;
   contracts: {
