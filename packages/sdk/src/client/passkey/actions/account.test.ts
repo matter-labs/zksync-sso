@@ -59,13 +59,6 @@ vi.mock("../../../abi/Factory.js", () => ({
 }));
 
 describe("deployAccount", () => {
-  // Setup common test data
-  const mockSalt = new Uint8Array([
-    213, 36, 52, 69, 251, 82, 199, 45, 113, 6, 20, 213, 78, 47, 165,
-    164, 106, 221, 105, 67, 247, 47, 200, 167, 137, 64, 151, 12, 179,
-    74, 90, 23,
-  ]);
-
   // CBOR-encoded COSE key with known x,y coordinates
   const mockCredentialPublicKey = new Uint8Array([
     0xa5, // map of 5 pairs
@@ -135,7 +128,6 @@ describe("deployAccount", () => {
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
       expectedOrigin: "https://example.com",
-      salt: mockSalt,
     });
 
     // Verify the result
@@ -167,7 +159,6 @@ describe("deployAccount", () => {
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
         expectedOrigin: "https://example.com",
-        salt: mockSalt,
       }),
     ).rejects.toThrow("Account deployment transaction reverted");
   });
@@ -185,7 +176,6 @@ describe("deployAccount", () => {
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
         expectedOrigin: "https://example.com",
-        salt: mockSalt,
       }),
     ).rejects.toThrow("No contract address in transaction receipt");
   });
@@ -199,7 +189,6 @@ describe("deployAccount", () => {
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
       expectedOrigin: "https://example.com",
-      salt: mockSalt,
       onTransactionSent,
     });
 
@@ -224,7 +213,6 @@ describe("deployAccount", () => {
     await deployAccount(mockClient, {
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
-      salt: mockSalt,
     });
 
     // Simpler assertion that just checks the key parts

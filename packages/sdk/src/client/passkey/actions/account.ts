@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseAbi, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
@@ -24,7 +24,6 @@ export type DeployAccountArgs = {
     session: Address;
   };
   initialSession?: SessionConfig;
-  salt?: Uint8Array; // Random 32 bytes
   onTransactionSent?: (hash: Hash) => void;
 };
 export type DeployAccountReturnType = {
@@ -56,10 +55,6 @@ export const deployAccount = async <
   client: Client<transport, chain, account>, // Account deployer (any viem client)
   args: Prettify<DeployAccountArgs>,
 ): Promise<DeployAccountReturnType> => {
-  if (!args.salt) {
-    args.salt = crypto.getRandomValues(new Uint8Array(32));
-  }
-
   let origin: string | undefined = args.expectedOrigin;
   if (!origin) {
     try {
@@ -93,8 +88,7 @@ export const deployAccount = async <
     abi: AAFactoryAbi,
     functionName: "deployProxySsoAccount",
     args: [
-      toHex(args.salt),
-      accountId,
+      toHex(accountId),
       [encodedPasskeyModuleData, encodedSessionKeyModuleData],
       [],
     ],
@@ -170,16 +164,16 @@ export const fetchAccount = async <
 
   if (!username) throw new Error("No account found");
 
+  const credentialId = toHex(base64UrlToUint8Array(username));
   const accountAddress = await readContract(client, {
-    abi: parseAbi(["function accountMappings(string) view returns (address)"]),
-    address: args.contracts.accountFactory,
-    functionName: "accountMappings",
-    args: [username],
+    abi: WebAuthValidatorAbi,
+    address: args.contracts.passkey,
+    functionName: "accountAddressByDomainById",
+    args: [origin, credentialId],
   });
 
   if (!accountAddress || accountAddress == NULL_ADDRESS) throw new Error(`No account found for username: ${username}`);
 
-  const credentialId = toHex(base64UrlToUint8Array(username));
   const publicKey = await readContract(client, {
     abi: WebAuthValidatorAbi,
     address: args.contracts.passkey,
