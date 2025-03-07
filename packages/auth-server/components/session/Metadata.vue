@@ -28,7 +28,10 @@
       {{ domain }}
     </p>
     <div v-if="appMeta.configData && appMeta.configData['message']">
-      {{ appMeta.configData['message'] }}
+      <p>The below is a message from the app sending the transaction.</p>
+      <div color="yellow">
+        {{ appMeta.configData['message'] }}
+      </div>
     </div>
   </div>
 </template>
