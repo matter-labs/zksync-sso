@@ -84,6 +84,11 @@
       "import": "./dist/_esm/client/recovery/index.js",
       "require": "./dist/_cjs/client/recovery/index.js"
     },
+    "./client/oidc": {
+      "types": "./dist/_types/client/oidc/index.d.ts",
+      "import": "./dist/_esm/client/oidc/index.js",
+      "require": "./dist/_cjs/client/oidc/index.js"
+    },
     "./client/session": {
       "types": "./dist/_types/client/session/index.d.ts",
       "import": "./dist/_esm/client/session/index.js",

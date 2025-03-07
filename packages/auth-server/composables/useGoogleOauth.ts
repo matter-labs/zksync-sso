@@ -40,17 +40,22 @@ async function waitForJwt(nonce: string, popup: Window): Promise<JWT> {
   }).finally(() => controller.abort());
 }
 
-async function loginWithGoogle(publicClient: string, nonce: string) {
+async function loginWithGoogle(publicClient: string, nonce: string, loginHint: null | string = null): Promise<JWT> {
   const strWindowFeatures = "toolbar=no, menubar=no, width=600, height=700, top=100, left=100";
 
-  const clientId = encodeURIComponent(publicClient);
-  const responseType = encodeURIComponent("id_token");
-  const scope = encodeURIComponent("openid");
-  const redirectUri = encodeURI(`${window.location.origin}/oauth/plain`);
+  const query = new URLSearchParams();
+  query.set("client_id", publicClient);
+  query.set("response_type", "id_token");
+  query.set("scope", "openid");
+  const redirectUri = `${window.location.origin}/oauth/plain`;
+  query.set("redirect_uri", redirectUri);
+  query.set("nonce", nonce);
 
-  const query = `?client_id=${clientId}&response_type=${responseType}&scope=${scope}&redirect_uri=${redirectUri}&nonce=${nonce}`;
-  const url = `https://accounts.google.com/o/oauth2/v2/auth${query}`;
+  if (loginHint !== null) {
+    query.set("login_hint", loginHint);
+  }
 
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?${query.toString()}`;
   const popup = window.open(url, "login with google", strWindowFeatures);
 
   if (popup === null) {
@@ -62,8 +67,8 @@ async function loginWithGoogle(publicClient: string, nonce: string) {
 
 export function useGoogleOauth() {
   const config = useRuntimeConfig();
-  const { execute, inProgress, result, error } = useAsync((nonce: string) => {
-    return loginWithGoogle(config.public.googlePublicClient, nonce);
+  const { execute, inProgress, result, error } = useAsync((nonce: string, hint: string | null = null) => {
+    return loginWithGoogle(config.public.googlePublicClient, nonce, hint);
   });
 
   return {
