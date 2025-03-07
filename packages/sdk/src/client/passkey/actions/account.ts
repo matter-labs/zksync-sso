@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, keccak256, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
@@ -88,7 +88,7 @@ export const deployAccount = async <
     abi: AAFactoryAbi,
     functionName: "deployProxySsoAccount",
     args: [
-      toHex(accountId),
+      keccak256(toHex(accountId)),
       [encodedPasskeyModuleData, encodedSessionKeyModuleData],
       [],
     ],

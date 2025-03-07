@@ -89,7 +89,7 @@ describe("deployAccount", () => {
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
 
     const result = await deployAccount(mockClient, {
-      credentialId: keccak256(randomBytes(32)),
+      credentialId: randomBytes(43).toString("hex"),
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
       expectedOrigin: "https://example.com",
@@ -121,7 +121,7 @@ describe("deployAccount", () => {
 
     await expect(
       deployAccount(mockClient, {
-        credentialId: keccak256(randomBytes(32)),
+        credentialId: randomBytes(43).toString("hex"),
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
         expectedOrigin: "https://example.com",
@@ -139,7 +139,7 @@ describe("deployAccount", () => {
 
     await expect(
       deployAccount(mockClient, {
-        credentialId: keccak256(randomBytes(32)),
+        credentialId: randomBytes(43).toString("hex"),
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
         expectedOrigin: "https://example.com",
@@ -158,7 +158,7 @@ describe("deployAccount", () => {
 
     await expect(
       deployAccount(mockClient, {
-        credentialId: keccak256(randomBytes(32)),
+        credentialId: randomBytes(32).toString("hex"),
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
         expectedOrigin: "https://example.com",
