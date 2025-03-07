@@ -36,27 +36,35 @@ export const signOidcTransaction = (
       {
         type: "tuple",
         components: [
-          { name: "piA", type: "uint256[2]" },
-          { name: "piB", type: "uint256[2][2]" },
-          { name: "piC", type: "uint256[2]" },
+          {
+            name: "proof",
+            type: "tuple",
+            components: [
+              { name: "piA", type: "uint256[2]" },
+              { name: "piB", type: "uint256[2][2]" },
+              { name: "piC", type: "uint256[2]" },
+            ],
+          },
+          {
+            name: "pubInputs",
+            type: "uint256[151]",
+          },
         ],
-      },
-      {
-        type: "uint256[151]",
-        name: "public",
       },
     ],
     [
       {
-        piA: [BigInt(proof.groth16Proof.pi_a[0]), BigInt(proof.groth16Proof.pi_a[1])],
-        piB: [
-          // Order here is inverted because that's what the verifier expects TODO better explanation
-          [BigInt(proof.groth16Proof.pi_b[0][1]), BigInt(proof.groth16Proof.pi_b[0][0])],
-          [BigInt(proof.groth16Proof.pi_b[1][1]), BigInt(proof.groth16Proof.pi_b[1][0])],
-        ],
-        piC: [BigInt(proof.groth16Proof.pi_c[0]), BigInt(proof.groth16Proof.pi_c[1])],
+        proof: {
+          piA: [BigInt(proof.groth16Proof.pi_a[0]), BigInt(proof.groth16Proof.pi_a[1])],
+          piB: [
+            // Order here is inverted because that's what the verifier expects TODO better explanation
+            [BigInt(proof.groth16Proof.pi_b[0][1]), BigInt(proof.groth16Proof.pi_b[0][0])],
+            [BigInt(proof.groth16Proof.pi_b[1][1]), BigInt(proof.groth16Proof.pi_b[1][0])],
+          ],
+          piC: [BigInt(proof.groth16Proof.pi_c[0]), BigInt(proof.groth16Proof.pi_c[1])],
+        },
+        pubInputs: proof.public,
       },
-      proof.public,
     ],
   );
 

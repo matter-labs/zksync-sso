@@ -141,7 +141,6 @@ async function generateProf(): Promise<void> {
 
   guide("Generating proof...");
   const res = await snarkjs.groth16.fullProve(inputs.toObject(), "/circuit/witness.wasm", "/circuit/circuit.zkey", console);
-  console.log(res);
 
   guide("Adding proof...");
   oidcClient.account.addProof({
