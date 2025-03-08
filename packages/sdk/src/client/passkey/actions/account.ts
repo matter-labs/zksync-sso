@@ -12,6 +12,7 @@ import type { SessionConfig } from "../../../utils/session.js";
 /* it should come from factory, not passed manually each time */
 export type DeployAccountArgs = {
   credentialPublicKey: Uint8Array; // Public key of the previously registered
+  ownerPublicKeys?: Address[]; // EOA address(es) for the account signers
   paymasterAddress?: Address; // Paymaster used to pay the fees of creating accounts
   paymasterInput?: Hex; // Input for paymaster (if provided)
   expectedOrigin?: string; // Expected origin of the passkey
@@ -67,21 +68,28 @@ export const deployAccount = async <
     }
   }
 
-  const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
-  const encodedPasskeyParameters = encodePasskeyModuleParameters({
-    passkeyPublicKey,
-    expectedOrigin: origin,
-  });
-  const encodedPasskeyModuleData = encodeModuleData({
-    address: args.contracts.passkey,
-    parameters: encodedPasskeyParameters,
-  });
-  const accountId = args.uniqueAccountId || encodedPasskeyParameters;
+  const owners: Address[] = args.ownerPublicKeys ?? [];
+  const moduleData: Hex[] = [];
+  let accountId = args.uniqueAccountId ?? args.ownerPublicKeys?.at(0);
+  if (args.credentialPublicKey.length == 0 && args.ownerPublicKeys?.length == 0) {
+    throw new Error("No public keys provided");
+  } else if (args.credentialPublicKey.length != 0) {
+    const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
+    const encodedPasskeyParameters = encodePasskeyModuleParameters({
+      passkeyPublicKey,
+      expectedOrigin: origin,
+    });
+    moduleData.push(encodeModuleData({
+      address: args.contracts.passkey,
+      parameters: encodedPasskeyParameters,
+    }));
+    accountId = accountId || encodedPasskeyParameters;
+  }
 
-  const encodedSessionKeyModuleData = encodeModuleData({
+  moduleData.push(encodeModuleData({
     address: args.contracts.session,
     parameters: args.initialSession ? encodeSession(args.initialSession) : "0x",
-  });
+  }));
 
   let deployProxyArgs = {
     account: client.account!,
@@ -92,8 +100,8 @@ export const deployAccount = async <
     args: [
       toHex(args.salt),
       accountId,
-      [encodedPasskeyModuleData, encodedSessionKeyModuleData],
-      [],
+      moduleData,
+      owners,
     ],
   } as any;
 
