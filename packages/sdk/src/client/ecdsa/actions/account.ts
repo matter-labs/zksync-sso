@@ -130,8 +130,6 @@ export const fetchAccount = async <
     args: [accountId],
   });
 
-  console.log("accountAddress", accountAddress);
-
   if (!accountAddress || accountAddress == NULL_ADDRESS) throw new Error(`No account found for ID: ${accountId}`);
 
   return {
