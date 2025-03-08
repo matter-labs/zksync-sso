@@ -5,10 +5,13 @@ import { encodeModuleData, encodePasskeyModuleParameters } from "./encoding";
 describe("encoding utils", () => {
   describe("encodePasskeyModuleParameters", () => {
     test("correctly encodes passkey parameters", () => {
+      const passkey0 = "1234567890123456789012345678901234567890123456789012345678901234";
+      const passkey1 = "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
       const passkey = {
+        credentialId: "unique-base64encoded-string",
         passkeyPublicKey: [
-          Buffer.from("1234567890123456789012345678901234567890123456789012345678901234", "hex"),
-          Buffer.from("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd", "hex"),
+          Buffer.from(passkey0, "hex"),
+          Buffer.from(passkey1, "hex"),
         ],
         expectedOrigin: "https://example.com",
       };
@@ -19,10 +22,11 @@ describe("encoding utils", () => {
       expect(encoded).toMatch(/^0x[0-9a-f]+$/i);
 
       // Should contain both public key components and the origin
-      expect(encoded).toContain("1234567890123456789012345678901234567890123456789012345678901234");
-      expect(encoded).toContain("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd");
-      expect(encoded).toContain(Buffer.from("https://example.com").toString("hex"));
-      expect(encoded).toEqual("0x1234567890123456789012345678901234567890123456789012345678901234abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd0000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000001368747470733a2f2f6578616d706c652e636f6d00000000000000000000000000");
+      expect(encoded).toContain(passkey0);
+      expect(encoded).toContain(passkey1);
+      expect(encoded).toContain(Buffer.from(passkey.expectedOrigin).toString("hex"));
+      expect(encoded).toContain(Buffer.from(passkey.credentialId, "base64url").toString("hex"));
+      expect(encoded).toEqual("0x00000000000000000000000000000000000000000000000000000000000000801234567890123456789012345678901234567890123456789012345678901234abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd00000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000014ba78aab9ef9b6ac7bae1e9dca1d79dfacb6b8a78000000000000000000000000000000000000000000000000000000000000000000000000000000000000001368747470733a2f2f6578616d706c652e636f6d00000000000000000000000000");
     });
   });
 
