@@ -37,6 +37,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       metadata: () => ({
         name: metadata?.name || getWebsiteName() || "Unknown DApp",
         icon: metadata?.icon || getFavicon(),
+        configData: metadata?.configData || {},
       }),
       updateListener: this.updateListener,
       communicator: communicator,
