@@ -146,7 +146,7 @@ async function generateProf(): Promise<void> {
   const inputs = new JwtTxValidationInputs(
     txJwt.raw,
     key.n,
-    digest.salt.reverse().toBigInt(), // TODO: improve to avoid reverse
+    digest.salt.toHex(),
     txHash,
     blindingFactor,
   );

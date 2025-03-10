@@ -24,7 +24,7 @@ export const useRecoveryOidc = () => {
       .then((res) => res.json());
 
     const salt = response.salt;
-    return new OidcDigest(jwt.iss, jwt.aud, jwt.sub, ByteVector.fromHex(salt));
+    return new OidcDigest(jwt.iss, jwt.aud, jwt.sub, salt);
   }
 
   async function getOidcAccounts(oidcAddress: Address) {
