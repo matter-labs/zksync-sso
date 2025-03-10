@@ -20,10 +20,19 @@ export type ToOidcAccountParameters = {
   }) => Promise<Hex>;
 };
 
+export type OidcKey = {
+  issHash: Hex;
+  kid: Hex;
+  n: Array<bigint>;
+  e: Hex;
+};
+
 export type ZkProof = {
   txHash: Hex;
   groth16Proof: Groth16Proof;
   public: bigint[];
+  oidcKey: OidcKey;
+  merkleProof: Hex[];
 };
 
 export type OidcAccount = LocalAccount<"ssoOidcAccount"> & {
@@ -31,6 +40,8 @@ export type OidcAccount = LocalAccount<"ssoOidcAccount"> & {
 } & {
   addProof: (proof: ZkProof) => void;
   findProof: (txHash: Hex) => ZkProof;
+  addKey: (txHash: Hex, key: OidcKey) => void;
+  findKey: (txHash: Hex) => OidcKey;
 };
 
 export function toOidcAccount(
@@ -49,6 +60,7 @@ export function toOidcAccount(
   const addProof = (proof: ZkProof) => {
     proofs.push(proof);
   };
+
   const account = toAccount({
     address,
     async signTransaction(transaction) {

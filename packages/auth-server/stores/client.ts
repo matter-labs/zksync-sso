@@ -23,6 +23,7 @@ type ChainContracts = PasskeyRequiredContracts & {
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksyncSepoliaTestnet.id]: {
+    oidcKeyRegistry: "0x464F29570975E3dC0dA937C691F6B110a30aAaa9",
     session: "0x64Bf5C3229CafF50e39Ec58C4BFBbE67bEA90B0F",
     passkey: "0x0F65cFE984d494DAa7165863f1Eb61C606e45fFb",
     recovery: "0xDf8F9b39Cd69Cb8Dc29137f83E89fE1AdA26912D",
@@ -31,12 +32,13 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
   },
   [zksyncInMemoryNode.id]: {
+    oidcKeyRegistry: "0x69Dc53831e59FCC26fA5a21a27Bfa8B1866973fa",
     session: "0x644040Bc7f2b243BB5ba28ccFa67Ec3dD7f9a77F",
     passkey: "0x1Ec1126fab9eE89d0babC8669076e1dd1e36cd09",
     recovery: "0x4E619cA9DDb3A207E4764F3Ee5D36DD478212335",
-    recoveryOidc: "0x1BC18efd3A77CE499e041e1Bc67Becf92db5c3Cc",
-    accountFactory: "0x01F99512191c036  FcA9Fcd416dE73b19e93B7D60",
-    accountPaymaster: "0x7E60a8ef6eB715884DBd47a1c98E9bcb5978Ba12",
+    recoveryOidc: "0xa2b9d17bd9F4b73dA77d8cf2cE637e4C95ad70E2",
+    accountFactory: "0x01F99512191c036FcA9Fcd416dE73b19e93B7D60",
+    accountPaymaster: "0xe1F6e31a0FB0B3f44606E1840D999D843932d3f3",
   },
 };
 

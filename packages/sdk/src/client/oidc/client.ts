@@ -22,14 +22,23 @@ import { type OidcAccount, toOidcAccount, type ZkProof } from "./account.js";
 import { zksyncSsoRecoveryActions } from "./actions/index.js";
 import type { ZksyncSsoOidcActions } from "./decorators/actions.js";
 
+type BigintTuple<N extends number, T extends bigint[] = []> = T["length"] extends N ? T : BigintTuple<N, [...T, bigint]>;
+
 export const signOidcTransaction = (
   recoveryValidatorAddress: Address,
   _hash: Hex,
   proof: ZkProof,
 ) => {
   if (proof.public.length !== 151) {
-    throw new Error("Should be 151 elements long");
+    throw new Error("public inputs should be 151 elements long");
   }
+  if (proof.oidcKey.n.length !== 17) {
+    throw new Error("key modulus should be 17 elements long");
+  }
+
+  const keyN: BigintTuple<17> = new Array(17)
+    .fill(0n)
+    .map((_, i) => proof.oidcKey.n[i] ?? 0n) as BigintTuple<17>;
 
   const encodedProof = encodeAbiParameters(
     [
@@ -37,13 +46,27 @@ export const signOidcTransaction = (
         type: "tuple",
         components: [
           {
-            name: "proof",
+            name: "zkProof",
             type: "tuple",
             components: [
-              { name: "piA", type: "uint256[2]" },
-              { name: "piB", type: "uint256[2][2]" },
-              { name: "piC", type: "uint256[2]" },
+              { name: "pA", type: "uint256[2]" },
+              { name: "pB", type: "uint256[2][2]" },
+              { name: "pC", type: "uint256[2]" },
             ],
+          },
+          {
+            name: "key",
+            type: "tuple",
+            components: [
+              { name: "issHash", type: "bytes32" },
+              { name: "kid", type: "bytes32" },
+              { name: "n", type: "uint256[17]" },
+              { name: "e", type: "bytes" },
+            ],
+          },
+          {
+            name: "merkleProof",
+            type: "bytes32[]",
           },
           {
             name: "pubInputs",
@@ -54,15 +77,22 @@ export const signOidcTransaction = (
     ],
     [
       {
-        proof: {
-          piA: [BigInt(proof.groth16Proof.pi_a[0]), BigInt(proof.groth16Proof.pi_a[1])],
-          piB: [
+        zkProof: {
+          pA: [BigInt(proof.groth16Proof.pi_a[0]), BigInt(proof.groth16Proof.pi_a[1])],
+          pB: [
             // Order here is inverted because that's what the verifier expects TODO better explanation
             [BigInt(proof.groth16Proof.pi_b[0][1]), BigInt(proof.groth16Proof.pi_b[0][0])],
             [BigInt(proof.groth16Proof.pi_b[1][1]), BigInt(proof.groth16Proof.pi_b[1][0])],
           ],
-          piC: [BigInt(proof.groth16Proof.pi_c[0]), BigInt(proof.groth16Proof.pi_c[1])],
+          pC: [BigInt(proof.groth16Proof.pi_c[0]), BigInt(proof.groth16Proof.pi_c[1])],
         },
+        key: {
+          issHash: proof.oidcKey.issHash,
+          kid: proof.oidcKey.kid,
+          n: keyN,
+          e: proof.oidcKey.e,
+        },
+        merkleProof: proof.merkleProof,
         pubInputs: proof.public,
       },
     ],

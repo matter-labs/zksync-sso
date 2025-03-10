@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { type Address, bytesToBigInt, bytesToHex } from "viem";
+import { type Address, bytesToBigInt, bytesToHex, type Hex } from "viem";
 import { ref } from "vue";
 import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
 import { getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
@@ -45,6 +45,7 @@ const { startGoogleOauth } = useGoogleOauth();
 const { snarkjs } = useSnarkJs();
 const { defaultChain, getPublicClient, getOidcClient } = useClientStore();
 const { registerPasskey } = usePasskeyRegister();
+const { getOidcKeys, getOidcKeysData, getMerkleProof } = useOidcKeys();
 
 const currentStep = ref(1);
 const guideText = ref<string>("Starting");
@@ -124,6 +125,17 @@ async function generateProf(): Promise<void> {
     throw new Error("jwt should not be undefined");
   }
 
+  guide("Getting oidc keys...");
+  await getOidcKeys();
+  const oidcKey = getOidcKeysData.value?.find((key) =>
+    key.kid.replace("0x", "").replace(/^0+/, "") === txJwt.kid,
+  );
+  if (oidcKey === undefined) {
+    throw new Error("Signer key not found in oidc keys");
+  }
+
+  const merkleProof = getMerkleProof(oidcKey);
+
   const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/certs").then((r) => r.json()) as KeysType;
   const key = googleResponse.keys.find((key) => key.kid === txJwt.kid);
 
@@ -134,7 +146,7 @@ async function generateProf(): Promise<void> {
   const inputs = new JwtTxValidationInputs(
     txJwt.raw,
     key.n,
-    digest.salt.toBigInt(),
+    digest.salt.reverse().toBigInt(), // TODO: improve to avoid reverse
     txHash,
     blindingFactor,
   );
@@ -147,6 +159,8 @@ async function generateProf(): Promise<void> {
     public: res.publicSignals.map((str) => BigInt(str)),
     groth16Proof: res.proof,
     txHash,
+    oidcKey,
+    merkleProof: merkleProof.map((proof) => `${proof}` as Hex),
   });
 
   guide("Broadcasting tx...");
