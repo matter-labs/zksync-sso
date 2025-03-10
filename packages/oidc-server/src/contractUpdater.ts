@@ -4,7 +4,7 @@ import { Provider, types } from "zksync-ethers";
 
 import { abi } from "./abi";
 import { env } from "./env.ts";
-import type { Key } from "./types";
+import type { BaseKey, Key } from "./types";
 
 export class ContractUpdater {
   private wallet: Wallet;
@@ -29,7 +29,7 @@ export class ContractUpdater {
     );
   }
 
-  public async updateContract(iss: string, keys: Key[]): Promise<void> {
+  public async updateContract(iss: string, keys: BaseKey[]): Promise<void> {
     console.log(`Updating contract for issuer: ${iss}`);
 
     const issHash = await this.getIssHash(iss);
@@ -41,7 +41,7 @@ export class ContractUpdater {
     }
 
     try {
-      const tx = await this.contract.setKeys(issHash, newKeys);
+      const tx = await this.contract.addKeys(newKeys);
       console.log(`Transaction sent: ${tx.hash}`);
       await tx.wait();
       console.log("Transaction confirmed!");
@@ -50,16 +50,18 @@ export class ContractUpdater {
     }
   }
 
-  private async getNewKeys(issHash: string, keys: Key[]): Promise<Key[]> {
+  private async getNewKeys(issHash: string, keys: BaseKey[]): Promise<Key[]> {
     const promises = keys.map((key) =>
       this.contract.getKey(issHash, key.kid).then(
         () => null,
-        () => key,
+        () => ({
+          ...key,
+          issHash,
+        }),
       ),
     );
 
     const results = await Promise.all(promises);
-
     return results.filter((key): key is Key => key !== null);
   }
 
