@@ -1,17 +1,6 @@
 export const abi = [
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_keyRegistry",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_verifier",
-        type: "address",
-      },
-    ],
+    inputs: [],
     stateMutability: "nonpayable",
     type: "constructor",
   },
@@ -34,41 +23,133 @@ export const abi = [
       {
         indexed: true,
         internalType: "address",
-        name: "account",
+        name: "previousOwner",
         type: "address",
       },
       {
-        indexed: false,
-        internalType: "bytes",
-        name: "iss",
-        type: "bytes",
-      },
-      {
-        indexed: false,
-        internalType: "bool",
-        name: "isNew",
-        type: "bool",
+        indexed: true,
+        internalType: "address",
+        name: "newOwner",
+        type: "address",
       },
     ],
-    name: "OidcKeyUpdated",
+    name: "OwnershipTransferred",
     type: "event",
+  },
+  {
+    inputs: [],
+    name: "MAX_KEYS",
+    outputs: [
+      {
+        internalType: "uint8",
+        name: "",
+        type: "uint8",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
   },
   {
     inputs: [
       {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "OIDCKeys",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+      {
         internalType: "bytes",
-        name: "key",
+        name: "n",
+        type: "bytes",
+      },
+      {
+        internalType: "bytes",
+        name: "e",
         type: "bytes",
       },
     ],
-    name: "addValidationKey",
-    outputs: [
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool",
+        components: [
+          {
+            internalType: "bytes32",
+            name: "issHash",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes32",
+            name: "kid",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes",
+            name: "n",
+            type: "bytes",
+          },
+          {
+            internalType: "bytes",
+            name: "e",
+            type: "bytes",
+          },
+        ],
+        internalType: "struct OidcKeyRegistry.Key",
+        name: "newKey",
+        type: "tuple",
       },
     ],
+    name: "addKey",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "bytes32",
+            name: "issHash",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes32",
+            name: "kid",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes",
+            name: "n",
+            type: "bytes",
+          },
+          {
+            internalType: "bytes",
+            name: "e",
+            type: "bytes",
+          },
+        ],
+        internalType: "struct OidcKeyRegistry.Key[]",
+        name: "newKeys",
+        type: "tuple[]",
+      },
+    ],
+    name: "addKeys",
+    outputs: [],
     stateMutability: "nonpayable",
     type: "function",
   },
@@ -76,16 +157,43 @@ export const abi = [
     inputs: [
       {
         internalType: "bytes32",
-        name: "digest",
+        name: "issHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "kid",
         type: "bytes32",
       },
     ],
-    name: "addressForDigest",
+    name: "getKey",
     outputs: [
       {
-        internalType: "address",
+        components: [
+          {
+            internalType: "bytes32",
+            name: "issHash",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes32",
+            name: "kid",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes",
+            name: "n",
+            type: "bytes",
+          },
+          {
+            internalType: "bytes",
+            name: "e",
+            type: "bytes",
+          },
+        ],
+        internalType: "struct OidcKeyRegistry.Key",
         name: "",
-        type: "address",
+        type: "tuple",
       },
     ],
     stateMutability: "view",
@@ -93,36 +201,25 @@ export const abi = [
   },
   {
     inputs: [
+      {
+        internalType: "string",
+        name: "iss",
+        type: "string",
+      },
+    ],
+    name: "hashIssuer",
+    outputs: [
       {
         internalType: "bytes32",
         name: "",
         type: "bytes32",
       },
     ],
-    name: "digestIndex",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
+    stateMutability: "pure",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_keyRegistry",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_verifier",
-        type: "address",
-      },
-    ],
+    inputs: [],
     name: "initialize",
     outputs: [],
     stateMutability: "nonpayable",
@@ -130,228 +227,12 @@ export const abi = [
   },
   {
     inputs: [],
-    name: "keyRegistry",
+    name: "keyIndex",
     outputs: [
       {
-        internalType: "address",
+        internalType: "uint8",
         name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-    ],
-    name: "oidcDataForAddress",
-    outputs: [
-      {
-        components: [
-          {
-            internalType: "bytes32",
-            name: "oidcDigest",
-            type: "bytes32",
-          },
-          {
-            internalType: "bytes",
-            name: "iss",
-            type: "bytes",
-          },
-          {
-            internalType: "bytes",
-            name: "aud",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct OidcRecoveryValidator.OidcData[]",
-        name: "",
-        type: "tuple[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "onInstall",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "onUninstall",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes4",
-        name: "interfaceId",
-        type: "bytes4",
-      },
-    ],
-    name: "supportsInterface",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "signedHash",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes",
-        name: "signature",
-        type: "bytes",
-      },
-    ],
-    name: "validateSignature",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "signedHash",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes",
-        name: "signature",
-        type: "bytes",
-      },
-      {
-        components: [
-          {
-            internalType: "uint256",
-            name: "txType",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "from",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "to",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "gasLimit",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "gasPerPubdataByteLimit",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "maxFeePerGas",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "maxPriorityFeePerGas",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "paymaster",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "nonce",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "value",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256[4]",
-            name: "reserved",
-            type: "uint256[4]",
-          },
-          {
-            internalType: "bytes",
-            name: "data",
-            type: "bytes",
-          },
-          {
-            internalType: "bytes",
-            name: "signature",
-            type: "bytes",
-          },
-          {
-            internalType: "bytes32[]",
-            name: "factoryDeps",
-            type: "bytes32[]",
-          },
-          {
-            internalType: "bytes",
-            name: "paymasterInput",
-            type: "bytes",
-          },
-          {
-            internalType: "bytes",
-            name: "reservedDynamic",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct Transaction",
-        name: "transaction",
-        type: "tuple",
-      },
-    ],
-    name: "validateTransaction",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
+        type: "uint8",
       },
     ],
     stateMutability: "view",
@@ -359,12 +240,91 @@ export const abi = [
   },
   {
     inputs: [],
-    name: "verifier",
+    name: "merkleRoot",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "owner",
     outputs: [
       {
         internalType: "address",
         name: "",
         type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "renounceOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newOwner",
+        type: "address",
+      },
+    ],
+    name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "bytes32",
+            name: "issHash",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes32",
+            name: "kid",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes",
+            name: "n",
+            type: "bytes",
+          },
+          {
+            internalType: "bytes",
+            name: "e",
+            type: "bytes",
+          },
+        ],
+        internalType: "struct OidcKeyRegistry.Key",
+        name: "key",
+        type: "tuple",
+      },
+      {
+        internalType: "bytes32[]",
+        name: "proof",
+        type: "bytes32[]",
+      },
+    ],
+    name: "verifyKey",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
       },
     ],
     stateMutability: "view",
