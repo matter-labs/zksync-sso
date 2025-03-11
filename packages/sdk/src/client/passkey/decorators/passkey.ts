@@ -4,6 +4,8 @@ import {
   addOidcAccount,
   type AddOidcAccountArgs,
   type AddOidcAccountReturnType,
+} from "../../recovery/actions/oidc.js";
+import {
   confirmGuardian, type ConfirmGuardianArgs, type ConfirmGuardianReturnType,
   proposeGuardian, type ProposeGuardianArgs, type ProposeGuardianReturnType,
   removeGuardian, type RemoveGuardianArgs, type RemoveGuardianReturnType,

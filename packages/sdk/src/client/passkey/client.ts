@@ -54,6 +54,7 @@ export function createZksyncPasskeyClient<
 }
 
 export type PasskeyRequiredContracts = {
+  oidcKeyRegistry: Address; // Oidc key registry
   session: Address; // Session, spend limit, etc.
   passkey: Address; // Validator for passkey signature
   recovery: Address; // Validator for account recovery

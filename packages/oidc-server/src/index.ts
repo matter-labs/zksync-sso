@@ -8,7 +8,7 @@ const main = async () => {
 
   try {
     const keys = await fetcher.fetchKeys();
-    await contractUpdater.updateContract("accounts.google.com", keys);
+    await contractUpdater.updateContract("https://accounts.google.com", keys);
   } catch (error) {
     console.error("Error fetching keys:", error);
   }
