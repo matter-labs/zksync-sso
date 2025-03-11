@@ -120,7 +120,7 @@ jobs:
       working-directory: packages/contracts
 
     - name: Deploy contracts
-      run: pnpm run deploy --file ../auth-server/stores/local-node.json
+      run: pnpm run deploy --file ../auth-server/stores/local-node.json 
       working-directory: packages/contracts
 
     - name: Build SDK

@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, keccak256, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
@@ -25,7 +25,6 @@ export type DeployAccountArgs = {
     recovery: Address;
   };
   initialSession?: SessionConfig;
-  salt?: Uint8Array; // Random 32 bytes
   onTransactionSent?: (hash: Hash) => void;
 };
 export type DeployAccountReturnType = {
@@ -58,10 +57,6 @@ export const deployAccount = async <
   client: Client<transport, chain, account>, // Account deployer (any viem client)
   args: Prettify<DeployAccountArgs>,
 ): Promise<DeployAccountReturnType> => {
-  if (!args.salt) {
-    args.salt = crypto.getRandomValues(new Uint8Array(32));
-  }
-
   let origin: string | undefined = args.expectedOrigin;
   if (!origin) {
     try {
@@ -81,6 +76,7 @@ export const deployAccount = async <
     address: args.contracts.passkey,
     parameters: encodedPasskeyParameters,
   });
+  const accountId = args.uniqueAccountId || encodedPasskeyParameters;
 
   const encodedSessionKeyModuleData = encodeModuleData({
     address: args.contracts.session,
@@ -99,7 +95,7 @@ export const deployAccount = async <
     abi: AAFactoryAbi,
     functionName: "deployProxySsoAccount",
     args: [
-      toHex(args.salt),
+      keccak256(toHex(accountId)),
       [encodedPasskeyModuleData, encodedSessionKeyModuleData, encodedGuardianRecoveryModuleData],
       [],
     ],
@@ -120,15 +116,22 @@ export const deployAccount = async <
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
   if (transactionReceipt.status !== "success") throw new Error("Account deployment transaction reverted");
+  const getAccountId = () => {
+    if (transactionReceipt.contractAddress) {
+      return transactionReceipt.contractAddress;
+    }
+    const accountCreatedEvent = parseEventLogs({ abi: AAFactoryAbi, logs: transactionReceipt.logs })
+      .find((log) => log && log.eventName === "AccountCreated");
 
-  const accountCreatedEvent = parseEventLogs({ abi: AAFactoryAbi, logs: transactionReceipt.logs })
-    .find((log) => log && log.eventName === "AccountCreated");
+    if (!accountCreatedEvent) {
+      throw new Error("No contract address in transaction receipt");
+    }
 
-  if (!accountCreatedEvent) {
-    throw new Error("No contract address in transaction receipt");
-  }
+    const { accountAddress } = accountCreatedEvent.args;
+    return accountAddress;
+  };
 
-  const { accountAddress } = accountCreatedEvent.args;
+  const accountAddress = getAccountId();
 
   return {
     address: getAddress(accountAddress),
