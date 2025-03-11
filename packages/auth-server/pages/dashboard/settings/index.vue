@@ -92,10 +92,10 @@
               </div>
             </div>
             <Button
+              v-if="method.method === 'Guardian'"
               type="danger"
               class="text-sm lg:w-auto w-full"
               @click="removeGuardian(method.address)"
-              v-if="method.method === 'Guardian'"
             >
               Remove
             </Button>
