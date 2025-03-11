@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
 import { type OidcData, type ParsedOidcData, parseOidcData } from "zksync-sso/client";
-import { ByteVector, type JWT, OidcDigest } from "zksync-sso-circuits";
+import { type JWT, OidcDigest } from "zksync-sso-circuits";
 
 export const useRecoveryOidc = () => {
   const { getClient, getPublicClient, defaultChain } = useClientStore();
@@ -24,7 +24,8 @@ export const useRecoveryOidc = () => {
       .then((res) => res.json());
 
     const salt = response.salt;
-    return new OidcDigest(jwt.iss, jwt.aud, jwt.sub, salt);
+    const oidcDigest = new OidcDigest(jwt.iss, jwt.aud, jwt.sub, salt);
+    return oidcDigest;
   }
 
   async function getOidcAccounts(oidcAddress: Address) {
