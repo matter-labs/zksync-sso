@@ -29,6 +29,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
     const deployerClient = getThrowAwayClient({ chainId: chainId.value });
 
     const deployedAccount = await deployAccount(deployerClient, {
+      credentialId,
       credentialPublicKey,
       uniqueAccountId: credentialId,
       contracts: contractsByChain[chainId.value],

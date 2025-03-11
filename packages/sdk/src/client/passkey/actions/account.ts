@@ -1,16 +1,18 @@
-import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseAbi, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
-import { FactoryAbi } from "../../../abi/Factory.js";
+import { AAFactoryAbi } from "../../../abi/AAFactory.js";
+import { WebAuthValidatorAbi } from "../../../abi/WebAuthValidator.js";
 import { encodeModuleData, encodePasskeyModuleParameters, encodeSession } from "../../../utils/encoding.js";
 import { noThrow } from "../../../utils/helpers.js";
-import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
+import { base64UrlToUint8Array, getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
 import type { SessionConfig } from "../../../utils/session.js";
 
 /* TODO: try to get rid of most of the contract params like passkey, session */
 /* it should come from factory, not passed manually each time */
 export type DeployAccountArgs = {
+  credentialId: string; // Unique id of the passkey public key (base64)
   credentialPublicKey: Uint8Array; // Public key of the previously registered
   paymasterAddress?: Address; // Paymaster used to pay the fees of creating accounts
   paymasterInput?: Hex; // Input for paymaster (if provided)
@@ -21,7 +23,6 @@ export type DeployAccountArgs = {
     passkey: Address;
     session: Address;
     recovery: Address;
-    recoveryOidc: Address;
   };
   initialSession?: SessionConfig;
   salt?: Uint8Array; // Random 32 bytes
@@ -72,6 +73,7 @@ export const deployAccount = async <
 
   const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
   const encodedPasskeyParameters = encodePasskeyModuleParameters({
+    credentialId: args.credentialId,
     passkeyPublicKey,
     expectedOrigin: origin,
   });
@@ -79,7 +81,6 @@ export const deployAccount = async <
     address: args.contracts.passkey,
     parameters: encodedPasskeyParameters,
   });
-  const accountId = args.uniqueAccountId || encodedPasskeyParameters;
 
   const encodedSessionKeyModuleData = encodeModuleData({
     address: args.contracts.session,
@@ -91,21 +92,15 @@ export const deployAccount = async <
     parameters: "0x",
   });
 
-  const encodedOidcRecoveryModuleData = encodeModuleData({
-    address: args.contracts.recoveryOidc,
-    parameters: "0x",
-  });
-
   let deployProxyArgs = {
     account: client.account!,
     chain: client.chain!,
     address: args.contracts.accountFactory,
-    abi: FactoryAbi,
+    abi: AAFactoryAbi,
     functionName: "deployProxySsoAccount",
     args: [
       toHex(args.salt),
-      accountId,
-      [encodedPasskeyModuleData, encodedSessionKeyModuleData, encodedGuardianRecoveryModuleData, encodedOidcRecoveryModuleData],
+      [encodedPasskeyModuleData, encodedSessionKeyModuleData, encodedGuardianRecoveryModuleData],
       [],
     ],
   } as any;
@@ -126,13 +121,17 @@ export const deployAccount = async <
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
   if (transactionReceipt.status !== "success") throw new Error("Account deployment transaction reverted");
 
-  const proxyAccountAddress = transactionReceipt.contractAddress;
-  if (!proxyAccountAddress) {
+  const accountCreatedEvent = parseEventLogs({ abi: AAFactoryAbi, logs: transactionReceipt.logs })
+    .find((log) => log && log.eventName === "AccountCreated");
+
+  if (!accountCreatedEvent) {
     throw new Error("No contract address in transaction receipt");
   }
 
+  const { accountAddress } = accountCreatedEvent.args;
+
   return {
-    address: getAddress(proxyAccountAddress),
+    address: getAddress(accountAddress),
     transactionReceipt: transactionReceipt,
   };
 };
@@ -154,7 +153,6 @@ export const fetchAccount = async <
     }
   }
 
-  if (!args.contracts.accountFactory) throw new Error("Account factory address is not set");
   if (!args.contracts.passkey) throw new Error("Passkey module address is not set");
 
   let username: string | undefined = args.uniqueAccountId;
@@ -176,31 +174,26 @@ export const fetchAccount = async <
 
   if (!username) throw new Error("No account found");
 
+  const credentialId = toHex(base64UrlToUint8Array(username));
   const accountAddress = await readContract(client, {
-    abi: parseAbi(["function accountMappings(string) view returns (address)"]),
-    address: args.contracts.accountFactory,
-    functionName: "accountMappings",
-    args: [username],
+    abi: WebAuthValidatorAbi,
+    address: args.contracts.passkey,
+    functionName: "registeredAddress",
+    args: [origin, credentialId],
   });
 
   if (!accountAddress || accountAddress == NULL_ADDRESS) throw new Error(`No account found for username: ${username}`);
 
-  const lowerKeyHalfBytes = await readContract(client, {
-    abi: parseAbi(["function lowerKeyHalf(string,address) view returns (bytes32)"]),
+  const publicKey = await readContract(client, {
+    abi: WebAuthValidatorAbi,
     address: args.contracts.passkey,
-    functionName: "lowerKeyHalf",
-    args: [origin, accountAddress],
-  });
-  const upperKeyHalfBytes = await readContract(client, {
-    abi: parseAbi(["function upperKeyHalf(string,address) view returns (bytes32)"]),
-    address: args.contracts.passkey,
-    functionName: "upperKeyHalf",
-    args: [origin, accountAddress],
+    functionName: "getAccountKey",
+    args: [origin, credentialId, accountAddress],
   });
 
-  if (!lowerKeyHalfBytes || !upperKeyHalfBytes) throw new Error(`Passkey credentials not found in on-chain module for passkey ${username}`);
+  if (!publicKey || !publicKey[0] || !publicKey[1]) throw new Error(`Passkey credentials not found in on-chain module for passkey ${username}`);
 
-  const passkeyPublicKey = getPasskeySignatureFromPublicKeyBytes([lowerKeyHalfBytes, upperKeyHalfBytes]);
+  const passkeyPublicKey = getPasskeySignatureFromPublicKeyBytes(publicKey);
 
   return {
     username,

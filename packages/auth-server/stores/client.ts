@@ -1,3 +1,4 @@
+import { useAppKitProvider } from "@reown/appkit/vue";
 import { type Address, createPublicClient, createWalletClient, custom, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
@@ -5,6 +6,8 @@ import { eip712WalletActions } from "viem/zksync";
 import { createZkSyncOidcClient, type ZkSyncSsoClient } from "zksync-sso/client/oidc";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
+
+import localChainData from "./local-node.json";
 
 export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
@@ -21,24 +24,26 @@ type ChainContracts = PasskeyRequiredContracts & {
   accountFactory: NonNullable<PasskeyRequiredContracts["accountFactory"]>;
   accountPaymaster: Address;
 };
+
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksyncSepoliaTestnet.id]: {
     oidcKeyRegistry: "0x464F29570975E3dC0dA937C691F6B110a30aAaa9",
-    session: "0x64Bf5C3229CafF50e39Ec58C4BFBbE67bEA90B0F",
-    passkey: "0x0F65cFE984d494DAa7165863f1Eb61C606e45fFb",
-    recovery: "0xDf8F9b39Cd69Cb8Dc29137f83E89fE1AdA26912D",
+    session: "0x8Ed0b0AE232f59D0FFb1343c900d8e15C490044A",
+    passkey: "0x272814b0125380dC65a63570ABf903d0A434b597",
+    recovery: "0x20CeCd389022D9283028842fE699fAB70834204A",
     recoveryOidc: "0x3ad654fC38bb5Abe789c912cfE900A867d52A164",
-    accountFactory: "0x73CFa70318FD25F2166d47Af9d93Cf72eED48724",
-    accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
+    accountFactory: "0x2ab6b20a2dA7C2f45c986989bC558aD838DF6A86",
+    accountPaymaster: "0xABD8dA08aeBB7150e2194100F48bEfc6B3286Ff5",
+  },
+  [zksyncInMemoryNode.id]: localChainData as ChainContracts,
+};
+
+export const chainParameters: Record<SupportedChainId, { blockTime: number }> = {
+  [zksyncSepoliaTestnet.id]: {
+    blockTime: 15,
   },
   [zksyncInMemoryNode.id]: {
-    oidcKeyRegistry: "0xEfC116425AFA6f11d2CE144C207c1B9a7060A2cf",
-    session: "0x644040Bc7f2b243BB5ba28ccFa67Ec3dD7f9a77F",
-    passkey: "0x1Ec1126fab9eE89d0babC8669076e1dd1e36cd09",
-    recovery: "0x4E619cA9DDb3A207E4764F3Ee5D36DD478212335",
-    recoveryOidc: "0x4Cc0192aDd3e0Ee1a7554Ad16D329333744CA40C",
-    accountFactory: "0x01F99512191c036FcA9Fcd416dE73b19e93B7D60",
-    accountPaymaster: "0x32D8862D6d3D952f1f6881C9F604af9E807E28f3",
+    blockTime: 1,
   },
 };
 
@@ -118,7 +123,7 @@ export const useClientStore = defineStore("client", () => {
   }: {
     chainId: SupportedChainId;
     address: Address;
-    credentialPublicKey: Uint8Array;
+    credentialPublicKey: Uint8Array<ArrayBufferLike>;
     username: string;
   }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -151,12 +156,15 @@ export const useClientStore = defineStore("client", () => {
   };
 
   const getWalletClient = async ({ chainId }: { chainId: SupportedChainId }) => {
+    const accountProvider = useAppKitProvider("eip155");
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
 
-    if (!window?.ethereum) throw new Error("No ethereum provider found");
+    if (!accountProvider.walletProvider) throw new Error("No ethereum provider found");
 
-    const accounts = await (window.ethereum as { request: (args: { method: string }) => Promise<Address[]> }).request({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = accountProvider.walletProvider as any;
+    const accounts = await (provider as { request: (args: { method: string }) => Promise<Address[]> }).request({
       method: "eth_requestAccounts",
     });
 
@@ -164,7 +172,7 @@ export const useClientStore = defineStore("client", () => {
       chain,
       account: accounts[0],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      transport: custom(window!.ethereum as any),
+      transport: custom(provider as any),
     })
       .extend(publicActions)
       .extend(walletActions)

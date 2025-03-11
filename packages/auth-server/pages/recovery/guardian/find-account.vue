@@ -6,7 +6,8 @@
     <main class="max-w-[900px] mx-auto flex flex-col gap-6">
       <CommonStepper
         :current-step="currentStep"
-        :total-steps="4"
+        :total-steps="6"
+        :disabled-steps="disabledSteps"
       />
 
       <div class="flex flex-col items-center gap-8 mt-4">
@@ -66,7 +67,6 @@
               Choose the account you want to recover
             </label>
             <account-recovery-account-select
-              id="accountSelect"
               v-model="address"
               :accounts="accounts"
               :error="!!addressError"
@@ -95,15 +95,13 @@
           </div>
         </div>
 
-        <account-recovery-passkey-generation-flow
+        <account-recovery-passkey-generation-flow-root
           v-if="currentStep >= 3"
+          v-model:step-title="stepTitle"
           v-model:current-step="currentStep"
-          v-model:new-passkey="newPasskey"
-          :generate-passkeys-step="3"
-          :confirmation-step="4"
-          :address="address"
-          :register-in-progress="registerInProgress"
-          @back="currentStep = 2"
+          v-model:disabled-steps="disabledSteps"
+          :starting-step="3"
+          :account-address="address"
         />
       </div>
     </main>
@@ -112,10 +110,11 @@
 
 <script setup lang="ts">
 import type { Address } from "viem";
-import { computed, ref } from "vue";
-import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
+import { ref } from "vue";
 
 import { AddressSchema } from "~/utils/schemas";
+
+const { getGuardedAccounts, getGuardedAccountsInProgress } = useRecoveryGuardian();
 
 definePageMeta({
   layout: "dashboard",
@@ -125,30 +124,21 @@ const currentStep = ref(1);
 const guardianAddress = ref("");
 const guardianAddressError = ref("");
 const isValidGuardianAddress = ref(false);
-const address = ref("");
+const address = ref("" as Address);
 const addressError = ref("");
 const isValidAddress = ref(false);
-const newPasskey = ref<RegisterNewPasskeyReturnType | null>(null);
 const accounts = ref<Address[]>([]);
 const isLoadingAccounts = ref(false);
+const disabledSteps = ref<number[]>([]);
+const stepTitle = ref("");
 
-const { getGuardedAccounts, getGuardedAccountsInProgress } = useRecoveryGuardian();
-
-const { inProgress: registerInProgress } = usePasskeyRegister();
-
-const stepTitle = computed(() => {
-  switch (currentStep.value) {
-    case 1:
-      return "Enter Guardian Address";
-    case 2:
-      return "Select Your Account";
-    case 3:
-      return "Generate Passkeys";
-    case 4:
-      return "Recovery Started";
-    default:
-      return "";
+watchEffect(() => {
+  if (currentStep.value === 1) {
+    stepTitle.value = "Enter Guardian Address";
+  } else if (currentStep.value === 2) {
+    stepTitle.value = "Select Your Account";
   }
+  // Rest of step titles are handled inside the flow component
 });
 
 const validateGuardianAddress = async () => {

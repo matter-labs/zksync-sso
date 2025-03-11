@@ -2,8 +2,8 @@
   <div class="relative">
     <select
       :id="id"
-      v-model="selectedValue"
-      class="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-zk text-neutral-900 dark:text-neutral-100 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 disabled:opacity-50 disabled:cursor-not-allowed truncate pr-8"
+      v-model="selectedAccount"
+      class="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-zk text-neutral-900 dark:text-neutral-100 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 disabled:opacity-50 disabled:cursor-not-allowed truncate pr-10"
       :class="{
         'border-error-500 dark:border-error-400': error,
       }"
@@ -13,7 +13,7 @@
         value=""
         disabled
       >
-        {{ accounts.length ? 'Select an account' : 'No accounts found' }}
+        {{ accounts.length ? placeholder : noAccountsText }}
       </option>
       <option
         v-for="account in accounts"
@@ -50,19 +50,16 @@ import { computed } from "vue";
 
 const props = defineProps<{
   id?: string;
-  modelValue: string;
   accounts: Address[];
   error?: boolean;
   messages?: string[];
   disabled?: boolean;
+  placeholder?: string;
+  noAccountsText?: string;
 }>();
 
-const emit = defineEmits<{
-  (e: "update:modelValue", value: string): void;
-}>();
+const selectedAccount = defineModel<Address | null>({ required: true });
 
-const selectedValue = computed({
-  get: () => props.modelValue,
-  set: (value) => emit("update:modelValue", value),
-});
+const placeholder = computed(() => props.placeholder ?? "Select an account");
+const noAccountsText = computed(() => props.noAccountsText ?? "No accounts found");
 </script>
