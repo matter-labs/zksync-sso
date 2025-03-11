@@ -30,7 +30,7 @@ export type DeployAccountReturnType = {
   transactionReceipt: TransactionReceipt;
 };
 
-export type FetchAccountArgs = {
+export type FetchEcdsaAccountArgs = {
   prefix?: string; // vendor prefix
   owner: Address; // Wallet owner
   contracts: {
