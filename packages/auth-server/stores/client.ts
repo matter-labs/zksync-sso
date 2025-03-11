@@ -38,9 +38,7 @@ export const chainParameters: Record<SupportedChainId, { blockTime: number }> = 
   [zksyncSepoliaTestnet.id]: {
     blockTime: 15,
   },
-  [zksyncInMemoryNode.id]: {
-    blockTime: 1,
-  },
+  [zksyncInMemoryNode.id]: localChainData,
 };
 
 export const useClientStore = defineStore("client", () => {
