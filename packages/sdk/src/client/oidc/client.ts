@@ -36,10 +36,6 @@ export const signOidcTransaction = (
     throw new Error("key modulus should be 17 elements long");
   }
 
-  const keyN: BigintTuple<17> = new Array(17)
-    .fill(0n)
-    .map((_, i) => proof.oidcKey.n[i] ?? 0n) as BigintTuple<17>;
-
   const encodedProof = encodeAbiParameters(
     [
       {
@@ -89,7 +85,7 @@ export const signOidcTransaction = (
         key: {
           issHash: proof.oidcKey.issHash,
           kid: proof.oidcKey.kid,
-          n: keyN,
+          n: proof.oidcKey.n as BigintTuple<17>,
           e: proof.oidcKey.e,
         },
         merkleProof: proof.merkleProof,

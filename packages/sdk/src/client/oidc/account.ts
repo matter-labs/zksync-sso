@@ -23,7 +23,7 @@ export type ToOidcAccountParameters = {
 export type OidcKey = {
   issHash: Hex;
   kid: Hex;
-  n: Array<bigint>;
+  n: bigint[];
   e: Hex;
 };
 
