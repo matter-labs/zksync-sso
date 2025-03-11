@@ -2,6 +2,7 @@ import { type Address, createPublicClient, createWalletClient, custom, http, pub
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
+import { createZkSyncOidcClient, type ZkSyncSsoClient } from "zksync-sso/client/oidc";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 
@@ -22,6 +23,7 @@ type ChainContracts = PasskeyRequiredContracts & {
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksyncSepoliaTestnet.id]: {
+    oidcKeyRegistry: "0x464F29570975E3dC0dA937C691F6B110a30aAaa9",
     session: "0x64Bf5C3229CafF50e39Ec58C4BFBbE67bEA90B0F",
     passkey: "0x0F65cFE984d494DAa7165863f1Eb61C606e45fFb",
     recovery: "0xDf8F9b39Cd69Cb8Dc29137f83E89fE1AdA26912D",
@@ -30,12 +32,13 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
   },
   [zksyncInMemoryNode.id]: {
+    oidcKeyRegistry: "0xEfC116425AFA6f11d2CE144C207c1B9a7060A2cf",
     session: "0x644040Bc7f2b243BB5ba28ccFa67Ec3dD7f9a77F",
     passkey: "0x1Ec1126fab9eE89d0babC8669076e1dd1e36cd09",
     recovery: "0x4E619cA9DDb3A207E4764F3Ee5D36DD478212335",
-    recoveryOidc: "0x7D0F42206C127b3919b7FDed5569781430464a8E",
+    recoveryOidc: "0x4Cc0192aDd3e0Ee1a7554Ad16D329333744CA40C",
     accountFactory: "0x01F99512191c036FcA9Fcd416dE73b19e93B7D60",
-    accountPaymaster: "0x8669D63151aB9E17413d0d8017A7670d3fF646b3",
+    accountPaymaster: "0x32D8862D6d3D952f1f6881C9F604af9E807E28f3",
   },
 };
 
@@ -92,6 +95,19 @@ export const useClientStore = defineStore("client", () => {
     });
 
     return client;
+  };
+
+  const getOidcClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }): ZkSyncSsoClient => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+
+    return createZkSyncOidcClient({
+      address,
+      contracts,
+      chain: chain,
+      transport: http(),
+    });
   };
 
   const getConfigurableClient = ({
@@ -163,5 +179,6 @@ export const useClientStore = defineStore("client", () => {
     getWalletClient,
     getRecoveryClient,
     getConfigurableClient,
+    getOidcClient,
   };
 });

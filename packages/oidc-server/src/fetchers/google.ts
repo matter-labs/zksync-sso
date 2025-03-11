@@ -1,4 +1,4 @@
-import type { Key, KeyFetcher } from "../types";
+import type { BaseKey, KeyFetcher } from "../types";
 
 type JWK = {
   kid: string;
@@ -9,14 +9,14 @@ type JWK = {
 export class GoogleFetcher implements KeyFetcher {
   private apiUrl = "https://www.googleapis.com/oauth2/v3/certs";
 
-  async fetchKeys(): Promise<Key[]> {
+  async fetchKeys(): Promise<BaseKey[]> {
     const response = await fetch(this.apiUrl);
     if (!response.ok) throw new Error(`Google API error: ${response.status}`);
 
     const data = await response.json();
     return data.keys.map((key: JWK) => ({
       kid: this.toBytes32(key.kid),
-      n: this.toHex(key.n),
+      n: key.n,
       e: this.toHex(key.e),
     }));
   }

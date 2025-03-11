@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { config } from "dotenv";
 import express from "express";
 import * as jose from "jose";
+import { bytesToHex } from "viem";
 import { z } from "zod";
 
 config();
@@ -54,9 +55,9 @@ app.get("/salt", async (req, res): Promise<void> => {
     const data = Buffer.from(`${iss}${aud}${sub}${env.SALT_ENTROPY}`, "ascii");
 
     // We use 31 byte salt in order to make it fit in a field.
-    const hash = crypto.createHash("sha256").update(data).digest("hex").slice(0, 62);
+    const hash = crypto.createHash("sha256").update(data).digest().subarray(1);
 
-    res.json({ salt: hash });
+    res.json({ salt: bytesToHex(hash) });
   } catch {
     res.status(401).json({ error: "Unauthorized - Invalid token" });
   }
