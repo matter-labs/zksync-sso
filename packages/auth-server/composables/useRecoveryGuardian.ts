@@ -1,5 +1,5 @@
 import type { Account, Address, Chain, Client, Hex, Transport } from "viem";
-import { encodeFunctionData, keccak256, toHex } from "viem";
+import { encodeFunctionData, keccak256, pad, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 import { GuardianRecoveryModuleAbi } from "zksync-sso/abi";
@@ -84,12 +84,14 @@ export const useRecoveryGuardian = () => {
 
   const { inProgress: proposeGuardianInProgress, error: proposeGuardianError, execute: proposeGuardian } = useAsync(async (address: Address) => {
     const client = getClient({ chainId: defaultChain.id });
-    return await client.proposeGuardian({
+    const tx = await client.proposeGuardian({
       newGuardian: address,
       paymaster: {
         address: paymasterAddress,
       },
     });
+    await waitForTransactionReceipt(client, { hash: tx.transactionReceipt.transactionHash, confirmations: 1 });
+    return tx;
   });
 
   const { inProgress: removeGuardianInProgress, error: removeGuardianError, execute: removeGuardian } = useAsync(async (address: Address) => {
@@ -100,12 +102,13 @@ export const useRecoveryGuardian = () => {
         address: paymasterAddress,
       },
     });
+    await waitForTransactionReceipt(client, { hash: tx.transactionReceipt.transactionHash, confirmations: 1 });
     getGuardians(client.account.address);
     return tx;
   });
 
   const { inProgress: confirmGuardianInProgress, error: confirmGuardianError, execute: confirmGuardian } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ client, accountToGuard }: { client: Client<transport, chain, account>; accountToGuard: Address }) => {
-    return await sdkConfirmGuardian(client, {
+    const { transactionReceipt } = await sdkConfirmGuardian(client, {
       accountToGuard,
       contracts: {
         recovery: contractsByChain[defaultChain.id].recovery,
@@ -114,6 +117,8 @@ export const useRecoveryGuardian = () => {
         address: paymasterAddress,
       },
     });
+    await waitForTransactionReceipt(client, { hash: transactionReceipt.transactionHash, confirmations: 1 });
+    return { transactionReceipt };
   });
 
   const { inProgress: discardRecoveryInProgress, error: discardRecoveryError, execute: discardRecovery } = useAsync(async () => {
@@ -134,8 +139,8 @@ export const useRecoveryGuardian = () => {
   const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ accountToRecover, credentialPublicKey, accountId, client }: { accountToRecover: Address; credentialPublicKey: Uint8Array<ArrayBufferLike>; accountId: string; client: Client<transport, chain, account> }) => {
     const publicKeyBytes = getPublicKeyBytesFromPasskeySignature(credentialPublicKey);
     const publicKeyHex = [
-      `0x${publicKeyBytes[0].toString("hex")}`,
-      `0x${publicKeyBytes[1].toString("hex")}`,
+      pad(`0x${publicKeyBytes[0].toString("hex")}`),
+      pad(`0x${publicKeyBytes[1].toString("hex")}`),
     ] as const;
 
     const calldata = encodeFunctionData({
@@ -265,7 +270,7 @@ export const useRecoveryGuardian = () => {
 
     return {
       pendingRecovery: true,
-      ready: currentBlock > recoveryDelayFromBlock,
+      ready: currentBlock >= recoveryDelayFromBlock,
       remainingTime: remainingTime < 0 ? 0n : remainingTime,
       accountAddress: event.args.account,
       guardianAddress: event.args.guardian,

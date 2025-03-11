@@ -81,7 +81,6 @@ export const deployAccount = async <
     address: args.contracts.passkey,
     parameters: encodedPasskeyParameters,
   });
-  const accountId = args.uniqueAccountId || encodedPasskeyParameters;
 
   const encodedSessionKeyModuleData = encodeModuleData({
     address: args.contracts.session,
@@ -101,7 +100,6 @@ export const deployAccount = async <
     functionName: "deployProxySsoAccount",
     args: [
       toHex(args.salt),
-      accountId,
       [encodedPasskeyModuleData, encodedSessionKeyModuleData, encodedGuardianRecoveryModuleData],
       [],
     ],
@@ -180,7 +178,7 @@ export const fetchAccount = async <
   const accountAddress = await readContract(client, {
     abi: WebAuthValidatorAbi,
     address: args.contracts.passkey,
-    functionName: "accountAddressByDomainById",
+    functionName: "registeredAddress",
     args: [origin, credentialId],
   });
 
