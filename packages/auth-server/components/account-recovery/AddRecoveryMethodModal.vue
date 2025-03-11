@@ -5,6 +5,7 @@
     description-class="flex-1 mb-0 flex text-base"
     close-class="h-8 max-h-8"
     :title="title"
+    @close="onModalClosed()"
   >
     <template #trigger>
       <slot name="trigger">
@@ -86,8 +87,11 @@ const emit = defineEmits<{
   (e: "closed"): void;
 }>();
 
-function closeModal() {
+function onModalClosed() {
   emit("closed");
+}
+
+function closeModal() {
   modalRef.value?.close();
 }
 
