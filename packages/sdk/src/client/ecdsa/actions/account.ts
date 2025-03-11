@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseAbi, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, concat, encodePacked, getAddress, type Hash, type Hex, keccak256, parseAbi, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
@@ -58,7 +58,9 @@ export const deployAccount = async <
     args.salt = crypto.getRandomValues(new Uint8Array(32));
   }
 
-  const accountId = args.prefix ? `${args.prefix}-${args.owner}` : args.owner;
+  if (args.prefix && args.prefix.length > 12) throw new Error("prefix must not be longer than 12");
+
+  const uniqueId = concat([toHex(args.prefix || "", { size: 12 }), args.owner]);
 
   const encodedSessionKeyModuleData = encodeModuleData({
     address: args.contracts.session,
@@ -72,8 +74,7 @@ export const deployAccount = async <
     abi: FactoryAbi,
     functionName: "deployProxySsoAccount",
     args: [
-      toHex(args.salt),
-      accountId,
+      uniqueId,
       [encodedSessionKeyModuleData],
       [args.owner],
     ],
@@ -120,11 +121,15 @@ export const fetchAccount = async <
 ): Promise<FetchAccountReturnType> => {
   if (!args.contracts.accountFactory) throw new Error("Account factory address is not set");
 
-  const accountId = args.prefix ? `${args.prefix}-${args.owner}` : args.owner;
+  if (args.prefix && args.prefix.length > 12) throw new Error("prefix must not be longer than 12");
+
+  const uniqueId = concat([toHex(args.prefix || "", { size: 12 }), args.owner]);
+  const accountId = keccak256(encodePacked(["bytes32", "address"], [uniqueId, client.account.address]));
+
   if (!accountId) throw new Error("No account ID provided");
 
   const accountAddress = await readContract(client, {
-    abi: parseAbi(["function accountMappings(string) view returns (address)"]),
+    abi: parseAbi(["function accountMappings(bytes32) view returns (address)"]),
     address: args.contracts.accountFactory,
     functionName: "accountMappings",
     args: [accountId],
