@@ -1,6 +1,7 @@
 import { Wallet } from "ethers";
 import { Contract } from "ethers";
 import { Provider, types } from "zksync-ethers";
+import { CircomBigInt } from "zksync-sso-circuits";
 
 import { abi } from "./abi";
 import { env } from "./env.ts";
@@ -51,14 +52,19 @@ export class ContractUpdater {
   }
 
   private async getNewKeys(issHash: string, keys: BaseKey[]): Promise<Key[]> {
-    const promises = keys.map((key) =>
-      this.contract.getKey(issHash, key.kid).then(
+    const promises = keys.map((key) => {
+      const n = CircomBigInt.fromBase64(key.n).serialize();
+      console.log(n);
+
+      return this.contract.getKey(issHash, key.kid).then(
         () => null,
         () => ({
           ...key,
+          n,
           issHash,
         }),
-      ),
+      );
+    },
     );
 
     const results = await Promise.all(promises);
