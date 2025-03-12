@@ -4,6 +4,7 @@ import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 
+import eraSepoliaChainData from "./era-sepolia.json";
 import localChainData from "./local-node.json";
 
 export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
@@ -22,12 +23,7 @@ type ChainContracts = PasskeyRequiredContracts & {
   accountPaymaster: Address;
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
-  [zksyncSepoliaTestnet.id]: {
-    session: "0x64Bf5C3229CafF50e39Ec58C4BFBbE67bEA90B0F",
-    passkey: "0x0F65cFE984d494DAa7165863f1Eb61C606e45fFb",
-    accountFactory: "0x73CFa70318FD25F2166d47Af9d93Cf72eED48724",
-    accountPaymaster: "0xA46D949858335308859076FA605E773eB679e534",
-  },
+  [zksyncSepoliaTestnet.id]: eraSepoliaChainData,
   [zksyncInMemoryNode.id]: localChainData,
 };
 
