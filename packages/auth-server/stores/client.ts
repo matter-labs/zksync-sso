@@ -29,7 +29,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     passkey: "0x272814b0125380dC65a63570ABf903d0A434b597",
     recovery: "0x20CeCd389022D9283028842fE699fAB70834204A",
     accountFactory: "0x2ab6b20a2dA7C2f45c986989bC558aD838DF6A86",
-    accountPaymaster: "0xABD8dA08aeBB7150e2194100F48bEfc6B3286Ff5",
+    accountPaymaster: "0x4f3dcfA90d6A520F9c9075259997f2E476a94d66",
   },
   [zksyncInMemoryNode.id]: localChainData as ChainContracts,
 };
@@ -38,7 +38,9 @@ export const chainParameters: Record<SupportedChainId, { blockTime: number }> = 
   [zksyncSepoliaTestnet.id]: {
     blockTime: 15,
   },
-  [zksyncInMemoryNode.id]: localChainData,
+  [zksyncInMemoryNode.id]: {
+    blockTime: 1,
+  },
 };
 
 export const useClientStore = defineStore("client", () => {
