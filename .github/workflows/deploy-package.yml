@@ -70,8 +70,3 @@ jobs:
       - name: Publish to GitHub Packages
         working-directory: packages/sdk
         run: npm publish --access public
-
-      - name: Semantic Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
