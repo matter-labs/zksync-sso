@@ -28,9 +28,6 @@ export const signOidcTransaction = (
   _hash: Hex,
   proof: ZkProof,
 ) => {
-  if (proof.public.length !== 151) {
-    throw new Error("public inputs should be 151 elements long");
-  }
   if (proof.oidcKey.n.length !== 17) {
     throw new Error("key modulus should be 17 elements long");
   }
