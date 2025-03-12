@@ -123,7 +123,7 @@ export const useClientStore = defineStore("client", () => {
   }: {
     chainId: SupportedChainId;
     address: Address;
-    credentialPublicKey: Uint8Array<ArrayBufferLike>;
+    credentialPublicKey: Uint8Array;
     username: string;
   }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);

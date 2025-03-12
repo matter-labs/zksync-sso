@@ -71,7 +71,7 @@ export default defineNuxtConfig({
     public: {
       chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncSepoliaTestnet.id,
       [zksyncInMemoryNode.id]: {
-        nftQuestAddress: "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb",
+        nftQuestAddress: "0xF4E1ee85f0645b5871B03bc40d151C174F0e86f6",
       },
       [zksyncSepoliaTestnet.id]: {
         nftQuestAddress: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
