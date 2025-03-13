@@ -16,7 +16,8 @@ import {
   type WalletRpcSchema,
 } from "viem";
 
-import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "../recovery/decorators/wallet.js";
+import { type ZKsyncSsoWalletActions, zksyncSsoWalletActions } from "../recovery/decorators/wallet.js";
+import type { RecoveryRequiredContracts } from "../recovery/index.js";
 import { type OidcAccount, toOidcAccount, type ZkProof } from "./account.js";
 import { zksyncSsoRecoveryActions } from "./actions/index.js";
 import type { ZksyncSsoOidcActions } from "./decorators/actions.js";
@@ -28,6 +29,9 @@ export const signOidcTransaction = (
   _hash: Hex,
   proof: ZkProof,
 ) => {
+  if (proof.public.length !== 151) {
+    throw new Error("public inputs should be 151 elements long");
+  }
   if (proof.oidcKey.n.length !== 17) {
     throw new Error("key modulus should be 17 elements long");
   }
@@ -60,6 +64,10 @@ export const signOidcTransaction = (
             name: "merkleProof",
             type: "bytes32[]",
           },
+          {
+            name: "pubInputs",
+            type: "uint256[151]",
+          },
         ],
       },
     ],
@@ -81,6 +89,7 @@ export const signOidcTransaction = (
           e: proof.oidcKey.e,
         },
         merkleProof: proof.merkleProof,
+        pubInputs: proof.public,
       },
     ],
   );
@@ -89,12 +98,12 @@ export const signOidcTransaction = (
     [
       { type: "bytes", name: "signature" },
       { type: "address", name: "recoveryContract" },
-      { type: "bytes[]", name: "validatorData" },
+      { type: "bytes", name: "validatorData" },
     ],
     [
       encodedProof,
       recoveryValidatorAddress,
-      ["0x"],
+      "0x",
     ],
   );
 };
@@ -106,14 +115,13 @@ export interface SsoClientConfig<
 > extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, "account"> {
   chain: NonNullable<chain>;
   address: Address;
-  contracts: OidcRequiredContracts;
+  contracts: RecoveryRequiredContracts;
   key?: string;
   name?: string;
 }
 
 export type OidcRequiredContracts = {
   passkey: Address; // Passkey
-  recovery: Address;
   recoveryOidc: Address; // Oidc
 };
 
@@ -133,7 +141,7 @@ export type ZkSyncSsoClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    ZksyncSsoWalletActions<chain, OidcAccount> & ZksyncSsoOidcActions
+    ZKsyncSsoWalletActions<chain, OidcAccount> & ZksyncSsoOidcActions
   > & ZKsyncSsoOidcData
 >;
 

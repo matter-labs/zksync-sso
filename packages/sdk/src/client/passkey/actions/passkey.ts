@@ -5,9 +5,8 @@ import { type Account, type Address, type Chain, type Client, encodeFunctionData
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
-import { WebAuthValidatorAbi } from "../../../abi/WebAuthValidator.js";
+import { WebAuthModuleAbi } from "../../../abi/WebAuthModule.js";
 import { noThrow } from "../../../utils/helpers.js";
-import { base64UrlToUint8Array } from "../../../utils/passkey.js";
 
 const identifyPasskeyParams = () => {
   let rpName: string | undefined;
@@ -24,6 +23,7 @@ const identifyPasskeyParams = () => {
   return { rpName, rpID, origin };
 };
 
+// let pubKey: Uint8Array = new Uint8Array();
 export type GeneratePasskeyRegistrationOptionsArgs = Partial<GenerateRegistrationOptionsOpts> & { userName: string; userDisplayName: string };
 export type GeneratePasskeyRegistrationOptionsReturnType = PublicKeyCredentialCreationOptionsJSON;
 export const generatePasskeyRegistrationOptions = async (args: GeneratePasskeyRegistrationOptionsArgs): Promise<GeneratePasskeyRegistrationOptionsReturnType> => {
@@ -150,9 +150,7 @@ export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthentic
 };
 
 export type AddAccountOwnerPasskeyArgs = {
-  credentialId: string;
-  rawPublicKey: readonly [Hex, Hex];
-  origin: string;
+  passkeyPublicKey: Uint8Array;
   contracts: { passkey: Address };
   paymaster?: {
     address: Address;
@@ -169,9 +167,9 @@ export const addAccountOwnerPasskey = async <
   account extends Account,
 >(client: Client<transport, chain, account>, args: AddAccountOwnerPasskeyArgs): Promise<AddAccountOwnerPasskeyReturnType> => {
   const callData = encodeFunctionData({
-    abi: WebAuthValidatorAbi,
+    abi: WebAuthModuleAbi,
     functionName: "addValidationKey",
-    args: [toHex(base64UrlToUint8Array(args.credentialId)), args.rawPublicKey, args.origin],
+    args: [toHex(args.passkeyPublicKey)],
   });
 
   const sendTransactionArgs = {
@@ -190,7 +188,7 @@ export const addAccountOwnerPasskey = async <
   }
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  if (transactionReceipt.status !== "success") throw new Error("addValidationKey transaction reverted");
+  if (transactionReceipt.status !== "success") throw new Error("initRecovery transaction reverted");
 
   return {
     transactionReceipt,

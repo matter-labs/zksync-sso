@@ -1,12 +1,11 @@
-import { type Address, encodeAbiParameters, getAbiItem, type Hash, type Hex, pad, parseAbiParameters, toHex } from "viem";
+import { type Address, encodeAbiParameters, getAbiItem, type Hash, type Hex, parseAbiParameters, toHex } from "viem";
 
-import { SessionKeyValidatorAbi } from "../abi/SessionKeyValidator.js";
-import { base64UrlToUint8Array } from "../utils/passkey.js";
+import { SessionKeyModuleAbi } from "../abi/SessionKeyModule.js";
 import { getPeriodIdsForTransaction, type SessionConfig } from "../utils/session.js";
 
 const getSessionSpec = () => {
   return getAbiItem({
-    abi: SessionKeyValidatorAbi,
+    abi: SessionKeyModuleAbi,
     name: "createSession",
   }).inputs[0];
 };
@@ -46,16 +45,14 @@ export const encodeSessionTx = (args: {
   );
 };
 
-export const encodePasskeyModuleParameters = (passkey: { credentialId: string; passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
+export const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
   return encodeAbiParameters(
     [
-      { type: "bytes", name: "credentialId" },
       { type: "bytes32[2]", name: "xyPublicKeys" },
       { type: "string", name: "expectedOrigin" },
     ],
     [
-      toHex(base64UrlToUint8Array(passkey.credentialId)),
-      [pad(toHex(passkey.passkeyPublicKey[0])), pad(toHex(passkey.passkeyPublicKey[1]))],
+      [toHex(passkey.passkeyPublicKey[0]), toHex(passkey.passkeyPublicKey[1])],
       passkey.expectedOrigin,
     ],
   );

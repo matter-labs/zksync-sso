@@ -54,6 +54,7 @@ export class ContractUpdater {
   private async getNewKeys(issHash: string, keys: BaseKey[]): Promise<Key[]> {
     const promises = keys.map((key) => {
       const n = CircomBigInt.fromBase64(key.n).serialize();
+      console.log(n);
 
       return this.contract.getKey(issHash, key.kid).then(
         () => null,

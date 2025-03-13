@@ -45,7 +45,19 @@ export default defineNuxtConfig({
   colorMode: {
     preference: "dark",
   },
+  nitro: {
+    esbuild: {
+      options: {
+        target: "es2022",
+      },
+    },
+  },
   vite: {
+    optimizeDeps: {
+      esbuildOptions: {
+        target: "es2022",
+      },
+    },
     css: {
       preprocessorOptions: {
         scss: {
@@ -69,16 +81,16 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncSepoliaTestnet.id,
+      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncInMemoryNode.id,
       [zksyncInMemoryNode.id]: {
-        nftQuestAddress: "0xF4E1ee85f0645b5871B03bc40d151C174F0e86f6",
+        nftQuestAddress: "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb",
       },
       [zksyncSepoliaTestnet.id]: {
         nftQuestAddress: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
       },
-      appUrl: process.env.NUXT_PUBLIC_APP_URL || "https://zksync-auth-server-staging--pr52-guardian-recovery-tu1nymjf.web.app",
+      appUrl: process.env.NUXT_PUBLIC_APP_URL || "https://auth-test.zksync.dev",
       ssoAccountInterfaceId: "0xb9094997",
-      appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
+      appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "",
       googlePublicClient: "866068535821-e9em0h73pee93q4evoajtnnkldsjhqdk.apps.googleusercontent.com",
       saltServiceUrl: process.env.NUXT_PUBLIC_SALT_SERVICE_URL || "http://localhost:3003/salt",
     },

@@ -1,228 +1,29 @@
-export const SessionKeyValidatorAbi = [
+export const SessionKeyModuleAbi = [
   {
+    anonymous: false,
     inputs: [
       {
-        internalType: "uint256",
-        name: "value",
-        type: "uint256",
-      },
-    ],
-    name: "ADDRESS_CAST_OVERFLOW",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes",
-        name: "input",
-        type: "bytes",
-      },
-    ],
-    name: "INVALID_PAYMASTER_INPUT",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
+        indexed: true,
         internalType: "address",
-        name: "notInitialized",
+        name: "account",
         type: "address",
       },
     ],
-    name: "NOT_FROM_INITIALIZED_ACCOUNT",
-    type: "error",
+    name: "Disabled",
+    type: "event",
   },
   {
+    anonymous: false,
     inputs: [
       {
-        internalType: "uint256",
-        name: "chainId",
-        type: "uint256",
-      },
-    ],
-    name: "NO_TIMESTAMP_ASSERTER",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "allowance",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "maxAllowance",
-        type: "uint256",
-      },
-      {
-        internalType: "uint64",
-        name: "period",
-        type: "uint64",
-      },
-    ],
-    name: "SESSION_ALLOWANCE_EXCEEDED",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "sessionHash",
-        type: "bytes32",
-      },
-    ],
-    name: "SESSION_ALREADY_EXISTS",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
+        indexed: true,
         internalType: "address",
-        name: "target",
-        type: "address",
-      },
-      {
-        internalType: "bytes4",
-        name: "selector",
-        type: "bytes4",
-      },
-    ],
-    name: "SESSION_CALL_POLICY_VIOLATED",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "param",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes32",
-        name: "refValue",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint8",
-        name: "condition",
-        type: "uint8",
-      },
-    ],
-    name: "SESSION_CONDITION_FAILED",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "expiresAt",
-        type: "uint256",
-      },
-    ],
-    name: "SESSION_EXPIRES_TOO_SOON",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "actualLength",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "expectedMinimumLength",
-        type: "uint256",
-      },
-    ],
-    name: "SESSION_INVALID_DATA_LENGTH",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "recovered",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "expected",
+        name: "account",
         type: "address",
       },
     ],
-    name: "SESSION_INVALID_SIGNER",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "lifetimeUsage",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "maxUsage",
-        type: "uint256",
-      },
-    ],
-    name: "SESSION_LIFETIME_USAGE_EXCEEDED",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "usedValue",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "maxValuePerUse",
-        type: "uint256",
-      },
-    ],
-    name: "SESSION_MAX_VALUE_EXCEEDED",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "SESSION_NOT_ACTIVE",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "target",
-        type: "address",
-      },
-    ],
-    name: "SESSION_TRANSFER_POLICY_VIOLATED",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "SESSION_UNLIMITED_FEES",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "SESSION_ZERO_SIGNER",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "openSessions",
-        type: "uint256",
-      },
-    ],
-    name: "UNINSTALL_WITH_OPEN_SESSIONS",
-    type: "error",
+    name: "Inited",
+    type: "event",
   },
   {
     anonymous: false,
@@ -432,6 +233,25 @@ export const SessionKeyValidatorAbi = [
   {
     inputs: [
       {
+        internalType: "bytes",
+        name: "sessionData",
+        type: "bytes",
+      },
+    ],
+    name: "addValidationKey",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         components: [
           {
             internalType: "address",
@@ -604,6 +424,50 @@ export const SessionKeyValidatorAbi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "disable",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "signedHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes",
+        name: "signature",
+        type: "bytes",
+      },
+    ],
+    name: "handleValidation",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
+      },
+    ],
+    name: "init",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
@@ -623,29 +487,16 @@ export const SessionKeyValidatorAbi = [
     type: "function",
   },
   {
-    inputs: [
+    inputs: [],
+    name: "name",
+    outputs: [
       {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
+        internalType: "string",
+        name: "",
+        type: "string",
       },
     ],
-    name: "onInstall",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "onUninstall",
-    outputs: [],
-    stateMutability: "nonpayable",
+    stateMutability: "pure",
     type: "function",
   },
   {
@@ -999,30 +850,6 @@ export const SessionKeyValidatorAbi = [
     inputs: [
       {
         internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes",
-        name: "",
-        type: "bytes",
-      },
-    ],
-    name: "validateSignature",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
         name: "signedHash",
         type: "bytes32",
       },
@@ -1113,16 +940,28 @@ export const SessionKeyValidatorAbi = [
         name: "transaction",
         type: "tuple",
       },
-    ],
-    name: "validateTransaction",
-    outputs: [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool",
+        internalType: "bytes",
+        name: "hookData",
+        type: "bytes",
       },
     ],
+    name: "validationHook",
+    outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "version",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "pure",
     type: "function",
   },
 ] as const;

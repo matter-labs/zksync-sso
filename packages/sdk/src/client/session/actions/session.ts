@@ -2,8 +2,7 @@ import { type Account, type Address, type Chain, type Client, encodeFunctionData
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
-import { SessionKeyValidatorAbi } from "../../../abi/SessionKeyValidator.js";
-import { type CustomPaymasterHandler, getTransactionWithPaymasterData } from "../../../paymaster/index.js";
+import { SessionKeyModuleAbi } from "../../../abi/SessionKeyModule.js";
 import { noThrow } from "../../../utils/helpers.js";
 import type { SessionConfig } from "../../../utils/session.js";
 
@@ -17,7 +16,6 @@ export type CreateSessionArgs = {
     paymasterInput?: Hex;
   };
   onTransactionSent?: (hash: Hash) => void;
-  paymasterHandler?: CustomPaymasterHandler;
 };
 export type CreateSessionReturnType = {
   transactionReceipt: TransactionReceipt;
@@ -28,7 +26,7 @@ export const createSession = async <
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<CreateSessionArgs>): Promise<Prettify<CreateSessionReturnType>> => {
   const callData = encodeFunctionData({
-    abi: SessionKeyValidatorAbi,
+    abi: SessionKeyModuleAbi,
     functionName: "createSession",
     args: [args.sessionConfig],
   });
@@ -43,14 +41,7 @@ export const createSession = async <
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 
-  const transactionWithPaymasterData: any = await getTransactionWithPaymasterData(
-    client.chain.id,
-    client.account.address,
-    sendTransactionArgs,
-    args.paymasterHandler,
-  );
-
-  const transactionHash = await sendTransaction(client, transactionWithPaymasterData);
+  const transactionHash = await sendTransaction(client, sendTransactionArgs);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }
@@ -73,7 +64,6 @@ export type RevokeSessionArgs = {
     paymasterInput?: Hex;
   };
   onTransactionSent?: (hash: Hash) => void;
-  paymasterHandler?: CustomPaymasterHandler;
 };
 export type RevokeSessionReturnType = {
   transactionReceipt: TransactionReceipt;
@@ -84,7 +74,7 @@ export const revokeSession = async <
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<RevokeSessionArgs>): Promise<Prettify<RevokeSessionReturnType>> => {
   const callData = encodeFunctionData({
-    abi: SessionKeyValidatorAbi,
+    abi: SessionKeyModuleAbi,
     functionName: "revokeKey",
     args: [args.sessionId],
   });
@@ -99,15 +89,7 @@ export const revokeSession = async <
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 
-  const transactionWithPaymasterData: any = await getTransactionWithPaymasterData(
-    client.chain.id,
-    client.account.address,
-    sendTransactionArgs,
-    args.paymasterHandler,
-  );
-
-  const transactionHash = await sendTransaction(client, transactionWithPaymasterData);
-
+  const transactionHash = await sendTransaction(client, sendTransactionArgs);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }
