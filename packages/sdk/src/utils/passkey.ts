@@ -2,7 +2,7 @@ import { ECDSASigValue } from "@peculiar/asn1-ecc";
 import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { Buffer } from "buffer";
-import { type Address, encodeAbiParameters, type Hex, pad, toHex } from "viem";
+import { type Address, encodeAbiParameters, type Hex, toHex } from "viem";
 
 enum COSEKEYS {
   kty = 1, // Key Type
@@ -155,7 +155,7 @@ export const getPublicKeyBytesFromPasskeySignature = (publicPasskey: Uint8Array)
   return [Buffer.from(x), Buffer.from(y)];
 };
 
-export const getPasskeySignatureFromPublicKeyBytes = (coordinates: readonly [Hex, Hex]): Uint8Array => {
+export const getPasskeySignatureFromPublicKeyBytes = (coordinates: [Hex, Hex]): Uint8Array => {
   const [xHex, yHex] = coordinates;
   const x = Buffer.from(xHex.slice(2), "hex");
   const y = Buffer.from(yHex.slice(2), "hex");
@@ -305,7 +305,6 @@ function toArrayBuffer(data: string, isUrl: boolean) {
 };
 
 export function passkeyHashSignatureResponseFormat(
-  passkeyId: string,
   passkeyResponse: {
     authenticatorData: string;
     clientDataJSON: string;
@@ -321,13 +320,11 @@ export function passkeyHashSignatureResponseFormat(
       { type: "bytes" }, // authData
       { type: "bytes" }, // clientDataJson
       { type: "bytes32[2]" }, // signature (two elements)
-      { type: "bytes" }, // unique passkey id
     ],
     [
       toHex(base64UrlToUint8Array(passkeyResponse.authenticatorData)),
       toHex(base64UrlToUint8Array(passkeyResponse.clientDataJSON)),
-      [pad(toHex(signature.r)), pad(toHex(signature.s))],
-      toHex(base64UrlToUint8Array(passkeyId)),
+      [toHex(signature.r), toHex(signature.s)],
     ],
   );
   const fullFormattedSig = encodeAbiParameters(

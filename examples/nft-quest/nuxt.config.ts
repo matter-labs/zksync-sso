@@ -59,8 +59,8 @@ export default defineNuxtConfig({
     public: {
       chain: zksyncInMemoryNode,
       contracts: {
-        nft: "0xF4E1ee85f0645b5871B03bc40d151C174F0e86f6",
-        paymaster: "0x25B89fa6e157937f845ec0Fb41733B29bc20A4d3",
+        nft: "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb",
+        paymaster: "0x4B5DF730c2e6b28E17013A1485E5d9BC41Efe021",
       },
       baseUrl: "http://localhost:3006",
       authServerUrl: "http://localhost:3002/confirm",

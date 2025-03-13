@@ -10,13 +10,13 @@ import {
 import { prepareTransactionRequest } from "viem/actions";
 import type { ZksyncTransactionSerializableEIP712 } from "viem/zksync";
 
-import { WebAuthValidatorAbi } from "../../../abi/index.js";
+import { WebAuthModuleAbi } from "../../../abi/index.js";
+import { encodePasskeyModuleParameters } from "../../../utils/index.js";
 import { getAction } from "../../recovery/actions/sendEip712Transaction.js";
 import { getEip712Domain } from "../../utils/getEip712Domain.js";
 
 export type CalculateTxHashArgs = {
-  credentialId: Hex;
-  passkeyPubKey: [Hex, Hex];
+  passkeyPubKey: [Buffer, Buffer];
   passkeyDomain: string;
   contracts: {
     recoveryOidc: Address; // oidc recovery module
@@ -29,14 +29,15 @@ export async function calculateTxHash<
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<CalculateTxHashArgs>): Promise<Hex> {
+  const encoded = encodePasskeyModuleParameters({
+    passkeyPublicKey: args.passkeyPubKey,
+    expectedOrigin: args.passkeyDomain,
+  });
+
   const callData = encodeFunctionData({
-    abi: WebAuthValidatorAbi,
+    abi: WebAuthModuleAbi,
     functionName: "addValidationKey",
-    args: [
-      args.credentialId,
-      args.passkeyPubKey,
-      args.passkeyDomain,
-    ],
+    args: [encoded],
   });
 
   const sendTransactionArgs = {

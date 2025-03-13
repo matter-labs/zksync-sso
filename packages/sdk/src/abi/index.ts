@@ -1,7 +1,6 @@
-export { AAFactoryAbi } from "./AAFactory.js";
+export { FactoryAbi } from "./Factory.js";
 export { GuardianRecoveryModuleAbi } from "./GuardianRecoveryModule.js";
 export { OidcKeyRegistryAbi } from "./OidcKeyRegistry.js";
 export { OidcRecoveryModuleAbi } from "./OidcRecoveryModule.js";
-export { SessionKeyValidatorAbi } from "./SessionKeyValidator.js";
+export { SessionKeyModuleAbi } from "./SessionKeyModule.js";
 export { WebAuthModuleAbi } from "./WebAuthModule.js";
-export { WebAuthValidatorAbi } from "./WebAuthValidator.js";
