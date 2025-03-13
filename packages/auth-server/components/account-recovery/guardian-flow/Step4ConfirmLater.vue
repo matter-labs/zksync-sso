@@ -20,7 +20,7 @@
     </div>
     <ZkButton
       type="primary"
-      class="mt-4 w-full"
+      class="mt-4 w-full md:max-w-48"
       @click="emit('next')"
     >
       Close

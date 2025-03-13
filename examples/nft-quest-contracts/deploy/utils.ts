@@ -5,7 +5,7 @@ import { Deployer } from "@matterlabs/hardhat-zksync";
 import dotenv from "dotenv";
 import { ethers } from "ethers";
 import * as hre from "hardhat";
-import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
+import { Provider, Wallet } from "zksync-ethers";
 
 // Load env file
 dotenv.config();
@@ -105,33 +105,23 @@ export const deployContract = async (contractArtifactName: string, constructorAr
   await verifyEnoughBalance(wallet, deploymentFee);
 
   // Deploy the contract to ZKsync
-  const salt = ethers.hexlify("0x" + "0".repeat(64));
-  const create2Deployer = new ContractFactory(artifact.abi, artifact.bytecode, wallet, "create2");
-  const encodedArgs = create2Deployer.interface.encodeDeploy(constructorArguments);
-  const bytecodeHash = utils.hashBytecode(artifact.bytecode);
-  const standardCreate2Address = utils.create2Address(wallet.address, bytecodeHash, salt, constructorArguments ? encodedArgs : "0x");
-  const accountCode = await wallet.provider.getCode(standardCreate2Address);
-  if (accountCode != "0x") {
-    log(`Contract ${contractArtifactName} already exists!`);
-    return new ethers.Contract(standardCreate2Address, artifact.abi, wallet);
-  }
-
-  const contract = await (constructorArguments ? create2Deployer.deploy(...constructorArguments, { customData: { salt } }) : create2Deployer.deploy({ customData: { salt } }));
+  const contract = await deployer.deploy(artifact, constructorArguments);
   const address = await contract.getAddress();
+  const constructorArgs = contract.interface.encodeDeploy(constructorArguments);
   const fullContractSource = `${artifact.sourceName}:${artifact.contractName}`;
 
   // Display contract deployment info
   log(`\n"${artifact.contractName}" was successfully deployed:`);
   log(` - Contract address: ${address}`);
   log(` - Contract source: ${fullContractSource}`);
-  log(` - Encoded constructor arguments: ${encodedArgs}\n`);
+  log(` - Encoded constructor arguments: ${constructorArgs}\n`);
 
   if (!options?.noVerify && hre.network.config.verifyURL) {
     log(`Requesting contract verification...`);
     await verifyContract({
       address,
       contract: fullContractSource,
-      constructorArguments: encodedArgs,
+      constructorArguments: constructorArgs,
       bytecode: artifact.bytecode,
     });
   }

@@ -18,14 +18,14 @@
     </p>
     <ZkButton
       type="primary"
-      class="w-full mt-4"
-      @click="handleCheck"
+      class="w-full md:max-w-48 mt-4"
+      @click="handleRetry"
     >
       Retry
     </ZkButton>
     <ZkButton
       type="secondary"
-      class="w-full"
+      class="w-full md:max-w-48"
       @click="emit('back')"
     >
       Back
@@ -58,7 +58,7 @@
       type="primary"
       class="w-full md:max-w-48 mt-4"
       :loading="confirmGuardianInProgress || getConfigurableAccountInProgress"
-      @click="handleConfirmGuardian"
+      @click="confirmGuardianAction"
     >
       Confirm Guardian
     </ZkButton>
@@ -94,7 +94,7 @@ const emit = defineEmits<{
 }>();
 
 const { getWalletClient, defaultChain } = useClientStore();
-const { isSsoAccount: checkIsSsoAccount, isLoading, error: isSsoAccountError } = useIsSsoAccount();
+const { checkIsSsoAccount, isLoading, error: isSsoAccountError } = useCheckSsoAccount(defaultChain.id);
 const { confirmGuardian, confirmGuardianInProgress } = useRecoveryGuardian();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
 const { address } = useAccountStore();
@@ -114,7 +114,11 @@ const handleCheck = async () => {
   isSsoAccount.value = result ?? false;
 };
 
-const handleConfirmGuardian = async () => {
+const handleRetry = async () => {
+  await handleCheck();
+};
+
+const confirmGuardianAction = async () => {
   try {
     if (!address) {
       throw new Error("No account logged in");
@@ -151,19 +155,8 @@ watchEffect(() => {
 });
 
 watchEffect(() => {
-  if (isSsoAccount.value) {
-    confirmGuardianErrorMessage.value = null;
-    return;
-  }
-
-  if (!isSsoAccount.value && accountData.value.isConnected && isConnectedWalletGuardian.value) {
-    confirmGuardianErrorMessage.value = null;
-    return;
-  }
-
-  if (!isSsoAccount.value && accountData.value.isConnected && !isConnectedWalletGuardian.value) {
-    confirmGuardianErrorMessage.value = `Please connect with the guardian wallet address (${shortenAddress(props.guardianAddress)})`;
-    return;
+  if (!isSsoAccount.value && accountData.value.isConnected) {
+    confirmGuardianErrorMessage.value = isConnectedWalletGuardian.value ? null : `Please connect with the guardian wallet address (${shortenAddress(props.guardianAddress)})`;
   }
 });
 </script>
