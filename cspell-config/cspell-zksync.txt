@@ -1,7 +1,8 @@
-// zkSync-related words
 !MatterLabs
 !zkSync
 !ZkSync
-ZKsync
-zksync
+// zkSync-related words
+sepolia
 Zeek
+zksync
+ZKsync
