@@ -5,6 +5,38 @@ export const GuardianRecoveryModuleAbi = [
     type: "constructor",
   },
   {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+    ],
+    name: "AccountAlreadyGuardedByGuardian",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+    ],
+    name: "AccountNotGuardedByAddress",
+    type: "error",
+  },
+  {
     inputs: [],
     name: "CooldownPeriodNotPassed",
     type: "error",
@@ -56,6 +88,81 @@ export const GuardianRecoveryModuleAbi = [
     inputs: [],
     name: "PasskeyNotMatched",
     type: "error",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "hashedOriginDomain",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+    ],
+    name: "GuardianAdded",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "hashedOriginDomain",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+    ],
+    name: "GuardianProposed",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "hashedOriginDomain",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+    ],
+    name: "GuardianRemoved",
+    type: "event",
   },
   {
     anonymous: false,
@@ -190,12 +297,12 @@ export const GuardianRecoveryModuleAbi = [
         type: "address",
       },
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        internalType: "address",
+        name: "guardian",
+        type: "address",
       },
     ],
-    name: "accountGuardians",
+    name: "accountGuardianData",
     outputs: [
       {
         internalType: "address",
@@ -289,35 +396,6 @@ export const GuardianRecoveryModuleAbi = [
         internalType: "struct GuardianRecoveryValidator.RecoveryRequest",
         name: "",
         type: "tuple",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
-        internalType: "address",
-        name: "guardian",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "guardedAccounts",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
       },
     ],
     stateMutability: "view",
