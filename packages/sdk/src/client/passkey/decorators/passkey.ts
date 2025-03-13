@@ -1,6 +1,10 @@
 import { type Chain, type Transport } from "viem";
 
-import { addOidcAccount, type AddOidcAccountArgs, type AddOidcAccountReturnType } from "../../recovery/actions/oidc";
+import {
+  addOidcAccount,
+  type AddOidcAccountArgs,
+  type AddOidcAccountReturnType,
+} from "../../recovery/actions/oidc.js";
 import {
   confirmGuardian, type ConfirmGuardianArgs, type ConfirmGuardianReturnType,
   proposeGuardian, type ProposeGuardianArgs, type ProposeGuardianReturnType,

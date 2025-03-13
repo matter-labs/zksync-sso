@@ -13,7 +13,7 @@
     <Dialog.Portal>
       <Dialog.Overlay
         class="data-[state=open]:animate-overlayShow fixed inset-0 z-30 bg-neutral-900/70"
-        @click="closeModal"
+        @click="open = false"
       />
       <Dialog.Content
         :class="twMerge(['data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[350px] translate-x-[-50%] translate-y-[-50%] flex flex-col rounded-zk bg-white focus:outline-none z-[100] p-6 dark:bg-neutral-950 border border-transparent dark:border-neutral-900 dark:text-neutral-100', contentClass])"
@@ -23,7 +23,7 @@
           <Dialog.Close
             class="inline-flex appearance-none items-center justify-center focus:outline-none focus:ring-1 rounded-full"
             aria-label="Close"
-            @click="closeModal"
+            @click="open = false"
           >
             <ZkIcon icon="close" />
           </Dialog.Close>
@@ -65,12 +65,7 @@ import { twMerge } from "tailwind-merge";
 
 const open = ref(false);
 
-const emit = defineEmits<{
-  (e: "close"): void;
-}>();
-
 const closeModal = () => {
-  emit("close");
   open.value = false;
 };
 

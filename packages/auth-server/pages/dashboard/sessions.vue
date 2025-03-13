@@ -84,7 +84,7 @@
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
 import type { Hex } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
-import { SessionKeyValidatorAbi } from "zksync-sso/abi";
+import { SessionKeyModuleAbi } from "zksync-sso/abi";
 import type { SessionConfig } from "zksync-sso/utils";
 
 const { defaultChain, getPublicClient } = useClientStore();
@@ -99,7 +99,7 @@ const {
   const contracts = contractsByChain[defaultChain.id];
   const publicClient = getPublicClient({ chainId: defaultChain.id });
   const logs = await publicClient.getContractEvents({
-    abi: SessionKeyValidatorAbi,
+    abi: SessionKeyModuleAbi,
     address: contracts.session,
     eventName: "SessionCreated",
     args: {

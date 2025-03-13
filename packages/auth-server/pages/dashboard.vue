@@ -43,14 +43,14 @@
 import { ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
 
 const { address } = useAccountStore();
-const { checkRecoveryRequest, discardRecovery } = useRecoveryGuardian();
+const { getPendingRecoveryData, discardRecovery } = useRecoveryGuardian();
 
 const pendingRecovery = ref(false);
 
 watchEffect(async () => {
   if (!address) return;
-  const recoveryRequest = await checkRecoveryRequest({ address });
-  pendingRecovery.value = recoveryRequest?.pendingRecovery ?? false;
+  const recoveryProcessInitiated = await getPendingRecoveryData(address);
+  pendingRecovery.value = recoveryProcessInitiated?.[0] !== "0x" && recoveryProcessInitiated?.[1] !== 0n;
 });
 
 const cancelRecovery = async () => {

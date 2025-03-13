@@ -12,7 +12,6 @@ vueuse
 dockerized
 ethereum
 sepolia
-foundryup
 
 // examples/bank-demo
 ctap
@@ -43,11 +42,3 @@ groth
 zkey
 snark
 snarkjs
-
-// examples/demo-app
-zkout
-cancun
-EVMLA
-
-// paymasters
-zyfi

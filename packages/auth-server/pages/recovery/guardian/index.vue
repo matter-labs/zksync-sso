@@ -6,8 +6,7 @@
     <main class="max-w-[900px] mx-auto flex flex-col gap-6">
       <CommonStepper
         :current-step="currentStep"
-        :total-steps="5"
-        :disabled-steps="disabledSteps"
+        :total-steps="3"
       />
 
       <div class="flex flex-col items-center gap-8 mt-4">
@@ -46,21 +45,23 @@
 
           <ZkButton
             class="w-full"
-            :disabled="!isValidAddress || isLoadingSsoAccount"
-            :loading="isLoadingSsoAccount"
+            :disabled="!isValidAddress || isValidatingAccount"
+            :loading="isValidatingAccount"
             @click="handleContinue"
           >
             Continue
           </ZkButton>
         </div>
 
-        <account-recovery-passkey-generation-flow-root
+        <account-recovery-passkey-generation-flow
           v-if="currentStep >= 2"
-          v-model:step-title="stepTitle"
           v-model:current-step="currentStep"
-          v-model:disabled-steps="disabledSteps"
-          :starting-step="2"
-          :account-address="address"
+          v-model:new-passkey="newPasskey"
+          :generate-passkeys-step="2"
+          :confirmation-step="3"
+          :address="address"
+          :register-in-progress="registerInProgress"
+          @back="currentStep = 1"
         />
       </div>
     </main>
@@ -68,29 +69,36 @@
 </template>
 
 <script setup lang="ts">
-import type { Address } from "viem";
 import { ref } from "vue";
+import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
 
+import { useValidateAccount } from "~/composables/useValidateAccount";
 import { AddressSchema } from "~/utils/schemas";
-
-const { isSsoAccount, isLoading: isLoadingSsoAccount } = useIsSsoAccount();
 
 definePageMeta({
   layout: "dashboard",
 });
 
 const currentStep = ref(1);
-const address = ref("" as Address);
+const address = ref("");
 const addressError = ref("");
 const isValidAddress = ref(false);
-const stepTitle = ref("");
-const disabledSteps = ref<number[]>([]);
+const newPasskey = ref<RegisterNewPasskeyReturnType | null>(null);
 
-watchEffect(() => {
-  if (currentStep.value === 1) {
-    stepTitle.value = "Start Recovery";
+const { inProgress: registerInProgress } = usePasskeyRegister();
+const { validateAccount, isValidatingAccount } = useValidateAccount();
+
+const stepTitle = computed(() => {
+  switch (currentStep.value) {
+    case 1:
+      return "Start Recovery";
+    case 2:
+      return "Generate Passkeys";
+    case 3:
+      return "Recovery Started";
+    default:
+      return "";
   }
-  // Rest of step titles are handled inside the flow component
 });
 
 const validateAddress = async () => {
@@ -105,7 +113,7 @@ const validateAddress = async () => {
   addressError.value = "";
   isValidAddress.value = false;
 
-  const isValid = await isSsoAccount(result.data);
+  const isValid = await validateAccount(result.data);
   if (!isValid) {
     addressError.value = "The address is not a valid ZKsync SSO account";
     isValidAddress.value = false;
