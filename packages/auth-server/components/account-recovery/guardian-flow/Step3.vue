@@ -4,14 +4,14 @@
   </p>
   <ZkButton
     type="primary"
-    class="w-full md:max-w-48 mt-4"
+    class="w-full mt-4"
     @click="emit('confirm-now')"
   >
     Confirm Now
   </ZkButton>
   <ZkButton
     type="secondary"
-    class="w-full md:max-w-48"
+    class="w-full"
     @click="emit('confirm-later')"
   >
     Confirm Later
