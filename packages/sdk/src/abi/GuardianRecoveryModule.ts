@@ -1,40 +1,19 @@
 export const GuardianRecoveryModuleAbi = [
   {
-    inputs: [],
+    inputs: [
+      {
+        internalType: "contract WebAuthValidator",
+        name: "_webAuthValidator",
+        type: "address",
+      },
+      {
+        internalType: "contract AAFactory",
+        name: "_aaFactory",
+        type: "address",
+      },
+    ],
     stateMutability: "nonpayable",
     type: "constructor",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "guardian",
-        type: "address",
-      },
-    ],
-    name: "AccountAlreadyGuardedByGuardian",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "guardian",
-        type: "address",
-      },
-    ],
-    name: "AccountNotGuardedByAddress",
-    type: "error",
   },
   {
     inputs: [],
@@ -44,11 +23,6 @@ export const GuardianRecoveryModuleAbi = [
   {
     inputs: [],
     name: "ExpiredRequest",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "GuardianCannotBeSelf",
     type: "error",
   },
   {
@@ -74,95 +48,9 @@ export const GuardianRecoveryModuleAbi = [
     type: "error",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "chainId",
-        type: "uint256",
-      },
-    ],
-    name: "NO_TIMESTAMP_ASSERTER",
-    type: "error",
-  },
-  {
     inputs: [],
     name: "PasskeyNotMatched",
     type: "error",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "guardian",
-        type: "address",
-      },
-    ],
-    name: "GuardianAdded",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "guardian",
-        type: "address",
-      },
-    ],
-    name: "GuardianProposed",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "guardian",
-        type: "address",
-      },
-    ],
-    name: "GuardianRemoved",
-    type: "event",
   },
   {
     anonymous: false,
@@ -181,72 +69,10 @@ export const GuardianRecoveryModuleAbi = [
     anonymous: false,
     inputs: [
       {
-        indexed: true,
+        indexed: false,
         internalType: "address",
         name: "account",
         type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "hashedCredentialId",
-        type: "bytes32",
-      },
-    ],
-    name: "RecoveryDiscarded",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "hashedCredentialId",
-        type: "bytes32",
-      },
-    ],
-    name: "RecoveryFinished",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "hashedCredentialId",
-        type: "bytes32",
       },
       {
         indexed: false,
@@ -260,25 +86,12 @@ export const GuardianRecoveryModuleAbi = [
   },
   {
     inputs: [],
-    name: "REQUEST_DELAY_TIME",
+    name: "aaFactory",
     outputs: [
       {
-        internalType: "uint256",
+        internalType: "contract AAFactory",
         name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "REQUEST_VALIDITY_TIME",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        type: "address",
       },
     ],
     stateMutability: "view",
@@ -287,22 +100,17 @@ export const GuardianRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
         internalType: "address",
         name: "account",
         type: "address",
       },
       {
-        internalType: "address",
-        name: "guardian",
-        type: "address",
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
       },
     ],
-    name: "accountGuardianData",
+    name: "accountGuardians",
     outputs: [
       {
         internalType: "address",
@@ -326,14 +134,9 @@ export const GuardianRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
-        internalType: "address",
-        name: "accountToGuard",
-        type: "address",
+        internalType: "bytes",
+        name: "key",
+        type: "bytes",
       },
     ],
     name: "addValidationKey",
@@ -350,11 +153,34 @@ export const GuardianRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
+        internalType: "string",
+        name: "accountId",
+        type: "string",
       },
     ],
+    name: "checkRecoveryRequest",
+    outputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "ready",
+        type: "bool",
+      },
+      {
+        internalType: "uint256",
+        name: "remainingTime",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "discardRecovery",
     outputs: [],
     stateMutability: "nonpayable",
@@ -363,39 +189,22 @@ export const GuardianRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
         internalType: "address",
-        name: "account",
+        name: "guardian",
         type: "address",
       },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
     ],
-    name: "getPendingRecoveryData",
+    name: "guardedAccounts",
     outputs: [
       {
-        components: [
-          {
-            internalType: "bytes32",
-            name: "hashedCredentialId",
-            type: "bytes32",
-          },
-          {
-            internalType: "bytes32[2]",
-            name: "rawPublicKey",
-            type: "bytes32[2]",
-          },
-          {
-            internalType: "uint256",
-            name: "timestamp",
-            type: "uint256",
-          },
-        ],
-        internalType: "struct GuardianRecoveryValidator.RecoveryRequest",
+        internalType: "address",
         name: "",
-        type: "tuple",
+        type: "address",
       },
     ],
     stateMutability: "view",
@@ -403,11 +212,6 @@ export const GuardianRecoveryModuleAbi = [
   },
   {
     inputs: [
-      {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
       {
         internalType: "address",
         name: "guardian",
@@ -427,11 +231,6 @@ export const GuardianRecoveryModuleAbi = [
   },
   {
     inputs: [
-      {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
       {
         internalType: "address",
         name: "addr",
@@ -474,19 +273,14 @@ export const GuardianRecoveryModuleAbi = [
         type: "address",
       },
       {
-        internalType: "bytes32",
-        name: "hashedCredentialId",
-        type: "bytes32",
+        internalType: "bytes",
+        name: "passkey",
+        type: "bytes",
       },
       {
-        internalType: "bytes32[2]",
-        name: "rawPublicKey",
-        type: "bytes32[2]",
-      },
-      {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
+        internalType: "string",
+        name: "accountId",
+        type: "string",
       },
     ],
     name: "initRecovery",
@@ -499,6 +293,11 @@ export const GuardianRecoveryModuleAbi = [
       {
         internalType: "contract WebAuthValidator",
         name: "_webAuthValidator",
+        type: "address",
+      },
+      {
+        internalType: "contract AAFactory",
+        name: "_aaFactory",
         type: "address",
       },
     ],
@@ -524,7 +323,7 @@ export const GuardianRecoveryModuleAbi = [
     inputs: [
       {
         internalType: "bytes",
-        name: "data",
+        name: "",
         type: "bytes",
       },
     ],
@@ -536,11 +335,6 @@ export const GuardianRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-      {
         internalType: "address",
         name: "account",
         type: "address",
@@ -549,14 +343,19 @@ export const GuardianRecoveryModuleAbi = [
     name: "pendingRecoveryData",
     outputs: [
       {
-        internalType: "bytes32",
-        name: "hashedCredentialId",
-        type: "bytes32",
+        internalType: "bytes",
+        name: "passkey",
+        type: "bytes",
       },
       {
         internalType: "uint256",
         name: "timestamp",
         type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "accountId",
+        type: "string",
       },
     ],
     stateMutability: "view",
@@ -564,11 +363,6 @@ export const GuardianRecoveryModuleAbi = [
   },
   {
     inputs: [
-      {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
       {
         internalType: "address",
         name: "newGuardian",
@@ -582,11 +376,6 @@ export const GuardianRecoveryModuleAbi = [
   },
   {
     inputs: [
-      {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
       {
         internalType: "address",
         name: "guardianToRemove",
@@ -647,6 +436,11 @@ export const GuardianRecoveryModuleAbi = [
         internalType: "bytes32",
         name: "",
         type: "bytes32",
+      },
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes",
       },
       {
         components: [
