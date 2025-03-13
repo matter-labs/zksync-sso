@@ -1,7 +1,6 @@
 use alloy::primitives::Address;
 use eyre::eyre;
 
-pub mod conveniences;
 pub mod extensions;
 pub mod null_signer;
 pub mod passkey_raw_signer;
@@ -21,7 +20,7 @@ mod tests {
 
         let invalid = "0x1234";
         assert!(parse_address(invalid).is_err());
-        
+
         let invalid = "0xghijk";
         assert!(parse_address(invalid).is_err());
     }

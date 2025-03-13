@@ -1,5 +1,6 @@
 use alloy::primitives::{keccak256, Address, Bytes, FixedBytes};
 
+// TODO: consider uptreaming this to the `alloy-zksync` crate
 pub fn create2_address(
     account_factory_address: Address,
     smart_account_bytecode_hash: FixedBytes<32>,

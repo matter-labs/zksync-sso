@@ -9,6 +9,7 @@ use alloy_zksync::network::transaction_request::TransactionRequest;
 use money::Money;
 use rand::Rng;
 
+// TODO: move this to testing module
 pub async fn fund_account(
     address: Address,
     amount: U256,

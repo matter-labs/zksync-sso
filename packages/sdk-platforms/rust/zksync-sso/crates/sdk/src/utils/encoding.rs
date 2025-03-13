@@ -28,13 +28,7 @@ pub fn encode_passkey_module_parameters(
         expectedOrigin: passkey.expected_origin,
     };
 
-    let mut params_bytes = PasskeyParams::abi_encode(&params);
-    if params_bytes.starts_with(&[
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 32,
-    ]) {
-        params_bytes = params_bytes[32..].to_vec();
-    }
+    let params_bytes = PasskeyParams::abi_encode_params(&params);
 
     Ok(params_bytes.into())
 }
@@ -57,13 +51,7 @@ pub fn encode_module_data(module_data: ModuleData) -> Result<Bytes> {
         parameters: module_data.parameters,
     };
 
-    let mut encoded = ModuleParams::abi_encode(&params);
-    if encoded.starts_with(&[
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 32,
-    ]) {
-        encoded = encoded[32..].to_vec();
-    }
+    let encoded = ModuleParams::abi_encode_params(&params);
 
     Ok(encoded.into())
 }
