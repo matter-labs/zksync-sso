@@ -28,36 +28,42 @@ export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
       });
       return { success: true } as const;
     } catch {
-      const { checkRecoveryRequest, executeRecovery } = useRecoveryGuardian();
-      const recoveryRequest = await checkRecoveryRequest(credential.id);
-      if (recoveryRequest) {
-        const isReady = recoveryRequest[1];
-        if (isReady) {
-          await executeRecovery(recoveryRequest[0]);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
-            contracts: contractsByChain[chainId.value],
-            uniqueAccountId: credential.id,
-          });
-          login({
-            username,
-            address,
-            passkey: toHex(passkeyPublicKey),
-          });
-          return { success: true } as const;
-        }
+      const { checkRecoveryRequest, executeRecovery, getRecovery } = useRecoveryGuardian();
+      const recoveryRequest = await checkRecoveryRequest({ credentialId: credential.id });
 
-        return {
-          success: false,
-          recoveryRequest: {
-            account: recoveryRequest[0],
-            isReady: recoveryRequest[1],
-            remainingTime: recoveryRequest[2],
-          },
-        } as const;
-      } else {
-        return { success: false } as const;
+      if (recoveryRequest?.ready) {
+        const pendingRecoveryData = await getRecovery(recoveryRequest.accountAddress);
+        if (!pendingRecoveryData) throw new Error("No pending recovery data found");
+
+        await executeRecovery({
+          accountAddress: recoveryRequest.accountAddress,
+          credentialId: credential.id,
+          rawPublicKey: pendingRecoveryData.rawPublicKey,
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
+          contracts: contractsByChain[chainId.value],
+          uniqueAccountId: credential.id,
+        });
+        login({
+          username,
+          address,
+          passkey: toHex(passkeyPublicKey),
+        });
+        return { success: true } as const;
       }
+
+      if (recoveryRequest?.pendingRecovery) {
+        return { success: false, recoveryRequest: {
+          isReady: recoveryRequest.ready,
+          remainingTime: recoveryRequest.remainingTime,
+          accountAddress: recoveryRequest.accountAddress,
+          guardianAddress: recoveryRequest.guardianAddress,
+        },
+        } as const;
+      }
+
+      throw new Error("Account not found");
     }
   });
 

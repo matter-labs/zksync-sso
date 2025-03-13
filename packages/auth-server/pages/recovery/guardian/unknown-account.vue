@@ -5,9 +5,7 @@
     </header>
     <main class="max-w-[900px] mx-auto flex flex-col gap-6">
       <div class="flex flex-col items-center gap-8 mt-4">
-        <h1 class="text-3xl font-medium text-neutral-900 dark:text-neutral-100">
-          Account Recovery Not Possible
-        </h1>
+        <h1 class="text-3xl font-medium text-neutral-900 dark:text-neutral-100">Account Recovery Not Possible</h1>
 
         <div class="w-full max-w-md flex flex-col gap-6">
           <p class="text-neutral-700 dark:text-neutral-300 text-center">
