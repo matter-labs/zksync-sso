@@ -2,6 +2,7 @@ import { type Account, type Address, type Chain, type Client, createClient, crea
 import { privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode } from "viem/chains";
 
+import type { CustomPaymasterHandler } from "../../paymaster/index.js";
 import { encodeSessionTx } from "../../utils/encoding.js";
 import type { SessionConfig } from "../../utils/session.js";
 import { toSessionAccount } from "./account.js";
@@ -88,6 +89,7 @@ export function createZksyncSessionClient<
       sessionKey: parameters.sessionKey,
       sessionConfig: parameters.sessionConfig,
       contracts: parameters.contracts,
+      paymasterHandler: parameters.paymasterHandler,
     }))
     .extend(publicActions)
     .extend(publicActionsRewrite)
@@ -102,6 +104,7 @@ type ZksyncSsoSessionData = {
   sessionKey: Hash;
   sessionConfig: SessionConfig;
   contracts: SessionRequiredContracts;
+  paymasterHandler?: CustomPaymasterHandler;
 };
 
 export type ClientWithZksyncSsoSessionData<
@@ -139,4 +142,5 @@ export interface ZksyncSsoSessionClientConfig<
   contracts: SessionRequiredContracts;
   key?: string;
   name?: string;
+  paymasterHandler?: CustomPaymasterHandler;
 }
