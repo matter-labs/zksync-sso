@@ -9,8 +9,20 @@ license.workspace = true
 crate-type = ["staticlib"]
 
 [dependencies]
-uniffi = { version = "0.28.3", features = ["cli"] }
+uniffi = { version = "0.28.3", features = ["cli", "tokio"] }
 sdk = { path = "../sdk" }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Error handling
+eyre = { workspace = true }
+thiserror = { workspace = true }
 
 [build-dependencies]
 uniffi = { version = "0.28.3", features = ["build", "cli"] }
