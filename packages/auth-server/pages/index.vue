@@ -74,7 +74,7 @@ const logIn = async () => {
     return;
   }
   if (result?.recoveryRequest?.isReady === false) {
-    navigateTo(`/recovery/account-not-ready?address=${result!.recoveryRequest.account}`);
+    navigateTo(`/recovery/account-not-ready?address=${result!.recoveryRequest.accountAddress}`);
     return;
   }
   // TODO: handle rest of the cases

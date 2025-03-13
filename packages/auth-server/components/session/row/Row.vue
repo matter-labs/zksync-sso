@@ -55,7 +55,7 @@
 <script setup lang="ts">
 import { HandRaisedIcon } from "@heroicons/vue/24/outline";
 import type { Hash } from "viem";
-import { SessionKeyModuleAbi } from "zksync-sso/abi";
+import { SessionKeyValidatorAbi } from "zksync-sso/abi";
 import { type SessionConfig, type SessionState, SessionStatus } from "zksync-sso/utils";
 
 const props = defineProps<{
@@ -100,7 +100,7 @@ const {
   const client = getPublicClient({ chainId: defaultChain.id });
   const res = await client.readContract({
     address: contractsByChain[defaultChain.id].session,
-    abi: SessionKeyModuleAbi,
+    abi: SessionKeyValidatorAbi,
     functionName: "sessionState",
     args: [address.value!, props.session],
   });
