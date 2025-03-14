@@ -38,4 +38,5 @@ export interface ProviderInterface extends EventEmitter {
 export interface AppMetadata {
   name: string;
   icon: string | null;
+  configData: Record<string, string | number | boolean>;
 }
