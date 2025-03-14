@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { FactoryAbi } from "zksync-sso/abi";
+import { WebAuthValidatorAbi } from "zksync-sso/abi";
 import { fetchAccount } from "zksync-sso/client";
 
 export const useConfigurableAccount = () => {
@@ -9,29 +9,61 @@ export const useConfigurableAccount = () => {
     const publicClient = getPublicClient({ chainId: defaultChain.id });
     const factoryAddress = contractsByChain[defaultChain.id].accountFactory;
 
-    const accountId = await publicClient.readContract({
-      address: factoryAddress,
-      abi: FactoryAbi,
-      functionName: "accountIds",
-      args: [address],
-    });
-    if (!accountId) {
+    // FIXME: events should be scoped to the origin domain
+    // As well, this doesn't seem to be a reliable way of retrieving a `credentialId`
+    // but works for now.
+    const [events, removedEvents] = await Promise.all([
+      publicClient.getContractEvents({
+        address: factoryAddress,
+        abi: WebAuthValidatorAbi,
+        eventName: "PasskeyCreated",
+        args: {
+          keyOwner: address,
+        },
+        fromBlock: "earliest",
+        strict: true,
+      }),
+      publicClient.getContractEvents({
+        address: factoryAddress,
+        abi: WebAuthValidatorAbi,
+        eventName: "PasskeyRemoved",
+        args: {
+          keyOwner: address,
+        },
+        fromBlock: "earliest",
+        strict: true,
+      }),
+    ]);
+
+    if (!events || events.length === 0) {
       throw new Error("Account not found");
     }
+
+    const removedCredentialIds = new Set(
+      removedEvents.map((event) => event.args.credentialId),
+    );
+
+    const activeEvents = events.filter(
+      (event) => !removedCredentialIds.has(event.args.credentialId),
+    );
+    if (activeEvents.length === 0) {
+      throw new Error("No active accounts found");
+    }
+
+    const latestEvent = activeEvents[activeEvents.length - 1];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { username, passkeyPublicKey } = await fetchAccount(publicClient as any, {
       contracts: contractsByChain[defaultChain.id],
-      uniqueAccountId: accountId,
+      uniqueAccountId: latestEvent.args.credentialId,
     });
 
-    const client = getConfigurableClient({
+    return getConfigurableClient({
       chainId: defaultChain.id,
       address,
       credentialPublicKey: passkeyPublicKey,
       username,
     });
-    return client;
   });
 
   return {

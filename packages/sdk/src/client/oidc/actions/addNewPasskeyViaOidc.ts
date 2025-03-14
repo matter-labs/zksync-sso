@@ -2,18 +2,18 @@ import {
   type Account,
   type Address,
   type Chain,
-  type Client, encodeFunctionData,
+  type Client, encodeFunctionData, type Hex,
   type Prettify, type TransactionReceipt,
   type Transport,
 } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { sendTransaction } from "viem/zksync";
 
-import { WebAuthModuleAbi } from "../../../abi/index.js";
-import { encodePasskeyModuleParameters } from "../../../utils/encoding.js";
+import { WebAuthValidatorAbi } from "../../../abi/index.js";
 
 export type AddNewPasskeyViaOidcArgs = {
-  passkeyPubKey: [Buffer, Buffer];
+  credentialId: Hex;
+  passkeyPubKey: [Hex, Hex];
   passkeyDomain: string;
   contracts: {
     recoveryOidc: Address; // oidc recovery module
@@ -27,15 +27,10 @@ export async function addNewPasskeyViaOidc<
   account extends Account,
 
 >(client: Client<transport, chain, account>, args: Prettify<AddNewPasskeyViaOidcArgs>): Promise<TransactionReceipt> {
-  const encoded = encodePasskeyModuleParameters({
-    passkeyPublicKey: args.passkeyPubKey,
-    expectedOrigin: args.passkeyDomain,
-  });
-
   const callData = encodeFunctionData({
-    abi: WebAuthModuleAbi,
+    abi: WebAuthValidatorAbi,
     functionName: "addValidationKey",
-    args: [encoded],
+    args: [args.credentialId, args.passkeyPubKey, args.passkeyDomain],
   });
 
   const sendTransactionArgs = {

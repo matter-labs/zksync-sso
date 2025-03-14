@@ -1,6 +1,6 @@
 import type { Address } from "viem";
 import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
-import { type OidcData, type ParsedOidcData, parseOidcData } from "zksync-sso/client";
+import { type OidcData, type ParsedOidcData, parseOidcData } from "zksync-sso/client/oidc";
 import { type JWT, OidcDigest } from "zksync-sso-circuits";
 
 export const useRecoveryOidc = () => {
