@@ -9,3 +9,43 @@ rust-version = "1.83"
 license = "Apache-2.0"
 
 [workspace.dependencies]
+
+# Alloy
+alloy = { version = "0.11.0", default-features = false, features = [
+    "rlp",
+    "serde",
+    "rpc-types",
+    "signer-local",
+    "reqwest",
+    "contract",
+    "eip712",
+] }
+alloy-zksync = { git = "https://github.com/jackpooleyml/alloy-zksync", rev = "e96bb14e3ca6c3a8031e59494cf05fcedd12f07a" }
+
+# Http
+url = "2.5.4"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async
+tokio = { version = "1.43.0", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# Error handling
+eyre = "0.6"
+thiserror = "2.0.11"
+
+# Randomness
+rand = "0.9"
+
+# Hex
+hex = "0.4"
+
+# i18n
+icu = { version = "1.5.0", features = ["default", "serde", "std"] }
+icu_decimal = { version = "1.5.0", features = ["default"] }
+fixed_decimal = "0.5.6"
+fixed = "1.28.0"
