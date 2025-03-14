@@ -31,10 +31,10 @@
 </template>
 
 <script setup lang="ts">
-import { type Address, bytesToBigInt, bytesToHex, type Hex } from "viem";
+import { type Address, bytesToBigInt, bytesToHex, type Hex, toHex } from "viem";
 import { ref } from "vue";
 import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
-import { getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
+import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
 import { createNonce, JwtTxValidationInputs } from "zksync-sso-circuits";
 
 definePageMeta({
@@ -76,7 +76,11 @@ async function tryToGenerateProof() {
   try {
     await generateProf();
   } catch (e) {
-    guide(`An error ocurred: ${e.message}`);
+    if (e instanceof Error) {
+      guide(`An error ocurred: ${e.message}`);
+    } else {
+      guide("An unknown error happened");
+    }
   }
 }
 
@@ -110,9 +114,10 @@ async function generateProf(): Promise<void> {
   const oidcClient = getOidcClient({ chainId: defaultChain.id, address: addressToRecover });
 
   guide("Asking for new passkey...");
-  const passkeyPubKey = await getNewPasskey();
+  const { credentialId, passkeyPubKey } = await getNewPasskey();
   const txHash = await oidcClient.calculateTxHash({
-    passkeyPubKey: passkeyPubKey,
+    credentialId,
+    passkeyPubKey,
     passkeyDomain: window.location.origin,
   });
 
@@ -165,18 +170,24 @@ async function generateProf(): Promise<void> {
 
   guide("Broadcasting tx...");
   await oidcClient.addNewPasskeyViaOidc({
-    passkeyPubKey: passkeyPubKey,
+    credentialId,
+    passkeyPubKey,
     passkeyDomain: window.location.origin,
   });
   guide("Success!");
 }
 
-async function getNewPasskey(): Promise<[Buffer, Buffer]> {
+type PasskeyData = {
+  credentialId: Hex;
+  passkeyPubKey: [Hex, Hex];
+};
+
+async function getNewPasskey(): Promise<PasskeyData> {
   const result = await registerPasskey();
   if (!result) {
     throw new Error("Failed to register passkey");
   }
-  const { credentialPublicKey } = result;
+  const { credentialPublicKey, credentialId } = result;
 
   const [buf1, buf2] = getPublicKeyBytesFromPasskeySignature(credentialPublicKey);
 
@@ -184,6 +195,9 @@ async function getNewPasskey(): Promise<[Buffer, Buffer]> {
     throw new Error("Could not recover passkey");
   }
 
-  return [buf1, buf2];
+  return {
+    credentialId: toHex(base64UrlToUint8Array(credentialId)),
+    passkeyPubKey: [bytesToHex(buf1), bytesToHex(buf2)],
+  };
 }
 </script>
