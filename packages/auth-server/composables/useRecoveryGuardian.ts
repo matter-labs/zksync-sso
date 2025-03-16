@@ -136,7 +136,7 @@ export const useRecoveryGuardian = () => {
     };
   });
 
-  const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ accountToRecover, credentialPublicKey, accountId, client }: { accountToRecover: Address; credentialPublicKey: Uint8Array<ArrayBufferLike>; accountId: string; client: Client<transport, chain, account> }) => {
+  const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ accountToRecover, credentialPublicKey, accountId, client }: { accountToRecover: Address; credentialPublicKey: Uint8Array; accountId: string; client: Client<transport, chain, account> }) => {
     const publicKeyBytes = getPublicKeyBytesFromPasskeySignature(credentialPublicKey);
     const publicKeyHex = [
       pad(`0x${publicKeyBytes[0].toString("hex")}`),

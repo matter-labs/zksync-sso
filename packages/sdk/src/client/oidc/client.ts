@@ -21,7 +21,7 @@ import { type OidcAccount, toOidcAccount, type ZkProof } from "./account.js";
 import { zksyncSsoRecoveryActions } from "./actions/index.js";
 import type { ZksyncSsoOidcActions } from "./decorators/actions.js";
 
-type BigintTuple<N extends number, T extends bigint[] = []> = T["length"] extends N ? T : BigintTuple<N, [...T, bigint]>;
+export type BigintTuple<N extends number, T extends bigint[] = []> = T["length"] extends N ? T : BigintTuple<N, [...T, bigint]>;
 
 export const signOidcTransaction = (
   recoveryValidatorAddress: Address,
