@@ -16,10 +16,11 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
       core,
       metadata: appKitMetadata,
     });
-
     updateOpenSessions();
 
     walletKit.value.on("session_proposal", async ({ id, params }: WalletKitTypes.SessionProposal) => {
+      const walletConnectStore = useWalletConnectStore();
+
       const approvedNamespaces = buildApprovedNamespaces({
         proposal: params,
         supportedNamespaces: getSupportedNamespaces(accountAddress!),
@@ -28,6 +29,8 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
         id,
         namespaces: approvedNamespaces,
       });
+
+      walletConnectStore.updateOpenSessions();
     });
 
     walletKit.value.on("session_request", async (req: WalletKitTypes.SessionRequest) => {
@@ -49,16 +52,19 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
       }
       console.log("Req", req);
     });
+
+    walletKit.value.on("session_delete", () => {
+      const walletConnectStore = useWalletConnectStore();
+      walletConnectStore.updateOpenSessions();
+    });
   };
 
   const updateOpenSessions = () => {
-    if (!walletKit.value) return;
-    openSessions.value = Object.values(walletKit.value.getActiveSessions());
+    openSessions.value = walletKit.value ? Object.values(walletKit.value.getActiveSessions()) : [];
   };
 
   const pairAccount = async (uri: string) => {
     await walletKit.value!.pair({ uri });
-    updateOpenSessions();
   };
 
   const closeSession = async (topic: string) => {
@@ -66,7 +72,6 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
       topic: topic,
       reason: { code: 4100, message: "Session closed by user" },
     });
-    updateOpenSessions();
   };
 
   const sendTransaction = async (txData: WalletKitTypes.SessionRequest) => {
