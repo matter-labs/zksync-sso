@@ -6,7 +6,7 @@
     <main class="max-w-[900px] m-auto">
       <NuxtPage />
     </main>
-    <WalletConnectSessionRequestModal />
+    <!-- <WalletConnectSessionRequestModal /> -->
     <Teleport to="body">
       <div
         v-if="pendingRecovery"
@@ -43,14 +43,19 @@
 <script setup lang="ts">
 import { ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
 
-const { address } = useAccountStore();
+const accountStore = useAccountStore();
+const walletConnectStore = useWalletConnectStore();
 const { checkRecoveryRequest, discardRecovery } = useRecoveryGuardian();
 
 const pendingRecovery = ref(false);
 
+onMounted(async () => {
+  await walletConnectStore.initialize();
+});
+
 watchEffect(async () => {
-  if (!address) return;
-  const recoveryRequest = await checkRecoveryRequest({ address });
+  if (!accountStore.address) return;
+  const recoveryRequest = await checkRecoveryRequest({ address: accountStore.address });
   pendingRecovery.value = recoveryRequest?.pendingRecovery ?? false;
 });
 
