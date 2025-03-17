@@ -8,7 +8,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   const { address: accountAddress } = useAccountStore();
 
   const walletKit = ref<WalletKit | null>(null);
-
+  const sessionRequest = ref<WalletKitTypes.SessionRequest | null>(null);
   const openSessions = ref<SessionTypes.Struct[]>([]);
 
   const initialize = async () => {
@@ -33,17 +33,17 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     walletKit.value.on("session_request", async (req: WalletKitTypes.SessionRequest) => {
       switch (req.params.request.method) {
         case "eth_signTypedData_v4":
-          // sessionRequest.value = req;
+          sessionRequest.value = req;
           // client.signTypedData(JSON.parse(req.params.request.params[1]));
           // Implement your logic to handle the session request here
           break;
         case "eth_sendTransaction":
-          // sessionRequest.value = req;
+          sessionRequest.value = req;
           // client.sendTransaction(JSON.parse(req.params.request.params[1]));
           // Implement your logic to handle the session request here
           break;
         case "personal_sign":
-          // sessionRequest.value = req;
+          sessionRequest.value = req;
           // Implement your logic to handle the session request here
           break;
       }
@@ -103,6 +103,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
 
   return {
     walletKit,
+    sessionRequest,
     openSessions,
     initialize,
     updateOpenSessions,
