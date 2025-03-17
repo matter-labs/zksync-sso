@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { bytesToBigInt, type Hex, zeroAddress } from "viem";
+import { type Address, bytesToBigInt, type Hex, pad, toHex } from "viem";
 import { sendTransaction } from "viem/zksync";
 import { createNonceV2 } from "zksync-sso-circuits";
 
@@ -39,10 +39,19 @@ const {
   recoveryStep1Calldata,
   zkProofInProgress,
   zkProof,
+  generateZkProof,
+  hashIssuer,
 } = useRecoveryOidc();
+
+type PasskeyData = {
+  credentialId: Hex;
+  passkeyPubKey: [Hex, Hex];
+};
 
 const salt = defineModel<Hex>("salt", { required: true });
 const sub = defineModel<string>("sub", { required: true });
+const passkey = defineModel<PasskeyData>("passkey", { required: true });
+const userAddress = defineModel<Address>("userAddress", { required: true });
 // const disabledSteps = defineModel<number[]>("disabledSteps", { required: true });
 
 type KeysType = {
@@ -92,18 +101,30 @@ async function go() {
   const proof = await generateZkProof(
     jwt.raw,
     key.n,
-    salt,
+    salt.value,
     hashForCircuitInput,
     blindingFactor,
   );
 
-  const calldata = recoveryStep1Calldata(proof, key as never);
+  if (proof === undefined) {
+    throw new Error("`proof` should be defined");
+  }
+
+  const calldata = recoveryStep1Calldata(
+    proof,
+    {
+      issHash: await hashIssuer(),
+      kid: pad(toHex(Buffer.from(key.kid, "hex"))),
+    },
+    passkey.value.passkeyPubKey,
+    userAddress.value,
+  );
 
   const sendTransactionArgs = {
     account: client.account,
-    to: zeroAddress,
+    to: contractsByChain[defaultChain.id].recoveryOidc,
     data: calldata,
-    gas: 20_000,
+    gas: 40_000_000,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   await sendTransaction(client, sendTransactionArgs);

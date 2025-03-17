@@ -22,9 +22,11 @@
       @done="step3Done"
     />
     <Step4
-      v-if="currentStep === 4 && digest !== null && sub !== null"
+      v-if="currentStep === 4 && digest !== null && sub !== null && passkey !== null && userAddress !== null"
       :salt="digest.salt.toHex()"
       :sub="sub"
+      :passkey="passkey"
+      :userAddress="userAddress"
     />
   </div>
 </template>

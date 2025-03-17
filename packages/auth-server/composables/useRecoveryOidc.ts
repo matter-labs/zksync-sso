@@ -1,12 +1,6 @@
-import { type Address, encodeAbiParameters, type Hex } from "viem";
-import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
-import {
-  type BigintTuple,
-  type OidcData,
-  type OidcKey,
-  type ParsedOidcData,
-  parseOidcData,
-} from "zksync-sso/client/oidc";
+import { type Address, encodeAbiParameters, encodeFunctionData, type Hex, keccak256 } from "viem";
+import { OidcKeyRegistryAbi, OidcRecoveryModuleAbi } from "zksync-sso/abi";
+import { type OidcData, type ParsedOidcData, parseOidcData } from "zksync-sso/client/oidc";
 import { type Groth16Proof, type JWT, JwtTxValidationInputs, OidcDigest } from "zksync-sso-circuits";
 
 export const useRecoveryOidc = () => {
@@ -71,35 +65,18 @@ export const useRecoveryOidc = () => {
     });
   });
 
-  function recoveryStep1Calldata(proof: Groth16Proof, key: OidcKey): Hex {
-    return encodeAbiParameters(
-      [
-        {
-          type: "tuple",
-          components: [
-            {
-              name: "zkProof",
-              type: "tuple",
-              components: [
-                { name: "pA", type: "uint256[2]" },
-                { name: "pB", type: "uint256[2][2]" },
-                { name: "pC", type: "uint256[2]" },
-              ],
-            },
-            {
-              name: "key",
-              type: "tuple",
-              components: [
-                { name: "issHash", type: "bytes32" },
-                { name: "kid", type: "bytes32" },
-                { name: "n", type: "uint256[17]" },
-                { name: "e", type: "bytes" },
-              ],
-            },
-          ],
-        },
-      ],
-      [
+  // TODO: improve this
+  type KeyStruct = { issHash: Hex; kid: Hex };
+
+  function recoveryStep1Calldata(proof: Groth16Proof, key: KeyStruct, passkey: [Hex, Hex], targetAccount: Address): Hex {
+    const passkeyHash = keccak256(
+      encodeAbiParameters([{ type: "bytes32" }, { type: "bytes32" }], passkey),
+    );
+
+    return encodeFunctionData({
+      abi: OidcRecoveryModuleAbi,
+      functionName: "startRecovery",
+      args: [
         {
           zkProof: {
             pA: [BigInt(proof.pi_a[0]), BigInt(proof.pi_a[1])],
@@ -111,14 +88,13 @@ export const useRecoveryOidc = () => {
             ],
             pC: [BigInt(proof.pi_c[0]), BigInt(proof.pi_c[1])],
           },
-          key: {
-            issHash: key.issHash,
-            kid: key.kid,
-            n: key.n as BigintTuple<17>,
-            e: key.e,
-          },
+          issHash: key.issHash,
+          kid: key.kid,
+          pendingPasskeyHash: passkeyHash,
         },
-      ]);
+        targetAccount,
+      ],
+    });
   }
 
   const {
@@ -135,15 +111,25 @@ export const useRecoveryOidc = () => {
       blindingFactor,
     );
 
-    const res = await snarkjs.groth16.fullProve(
+    const groth16Result = await snarkjs.groth16.fullProve(
       inputs.toObject(),
       "/circuit/witness.wasm",
       "/circuit/circuit.zkey",
       console,
     );
 
-    return res;
+    return groth16Result.proof;
   });
+
+  async function hashIssuer(): Hex {
+    const client = await getPublicClient({ chainId: defaultChain.id });
+    return client.readContract({
+      address: contractsByChain[defaultChain.id].oidcKeyRegistry,
+      abi: OidcKeyRegistryAbi,
+      functionName: "hashIssuer",
+      args: ["https://accounts.google.com"],
+    });
+  }
 
   return {
     getOidcAccounts,
@@ -159,5 +145,6 @@ export const useRecoveryOidc = () => {
     generateZkProof,
     zkProof,
     zkProofError,
+    hashIssuer,
   };
 };
