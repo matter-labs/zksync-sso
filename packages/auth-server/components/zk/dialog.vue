@@ -74,6 +74,10 @@ const closeModal = () => {
   open.value = false;
 };
 
+const openModal = () => {
+  open.value = true;
+};
+
 defineProps<{
   title: string;
   contentClass?: string;
@@ -83,5 +87,6 @@ defineProps<{
 
 defineExpose({
   close: closeModal,
+  open: openModal,
 });
 </script>

@@ -6,6 +6,7 @@
     <main class="max-w-[900px] m-auto">
       <NuxtPage />
     </main>
+    <WalletConnectSessionRequestModal />
     <Teleport to="body">
       <div
         v-if="pendingRecovery"
