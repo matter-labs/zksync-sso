@@ -168,6 +168,14 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     });
     return { signature };
   };
+  const closeSession = async (topic: string) => {
+    walletKit.value!.disconnectSession({
+      topic: topic,
+      reason: { code: 4100, message: "Session closed by user" },
+    });
+    const sessions = walletKit.value!.getActiveSessions();
+    openSessions.value = Object.values(sessions);
+  };
 
   return {
     pairAccount,
@@ -175,5 +183,6 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     signTypedData,
     sessionRequest,
     openSessions,
+    closeSession,
   };
 });

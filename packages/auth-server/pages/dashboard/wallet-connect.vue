@@ -43,7 +43,7 @@
           <Button
             type="danger"
             class="text-sm lg:w-auto w-full"
-            @click="closeSession"
+            @click="closeSession(session.topic)"
           >
             Close
           </Button>
@@ -60,15 +60,12 @@ import Button from "~/components/zk/button.vue";
 import Card from "~/components/zk/panel/card.vue";
 
 const pairingUrl = defineModel<string>();
+const { closeSession } = useWalletConnectStore();
 const { openSessions } = storeToRefs(useWalletConnectStore());
 const { pairAccount } = useWalletConnectStore();
 const pairWcAccount = () => {
   if (pairingUrl.value) {
     pairAccount(toRef(pairingUrl as ModelRef<string>));
   }
-};
-
-const closeSession = () => {
-
 };
 </script>
