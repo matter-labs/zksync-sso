@@ -20,7 +20,7 @@ alloy = { version = "0.11.0", default-features = false, features = [
     "contract",
     "eip712",
 ] }
-alloy-zksync = { git = "https://github.com/jackpooleyml/alloy-zksync", rev = "e96bb14e3ca6c3a8031e59494cf05fcedd12f07a" }
+alloy-zksync = { version = "0.11.0" }
 
 # Http
 url = "2.5.4"

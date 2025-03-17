@@ -1,11 +1,14 @@
 use crate::config::Config;
 use alloy::{
+    consensus::SignableTransaction,
+    eips::Encodable2718,
     network::TransactionBuilder,
     primitives::{Bytes, PrimitiveSignature, U256},
 };
 use alloy_zksync::{
     network::{
         transaction_request::TransactionRequest,
+        tx_envelope::TxEnvelope,
         unsigned_tx::eip712::{Eip712Meta, TxEip712},
         Zksync,
     },
@@ -131,14 +134,16 @@ pub async fn populate_tx_request(
     Ok(tx)
 }
 
-pub fn build_raw_tx(tx: TransactionRequest) -> eyre::Result<Vec<u8>> {
+pub(crate) fn build_raw_tx(tx: TransactionRequest) -> eyre::Result<Vec<u8>> {
     let tx_eip712: TxEip712 = TransactionRequestWrapper(tx).into();
     let out = {
         let mut out = Vec::new();
         let dummy_signature_bytes = vec![0; 65];
         let dummy_signature: PrimitiveSignature =
             dummy_signature_bytes.as_slice().try_into()?;
-        tx_eip712.encode_with_signature(&dummy_signature, &mut out);
+        let signed_tx = tx_eip712.into_signed(dummy_signature);
+        let envelope = TxEnvelope::Eip712(signed_tx);
+        envelope.encode_2718(&mut out);
         out
     };
     println!(
