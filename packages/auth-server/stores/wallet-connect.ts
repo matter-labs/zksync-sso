@@ -55,21 +55,24 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
        * @returns {Promise<void>} - A promise that resolves when the session request handling is complete.
        */
     walletKit.value.on("session_request", async (req: WalletKitTypes.SessionRequest) => {
+      const client = getClient({ chainId: defaultChain.id });
       switch (req.params.request.method) {
         case "eth_signTypedData_v4":
-          sessionRequest.value = req;
-          // client.signTypedData(JSON.parse(req.params.request.params[1]));
-          // Implement your logic to handle the session request here
-          break;
         case "eth_sendTransaction":
-          sessionRequest.value = req;
-          // client.sendTransaction(JSON.parse(req.params.request.params[1]));
-          // Implement your logic to handle the session request here
-          break;
         case "personal_sign":
           sessionRequest.value = req;
-          // Implement your logic to handle the session request here
           break;
+        case "eth_sendRawTransaction":
+        {
+          const tx = await client.sendRawTransaction({
+            serializedTransaction: req.params.request.params[0],
+          });
+          walletKit.value!.respondSessionRequest({
+            topic: req.topic,
+            response: { id: req.id, result: tx, jsonrpc: "2.0" },
+          });
+          break;
+        }
       }
       console.log("Req", req);
     });
@@ -112,7 +115,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     // You can add multiple namespaces like cosmos, near, solana, etc
     eip155: {
       chains: ["eip155:260", "eip155:300"],
-      methods: ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4"],
+      methods: ["eth_sendTransaction", "eth_sendRawTransaction", "personal_sign", "eth_signTypedData_v4"],
       events: ["accountsChanged", "chainChanged"],
       // Replace wallet address with your address
       accounts: [
@@ -157,6 +160,11 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     const client = getClient({ chainId: defaultChain.id });
     const { types, primaryType, message } = JSON.parse(txData.params.request.params[1]);
     const signature = await client.signTypedData({
+      domain: {
+        name: "zkSync",
+        version: "2",
+        chainId: defaultChain.id,
+      },
       types,
       primaryType,
       message,
