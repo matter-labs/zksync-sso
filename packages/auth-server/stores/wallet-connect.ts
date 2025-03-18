@@ -8,6 +8,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   const { address: accountAddress } = useAccountStore();
 
   const walletKit = ref<WalletKit | null>(null);
+  const sessionProposal = ref<WalletKitTypes.SessionProposal | null>(null);
   const sessionRequest = ref<WalletKitTypes.SessionRequest | null>(null);
   const openSessions = ref<SessionTypes.Struct[]>([]);
 
@@ -18,49 +19,61 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     });
     updateOpenSessions();
 
-    walletKit.value.on("session_proposal", async ({ id, params }: WalletKitTypes.SessionProposal) => {
-      const walletConnectStore = useWalletConnectStore();
-
-      const approvedNamespaces = buildApprovedNamespaces({
-        proposal: params,
-        supportedNamespaces: getSupportedNamespaces(accountAddress!),
-      });
-      await walletKit.value!.approveSession({
-        id,
-        namespaces: approvedNamespaces,
-      });
-
-      walletConnectStore.updateOpenSessions();
+    walletKit.value.on("session_proposal", async (proposal: WalletKitTypes.SessionProposal) => {
+      console.log("[WC] Session proposal received", proposal);
+      useWalletConnectStore().sessionProposal = proposal;
     });
 
     walletKit.value.on("session_request", async (req: WalletKitTypes.SessionRequest) => {
       switch (req.params.request.method) {
         case "eth_signTypedData_v4":
-          sessionRequest.value = req;
-          // client.signTypedData(JSON.parse(req.params.request.params[1]));
-          // Implement your logic to handle the session request here
-          break;
         case "eth_sendTransaction":
-          sessionRequest.value = req;
-          // client.sendTransaction(JSON.parse(req.params.request.params[1]));
-          // Implement your logic to handle the session request here
-          break;
         case "personal_sign":
-          sessionRequest.value = req;
-          // Implement your logic to handle the session request here
+          console.log("[WC] Session request received", req);
+          useWalletConnectStore().sessionRequest = req;
           break;
+        default:
+          console.warn("[WC] Unsupported session request received", req);
       }
-      console.log("Req", req);
     });
 
-    walletKit.value.on("session_delete", () => {
-      const walletConnectStore = useWalletConnectStore();
-      walletConnectStore.updateOpenSessions();
+    walletKit.value.on("session_delete", (req: WalletKitTypes.SessionDelete) => {
+      console.log("[WC] Session deleted received", req);
+      useWalletConnectStore().updateOpenSessions();
     });
   };
 
   const updateOpenSessions = () => {
     openSessions.value = walletKit.value ? Object.values(walletKit.value.getActiveSessions()) : [];
+  };
+
+  const approveSessionProposal = async () => {
+    if (!sessionProposal.value) {
+      return;
+    }
+
+    const approvedNamespaces = buildApprovedNamespaces({
+      proposal: sessionProposal.value.params,
+      supportedNamespaces: getSupportedNamespaces(accountAddress!),
+    });
+    await walletKit.value!.approveSession({
+      id: sessionProposal.value.id,
+      namespaces: approvedNamespaces,
+    });
+    sessionProposal.value = null;
+    updateOpenSessions();
+  };
+
+  const rejectSessionProposal = async () => {
+    if (walletKit.value === null || sessionProposal.value === null) {
+      return;
+    }
+
+    await walletKit.value!.rejectSession({
+      id: sessionProposal.value.id,
+      reason: { code: 4100, message: "Session rejected by user" },
+    });
+    sessionProposal.value = null;
   };
 
   const pairAccount = async (uri: string) => {
@@ -108,6 +121,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
 
   return {
     walletKit,
+    sessionProposal,
     sessionRequest,
     openSessions,
     initialize,
@@ -116,6 +130,8 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     closeSession,
     sendTransaction,
     signTypedData,
+    approveSessionProposal,
+    rejectSessionProposal,
   };
 });
 
