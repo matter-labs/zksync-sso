@@ -26,7 +26,7 @@
       :salt="digest.salt.toHex()"
       :sub="sub"
       :passkey="passkey"
-      :userAddress="userAddress"
+      :user-address="userAddress"
     />
   </div>
 </template>
