@@ -2,6 +2,7 @@ import WalletKit, { type WalletKitTypes } from "@reown/walletkit";
 import Core from "@walletconnect/core";
 import type { SessionTypes } from "@walletconnect/types";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
+import { fromHex } from "viem";
 
 export const useWalletConnectStore = defineStore("wallet-connect", () => {
   const { defaultChain, getClient } = useClientStore();
@@ -158,9 +159,9 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   };
   const signTypedData = async (txData: WalletKitTypes.SessionRequest) => {
     const client = getClient({ chainId: defaultChain.id });
-    const { types, primaryType, message } = JSON.parse(txData.params.request.params[1]);
+    const { types, primaryType, message, domain } = JSON.parse(txData.params.request.params[1]);
     const signature = await client.signTypedData({
-      domain: {
+      domain: domain ?? {
         name: "zkSync",
         version: "2",
         chainId: defaultChain.id,
@@ -169,6 +170,29 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
       primaryType,
       message,
     });
+
+    walletKit.value!.respondSessionRequest({
+      topic: txData.topic,
+      response: { id: txData.id, result: signature, jsonrpc: "2.0" },
+    });
+    return { signature };
+  };
+
+  const signPersonal = async (txData: WalletKitTypes.SessionRequest) => {
+    const client = getClient({ chainId: defaultChain.id });
+    const message = fromHex(txData.params.request.params[0], "string");
+    console.log(message);
+    const signature = await client.signMessage({
+      message,
+    }) as `0x${string}`;
+
+    console.log(signature);
+    const isValid = await client.verifyMessage({
+      address: txData.params.request.params[1],
+      message,
+      signature,
+    });
+    console.log(isValid);
 
     walletKit.value!.respondSessionRequest({
       topic: txData.topic,
@@ -189,6 +213,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     pairAccount,
     sendTransaction,
     signTypedData,
+    signPersonal,
     sessionRequest,
     openSessions,
     closeSession,
