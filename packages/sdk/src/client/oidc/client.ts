@@ -6,7 +6,6 @@ import {
   createClient,
   encodeAbiParameters,
   getAddress,
-  type Hex,
   type Prettify,
   publicActions,
   type PublicRpcSchema,
@@ -17,7 +16,7 @@ import {
 } from "viem";
 
 import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "../recovery/decorators/wallet.js";
-import { type OidcAccount, toOidcAccount, type ZkProof } from "./account.js";
+import { type OidcAccount, toOidcAccount } from "./account.js";
 import { zksyncSsoRecoveryActions } from "./actions/index.js";
 import type { ZksyncSsoOidcActions } from "./decorators/actions.js";
 
@@ -25,66 +24,7 @@ export type BigintTuple<N extends number, T extends bigint[] = []> = T["length"]
 
 export const signOidcTransaction = (
   recoveryValidatorAddress: Address,
-  _hash: Hex,
-  proof: ZkProof,
 ) => {
-  if (proof.oidcKey.n.length !== 17) {
-    throw new Error("key modulus should be 17 elements long");
-  }
-
-  const encodedProof = encodeAbiParameters(
-    [
-      {
-        type: "tuple",
-        components: [
-          {
-            name: "zkProof",
-            type: "tuple",
-            components: [
-              { name: "pA", type: "uint256[2]" },
-              { name: "pB", type: "uint256[2][2]" },
-              { name: "pC", type: "uint256[2]" },
-            ],
-          },
-          {
-            name: "key",
-            type: "tuple",
-            components: [
-              { name: "issHash", type: "bytes32" },
-              { name: "kid", type: "bytes32" },
-              { name: "n", type: "uint256[17]" },
-              { name: "e", type: "bytes" },
-            ],
-          },
-          {
-            name: "merkleProof",
-            type: "bytes32[]",
-          },
-        ],
-      },
-    ],
-    [
-      {
-        zkProof: {
-          pA: [BigInt(proof.groth16Proof.pi_a[0]), BigInt(proof.groth16Proof.pi_a[1])],
-          pB: [
-            // Order here is inverted because that's what the verifier expects TODO better explanation
-            [BigInt(proof.groth16Proof.pi_b[0][1]), BigInt(proof.groth16Proof.pi_b[0][0])],
-            [BigInt(proof.groth16Proof.pi_b[1][1]), BigInt(proof.groth16Proof.pi_b[1][0])],
-          ],
-          pC: [BigInt(proof.groth16Proof.pi_c[0]), BigInt(proof.groth16Proof.pi_c[1])],
-        },
-        key: {
-          issHash: proof.oidcKey.issHash,
-          kid: proof.oidcKey.kid,
-          n: proof.oidcKey.n as BigintTuple<17>,
-          e: proof.oidcKey.e,
-        },
-        merkleProof: proof.merkleProof,
-      },
-    ],
-  );
-
   return encodeAbiParameters(
     [
       { type: "bytes", name: "signature" },
@@ -92,7 +32,7 @@ export const signOidcTransaction = (
       { type: "bytes[]", name: "validatorData" },
     ],
     [
-      encodedProof,
+      "0x",
       recoveryValidatorAddress,
       ["0x"],
     ],
@@ -165,8 +105,8 @@ export function createZkSyncOidcClient<
 
   const account = toOidcAccount({
     address: parameters.address,
-    signTransaction: async ({ hash, proof }) => {
-      return signOidcTransaction(parameters.contracts.recoveryOidc, hash, proof);
+    signTransaction: async () => {
+      return signOidcTransaction(parameters.contracts.recoveryOidc);
     },
   });
 

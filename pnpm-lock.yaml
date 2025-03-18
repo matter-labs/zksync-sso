@@ -473,7 +473,7 @@ importers:
     dependencies:
       '@zk-email/circuits':
         specifier: ^6.2.0
-        version: 6.3.3
+        version: 6.3.2
       change-case:
         specifier: ^5.4.4
         version: 5.4.4
@@ -5564,8 +5564,8 @@ packages:
     resolution: {integrity: sha512-aiATs7pSutzda/rq8fnuPwTglyVwjM22bNnK2ZgjrpAjQHSSl3lztd2f9evst1W/qnC58DRz7T7QndUDumAR4Q==}
     engines: {node: '>=14.15.0'}
 
-  '@zk-email/circuits@6.3.3':
-    resolution: {integrity: sha512-YwyeMhmyRNausmvIsNB/lLiRgj/qbWTD0ZpSsfW7goQQPkAhRieyImK8ik0g0YVFvPtGsEw2msd4Q+tSVRvKGw==}
+  '@zk-email/circuits@6.3.2':
+    resolution: {integrity: sha512-CJwVFUKUi6x0Hn/GSfn0XjI2WpMbNTon2UyMtzTALu1FS5kQOYES5byV7Jho8q4IuejDQ8ye70fN4R5EbIw77Q==}
 
   '@zk-email/zk-regex-circom@2.3.2':
     resolution: {integrity: sha512-GXp4Z/93iF54hfJwlWl52HFiqpmLCeSHFc4HlYpxj5EWHQK6ibFQMLUWTJsdA3eh/erjO4UX+HlEIJ/gHhLg9g==}
@@ -20427,7 +20427,7 @@ snapshots:
       js-yaml: 3.14.1
       tslib: 2.8.0
 
-  '@zk-email/circuits@6.3.3':
+  '@zk-email/circuits@6.3.2':
     dependencies:
       '@zk-email/zk-regex-circom': 2.3.2
       circomlib: 2.0.5

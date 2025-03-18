@@ -1,23 +1,30 @@
 <template>
   <p
-    v-if="notStarted"
+    v-if="notStarted && !recoverySuccessful"
     class="text-center text-neutral-700 dark:text-neutral-300"
   >
     Everything is ready to start your recovery
   </p>
   <p
-    v-if="calculatingProof"
+    v-if="calculatingProof && !recoverySuccessful"
     class="text-center text-neutral-700 dark:text-neutral-300"
   >
     You recovery is being prepared. Please don't close the window.
   </p>
   <p
-    v-if="proofReady"
+    v-if="proofReady && !recoverySuccessful"
     class="text-center text-neutral-700 dark:text-neutral-300"
   >
     Waiting for the transaction to confirm...
   </p>
+  <p
+    v-if="recoverySuccessful"
+    class="text-center text-neutral-700 dark:text-neutral-300"
+  >
+    Recovery successful. You can now use your new passkey.
+  </p>
   <ZkButton
+    v-if="!recoverySuccessful"
     class="w-full"
     :disabled="calculatingProof"
     @click="go"
@@ -28,11 +35,11 @@
 
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { type Address, bytesToBigInt, type Hex, pad, toHex } from "viem";
+import { type Address, type Hex, pad, toHex } from "viem";
 import { sendTransaction } from "viem/zksync";
 import { createNonceV2 } from "zksync-sso-circuits";
 
-const { getWalletClient, defaultChain } = useClientStore();
+const { getWalletClient, defaultChain, getOidcClient } = useClientStore();
 const { startGoogleOauth } = useGoogleOauth();
 const accountData = useAppKitAccount();
 const {
@@ -73,16 +80,21 @@ const proofReady = computed<boolean>(() => {
   return !zkProofInProgress.value && zkProof.value;
 });
 
+const recoverySuccessful = ref<boolean>(false);
+console.log(recoverySuccessful.value);
+
 function buildBlindingFactor(): bigint {
-  const randomValues = new Uint8Array(31);
-  crypto.getRandomValues(randomValues);
-  return bytesToBigInt(randomValues);
+  // const randomValues = new Uint8Array(31);
+  // crypto.getRandomValues(randomValues);
+  // return bytesToBigInt(randomValues);
+  return 2n;
 }
+console.log(salt.value);
 
 async function go() {
   const client = await getWalletClient({ chainId: defaultChain.id });
   const blindingFactor = buildBlindingFactor();
-  const contractNonce = 1n;
+  const contractNonce = 0n;
   const [hashForCircuitInput, jwtNonce] = createNonceV2(accountData.value.address as Hex, contractNonce, blindingFactor);
 
   const jwt = await startGoogleOauth(jwtNonce, sub.value);
@@ -120,13 +132,27 @@ async function go() {
     userAddress.value,
   );
 
+  const cmd = `cast call -r "http://localhost:8011" --from="0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e" ${contractsByChain[defaultChain.id].recoveryOidc} --data="${calldata}"`;
+  console.log(cmd);
+
   const sendTransactionArgs = {
     account: client.account,
     to: contractsByChain[defaultChain.id].recoveryOidc,
     data: calldata,
-    gas: 40_000_000,
+    gas: 20_000_000,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   await sendTransaction(client, sendTransactionArgs);
+
+  console.log("Transaction broadcast success");
+
+  const oidcClient = getOidcClient({ chainId: defaultChain.id, address: userAddress.value });
+
+  await oidcClient.addNewPasskeyViaOidc({
+    credentialId: passkey.value.credentialId,
+    passkeyPubKey: passkey.value.passkeyPubKey,
+    passkeyDomain: window.location.origin,
+  });
+  recoverySuccessful.value = true;
 }
 </script>
