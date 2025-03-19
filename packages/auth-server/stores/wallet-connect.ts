@@ -106,8 +106,8 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     const { to, data, value } = txData.params.request.params[0];
     const tx = await client.sendTransaction({
       to,
-      data,
-      value,
+      data: data ?? "0x",
+      value: value ?? "0",
     });
 
     walletKit.value!.respondSessionRequest({
@@ -141,18 +141,9 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   const signPersonal = async (txData: WalletKitTypes.SessionRequest) => {
     const client = getClient({ chainId: defaultChain.id });
     const message = fromHex(txData.params.request.params[0], "string");
-    console.log(message);
     const signature = await client.signMessage({
       message,
     }) as `0x${string}`;
-
-    console.log(signature);
-    const isValid = await client.verifyMessage({
-      address: txData.params.request.params[1],
-      message,
-      signature,
-    });
-    console.log(isValid);
 
     walletKit.value!.respondSessionRequest({
       topic: txData.topic,

@@ -29,9 +29,9 @@
       :request="walletConnectStore.sessionRequest"
     />
     <SignPersonalFlow
-      v-if="sessionRequest?.params.request.method === 'personal_sign'"
+      v-if="walletConnectStore.sessionRequest?.params.request.method === 'personal_sign'"
       :close-modal="closeModal"
-      :request="sessionRequest"
+      :request="walletConnectStore.sessionRequest"
     />
   </Dialog>
 </template>
