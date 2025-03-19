@@ -37,7 +37,7 @@ export async function addNewPasskeyViaOidc<
     account: client.account,
     to: args.contracts.passkey,
     data: callData,
-    gas: 50_000_000n, // TODO: Remove when gas estimation is fixed
+    gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
     type: "eip712",
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
