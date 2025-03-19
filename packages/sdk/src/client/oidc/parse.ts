@@ -5,6 +5,9 @@ export type OidcData = {
   oidcDigest: Hex;
   iss: Hex;
   aud: Hex;
+  readyToRecover: boolean;
+  pendingPasskeyHash: Hex;
+  recoverNonce: Hex;
 };
 
 export type ParsedOidcData = {

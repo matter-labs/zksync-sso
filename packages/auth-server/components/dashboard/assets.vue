@@ -83,11 +83,16 @@ const showAll = ref(false);
 const hasMoreToShow = ref(false);
 
 const filteredBalances = computed(() => {
+  console.log("AAAA", assets.value?.balances);
   const balances = Object.entries(assets.value?.balances || {})
     .filter(([, balance]) => balance.token !== null)
     .map(([address, balance]) => ({ address, ...balance }))
     .map((aBalance) => {
-      aBalance.token.usdValue = (+formatUnits(BigInt(aBalance.balance) * BigInt(Math.round(aBalance.token.usdPrice * 10000000000)) / BigInt(10000000000), aBalance.token.decimals));
+      if (aBalance.token.usdPrice) {
+        aBalance.token.usdValue = (+formatUnits(BigInt(aBalance.balance) * BigInt(Math.round(aBalance.token.usdPrice * 10000000000)) / BigInt(10000000000), aBalance.token.decimals));
+      } else {
+        aBalance.token.usdValue = 0;
+      }
       return aBalance;
     })
     .sort((a, b) => b.token.usdValue - a.token.usdValue);

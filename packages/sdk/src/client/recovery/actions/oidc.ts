@@ -43,14 +43,10 @@ export const addOidcAccount = async <
   const encodedOidcData = encodeAbiParameters(
     [
       {
-        type: "tuple", name: "OidcData", components: [
-          { type: "bytes32", name: "oidcDigest" },
-          { type: "bytes", name: "iss" },
-          { type: "bytes", name: "aud" },
-        ],
+        type: "bytes32", name: "key",
       },
     ],
-    [args.oidcData],
+    [args.oidcData.oidcDigest],
   );
 
   const callData = encodeFunctionData({

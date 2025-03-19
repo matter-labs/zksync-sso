@@ -8,7 +8,6 @@ import {
 } from "viem";
 import { toAccount } from "viem/accounts";
 import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
-import { type Groth16Proof } from "zksync-sso-circuits";
 
 import { getEip712Domain } from "../utils/getEip712Domain.js";
 
@@ -16,7 +15,6 @@ export type ToOidcAccountParameters = {
   address: Address;
   signTransaction: (parameters: {
     hash: Hash;
-    proof: ZkProof;
   }) => Promise<Hex>;
 };
 
@@ -27,39 +25,14 @@ export type OidcKey = {
   e: Hex;
 };
 
-export type ZkProof = {
-  txHash: Hex;
-  groth16Proof: Groth16Proof;
-  public: bigint[];
-  oidcKey: OidcKey;
-  merkleProof: Hex[];
-};
-
 export type OidcAccount = LocalAccount<"ssoOidcAccount"> & {
   sign: NonNullable<CustomSource["sign"]>;
-} & {
-  addProof: (proof: ZkProof) => void;
-  findProof: (txHash: Hex) => ZkProof;
-  addKey: (txHash: Hex, key: OidcKey) => void;
-  findKey: (txHash: Hex) => OidcKey;
 };
 
 export function toOidcAccount(
   parameters: ToOidcAccountParameters,
 ): OidcAccount {
   const { address, signTransaction } = parameters;
-
-  const proofs: ZkProof[] = [];
-
-  const findProof = (txHash: Hex) => {
-    const found = proofs.find((proof) => proof.txHash === txHash);
-    if (!found) throw new Error("Missing proof");
-    return found;
-  };
-
-  const addProof = (proof: ZkProof) => {
-    proofs.push(proof);
-  };
 
   const account = toAccount({
     address,
@@ -77,7 +50,6 @@ export function toOidcAccount(
         ...signableTransaction,
         customSignature: await signTransaction({
           hash: digest,
-          proof: findProof(digest),
         }),
       });
     },
@@ -88,7 +60,6 @@ export function toOidcAccount(
       const digest = hashTypedData(typedData);
       return signTransaction({
         hash: digest,
-        proof: findProof(digest),
       });
     },
   });
@@ -97,7 +68,5 @@ export function toOidcAccount(
     ...account,
     source: "ssoOidcAccount",
     type: "local",
-    addProof,
-    findProof,
   } as OidcAccount;
 };
