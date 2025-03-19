@@ -19,14 +19,14 @@
       <div />
     </template>
     <SendTransactionFlow
-      v-if="sessionRequest?.params.request.method === 'eth_sendTransaction'"
+      v-if="walletConnectStore.sessionRequest?.params.request.method === 'eth_sendTransaction'"
       :close-modal="closeModal"
-      :request="sessionRequest"
+      :request="walletConnectStore.sessionRequest"
     />
     <SignTypedDataFlow
-      v-if="sessionRequest?.params.request.method === 'eth_signTypedData_v4'"
+      v-if="walletConnectStore.sessionRequest?.params.request.method === 'eth_signTypedData_v4'"
       :close-modal="closeModal"
-      :request="sessionRequest"
+      :request="walletConnectStore.sessionRequest"
     />
     <SignPersonalFlow
       v-if="sessionRequest?.params.request.method === 'personal_sign'"
@@ -45,10 +45,10 @@ import SignTypedDataFlow from "~/components/wallet-connect/sign-typed-data/Root.
 import Dialog from "~/components/zk/dialog.vue";
 
 const modalRef = ref<InstanceType<typeof Dialog>>();
-const { sessionRequest } = storeToRefs(useWalletConnectStore());
+const walletConnectStore = useWalletConnectStore();
 
 watchEffect(() => {
-  if (sessionRequest.value) {
+  if (walletConnectStore.sessionRequest) {
     modalRef.value?.open();
   }
 });
@@ -66,7 +66,7 @@ function closeModal() {
 }
 
 const title = computed(() => {
-  switch (sessionRequest.value?.params.request.method) {
+  switch (walletConnectStore.sessionRequest?.params.request.method) {
     case "eth_sendTransaction":
       return "Send Transaction";
     default:

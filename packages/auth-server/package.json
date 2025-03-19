@@ -40,6 +40,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@walletconnect/types": "^2.19.1",
     "tailwindcss": "^3.4.14"
   },
   "overrides": {

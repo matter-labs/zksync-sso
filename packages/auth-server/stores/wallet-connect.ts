@@ -7,62 +7,27 @@ import { fromHex } from "viem";
 export const useWalletConnectStore = defineStore("wallet-connect", () => {
   const { defaultChain, getClient } = useClientStore();
   const { address: accountAddress } = useAccountStore();
+
   const walletKit = ref<WalletKit | null>(null);
-
+  const sessionProposal = ref<WalletKitTypes.SessionProposal | null>(null);
   const sessionRequest = ref<WalletKitTypes.SessionRequest | null>(null);
-  const openSessions = ref<[string, SessionTypes.Struct][]>([]);
+  const openSessions = ref<SessionTypes.Struct[]>([]);
 
-  const core = new Core({
-    projectId: "4460d3c08eabdbc5f822eefaa2216f0a",
-  });
-
-  const metadataAppKit = {
-    name: "zksync-sso",
-    description: "AppKit Example",
-    url: "http://localhost:3002", // origin must match your domain & subdomain
-    icons: ["https://assets.reown.com/reown-profile-pic.png"],
-  };
-
-  watchEffect(async () => {
+  const initialize = async () => {
     walletKit.value = await WalletKit.init({
-      core, // <- pass the shared 'core' instance
-      metadata: metadataAppKit,
+      core,
+      metadata: appKitMetadata,
+    });
+    updateOpenSessions();
+
+    walletKit.value.on("session_proposal", async (proposal: WalletKitTypes.SessionProposal) => {
+      console.log("[WC] Session proposal received", proposal);
+      useWalletConnectStore().sessionProposal = proposal;
     });
 
-    const sessions = walletKit.value.getActiveSessions();
-    openSessions.value = Object.values(sessions);
-
-    walletKit.value.on("session_proposal", async ({ id, params }: WalletKitTypes.SessionProposal) => {
-      try {
-        const approvedNamespaces = buildApprovedNamespaces({
-          proposal: params,
-          supportedNamespaces,
-        });
-
-        await walletKit.value!.approveSession({
-          id: id as number,
-          namespaces: approvedNamespaces,
-        });
-      } catch (error) {
-        console.error(error);
-      }
-      console.log("session_proposal", params); // Implement your logic to handle the session proposal here
-    });
-
-    /**
-       * Event listener for the "session_request" event from walletKit.
-       *
-       * @param {WalletKitTypes.SessionRequest} req - The session request object containing details of the session request.
-       * @returns {Promise<void>} - A promise that resolves when the session request handling is complete.
-       */
     walletKit.value.on("session_request", async (req: WalletKitTypes.SessionRequest) => {
       const client = getClient({ chainId: defaultChain.id });
       switch (req.params.request.method) {
-        case "eth_signTypedData_v4":
-        case "eth_sendTransaction":
-        case "personal_sign":
-          sessionRequest.value = req;
-          break;
         case "eth_sendRawTransaction":
         {
           const tx = await client.sendRawTransaction({
@@ -74,74 +39,68 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
           });
           break;
         }
-      }
-      console.log("Req", req);
-    });
-
-    /**
-       * Event listener for the "auth_request" event from walletKit.
-       *
-       * @param {WalletKitTypes.AuthRequest} authRequest - The auth request object containing details of the auth request.
-       * @returns {Promise<void>} - A promise that resolves when the auth request handling is complete.
-       */
-    walletKit.value!.on("auth_request", async (authRequest) => {
-      const { verifyContext } = authRequest;
-      const validation = verifyContext.verified.validation; // can be VALID, INVALID or UNKNOWN
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const origin = verifyContext.verified.origin; // the actual verified origin of the request
-      const isScam = verifyContext.verified.isScam; // true if the domain is flagged as malicious
-
-      // if the domain is flagged as malicious, you should warn the user as they may lose their funds - check the `Threat` case for more info
-      if (isScam) {
-        // show a warning screen to the user
-        // and proceed only if the user accepts the risk
-      }
-
-      switch (validation) {
-        case "VALID":
-          // proceed with the request - check the `Domain match` case for more info
+        case "eth_signTypedData_v4":
+        case "eth_sendTransaction":
+        case "personal_sign":
+          console.log("[WC] Session request received", req);
+          useWalletConnectStore().sessionRequest = req;
           break;
-        case "INVALID":
-          // show a warning dialog to the user - check the `Mismatch` case for more info
-          // and proceed only if the user accepts the risk
-          break;
-        case "UNKNOWN":
-          // show a warning dialog to the user - check the `Unverified` case for more info
-          // and proceed only if the user accepts the risk
-          break;
+        default:
+          console.warn("[WC] Unsupported session request received", req);
       }
     });
-  });
-  const supportedNamespaces = {
-    // You can add multiple namespaces like cosmos, near, solana, etc
-    eip155: {
-      chains: ["eip155:260", "eip155:300"],
-      methods: ["eth_sendTransaction", "eth_sendRawTransaction", "personal_sign", "eth_signTypedData_v4"],
-      events: ["accountsChanged", "chainChanged"],
-      // Replace wallet address with your address
-      accounts: [
-        `eip155:260:${accountAddress}`,
-        `eip155:300:${accountAddress}`,
-      ],
-    },
+
+    walletKit.value.on("session_delete", (req: WalletKitTypes.SessionDelete) => {
+      console.log("[WC] Session deleted received", req);
+      useWalletConnectStore().updateOpenSessions();
+    });
   };
-  core.pairing.events.on("pairing", (pairing) => {
-    console.log("pairing", pairing);
-  });
-  core.pairing.events.on("pairing_expire", (pairing_expire) => {
-    console.log("pairing_expire", pairing_expire);
-  });
 
-  const pairAccount = async (pairingUrl: Ref<string>) => {
-    if (!pairingUrl.value) {
+  const updateOpenSessions = () => {
+    openSessions.value = walletKit.value ? Object.values(walletKit.value.getActiveSessions()) : [];
+  };
+
+  const approveSessionProposal = async () => {
+    if (!sessionProposal.value) {
       return;
     }
-    try {
-      await walletKit.value!.pair({ uri: pairingUrl.value });
-    } catch (error) {
-      console.log(error);
-    }
+
+    const approvedNamespaces = buildApprovedNamespaces({
+      proposal: sessionProposal.value.params,
+      supportedNamespaces: getSupportedNamespaces(accountAddress!),
+    });
+    await walletKit.value!.approveSession({
+      id: sessionProposal.value.id,
+      namespaces: approvedNamespaces,
+    });
+    sessionProposal.value = null;
+    updateOpenSessions();
   };
+
+  const rejectSessionProposal = async () => {
+    if (walletKit.value === null || sessionProposal.value === null) {
+      return;
+    }
+
+    await walletKit.value!.rejectSession({
+      id: sessionProposal.value.id,
+      reason: { code: 4100, message: "Session rejected by user" },
+    });
+    sessionProposal.value = null;
+  };
+
+  const pairAccount = async (uri: string) => {
+    await walletKit.value!.pair({ uri });
+  };
+
+  const closeSession = async (topic: string) => {
+    await walletKit.value!.disconnectSession({
+      topic: topic,
+      reason: { code: 4100, message: "Session closed by user" },
+    });
+    updateOpenSessions();
+  };
+
   const sendTransaction = async (txData: WalletKitTypes.SessionRequest) => {
     const client = getClient({ chainId: defaultChain.id });
     const { to, data, value } = txData.params.request.params[0];
@@ -157,6 +116,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     });
     return { hash: tx };
   };
+
   const signTypedData = async (txData: WalletKitTypes.SessionRequest) => {
     const client = getClient({ chainId: defaultChain.id });
     const { types, primaryType, message, domain } = JSON.parse(txData.params.request.params[1]);
@@ -200,22 +160,46 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     });
     return { signature };
   };
-  const closeSession = async (topic: string) => {
-    walletKit.value!.disconnectSession({
-      topic: topic,
-      reason: { code: 4100, message: "Session closed by user" },
-    });
-    const sessions = walletKit.value!.getActiveSessions();
-    openSessions.value = Object.values(sessions);
-  };
 
   return {
+    walletKit,
+    sessionProposal,
+    sessionRequest,
+    openSessions,
+    initialize,
+    updateOpenSessions,
     pairAccount,
+    closeSession,
     sendTransaction,
     signTypedData,
     signPersonal,
-    sessionRequest,
-    openSessions,
-    closeSession,
+    approveSessionProposal,
+    rejectSessionProposal,
   };
 });
+
+function getSupportedNamespaces(accountAddress: string) {
+  return {
+    eip155: {
+      chains: ["eip155:260", "eip155:300"],
+      methods: ["eth_sendTransaction", "eth_sendRawTransaction", "personal_sign", "eth_signTypedData_v4"],
+      events: ["accountsChanged", "chainChanged"],
+      // Replace wallet address with your address
+      accounts: [
+        `eip155:260:${accountAddress}`,
+        `eip155:300:${accountAddress}`,
+      ],
+    },
+  };
+}
+
+const core = new Core({
+  projectId: "4460d3c08eabdbc5f822eefaa2216f0a",
+});
+
+const appKitMetadata = {
+  name: "zksync-sso",
+  description: "AppKit Example",
+  url: "http://localhost:3002",
+  icons: ["https://assets.reown.com/reown-profile-pic.png"],
+};

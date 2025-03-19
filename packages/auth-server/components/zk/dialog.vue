@@ -18,16 +18,19 @@
       <Dialog.Content
         :class="twMerge(['data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[350px] translate-x-[-50%] translate-y-[-50%] flex flex-col rounded-zk bg-white focus:outline-none z-[100] p-6 dark:bg-neutral-950 border border-transparent dark:border-neutral-900 dark:text-neutral-100', contentClass])"
       >
-        <Dialog.Title class="text-lg flex items-center mb-8">
-          <span class="flex-auto">{{ title }}</span>
-          <Dialog.Close
-            class="inline-flex appearance-none items-center justify-center focus:outline-none focus:ring-1 rounded-full"
-            aria-label="Close"
-            @click="closeModal"
-          >
-            <ZkIcon icon="close" />
-          </Dialog.Close>
-        </Dialog.Title>
+        <slot name="header">
+          <Dialog.Title class="text-lg flex items-center mb-8">
+            <span class="flex-auto">{{ title }}</span>
+            <Dialog.Close
+              class="inline-flex appearance-none items-center justify-center focus:outline-none focus:ring-1 rounded-full"
+              aria-label="Close"
+              @click="closeModal"
+            >
+              <ZkIcon icon="close" />
+            </Dialog.Close>
+          </Dialog.Title>
+        </slot>
+
         <Dialog.Description :class="twMerge(['mb-10 text-lg text-center', descriptionClass])">
           <slot />
         </Dialog.Description>
