@@ -13,6 +13,28 @@
         "command": "pnpm run dev:salt"
       },
       "inputs": ["production"]
+    },
+    "dev:key-registry": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/oidc-server",
+        "command": "tsx src/index.ts"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["zksync-sso-contracts:deploy"],
+      "options": {
+        "cwd": "packages/oidc-server",
+        "commands": [
+          {
+            "command": "tsx src/index.ts"
+          },
+          {
+            "command": "pnpm run dev:salt"
+          }
+        ]
+      }
     }
   }
 }

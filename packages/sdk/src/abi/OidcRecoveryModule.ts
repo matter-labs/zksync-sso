@@ -11,6 +11,11 @@ export const OidcRecoveryModuleAbi = [
         name: "_verifier",
         type: "address",
       },
+      {
+        internalType: "address",
+        name: "_webAuthValidator",
+        type: "address",
+      },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -36,12 +41,6 @@ export const OidcRecoveryModuleAbi = [
         internalType: "address",
         name: "account",
         type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "bytes",
-        name: "iss",
-        type: "bytes",
       },
       {
         indexed: false,
@@ -94,25 +93,6 @@ export const OidcRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-    ],
-    name: "digestIndex",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "address",
         name: "_keyRegistry",
         type: "address",
@@ -120,6 +100,11 @@ export const OidcRecoveryModuleAbi = [
       {
         internalType: "address",
         name: "_verifier",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "_webAuthValidator",
         type: "address",
       },
     ],
@@ -168,6 +153,21 @@ export const OidcRecoveryModuleAbi = [
             name: "aud",
             type: "bytes",
           },
+          {
+            internalType: "bool",
+            name: "readyToRecover",
+            type: "bool",
+          },
+          {
+            internalType: "bytes32",
+            name: "pendingPasskeyHash",
+            type: "bytes32",
+          },
+          {
+            internalType: "uint256",
+            name: "recoverNonce",
+            type: "uint256",
+          },
         ],
         internalType: "struct OidcRecoveryValidator.OidcData[]",
         name: "",
@@ -199,6 +199,63 @@ export const OidcRecoveryModuleAbi = [
       },
     ],
     name: "onUninstall",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            components: [
+              {
+                internalType: "uint256[2]",
+                name: "pA",
+                type: "uint256[2]",
+              },
+              {
+                internalType: "uint256[2][2]",
+                name: "pB",
+                type: "uint256[2][2]",
+              },
+              {
+                internalType: "uint256[2]",
+                name: "pC",
+                type: "uint256[2]",
+              },
+            ],
+            internalType: "struct OidcRecoveryValidator.ZkProof",
+            name: "zkProof",
+            type: "tuple",
+          },
+          {
+            internalType: "bytes32",
+            name: "issHash",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes32",
+            name: "kid",
+            type: "bytes32",
+          },
+          {
+            internalType: "bytes32",
+            name: "pendingPasskeyHash",
+            type: "bytes32",
+          },
+        ],
+        internalType: "struct OidcRecoveryValidator.StartRecoveryData",
+        name: "data",
+        type: "tuple",
+      },
+      {
+        internalType: "address",
+        name: "targetAccount",
+        type: "address",
+      },
+    ],
+    name: "startRecovery",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -252,11 +309,6 @@ export const OidcRecoveryModuleAbi = [
         internalType: "bytes32",
         name: "signedHash",
         type: "bytes32",
-      },
-      {
-        internalType: "bytes",
-        name: "signature",
-        type: "bytes",
       },
       {
         components: [
@@ -354,12 +406,25 @@ export const OidcRecoveryModuleAbi = [
         type: "bool",
       },
     ],
-    stateMutability: "view",
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
     inputs: [],
     name: "verifier",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "webAuthValidator",
     outputs: [
       {
         internalType: "address",
