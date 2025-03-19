@@ -24,16 +24,4 @@ const accountData = useAppKitAccount();
 defineEmits<{
   (e: "done"): void;
 }>();
-
-// async function go() {
-//   const client = await getWalletClient({ chainId: defaultChain.id });
-//   const sendTransactionArgs = {
-//     account: client.account,
-//     to: zeroAddress,
-//     data: "0x",
-//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//   } as any;
-//
-//   await sendTransaction(client, sendTransactionArgs);
-// }
 </script>
