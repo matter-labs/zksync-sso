@@ -2,6 +2,7 @@ import WalletKit, { type WalletKitTypes } from "@reown/walletkit";
 import Core from "@walletconnect/core";
 import type { SessionTypes } from "@walletconnect/types";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
+import { fromHex } from "viem";
 
 export const useWalletConnectStore = defineStore("wallet-connect", () => {
   const { defaultChain, getClient } = useClientStore();
@@ -25,7 +26,19 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     });
 
     walletKit.value.on("session_request", async (req: WalletKitTypes.SessionRequest) => {
+      const client = getClient({ chainId: defaultChain.id });
       switch (req.params.request.method) {
+        case "eth_sendRawTransaction":
+        {
+          const tx = await client.sendRawTransaction({
+            serializedTransaction: req.params.request.params[0],
+          });
+          walletKit.value!.respondSessionRequest({
+            topic: req.topic,
+            response: { id: req.id, result: tx, jsonrpc: "2.0" },
+          });
+          break;
+        }
         case "eth_signTypedData_v4":
         case "eth_sendTransaction":
         case "personal_sign":
@@ -85,6 +98,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
       topic: topic,
       reason: { code: 4100, message: "Session closed by user" },
     });
+    updateOpenSessions();
   };
 
   const sendTransaction = async (txData: WalletKitTypes.SessionRequest) => {
@@ -92,8 +106,8 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     const { to, data, value } = txData.params.request.params[0];
     const tx = await client.sendTransaction({
       to,
-      data,
-      value,
+      data: data ?? "0x",
+      value: value ?? "0",
     });
 
     walletKit.value!.respondSessionRequest({
@@ -105,12 +119,31 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
 
   const signTypedData = async (txData: WalletKitTypes.SessionRequest) => {
     const client = getClient({ chainId: defaultChain.id });
-    const { types, primaryType, message } = JSON.parse(txData.params.request.params[1]);
+    const { types, primaryType, message, domain } = JSON.parse(txData.params.request.params[1]);
     const signature = await client.signTypedData({
+      domain: domain ?? {
+        name: "zkSync",
+        version: "2",
+        chainId: defaultChain.id,
+      },
       types,
       primaryType,
       message,
     });
+
+    walletKit.value!.respondSessionRequest({
+      topic: txData.topic,
+      response: { id: txData.id, result: signature, jsonrpc: "2.0" },
+    });
+    return { signature };
+  };
+
+  const signPersonal = async (txData: WalletKitTypes.SessionRequest) => {
+    const client = getClient({ chainId: defaultChain.id });
+    const message = fromHex(txData.params.request.params[0], "string");
+    const signature = await client.signMessage({
+      message,
+    }) as `0x${string}`;
 
     walletKit.value!.respondSessionRequest({
       topic: txData.topic,
@@ -130,6 +163,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     closeSession,
     sendTransaction,
     signTypedData,
+    signPersonal,
     approveSessionProposal,
     rejectSessionProposal,
   };
@@ -139,7 +173,7 @@ function getSupportedNamespaces(accountAddress: string) {
   return {
     eip155: {
       chains: ["eip155:260", "eip155:300"],
-      methods: ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4"],
+      methods: ["eth_sendTransaction", "eth_sendRawTransaction", "personal_sign", "eth_signTypedData_v4"],
       events: ["accountsChanged", "chainChanged"],
       // Replace wallet address with your address
       accounts: [

@@ -28,6 +28,11 @@
       :close-modal="closeModal"
       :request="walletConnectStore.sessionRequest"
     />
+    <SignPersonalFlow
+      v-if="walletConnectStore.sessionRequest?.params.request.method === 'personal_sign'"
+      :close-modal="closeModal"
+      :request="walletConnectStore.sessionRequest"
+    />
   </Dialog>
 </template>
 
@@ -35,6 +40,7 @@
 import { ref } from "vue";
 
 import SendTransactionFlow from "~/components/wallet-connect/send-transaction/Root.vue";
+import SignPersonalFlow from "~/components/wallet-connect/sign-personal/Root.vue";
 import SignTypedDataFlow from "~/components/wallet-connect/sign-typed-data/Root.vue";
 import Dialog from "~/components/zk/dialog.vue";
 
