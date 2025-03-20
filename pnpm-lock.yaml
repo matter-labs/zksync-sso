@@ -472,13 +472,13 @@ importers:
   packages/circuits:
     dependencies:
       '@zk-email/circuits':
-        specifier: ^6.2.0
+        specifier: '=6.3.2'
         version: 6.3.2
       change-case:
         specifier: ^5.4.4
         version: 5.4.4
       circomlib:
-        specifier: ^2.0.5
+        specifier: '=2.0.5'
         version: 2.0.5
       poseidon-lite:
         specifier: ^0.3.0
