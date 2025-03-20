@@ -44,6 +44,18 @@ export const OidcRecoveryModuleAbi = [
       },
       {
         indexed: false,
+        internalType: "bytes32",
+        name: "oidcDigest",
+        type: "bytes32",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "iss",
+        type: "string",
+      },
+      {
+        indexed: false,
         internalType: "bool",
         name: "isNew",
         type: "bool",
@@ -144,14 +156,9 @@ export const OidcRecoveryModuleAbi = [
             type: "bytes32",
           },
           {
-            internalType: "bytes",
+            internalType: "string",
             name: "iss",
-            type: "bytes",
-          },
-          {
-            internalType: "bytes",
-            name: "aud",
-            type: "bytes",
+            type: "string",
           },
           {
             internalType: "bool",
