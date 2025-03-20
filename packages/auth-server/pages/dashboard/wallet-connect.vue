@@ -1,23 +1,20 @@
 <template>
   <div class="flex flex-col flex-1">
     <div class="space-y-6">
-      <Card class="border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600">
-        <h3 class="font-semibold text-yellow-800 mb-2 dark:text-yellow-200">
-          Pair WalletConnect Account
+      <Card class="bg-gray-100">
+        <h3 class="font-semibold mb-2">
+          Connect with WalletConnect
         </h3>
-        <p class="text-yellow-700 mb-4 dark:text-yellow-300">
-          Pair your WalletConnect dApp with your account to start using it.
+        <p class="mb-4">
+          Enter the WalletConnect URI from the application you want to connect to below.
         </p>
         <ZkInput
           v-model="pairingUri"
-          placeholder="0x..."
-          class="w-full text-left"
+          placeholder="e.g. wc:a281567bb3e4..."
+          class="w-full text-left mb-4"
         />
-        <Button
-          class="bg-yellow-500 hover:bg-yellow-600 text-white dark:bg-yellow-600 dark:hover:bg-yellow-700 focus:bg-yellow-600 active:bg-yellow-700 disabled:bg-yellow-500 disabled:text-yellow-300 disabled:dark:bg-yellow-600 disabled:dark:hover:bg-yellow-700 dark:focus:bg-yellow-700 dark:active:bg-yellow-800 focus:ring-yellow-400 dark:focus:ring-yellow-800"
-          @click="pairAccount"
-        >
-          Pair
+        <Button @click="pairAccount">
+          Connect
         </Button>
       </Card>
       <Card
@@ -37,7 +34,7 @@
               <span class="font-mono text-sm">{{ session.peer.metadata.url }}</span>
             </div>
             <p class="text-sm text-gray-500 dark:text-gray-500">
-              Expires on {{ session.expiry }}
+              Expires on {{ fromUnixTime(session.expiry).toDateString() }} - {{ fromUnixTime(session.expiry).toLocaleTimeString() }}
             </p>
           </div>
           <Button
@@ -45,7 +42,7 @@
             class="text-sm lg:w-auto w-full"
             @click="walletConnectStore.closeSession(session.topic)"
           >
-            Close
+            Delete
           </Button>
         </div>
       </Card>
@@ -55,6 +52,7 @@
 
 <script setup lang="ts">
 import { WalletIcon } from "@heroicons/vue/24/solid";
+import { fromUnixTime } from "date-fns";
 
 import Button from "~/components/zk/button.vue";
 import Card from "~/components/zk/panel/card.vue";
