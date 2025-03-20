@@ -283,19 +283,6 @@ export const abi = [
   },
   {
     inputs: [],
-    name: "merkleRoot",
-    outputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
     name: "owner",
     outputs: [
       {
@@ -325,52 +312,6 @@ export const abi = [
     name: "transferOwnership",
     outputs: [],
     stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: "bytes32",
-            name: "issHash",
-            type: "bytes32",
-          },
-          {
-            internalType: "bytes32",
-            name: "kid",
-            type: "bytes32",
-          },
-          {
-            internalType: "uint256[17]",
-            name: "n",
-            type: "uint256[17]",
-          },
-          {
-            internalType: "bytes",
-            name: "e",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct OidcKeyRegistry.Key",
-        name: "key",
-        type: "tuple",
-      },
-      {
-        internalType: "bytes32[]",
-        name: "proof",
-        type: "bytes32[]",
-      },
-    ],
-    name: "verifyKey",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
     type: "function",
   },
 ];

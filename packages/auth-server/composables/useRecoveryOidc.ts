@@ -1,7 +1,8 @@
 import { type Address, encodeAbiParameters, encodeFunctionData, type Hex, keccak256 } from "viem";
 import { OidcKeyRegistryAbi, OidcRecoveryModuleAbi } from "zksync-sso/abi";
-import { type OidcData, type ParsedOidcData, parseOidcData } from "zksync-sso/client/oidc";
 import { type Groth16Proof, type JWT, JwtTxValidationInputs, OidcDigest } from "zksync-sso-circuits";
+
+import type { OidcData } from "../../sdk/dist/_types/client/recovery/actions/oidc";
 
 export const useRecoveryOidc = () => {
   const { getClient, getPublicClient, defaultChain } = useClientStore();
@@ -13,7 +14,7 @@ export const useRecoveryOidc = () => {
 
   const getOidcAccountsInProgress = ref(false);
   const getOidcAccountsError = ref<Error | null>(null);
-  const getOidcAccountsData = ref<readonly ParsedOidcData[] | null>(null);
+  const getOidcAccountsData = ref<readonly OidcData[] | null>(null);
 
   async function buildOidcDigest(jwt: JWT): Promise<OidcDigest> {
     const response = await fetch(saltServiceUrl, {
@@ -40,7 +41,7 @@ export const useRecoveryOidc = () => {
         functionName: "oidcDataForAddress",
         args: [oidcAddress],
       });
-      getOidcAccountsData.value = data.map(parseOidcData);
+      getOidcAccountsData.value = data;
       return;
     } catch (err) {
       getOidcAccountsError.value = err as Error;
