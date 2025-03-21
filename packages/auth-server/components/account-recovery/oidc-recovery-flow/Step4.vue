@@ -135,9 +135,6 @@ async function go() {
     userAddress.value,
   );
 
-  // const cmd = `cast call -r "http://localhost:8011" --from="0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e" ${contractsByChain[defaultChain.id].recoveryOidc} --data="${calldata}"`;
-  // console.log(cmd);
-
   const sendTransactionArgs = {
     account: client.account,
     to: contractsByChain[defaultChain.id].recoveryOidc,
