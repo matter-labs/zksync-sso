@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { type Address, type Hex, pad, toHex } from "viem";
+import { type Address, bytesToBigInt, type Hex, pad, toHex } from "viem";
 import { sendTransaction } from "viem/zksync";
 import { createNonceV2 } from "zksync-sso-circuits";
 
@@ -77,19 +77,16 @@ const calculatingProof = computed<boolean>(() => {
 });
 
 const proofReady = computed<boolean>(() => {
-  return !zkProofInProgress.value && zkProof.value;
+  return !zkProofInProgress.value && !!zkProof.value;
 });
 
 const recoverySuccessful = ref<boolean>(false);
-console.log(recoverySuccessful.value);
 
 function buildBlindingFactor(): bigint {
-  // const randomValues = new Uint8Array(31);
-  // crypto.getRandomValues(randomValues);
-  // return bytesToBigInt(randomValues);
-  return 2n;
+  const randomValues = new Uint8Array(31);
+  crypto.getRandomValues(randomValues);
+  return bytesToBigInt(randomValues);
 }
-console.log(salt.value);
 
 async function go() {
   const client = await getWalletClient({ chainId: defaultChain.id });
@@ -132,8 +129,8 @@ async function go() {
     userAddress.value,
   );
 
-  const cmd = `cast call -r "http://localhost:8011" --from="0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e" ${contractsByChain[defaultChain.id].recoveryOidc} --data="${calldata}"`;
-  console.log(cmd);
+  // const cmd = `cast call -r "http://localhost:8011" --from="0x72D8dd6EE7ce73D545B229127E72c8AA013F4a9e" ${contractsByChain[defaultChain.id].recoveryOidc} --data="${calldata}"`;
+  // console.log(cmd);
 
   const sendTransactionArgs = {
     account: client.account,
@@ -143,8 +140,6 @@ async function go() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   await sendTransaction(client, sendTransactionArgs);
-
-  console.log("Transaction broadcast success");
 
   const oidcClient = getOidcClient({ chainId: defaultChain.id, address: userAddress.value });
 
