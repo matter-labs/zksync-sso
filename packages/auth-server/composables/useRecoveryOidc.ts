@@ -122,7 +122,7 @@ export const useRecoveryOidc = () => {
     return groth16Result.proof;
   });
 
-  async function hashIssuer(): Hex {
+  async function hashIssuer(): Promise<Hex> {
     const client = await getPublicClient({ chainId: defaultChain.id });
     return client.readContract({
       address: contractsByChain[defaultChain.id].oidcKeyRegistry,
