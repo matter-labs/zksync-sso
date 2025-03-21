@@ -1,8 +1,7 @@
 import { type Address, encodeAbiParameters, encodeFunctionData, type Hex, keccak256 } from "viem";
 import { OidcKeyRegistryAbi, OidcRecoveryModuleAbi } from "zksync-sso/abi";
+import type { OidcData } from "zksync-sso/client/oidc";
 import { type Groth16Proof, type JWT, JwtTxValidationInputs, OidcDigest } from "zksync-sso-circuits";
-
-import type { OidcData } from "../../sdk/dist/_types/client/recovery/actions/oidc";
 
 export const useRecoveryOidc = () => {
   const { getClient, getPublicClient, defaultChain } = useClientStore();
@@ -11,10 +10,6 @@ export const useRecoveryOidc = () => {
     public: { saltServiceUrl },
   } = useRuntimeConfig();
   const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
-
-  const getOidcAccountsInProgress = ref(false);
-  const getOidcAccountsError = ref<Error | null>(null);
-  const getOidcAccountsData = ref<readonly OidcData[] | null>(null);
 
   async function buildOidcDigest(jwt: JWT): Promise<OidcDigest> {
     const response = await fetch(saltServiceUrl, {
@@ -29,27 +24,30 @@ export const useRecoveryOidc = () => {
     return new OidcDigest(jwt.iss, jwt.aud, jwt.sub, salt);
   }
 
-  async function getOidcAccounts(oidcAddress: Address) {
-    getOidcAccountsInProgress.value = true;
-    getOidcAccountsError.value = null;
-
+  const {
+    execute: getOidcAccounts,
+    inProgress: getOidcAccountsInProgress,
+    result: googleAccountData,
+    error: getOidcAccountsError,
+  } = useAsync(async (oidcAddress: Address) => {
+    const client = getPublicClient({ chainId: defaultChain.id });
     try {
-      const client = getPublicClient({ chainId: defaultChain.id });
       const data = await client.readContract({
         address: contractsByChain[defaultChain.id].recoveryOidc,
         abi: OidcRecoveryModuleAbi,
         functionName: "oidcDataForAddress",
         args: [oidcAddress],
       });
-      getOidcAccountsData.value = data;
-      return;
-    } catch (err) {
-      getOidcAccountsError.value = err as Error;
-      return;
-    } finally {
-      getOidcAccountsInProgress.value = false;
+      return data as OidcData;
+    } catch (error) {
+      console.warn(error);
+      return undefined;
     }
-  }
+  });
+
+  const oidcAccounts = computed<OidcData[]>(() => {
+    return googleAccountData.value == null ? [] : [googleAccountData];
+  });
 
   const {
     inProgress: addOidcAccountIsLoading,
@@ -103,7 +101,7 @@ export const useRecoveryOidc = () => {
     execute: generateZkProof,
     result: zkProof,
     error: zkProofError,
-  } = useAsync(async (rawJwt: string, n: string, salt: Hex, valueInNonce: string, blindingFactor: bigint) => {
+  } = useAsync(async (rawJwt: string, n: string, salt: Hex, valueInNonce: Hex, blindingFactor: bigint) => {
     const inputs = new JwtTxValidationInputs(
       rawJwt,
       n,
@@ -122,21 +120,23 @@ export const useRecoveryOidc = () => {
     return groth16Result.proof;
   });
 
-  async function hashIssuer(): Hex {
+  async function hashIssuer(): Promise<Hex> {
     const client = await getPublicClient({ chainId: defaultChain.id });
-    return client.readContract({
+    const res = await client.readContract({
       address: contractsByChain[defaultChain.id].oidcKeyRegistry,
       abi: OidcKeyRegistryAbi,
       functionName: "hashIssuer",
       args: ["https://accounts.google.com"],
     });
+    return res as Hex;
   }
 
   return {
     getOidcAccounts,
     getOidcAccountsInProgress,
     getOidcAccountsError,
-    getOidcAccountsData,
+    googleAccountData,
+    oidcAccounts,
     buildOidcDigest,
     addOidcAccount,
     addOidcAccountIsLoading,

@@ -19,14 +19,7 @@ import {
 
 import { OidcRecoveryModuleAbi } from "../../../abi/index.js";
 import { noThrow } from "../../../utils/helpers.js";
-
-export type OidcData = {
-  oidcDigest: Hex;
-  iss: string;
-  readyToRecover: boolean;
-  pendingPasskeyHash: Hex;
-  recoverNonce: Hex;
-};
+import type { OidcData } from "../../oidc/index.js";
 
 export type AddOidcAccountArgs = {
   contracts: {
