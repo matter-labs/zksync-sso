@@ -123,25 +123,31 @@ const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
 const { address: accountAddress } = useAccountStore();
 const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
-const { getOidcAccounts, getOidcAccountsData, getOidcAccountsInProgress } = useRecoveryOidc();
+const { getOidcAccounts, oidcAccounts, getOidcAccountsInProgress } = useRecoveryOidc();
 
 const config = useRuntimeConfig();
 
 const appUrl = config.public.appUrl;
 
-const recoveryMethods = computed(() => [
-  ...(getGuardiansData.value ?? []).map((x) => ({
-    method: "Guardian",
-    address: x.addr,
-    addedOn: new Date(),
-    ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
-  })),
-  ...(getOidcAccountsData.value ?? []).map((oidcData) => ({
+const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
+  return {
     method: "OIDC",
-    iss: oidcData.iss,
-    digest: oidcData.oidcDigest,
+    iss: oidcData.value.iss,
+    digest: oidcData.value.oidcDigest,
     addedOn: new Date(),
-  })),
+  };
+}));
+
+const guardianMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
+  method: "Guardian",
+  address: x.addr,
+  addedOn: new Date(),
+  ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
+})));
+
+const recoveryMethods = computed(() => [
+  ...guardianMethods.value,
+  ...activeOidc.value,
 ]);
 
 const refreshGuardians = () => {
