@@ -11,10 +11,6 @@ export const useRecoveryOidc = () => {
   } = useRuntimeConfig();
   const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
 
-  const getOidcAccountsInProgress = ref(false);
-  const getOidcAccountsError = ref<Error | null>(null);
-  const getOidcAccountsData = ref<readonly OidcData[] | null>(null);
-
   async function buildOidcDigest(jwt: JWT): Promise<OidcDigest> {
     const response = await fetch(saltServiceUrl, {
       method: "GET",
@@ -28,26 +24,30 @@ export const useRecoveryOidc = () => {
     return new OidcDigest(jwt.iss, jwt.aud, jwt.sub, salt);
   }
 
-  async function getOidcAccounts(oidcAddress: Address) {
-    getOidcAccountsInProgress.value = true;
-    getOidcAccountsError.value = null;
-
+  const {
+    execute: getOidcAccounts,
+    inProgress: getOidcAccountsInProgress,
+    result: googleAccountData,
+    error: getOidcAccountsError,
+  } = useAsync(async (oidcAddress: Address) => {
+    const client = getPublicClient({ chainId: defaultChain.id });
     try {
-      const client = getPublicClient({ chainId: defaultChain.id });
-      getOidcAccountsData.value = await client.readContract({
+      const data = await client.readContract({
         address: contractsByChain[defaultChain.id].recoveryOidc,
         abi: OidcRecoveryModuleAbi,
         functionName: "oidcDataForAddress",
         args: [oidcAddress],
       });
-      return;
-    } catch (err) {
-      getOidcAccountsError.value = err as Error;
-      return;
-    } finally {
-      getOidcAccountsInProgress.value = false;
+      return data as OidcData;
+    } catch (error) {
+      console.warn(error);
+      return undefined;
     }
-  }
+  });
+
+  const oidcAccounts = computed<OidcData[]>(() => {
+    return googleAccountData.value == null ? [] : [googleAccountData];
+  });
 
   const {
     inProgress: addOidcAccountIsLoading,
@@ -135,7 +135,8 @@ export const useRecoveryOidc = () => {
     getOidcAccounts,
     getOidcAccountsInProgress,
     getOidcAccountsError,
-    getOidcAccountsData,
+    googleAccountData,
+    oidcAccounts,
     buildOidcDigest,
     addOidcAccount,
     addOidcAccountIsLoading,

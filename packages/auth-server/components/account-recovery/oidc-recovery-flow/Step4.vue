@@ -48,6 +48,7 @@ const {
   zkProof,
   generateZkProof,
   hashIssuer,
+  getOidcAccounts,
 } = useRecoveryOidc();
 
 type PasskeyData = {
@@ -91,7 +92,12 @@ function buildBlindingFactor(): bigint {
 async function go() {
   const client = await getWalletClient({ chainId: defaultChain.id });
   const blindingFactor = buildBlindingFactor();
-  const contractNonce = 0n;
+  const oidcData = await getOidcAccounts(userAddress.value);
+  if (oidcData === undefined) {
+    throw new Error("Could not find OIDC data");
+  }
+
+  const contractNonce = oidcData.recoverNonce;
   const [hashForCircuitInput, jwtNonce] = createNonceV2(accountData.value.address as Hex, contractNonce, blindingFactor);
 
   const jwt = await startGoogleOauth(jwtNonce, sub.value);
