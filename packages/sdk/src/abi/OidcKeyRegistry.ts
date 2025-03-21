@@ -22,6 +22,50 @@ export const OidcKeyRegistryAbi = [
     inputs: [
       {
         indexed: true,
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+      {
+        indexed: false,
+        internalType: "uint256[17]",
+        name: "n",
+        type: "uint256[17]",
+      },
+    ],
+    name: "KeyAdded",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+    ],
+    name: "KeyDeleted",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
         internalType: "address",
         name: "previousOwner",
         type: "address",
@@ -64,6 +108,11 @@ export const OidcKeyRegistryAbi = [
   },
   {
     inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
       {
         internalType: "uint256",
         name: "",
@@ -174,6 +223,24 @@ export const OidcKeyRegistryAbi = [
         type: "bytes32",
       },
     ],
+    name: "deleteKey",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+    ],
     name: "getKey",
     outputs: [
       {
@@ -208,7 +275,13 @@ export const OidcKeyRegistryAbi = [
     type: "function",
   },
   {
-    inputs: [],
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+    ],
     name: "getKeys",
     outputs: [
       {
@@ -269,26 +342,19 @@ export const OidcKeyRegistryAbi = [
     type: "function",
   },
   {
-    inputs: [],
-    name: "keyIndex",
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    name: "keyIndexes",
     outputs: [
       {
         internalType: "uint8",
         name: "",
         type: "uint8",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "merkleRoot",
-    outputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
       },
     ],
     stateMutability: "view",
@@ -325,52 +391,6 @@ export const OidcKeyRegistryAbi = [
     name: "transferOwnership",
     outputs: [],
     stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: "bytes32",
-            name: "issHash",
-            type: "bytes32",
-          },
-          {
-            internalType: "bytes32",
-            name: "kid",
-            type: "bytes32",
-          },
-          {
-            internalType: "uint256[17]",
-            name: "n",
-            type: "uint256[17]",
-          },
-          {
-            internalType: "bytes",
-            name: "e",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct OidcKeyRegistry.Key",
-        name: "key",
-        type: "tuple",
-      },
-      {
-        internalType: "bytes32[]",
-        name: "proof",
-        type: "bytes32[]",
-      },
-    ],
-    name: "verifyKey",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
     type: "function",
   },
 ];
