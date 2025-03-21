@@ -18,7 +18,7 @@
         </Button>
       </Card>
       <Card
-        v-for="session in walletConnectStore.openSessions"
+        v-for="session in Object.values(walletConnectStore.openSessions)"
         :key="session.topic"
         class="p-6"
       >
