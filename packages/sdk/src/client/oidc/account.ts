@@ -18,13 +18,6 @@ export type ToOidcAccountParameters = {
   }) => Promise<Hex>;
 };
 
-export type OidcKey = {
-  issHash: Hex;
-  kid: Hex;
-  n: bigint[];
-  e: Hex;
-};
-
 export type OidcAccount = LocalAccount<"ssoOidcAccount"> & {
   sign: NonNullable<CustomSource["sign"]>;
 };
@@ -69,4 +62,4 @@ export function toOidcAccount(
     source: "ssoOidcAccount",
     type: "local",
   } as OidcAccount;
-};
+}
