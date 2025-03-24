@@ -22,8 +22,7 @@ async function waitForJwt(nonce: string, popup: Window): Promise<JWT> {
       }
 
       const { data } = event;
-      console.log(data);
-      if (data.content.type !== "jwt") {
+      if (data?.content?.type !== "jwt") {
         return;
       }
 
@@ -59,11 +58,13 @@ async function loginWithGoogle(publicClient: string, nonce: string, loginHint: n
   const popup = window.open(url, "login with google", strWindowFeatures);
 
   if (popup === null) {
-    throw new Error("Could not open google popup");
+    throw new PopupNotAllowed("Could not open google popup");
   }
 
   return await waitForJwt(nonce, popup);
 }
+
+export class PopupNotAllowed extends Error {}
 
 export function useGoogleOauth() {
   const config = useRuntimeConfig();
