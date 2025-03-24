@@ -1,9 +1,9 @@
 {
-  "oidcKeyRegistry": "0xe92E4735683801ef87EAe79e1D8fC75Efa9ca117",
+  "oidcKeyRegistry": "0x25a6DA9727724Cc06E0AdEC18a216CdaD5880fe7",
   "session": "0xa5980997eB1cb8942d6aAf54b87c311D0af05d3C",
   "passkey": "0xc0796b37178e855198d293779339b2adC697565B",
   "recovery": "0xDe95b35EBeDBc3ec62f3298C642cdA8Ee5E9C614",
-  "recoveryOidc": "0x7d3d2532cE43aeDca70a515d2Ae3d0ac5E536B4c",
+  "recoveryOidc": "0xbb912c9325Cd29E36636185364b8df0c69a9724A",
   "accountFactory": "0x4e75295Fd05350150DAD57C991117765F1BCE0C9",
-  "accountPaymaster": "0x8236b6e62816BBB1Ca80A8Ac04317343B2aA53D6"
+  "accountPaymaster": "0x78bdb4614359efC65aDE8DF6e8a467Edc53db263"
 }
