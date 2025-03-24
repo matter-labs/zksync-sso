@@ -10,7 +10,9 @@
       <p class="text-yellow-700 mb-4 dark:text-yellow-300">
         Configure your account recovery methods to ensure your account is secure.
       </p>
-      <AddRecoveryMethodModal>
+      <AddRecoveryMethodModal
+        @closed="refreshGuardians"
+      >
         <template #trigger>
           <Button
             class="bg-yellow-500 hover:bg-yellow-600 text-white dark:bg-yellow-600 dark:hover:bg-yellow-700 focus:bg-yellow-600 active:bg-yellow-700 disabled:bg-yellow-500 disabled:text-yellow-300 disabled:dark:bg-yellow-600 disabled:dark:hover:bg-yellow-700 dark:focus:bg-yellow-700 dark:active:bg-yellow-800 focus:ring-yellow-400 dark:focus:ring-yellow-800"

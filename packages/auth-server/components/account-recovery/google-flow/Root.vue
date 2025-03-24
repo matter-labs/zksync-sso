@@ -2,7 +2,7 @@
   <div class="flex flex-col gap-8 flex-1">
     <CommonStepper
       :current-step="currentStep"
-      :total-steps="2"
+      :total-steps="3"
     />
 
     <div class="flex flex-col items-center gap-4 mt-4">
@@ -19,10 +19,14 @@
           @back="$emit('back')"
         />
         <Step2
-          v-if="currentStep === 2"
+          v-if="currentStep === 2 && jwt !== null"
           ref="step2Ref"
           :jwt="jwt"
-          @finish="completeSetup"
+          @next="onFinishStep2"
+        />
+        <Step3
+          v-if="currentStep === 3"
+          @finish="onFinishStep3"
         />
       </div>
     </div>
@@ -35,29 +39,10 @@ import type { JWT } from "zksync-sso-circuits";
 
 import Step1 from "./Step1.vue";
 import Step2 from "./Step2.vue";
+import Step3 from "./Step3.vue";
 
 const currentStep = ref(1);
 const jwt = ref<JWT | null>(null);
-
-const stepTitle = computed(() => {
-  switch (currentStep.value) {
-    case 1:
-      return "Google Recovery";
-    case 2:
-      return "Linking google account...";
-    default:
-      return "";
-  }
-});
-
-function completeSetup() {
-  props.closeModal();
-}
-
-function onFinishStep1(newJwt: JWT): void {
-  jwt.value = newJwt!;
-  currentStep.value = 2;
-}
 
 const props = defineProps<{
   closeModal: () => void;
@@ -66,4 +51,30 @@ const props = defineProps<{
 defineEmits<{
   (e: "back"): void;
 }>();
+
+const stepTitle = computed(() => {
+  switch (currentStep.value) {
+    case 1:
+      return "Google Recovery";
+    case 2:
+      return "Confirm account";
+    case 3:
+      return "Recovery finished";
+    default:
+      throw new Error(`Unknown step: ${currentStep.value}`);
+  }
+});
+
+function onFinishStep1(newJwt: JWT): void {
+  jwt.value = newJwt!;
+  currentStep.value = 2;
+}
+
+function onFinishStep2(): void {
+  currentStep.value = 3;
+}
+
+function onFinishStep3(): void {
+  props.closeModal();
+}
 </script>

@@ -44,7 +44,7 @@ async function loginWithGoogle() {
   const randomValues = new Uint8Array(32);
   const nonce = toHex(crypto.getRandomValues(randomValues));
   try {
-    await startGoogleOauth(nonce);
+    await startGoogleOauth(nonce, null, true);
   } catch (error) {
     if (error instanceof PopupNotAllowed) {
       askForPopups.value = true;
