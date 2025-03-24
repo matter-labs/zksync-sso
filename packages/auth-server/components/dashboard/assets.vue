@@ -83,7 +83,6 @@ const showAll = ref(false);
 const hasMoreToShow = ref(false);
 
 const filteredBalances = computed(() => {
-  console.log("AAAA", assets.value?.balances);
   const balances = Object.entries(assets.value?.balances || {})
     .filter(([, balance]) => balance.token !== null)
     .map(([address, balance]) => ({ address, ...balance }))
