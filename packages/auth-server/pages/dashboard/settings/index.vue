@@ -132,8 +132,8 @@ const appUrl = config.public.appUrl;
 const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
   return {
     method: "OIDC",
-    iss: oidcData.value.iss,
-    digest: oidcData.value.oidcDigest,
+    iss: oidcData.iss,
+    digest: oidcData.oidcDigest,
     addedOn: new Date(),
   };
 }));
