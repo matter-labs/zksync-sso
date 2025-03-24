@@ -103,6 +103,13 @@ export const OidcRecoveryModuleAbi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "deleteValidationKey",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",

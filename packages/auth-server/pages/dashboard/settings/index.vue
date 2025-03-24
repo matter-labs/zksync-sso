@@ -156,7 +156,12 @@ const {
   removeGuardian,
   removeGuardianInProgress,
 } = useRecoveryGuardian();
-const { getOidcAccounts, oidcAccounts, getOidcAccountsInProgress } = useRecoveryOidc();
+const {
+  getOidcAccounts,
+  oidcAccounts,
+  getOidcAccountsInProgress,
+  removeOidcAccount,
+} = useRecoveryOidc();
 
 const config = useRuntimeConfig();
 
@@ -190,8 +195,9 @@ const refreshGuardians = () => {
   }
 };
 
-function removeOidc() {
-  console.log("removeOidc");
+async function removeOidc() {
+  await removeOidcAccount();
+  refreshGuardians();
 }
 
 watchEffect(async () => {
