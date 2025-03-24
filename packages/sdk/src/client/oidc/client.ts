@@ -17,10 +17,8 @@ import {
 
 import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "../recovery/decorators/wallet.js";
 import { type OidcAccount, toOidcAccount } from "./account.js";
-import { zksyncSsoRecoveryActions } from "./actions/index.js";
+import { zksyncSsoOidcActions } from "./actions/index.js";
 import type { ZksyncSsoOidcActions } from "./decorators/actions.js";
-
-export type BigintTuple<N extends number, T extends bigint[] = []> = T["length"] extends N ? T : BigintTuple<N, [...T, bigint]>;
 
 export const signOidcTransaction = (
   recoveryValidatorAddress: Address,
@@ -120,5 +118,5 @@ export function createZkSyncOidcClient<
     }))
     .extend(publicActions)
     .extend(zksyncSsoWalletActions)
-    .extend(zksyncSsoRecoveryActions);
+    .extend(zksyncSsoOidcActions);
 }
