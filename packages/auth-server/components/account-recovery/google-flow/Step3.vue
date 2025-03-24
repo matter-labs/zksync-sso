@@ -3,8 +3,8 @@
     class="flex flex-col items-center gap-4"
   >
     <p class="text-center text-gray-600 dark:text-gray-400">
-      Everything done. You can already recovery your wallet
-      using your google account.
+      Everything is set! You can now recover your wallet
+      using your Google account.
     </p>
   </div>
 
