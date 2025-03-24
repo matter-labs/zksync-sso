@@ -5,6 +5,49 @@ export const abi = [
     type: "constructor",
   },
   {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "expectedIssHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "actualIssHash",
+        type: "bytes32",
+      },
+    ],
+    name: "IssuerHashMismatch",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "count",
+        type: "uint256",
+      },
+    ],
+    name: "KeyCountLimitExceeded",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+    ],
+    name: "KeyNotFound",
+    type: "error",
+  },
+  {
     anonymous: false,
     inputs: [
       {
@@ -15,6 +58,50 @@ export const abi = [
       },
     ],
     name: "Initialized",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+      {
+        indexed: false,
+        internalType: "uint256[17]",
+        name: "n",
+        type: "uint256[17]",
+      },
+    ],
+    name: "KeyAdded",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+    ],
+    name: "KeyDeleted",
     type: "event",
   },
   {
@@ -64,6 +151,11 @@ export const abi = [
   },
   {
     inputs: [
+      {
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
       {
         internalType: "uint256",
         name: "",
@@ -174,6 +266,24 @@ export const abi = [
         type: "bytes32",
       },
     ],
+    name: "deleteKey",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+    ],
     name: "getKey",
     outputs: [
       {
@@ -208,7 +318,13 @@ export const abi = [
     type: "function",
   },
   {
-    inputs: [],
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+    ],
     name: "getKeys",
     outputs: [
       {
@@ -269,12 +385,18 @@ export const abi = [
     type: "function",
   },
   {
-    inputs: [],
-    name: "keyIndex",
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+    ],
+    name: "keyIndexes",
     outputs: [
       {
         internalType: "uint8",
-        name: "",
+        name: "keyIndex",
         type: "uint8",
       },
     ],
