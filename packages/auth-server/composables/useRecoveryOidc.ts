@@ -46,7 +46,7 @@ export const useRecoveryOidc = () => {
   });
 
   const oidcAccounts = computed<OidcData[]>(() => {
-    return googleAccountData.value == null ? [] : [googleAccountData];
+    return !googleAccountData.value ? [] : [googleAccountData.value];
   });
 
   const {
