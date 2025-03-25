@@ -81,7 +81,7 @@ export const removeOidcAccount = async <
 >(client: Client<transport, chain, account>, args: Prettify<RemoveOidcAccountArgs>): Promise<TransactionReceipt> => {
   const callData = encodeFunctionData({
     abi: OidcRecoveryModuleAbi,
-    functionName: "deleteValidationKey",
+    functionName: "deleteOidcAccount",
     args: [],
   });
 
