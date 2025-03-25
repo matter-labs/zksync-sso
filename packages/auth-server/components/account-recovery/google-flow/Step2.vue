@@ -1,54 +1,45 @@
 <template>
   <div
-    v-if="addOidcAccountIsLoading"
     class="flex flex-col items-center gap-4"
   >
-    <common-spinner class="w-8 h-8" />
     <p class="text-center text-gray-600 dark:text-gray-400">
-      Please wait...
+      You are about to set the account <b>{{ props.jwt.email }}</b> as
+      your recovery account.
     </p>
   </div>
 
-  <div
+  <common-spinner
+    v-if="addOidcAccountIsLoading"
+    class="w-8 h-8"
+  />
+  <ZkButton
     v-else
-    class="flex flex-col items-center justify-center h-full"
+    type="primary"
+    class="w-full md:max-w-48"
+    @click="confirmAccount"
   >
-    <p class="text-center text-gray-600 dark:text-gray-400">
-      Your Google account has been linked and is ready to help you recover your account.
-    </p>
-    <ZkButton
-      type="secondary"
-      class="w-full md:max-w-48"
-      @click="$emit('finish')"
-    >
-      Finish
-    </ZkButton>
-  </div>
+    Continue
+  </ZkButton>
 </template>
 
 <script setup lang="ts">
-import type { OidcData } from "zksync-sso/client";
-import { ByteVector, type JWT } from "zksync-sso-circuits";
+import type { JWT } from "zksync-sso-circuits";
 
-import { useRecoveryOidc } from "~/composables/useRecoveryOidc";
-
-defineEmits<{
-  (e: "finish"): void;
+const emits = defineEmits<{
+  (e: "next"): void;
 }>();
 
 const props = defineProps<{
-  jwt: JWT | null;
+  jwt: JWT;
 }>();
+
 const { addOidcAccount, addOidcAccountIsLoading, buildOidcDigest } = useRecoveryOidc();
-if (props.jwt !== null) {
+
+async function confirmAccount() {
   const oidcDigest = await buildOidcDigest(props.jwt)
     .then((digest) => digest.toHex());
-  const oidcData = {
-    oidcDigest,
-    iss: ByteVector.fromAsciiString(props.jwt.iss).toHex(),
-    aud: ByteVector.fromAsciiString(props.jwt.aud).toHex(),
-  } as OidcData;
 
-  addOidcAccount(oidcData);
+  await addOidcAccount(oidcDigest, props.jwt.iss);
+  emits("next");
 }
 </script>
