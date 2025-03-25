@@ -1,4 +1,5 @@
-import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import type { Account, Address, Chain, Client, Hex, Prettify, PublicActions, PublicRpcSchema, RpcSchema, Transport, WalletActions, WalletClientConfig, WalletRpcSchema } from "viem";
+import { createClient, getAddress, publicActions, walletActions } from "viem";
 import { eip712WalletActions } from "viem/zksync";
 
 import type { CustomPaymasterHandler } from "../../paymaster/index.js";
@@ -7,6 +8,21 @@ import { toPasskeyAccount } from "./account.js";
 import { requestPasskeyAuthentication } from "./actions/passkey.js";
 import { type ZksyncSsoPasskeyActions, zksyncSsoPasskeyActions } from "./decorators/passkey.js";
 import { zksyncSsoPasskeyWalletActions } from "./decorators/wallet.js";
+
+export async function createERC1271Signature(
+  dataToSign: Hex,
+  credentialPublicKey: Uint8Array,
+  passkeyModuleAddress: Address): Promise<Hex> {
+  const passkeySignature = await requestPasskeyAuthentication({
+    challenge: dataToSign,
+    credentialPublicKey: credentialPublicKey,
+  });
+
+  return passkeyHashSignatureResponseFormat(
+    passkeySignature.passkeyAuthenticationResponse.id,
+    passkeySignature.passkeyAuthenticationResponse.response,
+    { passkey: passkeyModuleAddress });
+}
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
