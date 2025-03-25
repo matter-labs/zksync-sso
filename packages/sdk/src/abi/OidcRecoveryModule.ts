@@ -32,6 +32,25 @@ export const OidcRecoveryModuleAbi = [
         name: "oidcDigest",
         type: "bytes32",
       },
+    ],
+    name: "OidcAccountDeleted",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "oidcDigest",
+        type: "bytes32",
+      },
       {
         indexed: false,
         internalType: "string",
@@ -93,7 +112,7 @@ export const OidcRecoveryModuleAbi = [
   },
   {
     inputs: [],
-    name: "deleteValidationKey",
+    name: "deleteOidcAccount",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
