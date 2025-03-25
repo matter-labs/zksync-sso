@@ -108,7 +108,7 @@
               >
                 <div class="flex items-center gap-3">
                   <ShieldCheckIcon class="w-5 h-5 flex-shrink-0" />
-                  <span class="font-mono text-sm">{method.iss}</span>
+                  <span class="font-mono text-sm">{{ method.iss }}</span>
                 </div>
                 <div class="flex items-center gap-3">
                   <SparklesIcon class="w-5 h-5 flex-shrink-0" />
