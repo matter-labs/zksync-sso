@@ -4,7 +4,7 @@ import { getGeneralPaymasterInput } from "viem/zksync";
 
 import { AAFactoryAbi } from "../../../abi/AAFactory.js";
 import { WebAuthValidatorAbi } from "../../../abi/WebAuthValidator.js";
-import { encodeModuleData, encodePasskeyModuleParameters, encodeSession } from "../../../utils/encoding.js";
+import { encodePasskeyModuleParameters, encodeSession } from "../../../utils/encoding.js";
 import { noThrow } from "../../../utils/helpers.js";
 import { base64UrlToUint8Array, getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
 import type { SessionConfig } from "../../../utils/session.js";
@@ -70,26 +70,19 @@ export const deployAccount = async <
     passkeyPublicKey,
     expectedOrigin: origin,
   });
-  const encodedPasskeyModuleData = encodeModuleData({
-    address: args.contracts.passkey,
-    parameters: encodedPasskeyParameters,
-  });
-  const accountId = args.uniqueAccountId || encodedPasskeyParameters;
 
-  const encodedSessionKeyModuleData = encodeModuleData({
-    address: args.contracts.session,
-    parameters: args.initialSession ? encodeSession(args.initialSession) : "0x",
-  });
+  const accountId = args.uniqueAccountId || encodedPasskeyParameters;
 
   let deployProxyArgs = {
     account: client.account!,
     chain: client.chain!,
     address: args.contracts.accountFactory,
     abi: AAFactoryAbi,
-    functionName: "deployProxySsoAccount",
+    functionName: "deployModularAccount",
     args: [
       keccak256(toHex(accountId)),
-      [encodedPasskeyModuleData, encodedSessionKeyModuleData],
+      encodedPasskeyParameters,
+      args.initialSession ? encodeSession(args.initialSession) : "0x",
       [],
     ],
   } as any;

@@ -65,7 +65,9 @@ jobs:
         run: npm publish --access public
     
       - name: Create .npmrc for GitHub Packages
-        run: echo "@OWNER:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+        run: |
+          echo "@OWNER:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+          echo "@NAMESPACE:registry=https://npm.pkg.github.com" >> ~/.npmrc
 
       - name: Publish to GitHub Packages
         working-directory: packages/sdk
