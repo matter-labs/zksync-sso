@@ -1,4 +1,5 @@
 use crate::config;
+use sdk::api::utils::parse_address;
 
 #[derive(Debug, uniffi::Record)]
 pub struct PreparedTransaction {
@@ -10,7 +11,7 @@ pub struct PreparedTransaction {
 }
 
 pub struct PreparedTransactionWrapper(
-    sdk::client::passkey::actions::send::prepare::PreparedTransaction,
+    sdk::api::account::send::prepare::PreparedTransaction,
 );
 
 impl TryFrom<PreparedTransactionWrapper> for PreparedTransaction {
@@ -49,7 +50,7 @@ pub async fn prepare_send_transaction(
     from: String,
     config: config::Config,
 ) -> Result<PreparedTransaction, PrepareTransactionError> {
-    let transaction: sdk::api::account::send::Transaction =
+    let transaction: sdk::api::account::transaction::Transaction =
         transaction.try_into().map_err(|e| match e {
             super::SendTransactionError::InvalidAddress(e) => {
                 PrepareTransactionError::InvalidAddress(e)
@@ -59,7 +60,7 @@ pub async fn prepare_send_transaction(
             }
         })?;
 
-    let from = sdk::utils::alloy::parse_address(&from)
+    let from = parse_address(&from)
         .map_err(|e| PrepareTransactionError::InvalidAddress(e.to_string()))?;
 
     sdk::api::account::send::prepare::prepare_send_transaction(

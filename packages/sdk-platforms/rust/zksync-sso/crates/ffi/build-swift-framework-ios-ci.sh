@@ -18,7 +18,8 @@ HEADER_NAME="$FRAMEWORK_LIBRARY_NAME.h"
 GENERATED_HEADER="${CRATE_NAME}FFI.h"
 GENERATED_SWIFT="$CRATE_NAME.swift"
 OUT_PATH="out"
-MIN_IOS_VERSION="18.0"
+# MIN_IOS_VERSION="18.0"
+MIN_IOS_VERSION="17.0"
 WRAPPER_PATH="../../../../swift/ZKsyncSSO/Sources/ZKsyncSSOFFI"
 TARGET_PATH="../../target"
 BUILD_TYPE="debug" # use debug during development
@@ -112,12 +113,13 @@ sed -i '' 's/private let uniffiContinuationHandleMap = UniffiHandleMap<UnsafeCon
 echo "// swift-format-ignore-file" | cat - "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift" > temp && mv temp "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 sed -i '' 's/open class Client:/open class Client:\
     @unchecked Sendable,/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
-sed -i '' 's/public struct Transaction {/public struct Transaction: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
-sed -i '' 's/public struct SendTransactionResult {/public struct SendTransactionResult: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
-sed -i '' 's/public struct AccountBalance {/public struct AccountBalance: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+# sed -i '' 's/public struct Transaction {/public struct Transaction: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+# sed -i '' 's/public struct SendTransactionResult {/public struct SendTransactionResult: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+# sed -i '' 's/public struct AccountBalance {/public struct AccountBalance: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 sed -i '' 's/private class UniffiHandleMap<T> {/private class UniffiHandleMap<T>: @unchecked Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 sed -i '' 's/static var vtable: UniffiVTableCallbackInterfacePasskeyAuthenticator = .init(/nonisolated(unsafe) static var vtable: UniffiVTableCallbackInterfacePasskeyAuthenticator = .init(/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 sed -i '' 's/fileprivate static var handleMap = UniffiHandleMap<PasskeyAuthenticator>()/fileprivate static let handleMap = UniffiHandleMap<PasskeyAuthenticator>()/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+sed -i '' 's/filenonisolated(unsafe) private let uniffiContinuationHandleMap = UniffiHandleMap<UnsafeContinuation<Int8, Never>>()/nonisolated(unsafe) fileprivate let uniffiContinuationHandleMap = UniffiHandleMap<UnsafeContinuation<Int8, Never>>()/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 cat <<EOT >> "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 
 extension Config: Codable {}

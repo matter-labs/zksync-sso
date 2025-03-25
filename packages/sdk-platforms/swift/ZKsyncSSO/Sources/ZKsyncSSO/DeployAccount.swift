@@ -1,5 +1,5 @@
 import Foundation
-import ZKsyncSSOFFI
+@preconcurrency import ZKsyncSSOFFI
 
 public struct DeployAccountParameters {
     var credentialRawAttestationObject: Data
@@ -24,8 +24,11 @@ public struct DeployAccountParameters {
 }
 
 public func deployAccountWith(
-    params: DeployAccountParameters
+    params: DeployAccountParameters,
+    secretAccountSalt: Data
 ) async throws -> Account {
+    
+    let secretAccountSalt = secretAccountSalt.base64EncodedString()
     
     let passkeyParameters = PasskeyParameters(
         credentialRawAttestationObject: params.credentialRawAttestationObject,
@@ -35,8 +38,6 @@ public func deployAccountWith(
     )
     
     let uniqueAccountId = params.uniqueAccountId
-    
-    let secretAccountSalt = Data([UInt8](repeating: 0, count: 32)).base64EncodedString()
     
     let account = try await ZKsyncSSOFFI.deployAccountWithUniqueId(
         passkeyParameters: passkeyParameters,

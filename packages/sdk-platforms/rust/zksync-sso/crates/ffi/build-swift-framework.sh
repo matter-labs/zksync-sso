@@ -161,13 +161,13 @@ sed -i '' 's/open class Client:/open class Client:\
     @unchecked Sendable,/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 
 # Fix compilation error
-sed -i '' 's/public struct Transaction {/public struct Transaction: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+# sed -i '' 's/public struct Transaction {/public struct Transaction: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 
 # Fix compilation error
-sed -i '' 's/public struct SendTransactionResult {/public struct SendTransactionResult: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+# sed -i '' 's/public struct SendTransactionResult {/public struct SendTransactionResult: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 
 # Fix compilation error
-sed -i '' 's/public struct AccountBalance {/public struct AccountBalance: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+# sed -i '' 's/public struct AccountBalance {/public struct AccountBalance: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 
 # Fix compilation error
 sed -i '' 's/private class UniffiHandleMap<T> {/private class UniffiHandleMap<T>: @unchecked Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"

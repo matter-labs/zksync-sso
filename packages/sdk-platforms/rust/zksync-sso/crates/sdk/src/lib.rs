@@ -1,4 +1,4 @@
 pub mod api;
-pub mod client;
+pub(crate) mod client;
 pub mod config;
-pub mod utils;
+pub(crate) mod utils;
