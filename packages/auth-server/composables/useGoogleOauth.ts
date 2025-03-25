@@ -39,13 +39,20 @@ async function waitForJwt(nonce: string, popup: Window): Promise<JWT> {
   }).finally(() => controller.abort());
 }
 
-async function loginWithGoogle(publicClient: string, nonce: string, loginHint: null | string = null): Promise<JWT> {
+export class PopupNotAllowed extends Error {}
+
+async function loginWithGoogle(
+  publicClient: string,
+  nonce: string,
+  loginHint: null | string = null,
+  askForEmail = false,
+): Promise<JWT> {
   const strWindowFeatures = "toolbar=no, menubar=no, width=600, height=700, top=100, left=100";
 
   const query = new URLSearchParams();
   query.set("client_id", publicClient);
   query.set("response_type", "id_token");
-  query.set("scope", "openid");
+  query.set("scope", askForEmail ? "openid email" : "openid");
   const redirectUri = `${window.location.origin}/oauth/plain`;
   query.set("redirect_uri", redirectUri);
   query.set("nonce", nonce);
@@ -64,12 +71,10 @@ async function loginWithGoogle(publicClient: string, nonce: string, loginHint: n
   return await waitForJwt(nonce, popup);
 }
 
-export class PopupNotAllowed extends Error {}
-
 export function useGoogleOauth() {
   const config = useRuntimeConfig();
-  const { execute, inProgress, result, error } = useAsync((nonce: string, hint: string | null = null) => {
-    return loginWithGoogle(config.public.googlePublicClient, nonce, hint);
+  const { execute, inProgress, result, error } = useAsync((nonce: string, hint: string | null = null, askForemail = false) => {
+    return loginWithGoogle(config.public.googlePublicClient, nonce, hint, askForemail);
   });
 
   return {

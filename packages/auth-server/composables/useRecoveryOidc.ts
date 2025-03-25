@@ -53,14 +53,15 @@ export const useRecoveryOidc = () => {
     inProgress: addOidcAccountIsLoading,
     error: addOidcAccountError,
     execute: addOidcAccount,
-  } = useAsync(async (oidcData: OidcData) => {
+  } = useAsync(async (oidcDigest: Hex, iss: string) => {
     const client = getClient({ chainId: defaultChain.id });
 
     return await client.addOidcAccount({
       paymaster: {
         address: paymasterAddress,
       },
-      oidcData,
+      oidcDigest,
+      iss,
     });
   });
 

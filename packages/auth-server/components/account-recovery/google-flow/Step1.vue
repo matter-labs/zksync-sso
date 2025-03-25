@@ -29,8 +29,6 @@
 import { toHex } from "viem";
 import type { JWT } from "zksync-sso-circuits";
 
-import { PopupNotAllowed, useGoogleOauth } from "~/composables/useGoogleOauth";
-
 const { startGoogleOauth, jwt } = useGoogleOauth();
 
 const askForPopups = ref<boolean>(false);
@@ -44,7 +42,7 @@ async function loginWithGoogle() {
   const randomValues = new Uint8Array(32);
   const nonce = toHex(crypto.getRandomValues(randomValues));
   try {
-    await startGoogleOauth(nonce);
+    await startGoogleOauth(nonce, null, true);
   } catch (error) {
     if (error instanceof PopupNotAllowed) {
       askForPopups.value = true;
