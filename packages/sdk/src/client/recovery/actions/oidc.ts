@@ -3,7 +3,6 @@ import {
   type Address,
   type Chain,
   type Client,
-  encodeAbiParameters,
   encodeFunctionData,
   type Hash,
   type Hex,
@@ -40,25 +39,10 @@ export const addOidcAccount = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<AddOidcAccountArgs>): Promise<Prettify<AddOidcAccountReturnType>> => {
-  const encodedOidcData = encodeAbiParameters(
-    [
-      {
-        type: "tuple", name: "OidcData", components: [
-          { type: "bytes32", name: "oidcDigest" },
-          { type: "string", name: "iss" },
-        ],
-      },
-    ],
-    [{
-      oidcDigest: args.oidcDigest,
-      iss: args.iss,
-    }],
-  );
-
   const callData = encodeFunctionData({
     abi: OidcRecoveryModuleAbi,
-    functionName: "addValidationKey",
-    args: [encodedOidcData],
+    functionName: "addOidcAccount",
+    args: [args.oidcDigest, args.iss],
   });
 
   const sendTransactionArgs = {
