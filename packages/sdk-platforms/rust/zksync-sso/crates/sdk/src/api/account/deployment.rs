@@ -1,13 +1,12 @@
 use crate::{
-    client::passkey::actions::deploy::account_factory::{
-        create_account, AccountParams,
-    },
+    client::passkey::account_factory::{create_account, AccountParams},
     config::Config,
     utils::passkey::passkey::apple::{
         extract_public_key, verify::verify_registration,
     },
 };
-use alloy::primitives::Address;
+use alloy::primitives::{Address, Bytes};
+use alloy_zksync::network::unsigned_tx::eip712::PaymasterParams;
 
 pub struct PasskeyParameters {
     pub credential_raw_attestation_object: Vec<u8>,
@@ -105,11 +104,17 @@ pub async fn deploy_account(
 ) -> eyre::Result<DeployedAccountDetails> {
     let parsed_params = parse_passkey_parameters(&passkey_parameters).await?;
 
+    let paymaster = Some(PaymasterParams {
+        paymaster: config.contracts.account_paymaster,
+        paymaster_input: Bytes::new(),
+    });
+
     let deploy_account_args =
         crate::client::passkey::actions::deploy::DeployAccountArgs {
             credential_public_key: parsed_params.public_key,
             expected_origin: Some(parsed_params.expected_origin),
             contracts: config.contracts.clone(),
+            paymaster,
             ..Default::default()
         };
 

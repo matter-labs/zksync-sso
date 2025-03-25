@@ -1,7 +1,7 @@
 use crate::config;
-use crate::native_apis::PasskeyAuthenticator;
+use crate::native_apis::{PasskeyAuthenticator, PasskeyAuthenticatorAsync};
 use futures::future::BoxFuture;
-use sdk::utils::alloy::parse_address;
+use sdk::api::utils::parse_address;
 use std::sync::Arc;
 
 pub mod prepare;
@@ -74,6 +74,39 @@ pub async fn send_transaction(
             Box::pin(
                 async move { auth.sign_message(message_owned).map_err(|_| ()) },
             )
+        },
+    );
+
+    sdk::api::account::send::send_transaction(
+        tx,
+        sign_message,
+        &(config.try_into()
+            as Result<sdk::config::Config, config::ConfigError>)
+            .map_err(|e: config::ConfigError| {
+                SendTransactionError::SendTransaction(e.to_string())
+            })?,
+    )
+    .await
+    .map_err(|e| SendTransactionError::SendTransaction(e.to_string()))
+    .map(Into::into)
+}
+
+#[uniffi::export(async_runtime = "tokio")]
+pub async fn send_transaction_async_signer(
+    transaction: Transaction,
+    authenticator: Arc<dyn PasskeyAuthenticatorAsync + 'static>,
+    config: config::Config,
+) -> Result<SendTransactionResult, SendTransactionError> {
+    let tx: sdk::api::account::send::Transaction = transaction.try_into()?;
+
+    let authenticator = authenticator.clone();
+    let sign_message: SignFn = Box::new(
+        move |message: &[u8]| -> BoxFuture<'static, Result<Vec<u8>, ()>> {
+            let message_owned = message.to_vec();
+            let auth = authenticator.clone();
+            Box::pin(async move {
+                auth.sign_message(message_owned).await.map_err(|_| ())
+            })
         },
     );
 

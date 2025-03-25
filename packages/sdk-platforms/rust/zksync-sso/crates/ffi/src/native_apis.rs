@@ -13,3 +13,12 @@ pub trait PasskeyAuthenticator: Send + Sync + Debug {
         message: Vec<u8>,
     ) -> Result<Vec<u8>, PasskeyAuthenticatorError>;
 }
+
+#[uniffi::export(with_foreign)]
+#[async_trait::async_trait]
+pub trait PasskeyAuthenticatorAsync: Send + Sync + Debug {
+    async fn sign_message(
+        &self,
+        message: Vec<u8>,
+    ) -> Result<Vec<u8>, PasskeyAuthenticatorError>;
+}

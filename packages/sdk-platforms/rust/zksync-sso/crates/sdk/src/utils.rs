@@ -1,9 +1,9 @@
-pub mod alloy;
-pub mod contract_deployed;
-pub mod deployment_utils;
-pub mod encoding;
-pub mod manual_build_transaction;
-pub mod passkey;
+pub(crate) mod alloy;
+pub(crate) mod contract_deployed;
+pub(crate) mod deployment_utils;
+pub(crate) mod encoding;
+pub(crate) mod manual_build_transaction;
+pub(crate) mod passkey;
 
 #[cfg(test)]
 pub(crate) mod test_utils;

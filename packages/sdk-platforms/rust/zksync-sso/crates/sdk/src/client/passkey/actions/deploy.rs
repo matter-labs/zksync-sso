@@ -1,4 +1,5 @@
 use crate::{
+    client::contracts::aa_factory::AAFactory,
     config::{contracts::PasskeyContracts, Config},
     utils::{
         alloy::extensions::ProviderExt,
@@ -9,19 +10,21 @@ use crate::{
 use alloy::{
     primitives::{Address, Bytes, FixedBytes},
     providers::Provider,
+    signers::local::PrivateKeySigner,
     sol_types::SolEvent,
 };
-use alloy_zksync::network::unsigned_tx::eip712::PaymasterParams;
-use alloy_zksync::network::{
-    receipt_response::ReceiptResponse as ZKReceiptResponse,
-    transaction_request::TransactionRequest,
+use alloy_zksync::{
+    network::{
+        receipt_response::ReceiptResponse as ZKReceiptResponse,
+        transaction_request::TransactionRequest,
+        unsigned_tx::eip712::PaymasterParams,
+    },
+    provider::zksync_provider,
+    wallet::ZksyncWallet,
 };
 use eyre::{eyre, Result};
 use rand::RngCore;
 use std::fmt::Debug;
-
-pub mod aa_factory;
-pub mod account_factory;
 
 pub struct DeployedAccountDetails {
     pub address: Address,
@@ -77,22 +80,13 @@ pub async fn deploy_account(
     config: &Config,
 ) -> Result<DeployedAccountDetails> {
     let provider = {
-        // TODO: use paymaster for deployment instead of rich wallet
-        use alloy::signers::local::PrivateKeySigner;
-        use alloy_zksync::{provider::zksync_provider, wallet::ZksyncWallet};
-
-        pub const RICH_WALLET_PRIVATE_KEY_3: &str =
-        "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
-
-        fn zksync_wallet_3() -> eyre::Result<ZksyncWallet> {
-            let signer =
-                RICH_WALLET_PRIVATE_KEY_3.parse::<PrivateKeySigner>()?;
+        fn zksync_wallet() -> eyre::Result<ZksyncWallet> {
+            let signer = PrivateKeySigner::random();
             let zksync_wallet = ZksyncWallet::from(signer);
             Ok(zksync_wallet)
         }
-
         let node_url: url::Url = config.clone().node_url;
-        let wallet = zksync_wallet_3().unwrap();
+        let wallet = zksync_wallet().unwrap();
         let provider = zksync_provider()
             .with_recommended_fillers()
             .wallet(wallet.clone())
@@ -227,7 +221,7 @@ pub async fn deploy_account(
         initial_validators.len()
     );
 
-    let instance = aa_factory::AAFactory::new(account_factory, &provider);
+    let instance = AAFactory::new(account_factory, &provider);
 
     let initial_k1_owners = args.initial_k1_owners.unwrap_or_default();
     println!("XDB deploy_account - Initial k1 owners: {:?}", initial_k1_owners);
@@ -269,7 +263,7 @@ pub async fn deploy_account(
         .to_owned();
 
     println!("XDB deploy_account - Transaction sent with hash: {}", tx_hash);
-    
+
     let transaction_receipt =
         provider.wait_for_transaction_receipt(tx_hash).await?;
 
@@ -294,8 +288,8 @@ pub async fn deploy_account(
 
 fn get_account_created_event(
     receipt: &ZKReceiptResponse,
-) -> eyre::Result<aa_factory::AAFactory::AccountCreated> {
-    let topic = aa_factory::AAFactory::AccountCreated::SIGNATURE_HASH;
+) -> eyre::Result<AAFactory::AccountCreated> {
+    let topic = AAFactory::AccountCreated::SIGNATURE_HASH;
     let log = receipt
         .logs()
         .iter()
@@ -373,11 +367,16 @@ mod tests {
         };
 
         let args = {
+            let paymaster = Some(PaymasterParams {
+                paymaster: contracts.account_paymaster,
+                paymaster_input: Bytes::new(),
+            });
             let origin: String = "https://example.com".to_string();
             DeployAccountArgs {
                 credential_public_key: sample_public_key,
                 expected_origin: Some(origin),
                 unique_account_id: Some(unique_account_id),
+                paymaster,
                 contracts: contracts.clone(),
                 initial_k1_owners: Some(vec![wallet_address]),
                 ..Default::default()

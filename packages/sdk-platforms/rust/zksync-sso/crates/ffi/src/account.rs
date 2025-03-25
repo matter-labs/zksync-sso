@@ -1,5 +1,6 @@
 mod balance;
 mod deployment;
+mod fetch;
 mod fund;
 mod send;
 

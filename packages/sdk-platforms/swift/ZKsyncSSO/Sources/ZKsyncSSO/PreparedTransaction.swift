@@ -1,5 +1,5 @@
 import Foundation
-import ZKsyncSSOFFI
+@preconcurrency import ZKsyncSSOFFI
 
 public struct PreparedTransaction: Sendable {
     public var transactionRequestJson: String

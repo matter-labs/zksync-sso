@@ -1,5 +1,5 @@
 use eyre::Result;
-use sdk::{config::Config, utils::deployment_utils::deploy_contracts};
+use sdk::{api::utils::deploy_contracts, config::Config};
 use std::{fs, path::PathBuf};
 use url::Url;
 

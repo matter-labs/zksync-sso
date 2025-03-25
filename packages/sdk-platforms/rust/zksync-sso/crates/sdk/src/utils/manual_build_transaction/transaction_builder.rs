@@ -93,7 +93,7 @@ impl From<SendableTxWrapper> for TransactionRequest {
     }
 }
 
-pub async fn populate_tx_request(
+pub(crate) async fn populate_tx_request(
     tx_request: TransactionRequest,
     config: &Config,
 ) -> eyre::Result<TransactionRequest> {

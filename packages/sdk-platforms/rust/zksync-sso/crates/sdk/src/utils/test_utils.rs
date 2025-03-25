@@ -16,8 +16,6 @@ use alloy_zksync::{
     provider::{zksync_provider, ProviderBuilderExt as _},
     wallet::ZksyncWallet,
 };
-use hex;
-use rand;
 use rand::RngCore;
 use std::{env, fs, path::PathBuf, process::Command};
 use tokio::task;

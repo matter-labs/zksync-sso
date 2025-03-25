@@ -1,23 +1,24 @@
 import Foundation
-import ZKsyncSSOFFI
+@preconcurrency import ZKsyncSSOFFI
 
 public struct AccountClient: Sendable {
     
-    public let authenticator: any PasskeyAuthenticator & Sendable
+    public let authenticatorAsync: any PasskeyAuthenticatorAsync & Sendable
     
     public let account: Account
     
     public init(
         account: Account,
-        authenticator: any PasskeyAuthenticator & Sendable
+        authenticatorAsync: any PasskeyAuthenticatorAsync & Sendable
     ) {
         self.account = account
-        self.authenticator = authenticator
+        self.authenticatorAsync = authenticatorAsync
     }
     
     public func getAccountBalance() async throws -> String {
         let accountBalance = try await ZKsyncSSOFFI.getBalance(
-            address: account.address, config: Config.default.inner
+            address: account.address,
+            config: Config.default.inner
         )
         return accountBalance.balance
     }
@@ -38,9 +39,9 @@ public struct AccountClient: Sendable {
             value: amount,
             from: account.address
         )
-        let result = try await ZKsyncSSOFFI.sendTransaction(
+        let result = try await ZKsyncSSOFFI.sendTransactionAsyncSigner(
             transaction: tx,
-            authenticator: authenticator,
+            authenticator: authenticatorAsync,
             config: Config.default.inner
         )
         print(result)

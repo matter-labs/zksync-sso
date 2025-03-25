@@ -1,11 +1,11 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 5.9
 import PackageDescription
 
 let package = Package(
     name: "ZKsyncSSO",
     platforms: [
-        .iOS(.v18),
-        .macOS(.v15),
+        .iOS(.v17),
+        .macOS(.v14),
     ],
     products: [
         .library(
