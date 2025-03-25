@@ -1,6 +1,11 @@
-import { type Chain, type Transport } from "viem";
+import { type Chain, type TransactionReceipt, type Transport } from "viem";
 
-import { addOidcAccount, type AddOidcAccountArgs, type AddOidcAccountReturnType } from "../../recovery/actions/oidc";
+import {
+  addOidcAccount,
+  type AddOidcAccountArgs,
+  type AddOidcAccountReturnType,
+  removeOidcAccount,
+} from "../../recovery/actions/oidc.js";
 import {
   confirmGuardian, type ConfirmGuardianArgs, type ConfirmGuardianReturnType,
   proposeGuardian, type ProposeGuardianArgs, type ProposeGuardianReturnType,
@@ -19,6 +24,7 @@ export type ZksyncSsoPasskeyActions = {
   confirmGuardian: (args: Omit<ConfirmGuardianArgs, "contracts">) => Promise<ConfirmGuardianReturnType>;
   removeGuardian: (args: Omit<RemoveGuardianArgs, "contracts">) => Promise<RemoveGuardianReturnType>;
   addOidcAccount: (args: Omit<AddOidcAccountArgs, "contracts">) => Promise<AddOidcAccountReturnType>;
+  removeOidcAccount: () => Promise<TransactionReceipt>;
 };
 
 export function zksyncSsoPasskeyActions<
@@ -59,6 +65,11 @@ export function zksyncSsoPasskeyActions<
     addOidcAccount: async (args: Omit<AddOidcAccountArgs, "contracts">) => {
       return await addOidcAccount(client, {
         ...args,
+        contracts: client.contracts,
+      });
+    },
+    removeOidcAccount: async () => {
+      return await removeOidcAccount(client, {
         contracts: client.contracts,
       });
     },

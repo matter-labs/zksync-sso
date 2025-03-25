@@ -25,9 +25,9 @@
     <div v-else>
       <div class="space-y-6">
         <Card
-          v-for="method in recoveryMethods"
+          v-for="method in guardianMethods"
           :key="method.address"
-          :loading="getGuardiansInProgress && removeGuardianInProgress && getOidcAccountsInProgress"
+          :loading="getGuardiansInProgress && removeGuardianInProgress"
           class="p-6"
           :class="{ 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600': method.pendingUrl }"
         >
@@ -35,7 +35,7 @@
             <div class="space-y-4">
               <div class="flex items-center gap-2">
                 <h3 class="font-semibold text-lg">
-                  {{ method.method === "OIDC" ? "Google Recovery" : method.method }}
+                  Guardian
                 </h3>
                 <span
                   v-if="method.pendingUrl"
@@ -45,7 +45,6 @@
                 </span>
               </div>
               <div
-                v-if="method.method === 'Guardian'"
                 class="flex items-center gap-3 text-gray-600 dark:text-gray-400"
               >
                 <WalletIcon class="w-5 h-5 flex-shrink-0" />
@@ -54,19 +53,6 @@
                   class="-ml-2"
                   :text="method.address"
                 />
-              </div>
-              <div
-                v-else-if="method.method === 'OIDC'"
-                class="flex flex-col items-start gap-3 text-gray-600 dark:text-gray-400"
-              >
-                <div class="flex items-center gap-3">
-                  <ShieldCheckIcon class="w-5 h-5 flex-shrink-0" />
-                  <span class="font-mono text-sm">https://accounts.google.com</span>
-                </div>
-                <div class="flex items-center gap-3">
-                  <SparklesIcon class="w-5 h-5 flex-shrink-0" />
-                  <span class="font-mono text-sm">{{ shortenAddress(method.digest, 6) }}</span>
-                </div>
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-500">
                 Added on {{ method.addedOn.toLocaleDateString() }} {{ method.addedOn.toLocaleTimeString() }}
@@ -103,6 +89,45 @@
             </Button>
           </div>
         </Card>
+
+        <Card
+          v-for="method in activeOidc"
+          :key="method.digest"
+          :loading="getOidcAccountsInProgress"
+          class="p-6"
+        >
+          <div class="flex justify-between lg:flex-row flex-col items-start gap-4">
+            <div class="space-y-4">
+              <div class="flex items-center gap-2">
+                <h3 class="font-semibold text-lg">
+                  Google Recovery
+                </h3>
+              </div>
+              <div
+                class="flex flex-col items-start gap-3 text-gray-600 dark:text-gray-400"
+              >
+                <div class="flex items-center gap-3">
+                  <ShieldCheckIcon class="w-5 h-5 flex-shrink-0" />
+                  <span class="font-mono text-sm">{{ method.iss }}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <SparklesIcon class="w-5 h-5 flex-shrink-0" />
+                  <span class="font-mono text-sm">{{ shortenAddress(method.digest, 6) }}</span>
+                </div>
+              </div>
+              <p class="text-sm text-gray-500 dark:text-gray-500">
+                Added on {{ method.addedOn.toLocaleDateString() }} {{ method.addedOn.toLocaleTimeString() }}
+              </p>
+            </div>
+            <Button
+              type="danger"
+              class="text-sm lg:w-auto w-full"
+              @click="removeOidc"
+            >
+              Remove
+            </Button>
+          </div>
+        </Card>
         <AddRecoveryMethodModal
           @closed="refreshGuardians"
         />
@@ -124,8 +149,19 @@ import { shortenAddress } from "~/utils/formatters";
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
 const { address: accountAddress } = useAccountStore();
-const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
-const { getOidcAccounts, oidcAccounts, getOidcAccountsInProgress } = useRecoveryOidc();
+const {
+  getGuardiansInProgress,
+  getGuardians,
+  getGuardiansData,
+  removeGuardian,
+  removeGuardianInProgress,
+} = useRecoveryGuardian();
+const {
+  getOidcAccounts,
+  oidcAccounts,
+  getOidcAccountsInProgress,
+  removeOidcAccount,
+} = useRecoveryOidc();
 
 const config = useRuntimeConfig();
 
@@ -158,6 +194,11 @@ const refreshGuardians = () => {
     getOidcAccounts(accountAddress);
   }
 };
+
+async function removeOidc() {
+  await removeOidcAccount();
+  refreshGuardians();
+}
 
 watchEffect(async () => {
   if (accountAddress) {

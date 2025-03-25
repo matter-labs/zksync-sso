@@ -1,22 +1,6 @@
 export const OidcRecoveryModuleAbi = [
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_keyRegistry",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_verifier",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_webAuthValidator",
-        type: "address",
-      },
-    ],
+    inputs: [],
     stateMutability: "nonpayable",
     type: "constructor",
   },
@@ -67,12 +51,17 @@ export const OidcRecoveryModuleAbi = [
   {
     inputs: [
       {
-        internalType: "bytes",
-        name: "key",
-        type: "bytes",
+        internalType: "bytes32",
+        name: "oidcDigest",
+        type: "bytes32",
+      },
+      {
+        internalType: "string",
+        name: "iss",
+        type: "string",
       },
     ],
-    name: "addValidationKey",
+    name: "addOidcAccount",
     outputs: [
       {
         internalType: "bool",
@@ -100,6 +89,13 @@ export const OidcRecoveryModuleAbi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "deleteValidationKey",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
