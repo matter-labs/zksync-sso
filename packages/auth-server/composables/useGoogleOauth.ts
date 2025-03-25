@@ -71,8 +71,6 @@ async function loginWithGoogle(
   return await waitForJwt(nonce, popup);
 }
 
-export class PopupNotAllowed extends Error {}
-
 export function useGoogleOauth() {
   const config = useRuntimeConfig();
   const { execute, inProgress, result, error } = useAsync((nonce: string, hint: string | null = null, askForemail = false) => {
