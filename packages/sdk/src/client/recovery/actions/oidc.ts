@@ -19,7 +19,6 @@ import {
 
 import { OidcRecoveryModuleAbi } from "../../../abi/index.js";
 import { noThrow } from "../../../utils/helpers.js";
-import type { OidcData } from "../../oidc/index.js";
 
 export type AddOidcAccountArgs = {
   contracts: {
@@ -29,7 +28,8 @@ export type AddOidcAccountArgs = {
     address: Address;
     paymasterInput?: Hex;
   };
-  oidcData: OidcData;
+  oidcDigest: Hex;
+  iss: string;
   onTransactionSent?: (hash: Hash) => void;
 };
 export type AddOidcAccountReturnType = {
@@ -49,7 +49,10 @@ export const addOidcAccount = async <
         ],
       },
     ],
-    [args.oidcData],
+    [{
+      oidcDigest: args.oidcDigest,
+      iss: args.iss,
+    }],
   );
 
   const callData = encodeFunctionData({
