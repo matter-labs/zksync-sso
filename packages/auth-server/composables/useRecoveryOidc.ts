@@ -65,6 +65,14 @@ export const useRecoveryOidc = () => {
     });
   });
 
+  const {
+    execute: removeOidcAccount,
+  } = useAsync(async () => {
+    const client = getClient({ chainId: defaultChain.id });
+
+    await client.removeOidcAccount();
+  });
+
   // TODO: improve this
   type KeyStruct = { issHash: Hex; kid: Hex };
 
@@ -148,5 +156,6 @@ export const useRecoveryOidc = () => {
     zkProof,
     zkProofError,
     hashIssuer,
+    removeOidcAccount,
   };
 };

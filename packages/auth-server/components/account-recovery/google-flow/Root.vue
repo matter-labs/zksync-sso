@@ -59,7 +59,7 @@ const stepTitle = computed(() => {
     case 2:
       return "Confirm account";
     case 3:
-      return "Recovery finished";
+      return "Everything ready";
     default:
       throw new Error(`Unknown step: ${currentStep.value}`);
   }
