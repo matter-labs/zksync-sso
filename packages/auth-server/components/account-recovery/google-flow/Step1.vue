@@ -29,8 +29,6 @@
 import { toHex } from "viem";
 import type { JWT } from "zksync-sso-circuits";
 
-import { PopupNotAllowed, useGoogleOauth } from "~/composables/useGoogleOauth";
-
 const { startGoogleOauth, jwt } = useGoogleOauth();
 
 const askForPopups = ref<boolean>(false);
