@@ -10,6 +10,13 @@ import {
     arrayBufferToBase64Url
 } from './utils';
 
+/**
+ * Authenticates a user using their platform passkey and returns the authentication data.
+ * 
+ * @param message - The challenge message to authenticate against, as an ArrayBuffer
+ * @param rpId - The relying party ID used for passkey authentication
+ * @returns A Promise that resolves to an ArrayBuffer containing the encoded authentication payload
+ */
 export const authenticateWithPasskey = async (
     message: ArrayBuffer,
     rpId: string
