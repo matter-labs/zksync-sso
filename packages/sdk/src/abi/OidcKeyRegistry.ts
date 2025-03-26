@@ -7,6 +7,17 @@ export const OidcKeyRegistryAbi = [
   {
     inputs: [
       {
+        internalType: "uint8",
+        name: "index",
+        type: "uint8",
+      },
+    ],
+    name: "ExponentCannotBeZero",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
         internalType: "bytes32",
         name: "expectedIssHash",
         type: "bytes32",
@@ -34,6 +45,17 @@ export const OidcKeyRegistryAbi = [
   {
     inputs: [
       {
+        internalType: "uint8",
+        name: "index",
+        type: "uint8",
+      },
+    ],
+    name: "KeyIdCannotBeZero",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
         internalType: "bytes32",
         name: "issHash",
         type: "bytes32",
@@ -45,6 +67,38 @@ export const OidcKeyRegistryAbi = [
       },
     ],
     name: "KeyNotFound",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "index",
+        type: "uint8",
+      },
+    ],
+    name: "ModulusCannotBeZero",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "index",
+        type: "uint8",
+      },
+      {
+        internalType: "uint256",
+        name: "chunkIndex",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "chunkValue",
+        type: "uint256",
+      },
+    ],
+    name: "ModulusChunkTooLarge",
     type: "error",
   },
   {
