@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import type { WalletKitTypes } from "@reown/walletkit";
+import { fromHex } from "viem";
 
 const walletConnectStore = useWalletConnectStore();
 
@@ -47,7 +48,7 @@ const session = computed(() => {
 });
 
 const message = computed(() => {
-  return props.request.params.request.params[1];
+  return fromHex(props.request.params.request.params[0], "string");
 });
 
 const handleSign = async () => {
