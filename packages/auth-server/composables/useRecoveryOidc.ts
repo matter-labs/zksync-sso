@@ -3,6 +3,8 @@ import { OidcKeyRegistryAbi, OidcRecoveryModuleAbi } from "zksync-sso/abi";
 import type { OidcData } from "zksync-sso/client/oidc";
 import { type Groth16Proof, type JWT, JwtTxValidationInputs, OidcDigest } from "zksync-sso-circuits";
 
+export class NoBalanceError extends Error {}
+
 export const useRecoveryOidc = () => {
   const { getClient, getPublicClient, defaultChain } = useClientStore();
   const { snarkjs } = useSnarkJs();
@@ -23,6 +25,8 @@ export const useRecoveryOidc = () => {
     const salt = response.salt;
     return new OidcDigest(jwt.iss, jwt.aud, jwt.sub, salt);
   }
+
+  const { address } = useAccountStore();
 
   const {
     execute: getOidcAccounts,
@@ -69,6 +73,14 @@ export const useRecoveryOidc = () => {
     execute: removeOidcAccount,
   } = useAsync(async () => {
     const client = getClient({ chainId: defaultChain.id });
+    if (address === null) {
+      throw new Error("No account connected");
+    }
+    const balance = await client.getBalance({ address: address });
+    if (balance === 0n) {
+      throw new NoBalanceError();
+    }
+
     await client.removeOidcAccount();
   });
 

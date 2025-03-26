@@ -119,13 +119,18 @@
                 Added on {{ method.addedOn.toLocaleDateString() }} {{ method.addedOn.toLocaleTimeString() }}
               </p>
             </div>
-            <Button
-              type="danger"
-              class="text-sm lg:w-auto w-full"
-              @click="removeOidc"
-            >
-              Remove
-            </Button>
+            <div class="flex flex-col">
+              <Button
+                type="danger"
+                class="text-sm lg:w-auto w-full"
+                @click="removeOidc"
+              >
+                Remove
+              </Button>
+              <div :class="['text-center', 'mt-2', 'text-sm', 'text-red-500', notEnoughBalance ? '' : 'invisible']">
+                Not enough balance.
+              </div>
+            </div>
           </div>
         </Card>
         <AddRecoveryMethodModal
@@ -166,6 +171,7 @@ const {
 const config = useRuntimeConfig();
 
 const appUrl = config.public.appUrl;
+const notEnoughBalance = ref<boolean>(false);
 
 const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
   return {
@@ -196,8 +202,16 @@ const refreshGuardians = () => {
 };
 
 async function removeOidc() {
-  await removeOidcAccount();
-  refreshGuardians();
+  try {
+    await removeOidcAccount();
+    refreshGuardians();
+  } catch (e) {
+    if (e instanceof NoBalanceError) {
+      notEnoughBalance.value = true;
+    } else {
+      throw e;
+    }
+  }
 }
 
 watchEffect(async () => {
