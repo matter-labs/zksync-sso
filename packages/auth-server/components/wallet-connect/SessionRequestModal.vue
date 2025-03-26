@@ -1,7 +1,7 @@
 <template>
   <Dialog
     ref="modalRef"
-    content-class="min-w-[700px] min-h-[500px]"
+    content-class="min-w-[600px]"
     description-class="flex-1 mb-0 flex text-base"
     close-class="h-8 max-h-8"
     :title="title"
