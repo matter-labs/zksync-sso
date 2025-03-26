@@ -69,7 +69,6 @@ export const useRecoveryOidc = () => {
     execute: removeOidcAccount,
   } = useAsync(async () => {
     const client = getClient({ chainId: defaultChain.id });
-
     await client.removeOidcAccount();
   });
 
