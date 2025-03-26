@@ -2,7 +2,7 @@ import { type Account, type Address, type Chain, type Client, encodeFunctionData
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
-import { SessionKeyModuleAbi } from "../../../abi/SessionKeyModule.js";
+import { SessionKeyValidatorAbi } from "../../../abi/SessionKeyValidator.js";
 import { type CustomPaymasterHandler, getTransactionWithPaymasterData } from "../../../paymaster/index.js";
 import { noThrow } from "../../../utils/helpers.js";
 import type { SessionConfig } from "../../../utils/session.js";
@@ -28,7 +28,7 @@ export const createSession = async <
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<CreateSessionArgs>): Promise<Prettify<CreateSessionReturnType>> => {
   const callData = encodeFunctionData({
-    abi: SessionKeyModuleAbi,
+    abi: SessionKeyValidatorAbi,
     functionName: "createSession",
     args: [args.sessionConfig],
   });
@@ -84,7 +84,7 @@ export const revokeSession = async <
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<RevokeSessionArgs>): Promise<Prettify<RevokeSessionReturnType>> => {
   const callData = encodeFunctionData({
-    abi: SessionKeyModuleAbi,
+    abi: SessionKeyValidatorAbi,
     functionName: "revokeKey",
     args: [args.sessionId],
   });

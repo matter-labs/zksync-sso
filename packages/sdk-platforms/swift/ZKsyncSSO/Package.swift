@@ -15,13 +15,16 @@ let package = Package(
     targets: [
         .target(
             name: "ZKsyncSSO",
-            dependencies: ["ZKsyncSSOFFI"]),
+            dependencies: ["ZKsyncSSOFFI"],
+            resources: [
+                .copy("Config/config.json")
+            ]),
         .target(
             name: "ZKsyncSSOFFI",
-            dependencies: ["ffiFFI"]),
+            dependencies: ["ZKsyncSSOCore"]),
         .binaryTarget(
-            name: "ffiFFI",
-            path: "../../rust/zksync-sso/crates/ffi/out/ffiFFI.xcframework"),
+            name: "ZKsyncSSOCore",
+            path: "../../rust/zksync-sso/crates/ffi/out/ZKsyncSSOCore.xcframework"),
         .testTarget(
             name: "ZKsyncSSOTests",
             dependencies: ["ZKsyncSSO"]),
