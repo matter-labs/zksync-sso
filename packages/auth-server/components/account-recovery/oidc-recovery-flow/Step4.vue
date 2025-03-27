@@ -98,7 +98,9 @@ async function go() {
   }
 
   const contractNonce = oidcData.recoverNonce;
-  const [hashForCircuitInput, jwtNonce] = createNonceV2(accountData.value.address as Hex, contractNonce, blindingFactor);
+  const currentTime = BigInt(new Date().valueOf()) / 1000n; // convert to seconds:wq
+  const timeLimit = currentTime + 3600n; // 1 hour from now
+  const [hashForCircuitInput, jwtNonce] = createNonceV2(accountData.value.address as Hex, contractNonce, blindingFactor, timeLimit);
 
   const jwt = await startGoogleOauth(jwtNonce, sub.value);
 
@@ -133,6 +135,7 @@ async function go() {
     },
     passkey.value.passkeyPubKey,
     userAddress.value,
+    timeLimit,
   );
 
   const sendTransactionArgs = {

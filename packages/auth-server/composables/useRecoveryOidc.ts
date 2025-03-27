@@ -75,7 +75,7 @@ export const useRecoveryOidc = () => {
   // TODO: improve this
   type KeyStruct = { issHash: Hex; kid: Hex };
 
-  function recoveryStep1Calldata(proof: Groth16Proof, key: KeyStruct, passkey: [Hex, Hex], targetAccount: Address): Hex {
+  function recoveryStep1Calldata(proof: Groth16Proof, key: KeyStruct, passkey: [Hex, Hex], targetAccount: Address, timeLimit: bigint): Hex {
     const passkeyHash = keccak256(
       encodeAbiParameters([{ type: "bytes32" }, { type: "bytes32" }], passkey),
     );
@@ -100,6 +100,7 @@ export const useRecoveryOidc = () => {
           pendingPasskeyHash: passkeyHash,
         },
         targetAccount,
+        timeLimit,
       ],
     });
   }
