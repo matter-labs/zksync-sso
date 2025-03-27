@@ -16,7 +16,6 @@ cache/
 zkout/
 
 package-lock.json
-# yarn.lock
 
 .cache/
 

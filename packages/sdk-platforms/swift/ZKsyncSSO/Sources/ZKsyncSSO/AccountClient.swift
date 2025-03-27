@@ -30,33 +30,33 @@ public struct AccountClient: Sendable {
         )
     }
     
-    public func sendTransaction(
-        to: String,
-        amount: String
-    ) async throws {
-        let tx = Transaction(
-            from: account.address,
-            to: to,
-            value: amount,
-            input: nil
+    @discardableResult
+    public func send(
+        transaction: TransactionRequest
+    ) async throws -> String {
+        let tx = Transaction.from(
+            request: transaction,
+            account: account.address
         )
         let result = try await ZKsyncSSOFFI.sendTransactionAsyncSigner(
             transaction: tx,
             authenticator: authenticatorAsync,
             config: Config.default.inner
         )
-        print(result)
+        return result.txHash
     }
     
-    public func prepareTransaction(
+    public func prepare(
         transaction: TransactionRequest
     ) async throws -> PreparedTransaction {
-        let from = account.address
-        let tx = try await ZKsyncSSOFFI.prepareSendTransaction(
-            transaction: transaction.inner,
-            from: from,
+        let tx = Transaction.from(
+            request: transaction,
+            account: account.address
+        )
+        let preparedTransaction = try await ZKsyncSSOFFI.prepareSendTransaction(
+            transaction: tx,
             config: Config.default.inner
         )
-        return tx.wrappedValue
+        return preparedTransaction.wrappedValue
     }
 }

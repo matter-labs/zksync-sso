@@ -2322,11 +2322,11 @@ public func getBalance(address: String, config: Config)async throws  -> AccountB
             errorHandler: FfiConverterTypeGetAccountBalanceError_lift
         )
 }
-public func prepareSendTransaction(transaction: Transaction, from: String, config: Config)async throws  -> PreparedTransaction  {
+public func prepareSendTransaction(transaction: Transaction, config: Config)async throws  -> PreparedTransaction  {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_ffi_fn_func_prepare_send_transaction(FfiConverterTypeTransaction_lower(transaction),FfiConverterString.lower(from),FfiConverterTypeConfig_lower(config)
+                uniffi_ffi_fn_func_prepare_send_transaction(FfiConverterTypeTransaction_lower(transaction),FfiConverterTypeConfig_lower(config)
                 )
             },
             pollFunc: ffi_ffi_rust_future_poll_rust_buffer,
@@ -2401,7 +2401,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ffi_checksum_func_get_balance() != 46562) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ffi_checksum_func_prepare_send_transaction() != 43366) {
+    if (uniffi_ffi_checksum_func_prepare_send_transaction() != 13974) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ffi_checksum_func_send_transaction() != 44442) {

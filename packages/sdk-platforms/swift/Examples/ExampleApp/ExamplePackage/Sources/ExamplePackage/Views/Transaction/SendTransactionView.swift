@@ -126,14 +126,11 @@ struct SendTransactionView: View {
             defer { isPreparing = false }
 
             do {
-                let from = fromAccount.address
                 let transaction = TransactionRequest(
-                    from: from,
                     to: toAddress,
                     value: amountInWei
                 )
-
-                let prepared = try await accountClient.prepareTransaction(
+                let prepared = try await accountClient.prepare(
                     transaction: transaction
                 )
                 print(
@@ -174,9 +171,11 @@ struct SendTransactionView: View {
 
         Task {
             do {
-                try await accountClient.sendTransaction(
-                    to: toAddress,
-                    amount: amountInWei
+                try await accountClient.send(
+                    transaction: .init(
+                        to: toAddress,
+                        value: amountInWei
+                    )
                 )
                 
                 withAnimation {

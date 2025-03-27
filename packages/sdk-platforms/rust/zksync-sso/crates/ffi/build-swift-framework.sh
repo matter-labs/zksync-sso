@@ -19,7 +19,7 @@ GENERATED_HEADER="${CRATE_NAME}FFI.h"
 GENERATED_SWIFT="$CRATE_NAME.swift"
 GENERATED_MODULEMAP="${CRATE_NAME}FFI.modulemap"
 OUT_PATH="out"
-MIN_IOS_VERSION="18.0"
+MIN_IOS_VERSION="17.0"
 WRAPPER_PATH="../../../../swift/ZKsyncSSO/Sources/ZKsyncSSOFFI"
 TARGET_PATH="../../target"
 BUILD_TYPE="debug" # use debug during development
@@ -159,15 +159,6 @@ echo "// swift-format-ignore-file" | cat - "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAM
 # Fix compilation error
 sed -i '' 's/open class Client:/open class Client:\
     @unchecked Sendable,/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
-
-# Fix compilation error
-# sed -i '' 's/public struct Transaction {/public struct Transaction: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
-
-# Fix compilation error
-# sed -i '' 's/public struct SendTransactionResult {/public struct SendTransactionResult: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
-
-# Fix compilation error
-# sed -i '' 's/public struct AccountBalance {/public struct AccountBalance: Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 
 # Fix compilation error
 sed -i '' 's/private class UniffiHandleMap<T> {/private class UniffiHandleMap<T>: @unchecked Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
