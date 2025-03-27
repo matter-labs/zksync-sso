@@ -5,6 +5,12 @@ with a Passkey, and stake some ETH with a fully embedded wallet.
 
 ## Running the demo locally
 
+From the packages/contracts directory, deploy the contracts to a local node:
+
+```bash
+pnpm run deploy --file ../../examples/bank-demo/local-node.json
+```
+
 Run the following command from the root of the monorepo:
 
 ```bash

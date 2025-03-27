@@ -39,8 +39,8 @@ export async function createZksyncEcdsaClient<
     .extend(publicActions)
     .extend(walletActions)
     .extend(eip712WalletActions())
-    .extend(zksyncSsoEcdsaWalletActions)
-    .extend(zksyncSsoEcdsaActions);
+    .extend(zksyncSsoEcdsaActions)
+    .extend(zksyncSsoEcdsaWalletActions);
   return client;
 }
 

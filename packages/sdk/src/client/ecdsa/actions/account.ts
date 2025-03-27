@@ -1,8 +1,9 @@
-import { type Account, type Address, type Chain, type Client, concat, encodePacked, getAddress, type Hash, type Hex, keccak256, parseAbi, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import type { Account, Address, Chain, Client, Hash, Hex, Prettify, TransactionReceipt, Transport } from "viem";
+import { concat, encodePacked, getAddress, keccak256, parseEventLogs, toHex } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
-import { FactoryAbi } from "../../../abi/Factory.js";
+import { AAFactoryAbi } from "../../../abi/AAFactory.js";
 import { type CustomPaymasterHandler } from "../../../paymaster/index.js";
 import { encodeModuleData, encodeSession } from "../../../utils/encoding.js";
 import { noThrow } from "../../../utils/helpers.js";
@@ -71,7 +72,7 @@ export const deployAccount = async <
     account: client.account!,
     chain: client.chain!,
     address: args.contracts.accountFactory,
-    abi: FactoryAbi,
+    abi: AAFactoryAbi,
     functionName: "deployProxySsoAccount",
     args: [
       uniqueId,
@@ -96,7 +97,7 @@ export const deployAccount = async <
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
   if (transactionReceipt.status !== "success") throw new Error("Account deployment transaction reverted");
 
-  const accountCreatedEvent = parseEventLogs({ abi: FactoryAbi, logs: transactionReceipt.logs })
+  const accountCreatedEvent = parseEventLogs({ abi: AAFactoryAbi, logs: transactionReceipt.logs })
     .find((log) => log && log.eventName === "AccountCreated");
 
   if (!accountCreatedEvent) {
@@ -129,7 +130,7 @@ export const fetchAccount = async <
   if (!accountId) throw new Error("No account ID provided");
 
   const accountAddress = await readContract(client, {
-    abi: parseAbi(["function accountMappings(bytes32) view returns (address)"]),
+    abi: AAFactoryAbi,
     address: args.contracts.accountFactory,
     functionName: "accountMappings",
     args: [accountId],
