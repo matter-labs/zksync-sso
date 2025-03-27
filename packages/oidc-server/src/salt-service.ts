@@ -52,6 +52,7 @@ app.get("/salt", async (req, res): Promise<void> => {
     payload = parsedJwt.payload;
   } catch {
     res.status(401).json({ error: "Unauthorized - Invalid token" });
+    return;
   }
 
   const { iss, aud, sub } = JwtPayloadSchema.parse(payload);
