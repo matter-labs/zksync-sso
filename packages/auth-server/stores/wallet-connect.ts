@@ -1,7 +1,8 @@
 import WalletKit, { type WalletKitTypes } from "@reown/walletkit";
 import Core from "@walletconnect/core";
-import type { SessionTypes } from "@walletconnect/types";
+import type { JsonRpcTypes, SessionTypes } from "@walletconnect/types";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
+import type { RpcRequestError } from "viem";
 import { fromHex } from "viem";
 
 export const useWalletConnectStore = defineStore("wallet-connect", () => {
@@ -27,8 +28,26 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
 
     walletKit.value.on("session_request", async (req: WalletKitTypes.SessionRequest) => {
       switch (req.params.request.method) {
-        case "eth_signTypedData_v4":
         case "eth_sendRawTransaction":
+        {
+          const client = getClient({ chainId: defaultChain.id });
+          try {
+            const tx = await client.sendRawTransaction({
+              serializedTransaction: req.params.request.params[0],
+            });
+            walletKit.value!.respondSessionRequest({
+              topic: req.topic,
+              response: { id: req.id, result: tx, jsonrpc: "2.0" },
+            });
+          } catch (error) {
+            walletKit.value!.respondSessionRequest({
+              topic: req.topic,
+              response: { id: req.id, error: (error as RpcRequestError).cause as JsonRpcTypes.Error, jsonrpc: "2.0" },
+            });
+          }
+          break;
+        }
+        case "eth_signTypedData_v4":
         case "eth_sendTransaction":
         case "personal_sign":
           console.log("[WC] Session request received", req);
