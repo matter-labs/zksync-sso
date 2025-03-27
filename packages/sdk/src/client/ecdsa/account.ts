@@ -1,5 +1,5 @@
 import type { Address } from "abitype";
-import { type CustomSource, type LocalAccount } from "viem";
+import type { CustomSource, LocalAccount } from "viem";
 import { toAccount } from "viem/accounts";
 import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
 
