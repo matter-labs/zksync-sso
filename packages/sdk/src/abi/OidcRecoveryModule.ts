@@ -190,6 +190,11 @@ export const OidcRecoveryModuleAbi = [
             name: "recoverNonce",
             type: "uint256",
           },
+          {
+            internalType: "uint256",
+            name: "addedOn",
+            type: "uint256",
+          },
         ],
         internalType: "struct OidcRecoveryValidator.OidcData",
         name: "",
