@@ -281,6 +281,11 @@ export const OidcRecoveryModuleAbi = [
         name: "targetAccount",
         type: "address",
       },
+      {
+        internalType: "uint256",
+        name: "timeLimit",
+        type: "uint256",
+      },
     ],
     name: "startRecovery",
     outputs: [],

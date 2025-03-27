@@ -5,10 +5,7 @@
     </header>
     <main class="max-w-[900px] mx-auto flex flex-col gap-6">
       <div class="flex flex-col items-center gap-8 mt-4">
-        <account-recovery-oidc-recovery-flow-root
-          @back="previousStep"
-          @forward="nextStep"
-        />
+        <account-recovery-oidc-recovery-flow-root />
       </div>
     </main>
   </div>
