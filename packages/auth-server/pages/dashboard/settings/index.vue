@@ -172,7 +172,7 @@ const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
     method: "OIDC",
     iss: oidcData.iss,
     digest: oidcData.oidcDigest,
-    addedOn: new Date(),
+    addedOn: new Date(Number(oidcData.addedOn) * 1000),
   };
 }));
 
