@@ -13,7 +13,7 @@ const env = createEnv({
   server: {
     APP_AUD: z.string(),
     SALT_SERVICE_PORT: z.string().optional(),
-    SALT_ENTROPY: z.string(),
+    SALT_ENTROPY: z.string().regex(/0x[0-9a-fA-F]+/),
     AUTH_SERVER_URL: z.string(),
   },
   runtimeEnv: process.env,
@@ -42,25 +42,31 @@ app.get("/salt", async (req, res): Promise<void> => {
 
   const jwt = authHeader.split(" ")[1];
 
+  let payload;
   try {
     const jwks = jose.createRemoteJWKSet(GOOGLE_JWKS_URL);
-
-    const { payload } = await jose.jwtVerify(jwt, jwks, {
+    const parsedJwt = await jose.jwtVerify(jwt, jwks, {
       issuer: GOOGLE_ISSUER,
       audience: env.APP_AUD,
     });
-
-    const { iss, aud, sub } = JwtPayloadSchema.parse(payload);
-
-    const data = Buffer.from(`${iss}${aud}${sub}${env.SALT_ENTROPY}`, "ascii");
-
-    // We use 31 byte salt in order to make it fit in a field.
-    const hash = crypto.createHash("sha256").update(data).digest().subarray(1);
-
-    res.json({ salt: bytesToHex(hash) });
+    payload = parsedJwt.payload;
   } catch {
     res.status(401).json({ error: "Unauthorized - Invalid token" });
   }
+
+  const { iss, aud, sub } = JwtPayloadSchema.parse(payload);
+
+  const data = Buffer.concat([
+    Buffer.from(iss, "ascii"),
+    Buffer.from(aud, "ascii"),
+    Buffer.from(sub, "ascii"),
+    Buffer.from(env.SALT_ENTROPY, "hex"),
+  ]);
+
+  // We use 31 byte salt in order to make it fit in a field.
+  const hash = crypto.createHash("sha256").update(data).digest().subarray(1);
+
+  res.json({ salt: bytesToHex(hash) });
 });
 
 app.listen(env.SALT_SERVICE_PORT, () => {
