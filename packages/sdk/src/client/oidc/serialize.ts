@@ -6,4 +6,5 @@ export type OidcData = {
   readyToRecover: boolean;
   pendingPasskeyHash: Hex;
   recoverNonce: bigint;
+  addedOn: bigint;
 };
