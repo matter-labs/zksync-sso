@@ -3,7 +3,7 @@ import SwiftUI
 import ZKsyncSSO
 
 struct SendTransactionView: View {
-    let fromAccount: AccountDetails
+    let fromAccount: DeployedAccount
     @Environment(\.dismiss) private var dismiss
 
     @State private var toAddress: String = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
@@ -13,24 +13,18 @@ struct SendTransactionView: View {
     @State private var showingSuccess = false
     @State private var preparedTransaction: PreparedTransaction?
     @State private var isPreparing = false
-
-    private let passkeyAuth: PasskeyAuthSync
-    private let accountClient: AccountClient
+    
+    @Environment(\.authorizationController) private var authorizationController
+    
     private let onTransactionSent: () -> Void
 
     init(
-        fromAccount: AccountDetails,
-        passkeyAuth: PasskeyAuthSync,
+        fromAccount: DeployedAccount,
         onTransactionSent: @escaping () -> Void = {}
     ) {
         print("Initializing SendTransactionView")
         self.fromAccount = fromAccount
-        self.passkeyAuth = passkeyAuth
         self.onTransactionSent = onTransactionSent
-        self.accountClient = AccountClient(
-            account: .init(address: fromAccount.address, uniqueAccountId: ""),
-            authenticator: passkeyAuth
-        )
     }
 
     var body: some View {
@@ -75,7 +69,6 @@ struct SendTransactionView: View {
                     )
                 }
             }
-            .passkeyPresentation(passkeyAuth.manager)
             .id("SendTransactionView")
             .onAppear { print("SendTransactionView appeared") }
             .navigationTitle("Send Transaction")
@@ -112,20 +105,32 @@ struct SendTransactionView: View {
 
         guard let amountInEth = Double(amount) else { return }
         let amountInWei = String(Int(amountInEth * 1_000_000_000_000_000_000.0))
+        
+        let authenticator = PasskeyAuthenticatorHelper(
+            controllerProvider: { self.authorizationController },
+            relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
+        )
+        
+        let accountClient = AccountClient(
+            account: .init(
+                address: fromAccount.address,
+                uniqueAccountId: fromAccount.uniqueAccountId
+            ),
+            authenticatorAsync: PasskeyAuthAsync(
+                authenticator: authenticator
+            )
+        )
 
         Task {
             isPreparing = true
             defer { isPreparing = false }
 
             do {
-                let from = fromAccount.address
                 let transaction = TransactionRequest(
                     to: toAddress,
-                    value: amountInWei,
-                    from: from
+                    value: amountInWei
                 )
-
-                let prepared = try await accountClient.prepareTransaction(
+                let prepared = try await accountClient.prepare(
                     transaction: transaction
                 )
                 print(
@@ -148,14 +153,31 @@ struct SendTransactionView: View {
 
         isConfirming = true
         error = nil
+        
+        let authenticator = PasskeyAuthenticatorHelper(
+            controllerProvider: { self.authorizationController },
+            relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
+        )
+        
+        let accountClient = AccountClient(
+            account: .init(
+                address: fromAccount.address,
+                uniqueAccountId: fromAccount.uniqueAccountId
+            ),
+            authenticatorAsync: PasskeyAuthAsync(
+                authenticator: authenticator
+            )
+        )
 
         Task {
             do {
-                try await accountClient.sendTransaction(
-                    to: toAddress,
-                    amount: amountInWei
+                try await accountClient.send(
+                    transaction: .init(
+                        to: toAddress,
+                        value: amountInWei
+                    )
                 )
-
+                
                 withAnimation {
                     showingSuccess = true
                 }
@@ -176,17 +198,14 @@ struct SendTransactionView: View {
 
 #Preview {
     SendTransactionView(
-        fromAccount: AccountDetails(
+        fromAccount: .init(
+            info: .init(
+                name: "Jane Doe",
+                userID: "jdoe@example.com",
+                domain: "example.com"
+            ),
             address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-            uniqueAccountId: "uniqueAccountId",
-            balance: "1000000000000000000"
-        ),
-        passkeyAuth: PasskeyAuthSync(
-            authenticator: PasskeyAuthenticatorHelper(
-                manager: PasskeyManager(
-                    relyingPartyIdentifier: "example.app"
-                )
-            )
+            uniqueAccountId: "jdoe@example.com"
         )
     )
 }

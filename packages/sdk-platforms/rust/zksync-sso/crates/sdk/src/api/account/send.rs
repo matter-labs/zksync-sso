@@ -1,22 +1,11 @@
 use crate::{
+    api::account::transaction::Transaction,
     client::passkey::actions::send::sign::SignerWithMessage, config::Config,
 };
 use alloy::network::ReceiptResponse;
-use alloy::{
-    network::TransactionBuilder,
-    primitives::{Address, U256},
-};
-use alloy_zksync::network::transaction_request::TransactionRequest;
 use std::{fmt::Debug, future::Future};
 
 pub mod prepare;
-
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
-pub struct Transaction {
-    pub to: Address,
-    pub value: String,
-    pub from: Address,
-}
 
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct SendTransactionResult {
@@ -39,14 +28,7 @@ where
         transaction
     );
 
-    let to = transaction.to;
-    let value = transaction.value.parse::<U256>()?;
-    let from = transaction.from;
-
-    let transaction_request = TransactionRequest::default()
-        .with_from(from)
-        .with_to(to)
-        .with_value(value);
+    let transaction_request = transaction.try_into()?;
 
     let receipt = crate::client::passkey::actions::send::send_transaction(
         transaction_request,
@@ -80,14 +62,7 @@ where
         transaction
     );
 
-    let to = transaction.to;
-    let value = transaction.value.parse::<U256>()?;
-    let from = transaction.from;
-
-    let transaction_request = TransactionRequest::default()
-        .with_from(from)
-        .with_to(to)
-        .with_value(value);
+    let transaction_request = transaction.try_into()?;
 
     let receipt = crate::client::passkey::actions::send::send_transaction(
         transaction_request,

@@ -7,6 +7,7 @@ use std::{env, fs, io::Write, path::PathBuf};
 use url::Url;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
     pub contracts: PasskeyContracts,
     pub node_url: Url,

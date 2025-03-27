@@ -31,7 +31,6 @@ extension ZKsyncSSOFFI.Config {
         }
 
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
         guard let config = try? decoder.decode(Self.self, from: data) else {
             fatalError("config.json data coulnd't be read")

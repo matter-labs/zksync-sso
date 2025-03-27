@@ -1,0 +1,4 @@
+---
+rust:
+    directory: ./../../rust/zksync-sso/crates/ffi
+    manifest-path: Cargo.toml

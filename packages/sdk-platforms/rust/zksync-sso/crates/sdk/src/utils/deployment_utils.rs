@@ -1,26 +1,6 @@
 use crate::config::contracts::PasskeyContracts;
-use hex;
 use rand::RngCore;
 use std::{env, fs, path::PathBuf, process::Command};
-use url;
-
-fn extract_contract_address<'a>(
-    lines: &'a [&'a str],
-    contract_name: &str,
-) -> eyre::Result<&'a str> {
-    lines
-        .iter()
-        .find(|line| {
-            line.contains(&format!(
-                "{} proxy contract deployed at:",
-                contract_name
-            )) || line
-                .contains(&format!("{} contract deployed at:", contract_name))
-        })
-        .and_then(|line| line.split(": ").nth(1))
-        .map(|addr| addr.trim())
-        .ok_or_else(|| eyre::eyre!("Failed to find {} address", contract_name))
-}
 
 pub async fn deploy_contracts(
     node_url: url::Url,
@@ -151,4 +131,22 @@ export default config;"#,
     println!("Contracts deployed: {:?}", contracts);
 
     Ok(contracts)
+}
+
+fn extract_contract_address<'a>(
+    lines: &'a [&'a str],
+    contract_name: &str,
+) -> eyre::Result<&'a str> {
+    lines
+        .iter()
+        .find(|line| {
+            line.contains(&format!(
+                "{} proxy contract deployed at:",
+                contract_name
+            )) || line
+                .contains(&format!("{} contract deployed at:", contract_name))
+        })
+        .and_then(|line| line.split(": ").nth(1))
+        .map(|addr| addr.trim())
+        .ok_or_else(|| eyre::eyre!("Failed to find {} address", contract_name))
 }
