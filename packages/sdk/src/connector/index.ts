@@ -137,6 +137,7 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
           metadata: {
             name: parameters.metadata?.name,
             icon: parameters.metadata?.icon,
+            configData: parameters.metadata?.configData,
           },
           authServerUrl: parameters.authServerUrl,
           session: parameters.session,
