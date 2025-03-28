@@ -32,11 +32,6 @@ export class AccountClient {
      */
     async prepareTransaction(transaction: Transaction): Promise<PreparedTransaction> {
         const from = this.account.address;
-        const transaction: Transaction = {
-            to,
-            value,
-            from,
-        };
         const preparedTransaction = await prepareSendTransaction(
             transaction,
             from,
@@ -57,7 +52,6 @@ export class AccountClient {
             authenticator,
             this.config
         );
-        console.log("result: ", result);
         return result;
     }
 }

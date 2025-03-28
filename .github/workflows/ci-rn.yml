@@ -2,15 +2,12 @@ name: CI for React Native zkSync SSO
 
 on:
   push:
-    branches:
-      - main
     paths:
-      - 'packages/sdk-platforms/react-native/react-native-zksync-sso/**'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'packages/sdk-platforms/react-native/react-native-zksync-sso/**'
+      - 'packages/sdk-platforms/**'
+  #     - 'packages/sdk-platforms/react-native/react-native-zksync-sso/**'
+  # pull_request:
+  #   paths:
+  #     - 'packages/sdk-platforms/react-native/react-native-zksync-sso/**'
 
 jobs:
   build:
@@ -77,10 +74,20 @@ jobs:
           echo "Running yarn install..."
           /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js install --frozen-lockfile
 
-    # - name: Build
-    #   run: |
-    #     echo "Running yarn prepare..."
-    #     /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js prepare
+      - name: Typecheck - showConfig
+        run: |
+          echo "Running yarn typecheck..."
+          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js typecheck --showConfig
+
+      - name: Typecheck
+        run: |
+          echo "Running yarn typecheck..."
+          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js typecheck
+
+      - name: Build
+        run: |
+          echo "Running yarn prepare..."
+          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js prepare
 
     #   - name: Debug Jest setup
     #     run: |
