@@ -190,6 +190,11 @@ export const OidcRecoveryModuleAbi = [
             name: "recoverNonce",
             type: "uint256",
           },
+          {
+            internalType: "uint256",
+            name: "addedOn",
+            type: "uint256",
+          },
         ],
         internalType: "struct OidcRecoveryValidator.OidcData",
         name: "",
@@ -275,6 +280,11 @@ export const OidcRecoveryModuleAbi = [
         internalType: "address",
         name: "targetAccount",
         type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "timeLimit",
+        type: "uint256",
       },
     ],
     name: "startRecovery",
