@@ -1,4 +1,4 @@
-export const OidcRecoveryModuleAbi = [
+export const OidcRecoveryValidatorAbi = [
   {
     inputs: [],
     stateMutability: "nonpayable",
