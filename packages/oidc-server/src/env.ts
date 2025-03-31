@@ -12,7 +12,7 @@ export const env = createEnv({
       (val) => (val === undefined ? 60 * 1000 : Number(val)),
       z.number(),
     ),
-    ZKSYNC_PRIVATE_KEY: z.string(),
+    ADMIN_PRIVATE_KEY: z.string(),
     CONTRACT_ADDRESS: z.string(),
     NETWORK: z.enum(validNetworks).optional(),
     RPC_URL: z.string().url().optional(),

@@ -1,11 +1,9 @@
-import { Wallet } from "ethers";
-import { Contract } from "ethers";
-import { Provider, types } from "zksync-ethers";
+import { Contract, Provider, types, Wallet } from "zksync-ethers";
 import { CircomBigInt } from "zksync-sso-circuits";
 
-import { abi } from "./abi";
-import { env } from "./env.ts";
-import type { BaseKey, Key } from "./types";
+import { abi } from "./abi.js";
+import { env } from "./env.js";
+import type { BaseKey, Key } from "./types.js";
 
 export class ContractUpdater {
   private wallet: Wallet;
@@ -21,7 +19,7 @@ export class ContractUpdater {
     } else {
       throw new Error("Either RPC_URL or NETWORK must be set");
     }
-    this.wallet = new Wallet(env.ZKSYNC_PRIVATE_KEY, this.provider);
+    this.wallet = new Wallet(env.ADMIN_PRIVATE_KEY, this.provider);
 
     this.contract = new Contract(
       env.CONTRACT_ADDRESS,
