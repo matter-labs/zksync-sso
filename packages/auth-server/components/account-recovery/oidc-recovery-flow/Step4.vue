@@ -47,7 +47,6 @@ const {
   zkProofInProgress,
   zkProof,
   generateZkProof,
-  hashIssuer,
   getOidcAccounts,
 } = useRecoveryOidc();
 
@@ -129,10 +128,7 @@ async function go() {
 
   const calldata = recoveryStep1Calldata(
     proof,
-    {
-      issHash: await hashIssuer(),
-      kid: pad(toHex(Buffer.from(key.kid, "hex"))),
-    },
+    pad(toHex(Buffer.from(key.kid, "hex"))),
     passkey.value.passkeyPubKey,
     userAddress.value,
     timeLimit,

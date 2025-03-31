@@ -1,5 +1,5 @@
 import { type Address, encodeAbiParameters, encodeFunctionData, type Hex, keccak256 } from "viem";
-import { OidcKeyRegistryAbi, OidcRecoveryModuleAbi } from "zksync-sso/abi";
+import { OidcRecoveryValidatorAbi } from "zksync-sso/abi";
 import type { OidcData } from "zksync-sso/client/oidc";
 import { type Groth16Proof, type JWT, JwtTxValidationInputs, OidcDigest } from "zksync-sso-circuits";
 
@@ -34,7 +34,7 @@ export const useRecoveryOidc = () => {
     try {
       const data = await client.readContract({
         address: contractsByChain[defaultChain.id].recoveryOidc,
-        abi: OidcRecoveryModuleAbi,
+        abi: OidcRecoveryValidatorAbi,
         functionName: "oidcDataForAddress",
         args: [oidcAddress],
       });
@@ -72,16 +72,13 @@ export const useRecoveryOidc = () => {
     await client.removeOidcAccount();
   });
 
-  // TODO: improve this
-  type KeyStruct = { issHash: Hex; kid: Hex };
-
-  function recoveryStep1Calldata(proof: Groth16Proof, key: KeyStruct, passkey: [Hex, Hex], targetAccount: Address, timeLimit: bigint): Hex {
+  function recoveryStep1Calldata(proof: Groth16Proof, kid: Hex, passkey: [Hex, Hex], targetAccount: Address, timeLimit: bigint): Hex {
     const passkeyHash = keccak256(
       encodeAbiParameters([{ type: "bytes32" }, { type: "bytes32" }], passkey),
     );
 
     return encodeFunctionData({
-      abi: OidcRecoveryModuleAbi,
+      abi: OidcRecoveryValidatorAbi,
       functionName: "startRecovery",
       args: [
         {
@@ -95,12 +92,11 @@ export const useRecoveryOidc = () => {
             ],
             pC: [BigInt(proof.pi_c[0]), BigInt(proof.pi_c[1])],
           },
-          issHash: key.issHash,
-          kid: key.kid,
+          kid,
           pendingPasskeyHash: passkeyHash,
+          timeLimit,
         },
         targetAccount,
-        timeLimit,
       ],
     });
   }
@@ -129,17 +125,6 @@ export const useRecoveryOidc = () => {
     return groth16Result.proof;
   });
 
-  async function hashIssuer(): Promise<Hex> {
-    const client = await getPublicClient({ chainId: defaultChain.id });
-    const res = await client.readContract({
-      address: contractsByChain[defaultChain.id].oidcKeyRegistry,
-      abi: OidcKeyRegistryAbi,
-      functionName: "hashIssuer",
-      args: ["https://accounts.google.com"],
-    });
-    return res as Hex;
-  }
-
   return {
     getOidcAccounts,
     getOidcAccountsInProgress,
@@ -155,7 +140,6 @@ export const useRecoveryOidc = () => {
     generateZkProof,
     zkProof,
     zkProofError,
-    hashIssuer,
     removeOidcAccount,
   };
 };

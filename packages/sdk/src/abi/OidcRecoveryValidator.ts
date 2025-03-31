@@ -1,8 +1,67 @@
-export const OidcRecoveryModuleAbi = [
+export const OidcRecoveryValidatorAbi = [
   {
     inputs: [],
     stateMutability: "nonpayable",
     type: "constructor",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "value",
+        type: "uint256",
+      },
+    ],
+    name: "ADDRESS_CAST_OVERFLOW",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "digest",
+        type: "bytes32",
+      },
+    ],
+    name: "AddressNotFoundForDigest",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+    ],
+    name: "NoOidcDataForGivenAddress",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "digest",
+        type: "bytes32",
+      },
+    ],
+    name: "OidcDigestAlreadyRegisteredInAnotherAccount",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "TimeLimitExpired",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ValidateSignatureNotImplemented",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ZkProofVerificationFailed",
+    type: "error",
   },
   {
     anonymous: false,
@@ -64,7 +123,7 @@ export const OidcRecoveryModuleAbi = [
         type: "bool",
       },
     ],
-    name: "OidcKeyUpdated",
+    name: "OidcAccountUpdated",
     type: "event",
   },
   {
@@ -221,7 +280,7 @@ export const OidcRecoveryModuleAbi = [
     inputs: [
       {
         internalType: "bytes",
-        name: "data",
+        name: "",
         type: "bytes",
       },
     ],
@@ -258,11 +317,6 @@ export const OidcRecoveryModuleAbi = [
           },
           {
             internalType: "bytes32",
-            name: "issHash",
-            type: "bytes32",
-          },
-          {
-            internalType: "bytes32",
             name: "kid",
             type: "bytes32",
           },
@@ -270,6 +324,11 @@ export const OidcRecoveryModuleAbi = [
             internalType: "bytes32",
             name: "pendingPasskeyHash",
             type: "bytes32",
+          },
+          {
+            internalType: "uint256",
+            name: "timeLimit",
+            type: "uint256",
           },
         ],
         internalType: "struct OidcRecoveryValidator.StartRecoveryData",
@@ -280,11 +339,6 @@ export const OidcRecoveryModuleAbi = [
         internalType: "address",
         name: "targetAccount",
         type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "timeLimit",
-        type: "uint256",
       },
     ],
     name: "startRecovery",
@@ -315,12 +369,12 @@ export const OidcRecoveryModuleAbi = [
     inputs: [
       {
         internalType: "bytes32",
-        name: "signedHash",
+        name: "",
         type: "bytes32",
       },
       {
         internalType: "bytes",
-        name: "signature",
+        name: "",
         type: "bytes",
       },
     ],
@@ -332,14 +386,14 @@ export const OidcRecoveryModuleAbi = [
         type: "bool",
       },
     ],
-    stateMutability: "view",
+    stateMutability: "pure",
     type: "function",
   },
   {
     inputs: [
       {
         internalType: "bytes32",
-        name: "signedHash",
+        name: "",
         type: "bytes32",
       },
       {

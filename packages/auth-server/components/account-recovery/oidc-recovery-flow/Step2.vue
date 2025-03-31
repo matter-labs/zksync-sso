@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { type Address, bytesToHex } from "viem";
-import { OidcRecoveryModuleAbi } from "zksync-sso/abi";
+import { OidcRecoveryValidatorAbi } from "zksync-sso/abi";
 import type { OidcDigest } from "zksync-sso-circuits";
 
 const { startGoogleOauth } = useGoogleOauth();
@@ -42,7 +42,7 @@ async function findAddressUsingGoogleData() {
 
   const addressToRecover = await publicClient.readContract({
     address: contractsByChain[defaultChain.id].recoveryOidc,
-    abi: OidcRecoveryModuleAbi,
+    abi: OidcRecoveryValidatorAbi,
     functionName: "addressForDigest",
     args: [digest.toHex()],
   }) as Address;
