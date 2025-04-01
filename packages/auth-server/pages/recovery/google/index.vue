@@ -12,6 +12,12 @@
 </template>
 
 <script setup lang="ts">
+const { enabled } = useOidcConfig();
+
+if (!enabled) {
+  await navigateTo("/");
+}
+
 definePageMeta({
   layout: "dashboard",
 });
