@@ -22,6 +22,7 @@
         <ZkLink
           type="primary"
           href="/recovery/google"
+          v-if="oidcEnabled"
         >
           Recover with Google Account
         </ZkLink>
@@ -43,3 +44,7 @@
     </div>
   </main>
 </template>
+
+<script setup lang="ts">
+const { enabled: oidcEnabled } = useOidcConfig();
+</script>
