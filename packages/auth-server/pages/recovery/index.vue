@@ -20,9 +20,9 @@
       </ZkLink>
       <div class="flex flex-col gap-2">
         <ZkLink
+          v-if="oidcEnabled"
           type="primary"
           href="/recovery/google"
-          v-if="oidcEnabled"
         >
           Recover with Google Account
         </ZkLink>
