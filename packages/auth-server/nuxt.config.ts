@@ -79,8 +79,11 @@ export default defineNuxtConfig({
       appUrl: process.env.NUXT_PUBLIC_APP_URL || "https://zksync-auth-server-staging--pr52-guardian-recovery-tu1nymjf.web.app",
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
-      googlePublicClient: "866068535821-e9em0h73pee93q4evoajtnnkldsjhqdk.apps.googleusercontent.com",
-      saltServiceUrl: process.env.NUXT_PUBLIC_SALT_SERVICE_URL || "http://localhost:3003/salt",
+      oidc: {
+        enabled: true,
+        googlePublicClient: "866068535821-e9em0h73pee93q4evoajtnnkldsjhqdk.apps.googleusercontent.com",
+        saltServiceUrl: process.env.NUXT_PUBLIC_SALT_SERVICE_URL,
+      },
     },
   },
 });
