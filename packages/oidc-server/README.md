@@ -41,7 +41,7 @@ CONTRACT_ADDRESS=0x... # Address for key registry contract
 SALT_ENTROPY=0x0139201 # Secure random value.
 APP_AUD=               # client id
 SALT_SERVICE_PORT=3003 # Port used by salt service
-AUTH_SERVER_URL=       # Url for auth server. This is used to correctly configured cors. 
+AUTH_SERVER_URL=       # Url for auth server. This is used to correctly configured cors.
 ```
 
 ### Salt entropy
@@ -49,10 +49,10 @@ AUTH_SERVER_URL=       # Url for auth server. This is used to correctly configur
 This value has to be a securely random generated value, and it has to be
 securely saved as if it were a private key.
 
-If you are running the service by the first time, the salt can be generated
-like this:
+If you are running the service by the first time, the salt can be generated like
+this:
 
-``` bash
+```bash
 pnpm generate-entropy
 ```
 
@@ -63,7 +63,7 @@ That is going to generate a 48 byte long secure random value and store in your
 
 The services can be executed like this:
 
-``` bash
+```bash
 # start key registry updater
 pnpm key-registry
 
@@ -73,8 +73,7 @@ pnpm salt-service
 
 ## Development
 
-For development, they can be executed
-in dev mode:
+For development, they can be executed in dev mode:
 
 ```bash
 # start key registry updater
@@ -86,6 +85,6 @@ pnpm dev:salt-service
 
 To run both in development you can use nx:
 
-``` bash
+```bash
 pnpm nx dev:all
 ```
