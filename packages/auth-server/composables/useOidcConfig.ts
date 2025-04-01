@@ -24,7 +24,7 @@ export function useOidcConfig() {
   }
 
   return {
-    enabled: true,
+    enabled: oidc.enabled,
     googlePublicClient,
     saltServiceUrl,
   };
