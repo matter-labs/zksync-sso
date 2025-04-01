@@ -6,8 +6,9 @@
     "build": "tsc",
     "key-registry": "node dist/update-keys-service.js",
     "salt-service": "node dist/salt-service.js",
-    "dev:key-registry": "tsx src/index.ts",
-    "dev:salt": "tsx src/salt-service.ts"
+    "dev:key-registry": "tsx src/update-keys-service.ts",
+    "dev:salt": "tsx src/salt-service.ts",
+    "generate-entropy": "tsx src/generate-entropy.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
