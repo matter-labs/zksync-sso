@@ -15,18 +15,12 @@
       }
     },
     "dev:all": {
-      "executor": "nx:run-script",
+      "executor": "nx:run-commands",
       "dependsOn": ["zksync-sso-contracts:deploy"],
       "options": {
         "cwd": "packages/oidc-server",
-        "commands": [
-          {
-            "command": "tsx src/index.ts"
-          },
-          {
-            "command": "pnpm run dev:salt"
-          }
-        ]
+        "parallel": true,
+        "commands": ["pnpm run dev:key-registry", "pnpm run dev:salt"]
       }
     }
   }
