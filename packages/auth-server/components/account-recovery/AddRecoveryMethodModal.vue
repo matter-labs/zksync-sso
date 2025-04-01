@@ -50,9 +50,9 @@
           </Button>
 
           <Button
+            v-if="!oidcEnabled"
             class="w-full"
             @click="selectMethod('google')"
-            v-if="!oidcEnabled"
           >
             Recover with Google
           </Button>
