@@ -1,28 +1,21 @@
 {
   "name": "zksync-sso-oidc-server",
   "tags": ["type:package"],
-  "namedInputs": {
-    "default": ["{projectRoot}/**/*", "!{projectRoot}/dist"],
-    "production": ["!{projectRoot}/**/*.spec.ts", "!{projectRoot}/test", "!{projectRoot}/dist"]
-  },
   "targets": {
-    "salt": {
-      "executor": "nx:run-commands",
+    "dev:salt": {
+      "executor": "nx:run-script",
       "options": {
-        "cwd": "packages/oidc-server",
-        "command": "pnpm run dev:salt"
-      },
-      "inputs": ["production"]
-    },
-    "dev:key-registry": {
-      "executor": "nx:run-commands",
-      "options": {
-        "cwd": "packages/oidc-server",
-        "command": "tsx src/index.ts"
+        "script": "dev:salt"
       }
     },
-    "dev": {
-      "executor": "nx:run-commands",
+    "dev:key-registry": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "dev:key-registry"
+      }
+    },
+    "dev:all": {
+      "executor": "nx:run-script",
       "dependsOn": ["zksync-sso-contracts:deploy"],
       "options": {
         "cwd": "packages/oidc-server",
