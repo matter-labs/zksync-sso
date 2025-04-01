@@ -1,4 +1,5 @@
 use crate::config;
+use sdk::api::utils::parse_address;
 
 #[derive(Debug, uniffi::Record)]
 pub struct AccountBalance {
@@ -26,7 +27,7 @@ pub async fn get_balance(
     address: String,
     config: config::Config,
 ) -> Result<AccountBalance, GetAccountBalanceError> {
-    let address = sdk::utils::alloy::parse_address(&address).map_err(|_| {
+    let address = parse_address(&address).map_err(|_| {
         GetAccountBalanceError::GetBalance("Invalid address".to_string())
     })?;
     sdk::api::account::balance::get_balance(

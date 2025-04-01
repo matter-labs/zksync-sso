@@ -9,20 +9,28 @@ license.workspace = true
 crate-type = ["staticlib"]
 
 [dependencies]
-uniffi = { version = "0.28.3", features = ["cli", "tokio"] }
+uniffi = { workspace = true, features = ["cli", "tokio"] }
 sdk = { path = "../sdk" }
 
 # Serialization
-serde = { workspace = true }
-serde_json = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
 
 # Async
-tokio = { workspace = true }
-futures = { workspace = true }
+tokio.workspace = true
+futures.workspace = true
+async-trait.workspace = true
 
 # Error handling
-eyre = { workspace = true }
-thiserror = { workspace = true }
+eyre.workspace = true
+thiserror.workspace = true
+
+# Random bytes generation
+rand.workspace = true
+base64.workspace = true
+
+# Hex encoding/decoding
+hex.workspace = true
 
 [build-dependencies]
-uniffi = { version = "0.28.3", features = ["build", "cli"] }
+uniffi = { workspace = true, features = ["build", "cli"] }

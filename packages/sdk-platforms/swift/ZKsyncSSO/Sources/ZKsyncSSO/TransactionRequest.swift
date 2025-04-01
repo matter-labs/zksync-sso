@@ -1,20 +1,32 @@
 import Foundation
-import ZKsyncSSOFFI
+@preconcurrency import ZKsyncSSOFFI
 
 public struct TransactionRequest {
-    public var to: String
-    public var value: String
-    public var from: String
+    public var to: String?
+    public var value: String?
+    public var input: String?
     
-    public init(to: String, value: String, from: String) {
+    public init(
+        to: String? = nil,
+        value: String? = nil,
+        input: String? = nil
+    ) {
         self.to = to
         self.value = value
-        self.from = from
+        self.input = input
     }
 }
 
-extension TransactionRequest {
-    var inner: ZKsyncSSOFFI.Transaction {
-        ZKsyncSSOFFI.Transaction(to: to, value: value, from: from)
+extension ZKsyncSSOFFI.Transaction {
+    static func from(
+        request: TransactionRequest,
+        account from: String
+    ) -> Self {
+        Self(
+            from: from,
+            to: request.to,
+            value: request.value,
+            input: request.input
+        )
     }
 }

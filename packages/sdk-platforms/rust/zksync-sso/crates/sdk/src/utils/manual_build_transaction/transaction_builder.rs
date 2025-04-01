@@ -7,10 +7,10 @@ use alloy::{
 };
 use alloy_zksync::{
     network::{
+        Zksync,
         transaction_request::TransactionRequest,
         tx_envelope::TxEnvelope,
         unsigned_tx::eip712::{Eip712Meta, TxEip712},
-        Zksync,
     },
     provider::zksync_provider,
 };
@@ -21,13 +21,13 @@ use passkey::{
     },
     client::{Client, DefaultClientData, WebauthnError},
     types::{
+        Passkey,
         ctap2::*,
         webauthn::{
             self, AttestationConveyancePreference, CredentialRequestOptions,
             PublicKeyCredentialDescriptor, PublicKeyCredentialRequestOptions,
             PublicKeyCredentialType, UserVerificationRequirement,
         },
-        Passkey,
     },
 };
 use public_suffix::PublicSuffixList;
@@ -93,7 +93,7 @@ impl From<SendableTxWrapper> for TransactionRequest {
     }
 }
 
-pub async fn populate_tx_request(
+pub(crate) async fn populate_tx_request(
     tx_request: TransactionRequest,
     config: &Config,
 ) -> eyre::Result<TransactionRequest> {
@@ -291,8 +291,8 @@ mod tests {
     use crate::{
         config::Config,
         utils::manual_build_transaction::register_passkey::tests::{
-            authenticate_apple_passkey, create_auth_stack,
-            deploy_account_with_apple_passkey, find_credentials, AuthStack,
+            AuthStack, authenticate_apple_passkey, create_auth_stack,
+            deploy_account_with_apple_passkey, find_credentials,
         },
     };
     use alloy::primitives::address;
@@ -426,16 +426,19 @@ mod tests {
                 println!("XDB - test_build_tx - Found passkey: {:?}", passkey);
                 std::io::stdout().flush().unwrap();
 
-                use crate::api::account::send::{send_transaction_fnonce_signer, Transaction};
+                use crate::api::account::{
+                    send::send_transaction_fnonce_signer,
+                    transaction::Transaction,
+                };
                 use alloy::primitives::address;
 
                 let from = address!("1234567890123456789012345678901234567890");
-                let to = address!("0987654321098765432109876543210987654321");
+                let to = Some(address!("0987654321098765432109876543210987654321"));
                 let value = U256::from(1000u64);
 
                 let value_str = value.to_string();
 
-                let transaction = Transaction { to, value: value_str, from };
+                let transaction = Transaction { to, value: Some(value_str), from, input: None };
                 let auth_stack_arc = Arc::new(Mutex::new(auth_stack));
                 let rp_id = rp_id.to_string();
                 let credential_raw_id = credential_raw_id_vec.clone();

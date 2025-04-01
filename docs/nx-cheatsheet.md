@@ -11,7 +11,6 @@ in the workspace's `project.json`, not the directory name.
 ```bash
 pnpm nx <target> <project>
 # examples
-# pnpm nx deploy contracts
 # pnpm nx serve auth-server
 # pnpm nx build sdk
 ```

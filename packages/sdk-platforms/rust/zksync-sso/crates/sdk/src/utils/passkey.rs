@@ -2,7 +2,6 @@ use crate::client::passkey::actions::passkey::AuthenticatorAssertionResponseJSON
 use crate::config::contracts::PasskeyContracts;
 use base64::Engine;
 use eyre::Result;
-use hex;
 
 pub mod normalize_s;
 pub mod passkey;

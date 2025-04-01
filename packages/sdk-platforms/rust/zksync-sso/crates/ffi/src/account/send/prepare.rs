@@ -10,7 +10,7 @@ pub struct PreparedTransaction {
 }
 
 pub struct PreparedTransactionWrapper(
-    sdk::client::passkey::actions::send::prepare::PreparedTransaction,
+    sdk::api::account::send::prepare::PreparedTransaction,
 );
 
 impl TryFrom<PreparedTransactionWrapper> for PreparedTransaction {
@@ -46,10 +46,9 @@ pub enum PrepareTransactionError {
 #[uniffi::export(async_runtime = "tokio")]
 pub async fn prepare_send_transaction(
     transaction: super::Transaction,
-    from: String,
     config: config::Config,
 ) -> Result<PreparedTransaction, PrepareTransactionError> {
-    let transaction: sdk::api::account::send::Transaction =
+    let transaction: sdk::api::account::transaction::Transaction =
         transaction.try_into().map_err(|e| match e {
             super::SendTransactionError::InvalidAddress(e) => {
                 PrepareTransactionError::InvalidAddress(e)
@@ -59,12 +58,8 @@ pub async fn prepare_send_transaction(
             }
         })?;
 
-    let from = sdk::utils::alloy::parse_address(&from)
-        .map_err(|e| PrepareTransactionError::InvalidAddress(e.to_string()))?;
-
     sdk::api::account::send::prepare::prepare_send_transaction(
         transaction,
-        from,
         &(config.try_into()
             as Result<sdk::config::Config, config::ConfigError>)
             .map_err(|e: config::ConfigError| {

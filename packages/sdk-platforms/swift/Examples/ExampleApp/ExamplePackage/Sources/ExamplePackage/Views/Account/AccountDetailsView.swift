@@ -5,52 +5,23 @@ import ZKsyncSSO
 struct AccountDetailsView: View {
     @Environment(\.dismiss) private var dismiss
 
+    @Environment(\.authorizationController) private var authorizationController
+
     @State private var account: AccountDetails
     @State private var isLoadingBalance = true
     @State private var isFunding = false
     @State private var showingCopiedFeedback = false
     @State private var showingSendTransaction = false
+    @State private var showingLogoutConfirmation = false
 
-    private let accountClient: AccountClient
+    var onLogout: (() -> Void)?
 
-    private let passkeyAuth: PasskeyAuthSync
-
-    init(address: String, uniqueAccountId: String, relyingPartyIdentifier: String) {
-        let passkeyAuth = PasskeyAuthSync(
-            authenticator: PasskeyAuthenticatorHelper(
-                manager: PasskeyManager(
-                    relyingPartyIdentifier: relyingPartyIdentifier
-                )
-            )
-        )
-        self.account = AccountDetails(
-            address: address,
-            uniqueAccountId: uniqueAccountId
-        )
-        self.accountClient = AccountClient(
-            account: .init(address: address, uniqueAccountId: uniqueAccountId),
-            authenticator: passkeyAuth
-        )
-        self.passkeyAuth = passkeyAuth
-    }
-
-    init(account: AccountDetails, relyingPartyIdentifier: String) {
-        let passkeyAuth = PasskeyAuthSync(
-            authenticator: PasskeyAuthenticatorHelper(
-                manager: PasskeyManager(
-                    relyingPartyIdentifier: relyingPartyIdentifier
-                )
-            )
-        )
+    init(
+        account: AccountDetails,
+        onLogout: (() -> Void)? = nil
+    ) {
         self.account = account
-        self.accountClient = AccountClient(
-            account: .init(
-                address: account.address,
-                uniqueAccountId: account.uniqueAccountId
-            ),
-            authenticator: passkeyAuth
-        )
-        self.passkeyAuth = passkeyAuth
+        self.onLogout = onLogout
     }
 
     var body: some View {
@@ -98,7 +69,9 @@ struct AccountDetailsView: View {
                         title: "View on Explorer",
                         icon: "safari.fill",
                         style: .plain,
-                        action: { UIApplication.shared.open(account.explorerURL) }
+                        action: {
+                            UIApplication.shared.open(account.explorerURL)
+                        }
                     )
                 }
 
@@ -187,10 +160,30 @@ struct AccountDetailsView: View {
         }
         .navigationTitle("Account Details")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingLogoutConfirmation = true
+                } label: {
+                    Text("Logout")
+                }
+            }
+        }
+        .confirmationDialog(
+            "Are you sure you want to log out?",
+            isPresented: $showingLogoutConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Logout", role: .destructive) {
+                onLogout?()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You can sign back in using your passkey.")
+        }
         .sheet(isPresented: $showingSendTransaction) {
             SendTransactionView(
-                fromAccount: account,
-                passkeyAuth: passkeyAuth,
+                fromAccount: account.account,
                 onTransactionSent: {
                     Task {
                         await loadBalance()
@@ -198,7 +191,6 @@ struct AccountDetailsView: View {
                 }
             )
         }
-        .passkeyPresentation(passkeyAuth.manager)
         .id("AccountDetailsView")
         .onAppear { print("AccountDetailsView appeared") }
     }
@@ -208,6 +200,21 @@ struct AccountDetailsView: View {
         defer { isLoadingBalance = false }
 
         do {
+            let authenticator = PasskeyAuthenticatorHelper(
+                controllerProvider: { self.authorizationController },
+                relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
+            )
+            
+            let accountClient = AccountClient(
+                account: .init(
+                    address: account.address,
+                    uniqueAccountId: account.uniqueAccountId
+                ),
+                authenticatorAsync: PasskeyAuthAsync(
+                    authenticator: authenticator
+                )
+            )
+            
             let balance = try await accountClient.getAccountBalance()
             self.account.balance = balance
         } catch {
@@ -222,6 +229,20 @@ struct AccountDetailsView: View {
         defer { isFunding = false }
 
         do {
+            let authenticator = PasskeyAuthenticatorHelper(
+                controllerProvider: { self.authorizationController },
+                relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
+            )
+            let accountClient = AccountClient(
+                account: .init(
+                    address: account.address,
+                    uniqueAccountId: account.uniqueAccountId
+                ),
+                authenticatorAsync: PasskeyAuthAsync(
+                    authenticator: authenticator
+                )
+            )
+            
             try await accountClient.fundAccount()
             await loadBalance()
         } catch {
@@ -233,9 +254,17 @@ struct AccountDetailsView: View {
 #Preview {
     NavigationStack {
         AccountDetailsView(
-            address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-            uniqueAccountId: "uniqueAccountId",
-            relyingPartyIdentifier: "example.com"
+            account: AccountDetails(
+                account: .init(
+                    info: .init(
+                        name: "Jane Doe",
+                        userID: "jdoe@example.com",
+                        domain: "soo-sdk-example-pages.pages.dev"
+                    ),
+                    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+                    uniqueAccountId: "jdoe@example.com"
+                )
+            )
         )
     }
 }
@@ -243,9 +272,17 @@ struct AccountDetailsView: View {
 #Preview("Dark Mode") {
     NavigationStack {
         AccountDetailsView(
-            address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-            uniqueAccountId: "uniqueAccountId",
-            relyingPartyIdentifier: "example.com"
+            account: AccountDetails(
+                account: .init(
+                    info: .init(
+                        name: "Jane Doe",
+                        userID: "jdoe@example.com",
+                        domain: "soo-sdk-example-pages.pages.dev"
+                    ),
+                    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+                    uniqueAccountId: "jdoe@example.com"
+                )
+            )
         )
     }
     .preferredColorScheme(.dark)
@@ -255,16 +292,32 @@ struct AccountDetailsView: View {
     NavigationStack {
         VStack(spacing: 20) {
             AccountDetailsView(
-                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-                uniqueAccountId: "uniqueAccountId",
-                relyingPartyIdentifier: "example.com"
+                account: AccountDetails(
+                    account: .init(
+                        info: .init(
+                            name: "Jane Doe",
+                            userID: "jdoe@example.com",
+                            domain: "soo-sdk-example-pages.pages.dev"
+                        ),
+                        address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+                        uniqueAccountId: "jdoe@example.com"
+                    )
+                )
             )
             .frame(width: 300)
 
             AccountDetailsView(
-                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-                uniqueAccountId: "uniqueAccountId",
-                relyingPartyIdentifier: "example.com"
+                account: AccountDetails(
+                    account: .init(
+                        info: .init(
+                            name: "Jane Doe",
+                            userID: "jdoe@example.com",
+                            domain: "soo-sdk-example-pages.pages.dev"
+                        ),
+                        address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+                        uniqueAccountId: "jdoe@example.com"
+                    )
+                )
             )
             .frame(width: 200)
         }

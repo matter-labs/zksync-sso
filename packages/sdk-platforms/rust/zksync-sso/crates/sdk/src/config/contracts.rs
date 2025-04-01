@@ -3,6 +3,7 @@ use eyre::Result;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PasskeyContracts {
     pub account_factory: Address,
     pub passkey: Address,

@@ -1,23 +1,24 @@
 import Foundation
-import ZKsyncSSOFFI
+@preconcurrency import ZKsyncSSOFFI
 
 public struct AccountClient: Sendable {
     
-    public let authenticator: any PasskeyAuthenticator & Sendable
+    public let authenticatorAsync: any PasskeyAuthenticatorAsync & Sendable
     
     public let account: Account
     
     public init(
         account: Account,
-        authenticator: any PasskeyAuthenticator & Sendable
+        authenticatorAsync: any PasskeyAuthenticatorAsync & Sendable
     ) {
         self.account = account
-        self.authenticator = authenticator
+        self.authenticatorAsync = authenticatorAsync
     }
     
     public func getAccountBalance() async throws -> String {
         let accountBalance = try await ZKsyncSSOFFI.getBalance(
-            address: account.address, config: Config.default.inner
+            address: account.address,
+            config: Config.default.inner
         )
         return accountBalance.balance
     }
@@ -29,32 +30,33 @@ public struct AccountClient: Sendable {
         )
     }
     
-    public func sendTransaction(
-        to: String,
-        amount: String
-    ) async throws {
-        let tx = Transaction(
-            to: to,
-            value: amount,
-            from: account.address
+    @discardableResult
+    public func send(
+        transaction: TransactionRequest
+    ) async throws -> String {
+        let tx = Transaction.from(
+            request: transaction,
+            account: account.address
         )
-        let result = try await ZKsyncSSOFFI.sendTransaction(
+        let result = try await ZKsyncSSOFFI.sendTransactionAsyncSigner(
             transaction: tx,
-            authenticator: authenticator,
+            authenticator: authenticatorAsync,
             config: Config.default.inner
         )
-        print(result)
+        return result.txHash
     }
     
-    public func prepareTransaction(
+    public func prepare(
         transaction: TransactionRequest
     ) async throws -> PreparedTransaction {
-        let from = account.address
-        let tx = try await ZKsyncSSOFFI.prepareSendTransaction(
-            transaction: transaction.inner,
-            from: from,
+        let tx = Transaction.from(
+            request: transaction,
+            account: account.address
+        )
+        let preparedTransaction = try await ZKsyncSSOFFI.prepareSendTransaction(
+            transaction: tx,
             config: Config.default.inner
         )
-        return tx.wrappedValue
+        return preparedTransaction.wrappedValue
     }
 }
