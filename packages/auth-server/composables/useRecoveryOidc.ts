@@ -6,7 +6,7 @@ import { type Groth16Proof, type JWT, JwtTxValidationInputs, OidcDigest } from "
 export const useRecoveryOidc = () => {
   const { getClient, getPublicClient, defaultChain } = useClientStore();
   const { snarkjs } = useSnarkJs();
-  const { saltServiceUrl } = useOidcConfig();
+  const { saltServiceUrl, wasmUrl, zkeyUrl } = useOidcConfig();
   const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
 
   async function buildOidcDigest(jwt: JWT): Promise<OidcDigest> {
@@ -115,8 +115,8 @@ export const useRecoveryOidc = () => {
 
     const groth16Result = await snarkjs.groth16.fullProve(
       inputs.toObject(),
-      "/circuit/witness.wasm",
-      "/circuit/circuit.zkey",
+      wasmUrl(),
+      zkeyUrl(),
       console,
     );
 

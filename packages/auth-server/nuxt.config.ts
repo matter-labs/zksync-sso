@@ -82,6 +82,8 @@ export default defineNuxtConfig({
       oidc: {
         googlePublicClient: "866068535821-e9em0h73pee93q4evoajtnnkldsjhqdk.apps.googleusercontent.com",
         saltServiceUrl: process.env.NUXT_PUBLIC_SALT_SERVICE_URL,
+        zkeyUrl: process.env.NUXT_PUBLIC_ZKEY_URL,
+        witnessUrl: process.env.NUXT_PUBLIC_WITNESS_WASM_URL,
       },
     },
   },
