@@ -1,7 +1,8 @@
 import WalletKit, { type WalletKitTypes } from "@reown/walletkit";
 import Core from "@walletconnect/core";
-import type { SessionTypes } from "@walletconnect/types";
+import type { JsonRpcTypes, SessionTypes } from "@walletconnect/types";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
+import type { RpcRequestError } from "viem";
 import { fromHex } from "viem";
 
 export const useWalletConnectStore = defineStore("wallet-connect", () => {
@@ -11,7 +12,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   const walletKit = ref<WalletKit | null>(null);
   const sessionProposal = ref<WalletKitTypes.SessionProposal | null>(null);
   const sessionRequest = ref<WalletKitTypes.SessionRequest | null>(null);
-  const openSessions = ref<SessionTypes.Struct[]>([]);
+  const openSessions = ref<Record<string, SessionTypes.Struct>>({});
 
   const initialize = async () => {
     walletKit.value = await WalletKit.init({
@@ -26,17 +27,24 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     });
 
     walletKit.value.on("session_request", async (req: WalletKitTypes.SessionRequest) => {
-      const client = getClient({ chainId: defaultChain.id });
       switch (req.params.request.method) {
         case "eth_sendRawTransaction":
         {
-          const tx = await client.sendRawTransaction({
-            serializedTransaction: req.params.request.params[0],
-          });
-          walletKit.value!.respondSessionRequest({
-            topic: req.topic,
-            response: { id: req.id, result: tx, jsonrpc: "2.0" },
-          });
+          const client = getClient({ chainId: defaultChain.id });
+          try {
+            const tx = await client.sendRawTransaction({
+              serializedTransaction: req.params.request.params[0],
+            });
+            walletKit.value!.respondSessionRequest({
+              topic: req.topic,
+              response: { id: req.id, result: tx, jsonrpc: "2.0" },
+            });
+          } catch (error) {
+            walletKit.value!.respondSessionRequest({
+              topic: req.topic,
+              response: { id: req.id, error: (error as RpcRequestError).cause as JsonRpcTypes.Error, jsonrpc: "2.0" },
+            });
+          }
           break;
         }
         case "eth_signTypedData_v4":
@@ -57,7 +65,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   };
 
   const updateOpenSessions = () => {
-    openSessions.value = walletKit.value ? Object.values(walletKit.value.getActiveSessions()) : [];
+    openSessions.value = walletKit.value ? walletKit.value.getActiveSessions() : {};
   };
 
   const approveSessionProposal = async () => {
@@ -109,8 +117,19 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
       data: data ?? "0x",
       value: value ?? "0",
     });
+    await walletKit.value!.respondSessionRequest({
+      topic: txData.topic,
+      response: { id: txData.id, result: tx, jsonrpc: "2.0" },
+    });
+    return { hash: tx };
+  };
 
-    walletKit.value!.respondSessionRequest({
+  const sendRawTransaction = async (txData: WalletKitTypes.SessionRequest) => {
+    const client = getClient({ chainId: defaultChain.id });
+    const tx = await client.sendRawTransaction({
+      serializedTransaction: txData.params.request.params[0],
+    });
+    await walletKit.value!.respondSessionRequest({
       topic: txData.topic,
       response: { id: txData.id, result: tx, jsonrpc: "2.0" },
     });
@@ -162,6 +181,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     pairAccount,
     closeSession,
     sendTransaction,
+    sendRawTransaction,
     signTypedData,
     signPersonal,
     approveSessionProposal,
