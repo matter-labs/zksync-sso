@@ -141,7 +141,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     const { types, primaryType, message, domain } = JSON.parse(txData.params.request.params[1]);
     const signature = await client.signTypedData({
       domain: domain ?? {
-        name: "zkSync",
+        name: "ZKsync",
         version: "2",
         chainId: defaultChain.id,
       },

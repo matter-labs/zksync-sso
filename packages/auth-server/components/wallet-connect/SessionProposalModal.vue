@@ -102,8 +102,8 @@ const modalRef = ref<InstanceType<typeof Dialog>>();
 const walletConnectStore = useWalletConnectStore();
 
 const chainIdToName: Record<number, string> = {
-  324: "zkSync Era",
-  300: "zkSync Era Sepolia",
+  324: "ZKsync Era",
+  300: "ZKsync Era Sepolia",
 };
 
 function resolveChainNames(chains?: string[]): string {
