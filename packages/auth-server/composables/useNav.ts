@@ -27,8 +27,8 @@ export function useNav() {
     },
     {
       href: "/dashboard/wallet-connect",
-      name: "Wallet Connect",
-      icon: "link",
+      name: "WalletConnect",
+      icon: "share",
     },
   ];
 
