@@ -1,10 +1,18 @@
-import type { BaseKey, KeyFetcher } from "../types";
+import { z } from "zod";
 
-type JWK = {
-  kid: string;
-  n: string;
-  e: string;
-};
+import type { BaseKey, KeyFetcher } from "../types.js";
+
+const jwkSchema = z.object({
+  kid: z.string(),
+  n: z.string(),
+  e: z.string(),
+});
+
+const keyResponseSchema = z.object({
+  keys: z.array(jwkSchema),
+});
+
+type JWK = z.infer<typeof jwkSchema>;
 
 export class GoogleFetcher implements KeyFetcher {
   private apiUrl = "https://www.googleapis.com/oauth2/v3/certs";
@@ -13,7 +21,7 @@ export class GoogleFetcher implements KeyFetcher {
     const response = await fetch(this.apiUrl);
     if (!response.ok) throw new Error(`Google API error: ${response.status}`);
 
-    const data = await response.json();
+    const data = await response.json().then((keys) => keyResponseSchema.parse(keys));
     return data.keys.map((key: JWK) => ({
       kid: this.toBytes32(key.kid),
       n: key.n,
