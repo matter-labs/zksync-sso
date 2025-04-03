@@ -50,7 +50,7 @@
           </Button>
 
           <Button
-            v-if="!oidcEnabled"
+            v-if="oidcEnabled"
             class="w-full"
             @click="selectMethod('google')"
           >
@@ -82,6 +82,7 @@ import Button from "~/components/zk/button.vue";
 import Dialog from "~/components/zk/dialog.vue";
 
 const { enabled: oidcEnabled } = useOidcConfig();
+console.log("oidcEnabled", oidcEnabled);
 
 type Step = "select-method" | "guardian" | "google";
 const currentStep = ref<Step>("select-method");
