@@ -1,8 +1,10 @@
-import { type Address, createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
+import { useAppKitProvider } from "@reown/appkit/vue";
+import { type Address, createPublicClient, createWalletClient, custom, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
+import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 
 import eraSepoliaChainData from "./era-sepolia.json";
 import localChainData from "./local-node.json";
@@ -27,13 +29,23 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksyncInMemoryNode.id]: localChainData,
 };
 
+export const chainParameters: Record<SupportedChainId, { blockTime: number }> = {
+  [zksyncSepoliaTestnet.id]: {
+    blockTime: 15,
+  },
+  [zksyncInMemoryNode.id]: {
+    blockTime: 1,
+  },
+};
+
 export const useClientStore = defineStore("client", () => {
   const runtimeConfig = useRuntimeConfig();
   const { address, username, passkey } = storeToRefs(useAccountStore());
 
   const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
   const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
-  if (!defaultChain) throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
+  if (!defaultChain)
+    throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
 
   const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -59,11 +71,51 @@ export const useClientStore = defineStore("client", () => {
       userName: username.value!,
       userDisplayName: username.value!,
       contracts,
+      chain,
+      transport: http(),
+    });
+
+    return client;
+  };
+
+  const getRecoveryClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+
+    const client = createZksyncRecoveryGuardianClient({
+      address,
+      contracts,
       chain: chain,
       transport: http(),
     });
 
     return client;
+  };
+
+  const getConfigurableClient = ({
+    chainId,
+    address,
+    credentialPublicKey,
+    username,
+  }: {
+    chainId: SupportedChainId;
+    address: Address;
+    credentialPublicKey: Uint8Array<ArrayBufferLike>;
+    username: string;
+  }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+    return createZksyncPasskeyClient({
+      address,
+      credentialPublicKey,
+      userName: username,
+      userDisplayName: username,
+      contracts,
+      chain,
+      transport: http(),
+    });
   };
 
   const getThrowAwayClient = ({ chainId }: { chainId: SupportedChainId }) => {
@@ -81,10 +133,37 @@ export const useClientStore = defineStore("client", () => {
     return throwAwayClient;
   };
 
+  const getWalletClient = async ({ chainId }: { chainId: SupportedChainId }) => {
+    const accountProvider = useAppKitProvider("eip155");
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+
+    if (!accountProvider.walletProvider) throw new Error("No ethereum provider found");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = accountProvider.walletProvider as any;
+    const accounts = await (provider as { request: (args: { method: string }) => Promise<Address[]> }).request({
+      method: "eth_requestAccounts",
+    });
+
+    return createWalletClient({
+      chain,
+      account: accounts[0],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transport: custom(provider as any),
+    })
+      .extend(publicActions)
+      .extend(walletActions)
+      .extend(eip712WalletActions());
+  };
+
   return {
     defaultChain,
     getPublicClient,
     getClient,
     getThrowAwayClient,
+    getWalletClient,
+    getRecoveryClient,
+    getConfigurableClient,
   };
 });

@@ -8,23 +8,29 @@
   </component>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends RoutesNamesList, P extends string">
+import type { NuxtRoute, RoutesNamesList } from "@typed-router";
 import { twMerge } from "tailwind-merge";
 
 import type { NuxtLinkProps } from "#app";
 import { NuxtLink } from "#components";
 
-const { ui, type = "inline", as = NuxtLink } = defineProps<
+const {
+  ui,
+  type = "inline",
+  as = NuxtLink,
+} = defineProps<
   NuxtLinkProps & {
     ui?: string;
     type?: "primary" | "secondary" | "ghost" | "tertiary" | "inline";
     as?: string | Component;
+    href?: NuxtRoute<T, P> | string;
+    to?: NuxtRoute<T, P> | string;
   }
 >();
 
 const linkUI = computed(() => {
-  let base
-    = "inline-block inline-flex items-center justify-center border border-transparent px-4 py-4 align-middle leading-3 focus:outline-none focus:ring-4 focus:ring-primary-400 focus:ring-opacity-50 dark:focus:ring-blue-800 dark:focus:ring-opacity-80";
+  let base = "inline-block inline-flex items-center justify-center border border-transparent px-4 py-4 align-middle leading-3 focus:outline-none focus:ring-4 focus:ring-primary-400 focus:ring-opacity-50 dark:focus:ring-blue-800 dark:focus:ring-opacity-80";
 
   if (type) {
     base = twMerge(base, types[type]);
