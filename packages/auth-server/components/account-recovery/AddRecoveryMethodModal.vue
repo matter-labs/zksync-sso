@@ -50,6 +50,7 @@
           </Button>
 
           <Button
+            v-if="oidcEnabled"
             class="w-full"
             @click="selectMethod('google')"
           >
@@ -79,6 +80,9 @@ import GoogleFlow from "~/components/account-recovery/google-flow/Root.vue";
 import GuardianFlow from "~/components/account-recovery/guardian-flow/Root.vue";
 import Button from "~/components/zk/button.vue";
 import Dialog from "~/components/zk/dialog.vue";
+
+const { enabled: oidcEnabled } = useOidcConfig();
+console.log("oidcEnabled", oidcEnabled);
 
 type Step = "select-method" | "guardian" | "google";
 const currentStep = ref<Step>("select-method");

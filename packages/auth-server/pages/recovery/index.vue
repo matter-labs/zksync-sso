@@ -20,6 +20,7 @@
       </ZkLink>
       <div class="flex flex-col gap-2">
         <ZkLink
+          v-if="oidcEnabled"
           type="primary"
           href="/recovery/google"
         >
@@ -43,3 +44,7 @@
     </div>
   </main>
 </template>
+
+<script setup lang="ts">
+const { enabled: oidcEnabled } = useOidcConfig();
+</script>

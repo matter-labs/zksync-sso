@@ -72,9 +72,9 @@ async function loginWithGoogle(
 }
 
 export function useGoogleOauth() {
-  const config = useRuntimeConfig();
+  const { googlePublicClient } = useOidcConfig();
   const { execute, inProgress, result, error } = useAsync((nonce: string, hint: string | null = null, askForemail = false) => {
-    return loginWithGoogle(config.public.googlePublicClient, nonce, hint, askForemail);
+    return loginWithGoogle(googlePublicClient(), nonce, hint, askForemail);
   });
 
   return {
