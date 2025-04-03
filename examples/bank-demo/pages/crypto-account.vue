@@ -304,6 +304,7 @@ const onClickSupplyEth = async () => {
       if (error.details.includes("function_selector = 0xe7931438")) {
         errorMessage.value = "Insufficient Funds";
       } else {
+        console.warn("TransactionExecutionError", error);
         errorMessage.value = error.details;
       }
     } else {
@@ -334,7 +335,7 @@ const createClient = async () => {
     });
     const ecdsaClient = await createZksyncEcdsaClient({
         address: appMeta.value.cryptoAccountAddress as Address,
-        owner: eoaClient,
+        owner: eoaClient.account,
         contracts,
         chain: config.public.network as Chain,
         transport: http(),
