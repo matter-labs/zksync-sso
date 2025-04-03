@@ -6,4 +6,9 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
+clap = { version = "4.5.1", features = ["derive"] }
 sdk = { path = "../sdk" }
+url = { workspace = true }
+tokio = { workspace = true }
+eyre = { workspace = true }
+serde_json = { workspace = true }

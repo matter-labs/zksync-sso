@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "rootDir": ".",
+    // "paths": {
+    //   "react-native-zksync-sso": [
+    //     "./src/index"
+    //   ]
+    // },
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "lib": [
+      "ESNext"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "noUnusedLocals": false, // Allow unused variables
+    "noUnusedParameters": false, // Allow unused parameters
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": false, // Disable strict mode
+    "target": "ESNext",
+    "verbatimModuleSyntax": true,
+    "noCheck": true
+  },
+  "include": [
+    "src/index.tsx",
+    "src/NativeZksyncSso.ts",
+    "src/passkey/**/*",
+    "example/src/**/*"
+  ],
+  "exclude": [
+    "example",
+    "lib",
+    "src/generated/**/*",
+    "node_modules/**/*"
+  ]
+}
