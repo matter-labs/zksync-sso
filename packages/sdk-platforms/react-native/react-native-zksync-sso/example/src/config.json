@@ -1,0 +1,9 @@
+{
+    "contracts": {
+        "accountFactory": "0x6d5130ec9a779ce829222269b718df647f1b9105",
+        "passkey": "0x48c28cd5395061c828f93ad04469f3d53a2057d5",
+        "session": "0x175a399aa0e6f6ec9b3c949ff080e3b02a13385f",
+        "accountPaymaster": "0x91e9283aa617cc805afdfc9e759abfe3c78f171a"
+    },
+    "nodeUrl": "http://localhost:8011/"
+}
