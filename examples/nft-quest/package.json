@@ -31,7 +31,7 @@
     "sass": "^1.77.6",
     "tailwind-merge": "^2.5.2",
     "ts-node": "^10.9.2",
-    "viem": "2.23.12",
+    "viem": "2.21.14",
     "vue": "latest",
     "vue-load-image": "^1.1.0",
     "vue-router": "latest",
