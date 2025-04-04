@@ -45,7 +45,7 @@ export function zksyncSsoWalletActions<
     },
     signMessage: (args) => signMessage(client, args),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    signTransaction: (args) => signTransaction(client, args as any),
+    signTransaction: (args) => signTransaction(client, args as any) as any,
     signTypedData: (args) => signTypedData(client, args),
     writeContract: (args) => writeContract(client, args),
   };
