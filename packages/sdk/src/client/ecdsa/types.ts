@@ -48,11 +48,11 @@ export async function toOwner<provider extends EthereumProvider>({
   if ("request" in owner) {
     if (!address) {
       try {
-        ;[address] = await (owner as EthereumProvider).request({
+        [address] = await (owner as EthereumProvider).request({
           method: "eth_requestAccounts",
         });
       } catch {
-        ;[address] = await (owner as EthereumProvider).request({
+        [address] = await (owner as EthereumProvider).request({
           method: "eth_accounts",
         });
       }
@@ -91,7 +91,7 @@ export async function toOwner<provider extends EthereumProvider>({
       const digest = hashTypedData(eip712DomainAndMessage);
 
       const signedMessage = await walletClient.signMessage({ message: digest });
-      console.log("signedMessage ", signedMessage);
+
       return serializeTransaction({
         ...signableTransaction,
         customSignature: signedMessage,
