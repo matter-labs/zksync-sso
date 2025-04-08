@@ -20,7 +20,6 @@ export function useOidcConfig() {
   const { public: { oidc } } = useRuntimeConfig();
 
   const isEnabled = computed<boolean>(() => {
-    console.log(oidc);
     return validPubClient(oidc.googlePublicClient)
       && validUrl(oidc.saltServiceUrl)
       && validFile(oidc.zkeyUrl)
