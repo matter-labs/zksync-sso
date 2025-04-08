@@ -1,6 +1,6 @@
-import { ContractUpdater } from "./contractUpdater";
-import { env } from "./env.ts";
-import { GoogleFetcher } from "./fetchers/google";
+import { ContractUpdater } from "./contractUpdater.js";
+import { env } from "./env.js";
+import { GoogleFetcher } from "./fetchers/google.js";
 
 const main = async () => {
   const fetcher = new GoogleFetcher();

@@ -14,7 +14,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "command": "pnpm nx run-many -t dev dev -p auth-server zksync-sso-oidc-server",
+        "commands": ["pnpm nx run auth-server:dev ", "pnpm nx run zksync-sso-oidc-server:dev:all"],
         "parallel": true
       }
     },

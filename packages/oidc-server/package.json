@@ -3,8 +3,12 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev:key-registry": "tsx src/index.ts",
-    "dev:salt": "tsx src/salt-service.ts"
+    "build": "tsc",
+    "key-registry": "node dist/update-keys-service.js",
+    "salt-service": "node dist/salt-service.js",
+    "dev:key-registry": "tsx src/update-keys-service.ts",
+    "dev:salt": "tsx src/salt-service.ts",
+    "generate-entropy": "tsx src/generate-entropy.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -24,7 +28,7 @@
     "install": "^0.13.0",
     "jose": "^5.9.6",
     "viem": "^2.22.19",
-    "zksync-ethers": "^6.16.0",
+    "zksync-ethers": "^6.15.0",
     "zod": "^3.24.1",
     "zksync-sso-circuits": "workspace:*"
   }
