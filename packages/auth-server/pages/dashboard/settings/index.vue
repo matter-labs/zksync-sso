@@ -176,11 +176,11 @@ const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
   };
 }));
 
-const guardianMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
+const guardianMethods = computed(() => (getGuardiansData.value ?? []).map((guardian) => ({
   method: "Guardian",
-  address: x.addr,
+  address: guardian.addr,
   addedOn: new Date(),
-  ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
+  ...(!guardian.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${guardian.addr}` }),
 })));
 
 const recoveryMethods = computed(() => [
