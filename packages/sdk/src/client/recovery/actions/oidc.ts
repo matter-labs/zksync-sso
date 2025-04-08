@@ -16,7 +16,7 @@ import {
   sendTransaction,
 } from "viem/zksync";
 
-import { OidcRecoveryModuleAbi } from "../../../abi/index.js";
+import { OidcRecoveryValidatorAbi } from "../../../abi/index.js";
 import { noThrow } from "../../../utils/helpers.js";
 
 export type AddOidcAccountArgs = {
@@ -40,7 +40,7 @@ export const addOidcAccount = async <
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<AddOidcAccountArgs>): Promise<Prettify<AddOidcAccountReturnType>> => {
   const callData = encodeFunctionData({
-    abi: OidcRecoveryModuleAbi,
+    abi: OidcRecoveryValidatorAbi,
     functionName: "addOidcAccount",
     args: [args.oidcDigest, args.iss],
   });
@@ -80,7 +80,7 @@ export const removeOidcAccount = async <
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<RemoveOidcAccountArgs>): Promise<TransactionReceipt> => {
   const callData = encodeFunctionData({
-    abi: OidcRecoveryModuleAbi,
+    abi: OidcRecoveryValidatorAbi,
     functionName: "deleteOidcAccount",
     args: [],
   });
