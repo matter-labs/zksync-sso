@@ -129,7 +129,9 @@ async function go() {
   const calldata = recoveryStep1Calldata(
     proof,
     pad(toHex(Buffer.from(key.kid, "hex"))),
+    passkey.value.credentialId,
     passkey.value.passkeyPubKey,
+    window.location.origin,
     userAddress.value,
     timeLimit,
   );
