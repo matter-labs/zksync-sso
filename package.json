@@ -48,7 +48,7 @@
     "prettier": "3.3.3",
     "typescript": "5.6.2",
     "typescript-eslint": "8.7.0",
-    "viem": "^2.23.12",
+    "viem": "^2.21.14",
     "zksync-sso": "workspace:*"
   },
   "nx": {

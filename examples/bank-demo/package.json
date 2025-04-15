@@ -21,7 +21,7 @@
     "pinia": "^2.1.7",
     "radix-vue": "^1.9.7",
     "tailwind-merge": "^2.5.3",
-    "viem": "^2.23.12",
+    "viem": "^2.21.14",
     "vue": "latest",
     "vue-router": "latest",
     "zksync-sso": "workspace:*"
