@@ -70,22 +70,26 @@ export const useRecoveryOidc = () => {
     await client.removeOidcAccount();
   });
 
-  function recoveryStep1Calldata(
-    proof: Groth16Proof,
-    kid: Hex,
+  function hashPasskeyData(
     credentialId: Hex,
     passkey: [Hex, Hex],
     originDomain: string,
-    targetAccount: Address,
-    timeLimit: bigint,
   ): Hex {
-    const passkeyHash = keccak256(
+    return keccak256(
       encodeAbiParameters(
         [{ type: "bytes" }, { type: "bytes32[2]" }, { type: "string" }],
         [credentialId, passkey, originDomain],
       ),
     );
+  }
 
+  function recoveryStep1Calldata(
+    proof: Groth16Proof,
+    kid: Hex,
+    passkeyHash: Hex,
+    targetAccount: Address,
+    timeLimit: bigint,
+  ): Hex {
     return encodeFunctionData({
       abi: OidcRecoveryValidatorAbi,
       functionName: "startRecovery",
@@ -150,5 +154,6 @@ export const useRecoveryOidc = () => {
     zkProof,
     zkProofError,
     removeOidcAccount,
+    hashPasskeyData,
   };
 };

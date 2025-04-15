@@ -44,6 +44,7 @@ const { startGoogleOauth } = useGoogleOauth();
 const accountData = useAppKitAccount();
 const {
   recoveryStep1Calldata,
+  hashPasskeyData,
   zkProofInProgress,
   zkProof,
   generateZkProof,
@@ -99,7 +100,21 @@ async function go() {
   const contractNonce = oidcData.recoverNonce;
   const currentTime = BigInt(new Date().valueOf()) / 1000n; // convert to seconds:wq
   const timeLimit = currentTime + 3600n; // 1 hour from now
-  const [hashForCircuitInput, jwtNonce] = createNonceV2(accountData.value.address as Hex, contractNonce, blindingFactor, timeLimit);
+
+  const passkeyHash = hashPasskeyData(
+    passkey.value.credentialId,
+    passkey.value.passkeyPubKey,
+    window.location.origin,
+  );
+
+  const [hashForCircuitInput, jwtNonce] = createNonceV2(
+    accountData.value.address as Hex,
+    userAddress.value,
+    passkeyHash,
+    contractNonce,
+    blindingFactor,
+    timeLimit,
+  );
 
   const jwt = await startGoogleOauth(jwtNonce, sub.value);
 
@@ -129,9 +144,7 @@ async function go() {
   const calldata = recoveryStep1Calldata(
     proof,
     pad(toHex(Buffer.from(key.kid, "hex"))),
-    passkey.value.credentialId,
-    passkey.value.passkeyPubKey,
-    window.location.origin,
+    passkeyHash,
     userAddress.value,
     timeLimit,
   );
