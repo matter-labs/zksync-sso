@@ -25,6 +25,13 @@
       >
         Log In
       </ZkButton>
+
+      <ZkLink
+        class="w-fit mx-auto mt-2"
+        href="/recovery"
+      >
+        Recover your account
+      </ZkLink>
     </div>
 
     <CommonHeightTransition :opened="!!accountLoginError">
@@ -61,7 +68,15 @@ const signUp = async () => {
   navigateTo("/dashboard");
 };
 const logIn = async () => {
-  await loginToAccount();
-  navigateTo("/dashboard");
+  const result = await loginToAccount();
+  if (result?.success) {
+    navigateTo("/dashboard");
+    return;
+  }
+  if (result?.recoveryRequest?.isReady === false) {
+    navigateTo(`/recovery/account-not-ready?address=${result!.recoveryRequest.accountAddress}`);
+    return;
+  }
+  // TODO: handle rest of the cases
 };
 </script>
