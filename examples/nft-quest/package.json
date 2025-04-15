@@ -18,7 +18,7 @@
     "@vueuse/core": "^11.1.0",
     "@vueuse/motion": "^2.2.6",
     "@vueuse/nuxt": "^11.1.0",
-    "@wagmi/core": "^2.13.3",
+    "@wagmi/core": "^2.16.4",
     "@web3modal/wagmi": "^5.1.11",
     "clsx": "^2.1.1",
     "dotenv": "16.4.5",

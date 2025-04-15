@@ -26,6 +26,9 @@ export function createZksyncPasskeyClient<
 
   const account = toPasskeyAccount({
     address: parameters.address,
+    chain: parameters.chain,
+    contracts: parameters.contracts,
+    transport: parameters.transport,
     sign: async ({ hash }) => {
       const passkeySignature = await requestPasskeyAuthentication({
         challenge: hash,
