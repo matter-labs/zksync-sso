@@ -1,8 +1,13 @@
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { generateAuthenticationOptions, type GenerateAuthenticationOptionsOpts, generateRegistrationOptions, type GenerateRegistrationOptionsOpts, type VerifiedRegistrationResponse, verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
 import { type AuthenticationResponseJSON, type PublicKeyCredentialCreationOptionsJSON, type PublicKeyCredentialRequestOptionsJSON, type RegistrationResponseJSON } from "@simplewebauthn/types";
-import { type Account, type Address, type Chain, type Client, type Hash, toBytes, type Transport } from "viem";
-import { writeContract } from "viem/actions";
+import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, toBytes, toHex, type TransactionReceipt, type Transport } from "viem";
+import { waitForTransactionReceipt } from "viem/actions";
+import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
+
+import { WebAuthValidatorAbi } from "../../../abi/WebAuthValidator.js";
+import { noThrow } from "../../../utils/helpers.js";
+import { base64UrlToUint8Array } from "../../../utils/passkey.js";
 
 const identifyPasskeyParams = () => {
   let rpName: string | undefined;
@@ -19,7 +24,6 @@ const identifyPasskeyParams = () => {
   return { rpName, rpID, origin };
 };
 
-// let pubKey: Uint8Array = new Uint8Array();
 export type GeneratePasskeyRegistrationOptionsArgs = Partial<GenerateRegistrationOptionsOpts> & { userName: string; userDisplayName: string };
 export type GeneratePasskeyRegistrationOptionsReturnType = PublicKeyCredentialCreationOptionsJSON;
 export const generatePasskeyRegistrationOptions = async (args: GeneratePasskeyRegistrationOptionsArgs): Promise<GeneratePasskeyRegistrationOptionsReturnType> => {
@@ -146,22 +150,49 @@ export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthentic
 };
 
 export type AddAccountOwnerPasskeyArgs = {
-  passkeyPublicKey: Uint8Array;
-  contracts: { session: Address };
+  credentialId: string;
+  rawPublicKey: readonly [Hex, Hex];
+  origin: string;
+  contracts: { passkey: Address };
+  paymaster?: {
+    address: Address;
+    paymasterInput?: Hex;
+  };
+  onTransactionSent?: (hash: Hash) => void;
 };
-export type AddAccountOwnerPasskeyReturnType = Hash;
+export type AddAccountOwnerPasskeyReturnType = {
+  transactionReceipt: TransactionReceipt;
+};
 export const addAccountOwnerPasskey = async <
   transport extends Transport,
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: AddAccountOwnerPasskeyArgs): Promise<AddAccountOwnerPasskeyReturnType> => {
-  /* TODO: Implement set owner passkey */
-  const transactionHash = await writeContract(client, {
-    address: args.contracts.session,
-    args: [args.passkeyPublicKey],
-    abi: [] as const,
-    functionName: "USE_ACTUAL_METHOD_HERE",
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
-  return transactionHash;
+  const callData = encodeFunctionData({
+    abi: WebAuthValidatorAbi,
+    functionName: "addValidationKey",
+    args: [toHex(base64UrlToUint8Array(args.credentialId)), args.rawPublicKey, args.origin],
+  });
+
+  const sendTransactionArgs = {
+    account: client.account,
+    to: args.contracts.passkey,
+    paymaster: args.paymaster?.address,
+    paymasterInput: args.paymaster?.address ? (args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" })) : undefined,
+    data: callData,
+    gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+
+  const transactionHash = await sendTransaction(client, sendTransactionArgs);
+  if (args.onTransactionSent) {
+    noThrow(() => args.onTransactionSent?.(transactionHash));
+  }
+
+  const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
+  if (transactionReceipt.status !== "success") throw new Error("addValidationKey transaction reverted");
+
+  return {
+    transactionReceipt,
+  };
 };
