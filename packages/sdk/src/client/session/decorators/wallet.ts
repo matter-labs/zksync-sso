@@ -70,7 +70,7 @@ export function zksyncSsoWalletActions<
       return signTransaction(client, {
         ...args,
         unformattedTxWithPaymaster,
-      } as any);
+      } as any) as any;
     },
     signTypedData: (args) => signTypedData(client, args),
     writeContract: (args) => writeContract(client, args),
