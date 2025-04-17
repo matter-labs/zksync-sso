@@ -1,9 +1,8 @@
 import type { Address } from "abitype";
-import { type Chain, createPublicClient, type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, type LocalAccount, type Transport } from "viem";
+import { type Chain, type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, type LocalAccount, type Transport } from "viem";
 import { toAccount } from "viem/accounts";
 import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
 
-import { SsoAccountAbi } from "../../abi/index.js";
 import { getEip712Domain } from "../utils/getEip712Domain.js";
 import type { PasskeyRequiredContracts } from "./client.js";
 
@@ -35,15 +34,13 @@ export function toPasskeyAccount<
     address,
     sign,
     async signMessage({ message }) {
-      const publicClient = createPublicClient({ chain: parameters.chain, transport: parameters.transport });
-      const hash = await publicClient.readContract({
-        address: address,
-        abi: SsoAccountAbi,
-        functionName: "getEip712Hash",
-        args: [{ signedHash: hashMessage(message) }],
-      });
       return sign({
-        hash,
+        hash: hashMessage(message),
+      });
+    },
+    async signTypedData(typedData) {
+      return sign({
+        hash: hashTypedData(typedData),
       });
     },
     async signTransaction(transaction) {
@@ -62,24 +59,6 @@ export function toPasskeyAccount<
           hash: digest,
         }),
       });
-    },
-    async signTypedData(typedData) {
-      if (typedData.primaryType === "Transaction") { // Need way better check
-        return sign({
-          hash: hashTypedData(typedData),
-        });
-      } else {
-        const publicClient = createPublicClient({ chain: parameters.chain, transport: parameters.transport });
-        const hash = await publicClient.readContract({
-          address: address,
-          abi: SsoAccountAbi,
-          functionName: "getEip712Hash",
-          args: [{ signedHash: hashTypedData(typedData) }],
-        });
-        return sign({
-          hash,
-        });
-      }
     },
   });
 
