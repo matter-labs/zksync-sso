@@ -30,6 +30,7 @@
     "viem": "^2.22.19",
     "zksync-ethers": "^6.15.0",
     "zod": "^3.24.1",
+    "zksync-sso": "workspace:*",
     "zksync-sso-circuits": "workspace:*"
   }
 }
