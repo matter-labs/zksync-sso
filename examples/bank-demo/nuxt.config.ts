@@ -28,6 +28,7 @@ export default defineNuxtConfig({
       session: localChainData.session,
       passkey: localChainData.passkey,
       accountFactory: localChainData.accountFactory,
+      recovery: localChainData.recovery,
       explorerUrl: "http://localhost:3010/",
     }
   },
@@ -47,6 +48,7 @@ export default defineNuxtConfig({
         session: "0xdCdAC285612841db9Fa732098EAF04A917A71A28",
         passkey: "0xCeC63BD0f35e04F3Bef1128bA3A856A7BB4D88f1",
         accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
+        recovery: "0x6AA83E35439D71F28273Df396BC7768dbaA9849D",
         explorerUrl: "http://34.121.229.57:3010/",
       }
     }
