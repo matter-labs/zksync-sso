@@ -1,4 +1,7 @@
-use crate::config::contracts::PasskeyContracts;
+use crate::{
+    config::contracts::PasskeyContracts,
+    utils::contract_deployed::check_contracts_deployed,
+};
 use rand::RngCore;
 use std::{env, fs, path::PathBuf, process::Command};
 
@@ -61,7 +64,7 @@ const config: HardhatUserConfig = {{
     }},
   }},
   zksolc: {{
-    version: "1.5.9",
+    version: "1.5.12",
     settings: {{
       enableEraVMExtensions: true,
     }},
@@ -70,6 +73,7 @@ const config: HardhatUserConfig = {{
     version: "0.8.28",
     settings: {{
       evmVersion: "cancun",
+      codegen: "yul",
     }}
   }},
 }};
@@ -117,15 +121,17 @@ export default config;"#,
     let session = extract_contract_address(&lines, "SessionKeyValidator")?;
     let account_paymaster =
         extract_contract_address(&lines, "ExampleAuthServerPaymaster")?;
+    let recovery =
+        extract_contract_address(&lines, "GuardianRecoveryValidator")?;
 
     let contracts = PasskeyContracts::with_address_strs(
         account_factory,
         passkey,
         session,
         account_paymaster,
+        recovery,
     )?;
 
-    use crate::utils::contract_deployed::check_contracts_deployed;
     check_contracts_deployed(&node_url, &contracts).await?;
 
     println!("Contracts deployed: {:?}", contracts);

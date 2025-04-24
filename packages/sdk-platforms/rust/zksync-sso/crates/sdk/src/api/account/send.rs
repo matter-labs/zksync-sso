@@ -1,6 +1,9 @@
 use crate::{
     api::account::transaction::Transaction,
-    client::passkey::actions::send::sign::SignerWithMessage, config::Config,
+    client::passkey::actions::send::sign::{
+        SignerWithMessage, SignerWithMessageOnce,
+    },
+    config::Config,
 };
 use alloy::network::ReceiptResponse;
 use std::{fmt::Debug, future::Future};
@@ -20,15 +23,20 @@ pub async fn send_transaction<F, Fut>(
 ) -> eyre::Result<SendTransactionResult>
 where
     F: Fn(&[u8]) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Result<Vec<u8>, ()>> + Send,
+    Fut: Future<Output = Result<Vec<u8>, String>> + Send,
 {
-    let backend: SignerWithMessage<F> = SignerWithMessage::new(sign_message);
     println!(
         "XDB api::account::send::send_transaction - transaction: {:?}",
         transaction
     );
+    let backend: SignerWithMessage<F> = SignerWithMessage::new(sign_message);
 
     let transaction_request = transaction.try_into()?;
+
+    println!(
+        "XDB api::account::send::send_transaction - transaction_request: {:?}",
+        transaction_request
+    );
 
     let receipt = crate::client::passkey::actions::send::send_transaction(
         transaction_request,
@@ -53,16 +61,21 @@ pub async fn send_transaction_fnonce_signer<F>(
     config: &Config,
 ) -> eyre::Result<SendTransactionResult>
 where
-    F: FnOnce(&[u8]) -> Result<Vec<u8>, ()> + Send + Sync + 'static,
+    F: FnOnce(&[u8]) -> Result<Vec<u8>, String> + Clone + Send + Sync + 'static,
 {
-    use crate::client::passkey::actions::send::sign::SignerWithMessageOnce;
-    let backend = SignerWithMessageOnce::new(sign_message);
     println!(
         "XDB api::account::send::send_transaction - transaction: {:?}",
         transaction
     );
 
+    let backend = SignerWithMessageOnce::new(sign_message);
+
     let transaction_request = transaction.try_into()?;
+
+    println!(
+        "XDB api::account::send::send_transaction - transaction_request: {:?}",
+        transaction_request
+    );
 
     let receipt = crate::client::passkey::actions::send::send_transaction(
         transaction_request,

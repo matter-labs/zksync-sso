@@ -1,9 +1,9 @@
 #![allow(async_fn_in_trait)]
 use alloy::{primitives::TxHash, providers::Provider};
 use alloy_zksync::network::{
-    receipt_response::ReceiptResponse as ZKReceiptResponse, Zksync,
+    Zksync, receipt_response::ReceiptResponse as ZKReceiptResponse,
 };
-use eyre::{eyre, Result};
+use eyre::{Result, eyre};
 use std::time::Duration;
 
 pub trait ProviderExt: Provider<Zksync> + Clone {
@@ -72,9 +72,10 @@ mod tests {
             }
             Err(e) => {
                 println!("Error: {}", e);
-                assert!(e
-                    .to_string()
-                    .contains("Transaction receipt not found after"));
+                assert!(
+                    e.to_string()
+                        .contains("Transaction receipt not found after")
+                );
                 println!("Expected error received: {}", e);
             }
         }

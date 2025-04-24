@@ -44,12 +44,9 @@ public func performPasskeyAuthorizationRequest(
 public func getAccountByUserId(
     uniqueAccountId: String,
     relyingPartyIdentifier: String,
-    secretAccountSalt: Data
 ) async throws -> Account {
-    let secretAccountSalt = secretAccountSalt.base64EncodedString()
     let account = try await ZKsyncSSOFFI.getAccountByUserId(
         uniqueAccountId: uniqueAccountId,
-        secretAccountSalt: secretAccountSalt,
         config: Config.default.inner
     )
     return Account(

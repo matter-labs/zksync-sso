@@ -79,11 +79,9 @@ struct AccountCreationContentView: View {
 
         Task { @MainActor in
             do {
-                let secretAccountSalt = Data(repeating: 0, count: 32)
                 let account = try await createAccount(
                     userName: accountInfo.name,
                     userID: accountInfo.userID,
-                    secretAccountSalt: secretAccountSalt,
                     challenge: challenge,
                     relyingPartyIdentifier: accountInfo.domain,
                     controller: authorizationController
@@ -99,7 +97,7 @@ struct AccountCreationContentView: View {
                 )
 
                 print("XXX deployed account: \(deployedAccount)")
-
+              
                 // Signal success to parent view
                 onSuccess()
                 

@@ -18,19 +18,9 @@ pub struct SignerWithMessage<F> {
     sign_message: F,
 }
 
-pub struct SignerWithMessageOnce<F> {
-    sign_message: Mutex<Option<F>>,
-}
-
 impl<F> SignerWithMessage<F> {
     pub fn new(sign_message: F) -> Self {
         Self { sign_message }
-    }
-}
-
-impl<F> SignerWithMessageOnce<F> {
-    pub fn new(sign_message: F) -> Self {
-        Self { sign_message: Mutex::new(Some(sign_message)) }
     }
 }
 
@@ -42,7 +32,17 @@ impl<F> Debug for SignerWithMessage<F> {
     }
 }
 
-impl<F> Debug for SignerWithMessageOnce<F> {
+pub struct SignerWithMessageOnce<F: Clone + Send + Sync> {
+    sign_message: Mutex<F>,
+}
+
+impl<F: Clone + Send + Sync> SignerWithMessageOnce<F> {
+    pub fn new(sign_message: F) -> Self {
+        Self { sign_message: Mutex::new(sign_message) }
+    }
+}
+
+impl<F: Clone + Send + Sync> Debug for SignerWithMessageOnce<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SignerWithMessageOnce")
             .field("sign_message", &"<closure>")
@@ -54,7 +54,7 @@ impl<F> Debug for SignerWithMessageOnce<F> {
 impl<F, Fut> PasskeySigningRawBackend for SignerWithMessage<F>
 where
     F: Fn(&[u8]) -> Fut + Send + Sync,
-    Fut: Future<Output = Result<Vec<u8>, ()>> + Send,
+    Fut: Future<Output = Result<Vec<u8>, String>> + Send,
 {
     async fn sign_transaction(
         &self,
@@ -76,7 +76,7 @@ where
 
         let signature_response = (self.sign_message)(hash.as_slice())
             .await
-            .map_err(|_| eyre::eyre!("Signing failed"))?;
+            .map_err(|e| eyre::eyre!("Signing failed: {:?}", e))?;
 
         println!(
             "XDB - sign_transaction signature_response: {:?}",
@@ -96,16 +96,21 @@ where
 }
 
 #[async_trait]
-impl<F> PasskeySigningRawBackend for SignerWithMessageOnce<F>
+impl<F: Clone + Send + Sync> PasskeySigningRawBackend
+    for SignerWithMessageOnce<F>
 where
-    F: FnOnce(&[u8]) -> Result<Vec<u8>, ()> + Send + Sync,
+    F: FnOnce(&[u8]) -> Result<Vec<u8>, String> + Send + Sync,
 {
     async fn sign_transaction(
         &self,
         tx: &TransactionRequest,
         config: Config,
     ) -> eyre::Result<TransactionRequest> {
+        println!("XDB - sign_transaction");
+
         let mut tx = tx.clone();
+
+        println!("XDB - sign_transaction - tx: {:?}", tx);
 
         let digest_hash =
             crate::client::passkey::account::transaction_digest::get_digest(
@@ -114,13 +119,19 @@ where
             .map_err(|e| {
                 eyre::eyre!("Error getting transaction digest: {:?}", e)
             })?;
+
+        println!("XDB - sign_transaction - digest_hash: {:?}", digest_hash);
+
         let hash = digest_hash.0.to_vec();
 
         println!("XDB - sign_transaction hash: {:?}", hash);
 
-        let signature_response =
-            (self.sign_message.lock().await.take().unwrap())(hash.as_slice())
-                .map_err(|_| eyre::eyre!("Signing failed"))?;
+        let sign_message = self.sign_message.lock().await.clone();
+
+        println!("XDB - sign_transaction fetching sign_message");
+
+        let signature_response = sign_message(hash.as_slice())
+            .map_err(|e| eyre::eyre!("Signing failed: {:?}", e))?;
 
         println!(
             "XDB - sign_transaction signature_response: {:?}",
@@ -133,7 +144,14 @@ where
                 &config,
             )?;
 
+        println!(
+            "XDB - sign_transaction signature_encoded: {:?}",
+            signature_encoded
+        );
+
         tx.set_custom_signature(signature_encoded.into());
+
+        println!("XDB - sign_transaction - tx: {:?}", tx);
 
         Ok(tx.to_owned())
     }
