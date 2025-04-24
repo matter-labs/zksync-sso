@@ -306,7 +306,7 @@ mod tests {
         auth_stack: &mut AuthStack,
         rp_id: &str,
         credential_raw_id: Vec<u8>,
-    ) -> Result<Bytes, ()> {
+    ) -> Result<Bytes, String> {
         println!("XDB - sign - Starting sign function");
         std::io::stdout().flush().unwrap();
 
@@ -331,7 +331,7 @@ mod tests {
             std::io::stdout().flush().unwrap();
             eyre::eyre!("Error authenticating passkey: {:?}", e)
         })
-        .map_err(|_| ())?;
+        .map_err(|e| e.to_string())?;
 
         println!("XDB - sign - Got credential: {:?}", credential);
         std::io::stdout().flush().unwrap();
@@ -468,7 +468,7 @@ mod tests {
                             sign(hash, &mut auth_stack, &rp_id, credential_raw_id)
                                 .await
                                 .map(|bytes| bytes.to_vec())
-                                .map_err(|_| ())
+                                .map_err(|e| e.to_string())
                         })
                     })
                 };

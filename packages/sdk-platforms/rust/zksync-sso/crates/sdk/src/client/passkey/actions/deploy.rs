@@ -1,14 +1,14 @@
 use crate::{
-    client::contracts::aa_factory::AAFactory,
-    config::{contracts::PasskeyContracts, Config},
+    client::contracts::AAFactory,
+    config::{Config, contracts::PasskeyContracts},
     utils::{
         alloy::extensions::ProviderExt,
-        contract_deployed::{check_contract_deployed, Contract},
+        contract_deployed::{Contract, check_contract_deployed},
         encoding::paymaster::generate_paymaster_input,
     },
 };
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes},
+    primitives::{Address, Bytes, FixedBytes, keccak256},
     providers::Provider,
     signers::local::PrivateKeySigner,
     sol_types::SolEvent,
@@ -22,23 +22,28 @@ use alloy_zksync::{
     provider::zksync_provider,
     wallet::ZksyncWallet,
 };
-use eyre::{eyre, Result};
-use rand::RngCore;
-use std::fmt::Debug;
+use eyre::{Result, eyre};
+use std::{fmt::Debug, str::FromStr};
 
 pub struct DeployedAccountDetails {
     pub address: Address,
-    pub unique_account_id: String,
+    pub unique_account_id: FixedBytes<32>,
     pub transaction_receipt: ZKReceiptResponse,
 }
 
 #[derive(Debug, Clone)]
-pub struct DeployAccountArgs {
-    /// Public key of the passkey
-    pub credential_public_key: Vec<u8>,
+pub struct CredentialDetails {
+    /// Unique id of the passkey public key (base64)
+    pub id: String,
 
-    /// Salt used for the `create2` deployment to make the address deterministic.
-    pub salt: Option<[u8; 32]>,
+    /// Public key of the passkey
+    pub public_key: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DeployAccountArgs {
+    /// Credential public key and id
+    pub credential: CredentialDetails,
 
     /// Expected origin of the passkey
     pub expected_origin: Option<String>,
@@ -59,12 +64,15 @@ pub struct DeployAccountArgs {
 impl Default for DeployAccountArgs {
     fn default() -> Self {
         Self {
-            credential_public_key: Vec::new(),
-            salt: None,
+            credential: CredentialDetails {
+                id: String::new(),
+                public_key: Vec::new(),
+            },
             expected_origin: None,
             unique_account_id: None,
             paymaster: None,
             contracts: PasskeyContracts::new(
+                Address::default(),
                 Address::default(),
                 Address::default(),
                 Address::default(),
@@ -121,13 +129,13 @@ pub async fn deploy_account(
     println!("XDB client::passkey::actions::deploy::deploy_account");
     println!(
         "    XDB Public key (hex): 0x{}",
-        hex::encode(&args.credential_public_key)
+        hex::encode(&args.credential.public_key)
     );
     println!(
-        "    XDB args.credential_public_key: {:?}",
-        args.credential_public_key
+        "    XDB args.credential.public_key: {:?}",
+        args.credential.public_key
     );
-    println!("    XDB args.salt: {:?}", args.salt);
+    println!("    XDB args.credential.id: {:?}", args.credential.id);
     println!("    XDB args.expected_origin: {:?}", args.expected_origin);
     println!(
         "XDB deploy_account - args.unique_account_id: {:?}",
@@ -141,16 +149,6 @@ pub async fn deploy_account(
     );
     println!("XDB deploy_account - args.contracts: {:?}", args.contracts);
 
-    let salt: FixedBytes<32> = args
-        .salt
-        .unwrap_or_else(|| {
-            let mut salt = [0u8; 32];
-            rand::rng().fill_bytes(&mut salt);
-            salt
-        })
-        .into();
-    println!("XDB deploy_account - salt: {:?}", salt);
-
     let origin = args
         .expected_origin
         .ok_or_else(|| eyre!("Expected origin is required"))?;
@@ -159,7 +157,7 @@ pub async fn deploy_account(
 
     let (public_key_x, public_key_y) =
         crate::utils::passkey::passkey_signature_from_public_key::get_public_key_bytes_from_passkey_signature(
-            &args.credential_public_key,
+            &args.credential.public_key,
         )
         .map_err(|e| eyre!("Failed to get public key bytes: {}", e))?;
 
@@ -172,6 +170,7 @@ pub async fn deploy_account(
     let encoded_passkey_parameters =
         crate::utils::encoding::encode_passkey_module_parameters(
             crate::utils::encoding::PasskeyModuleParams {
+                passkey_id: args.credential.id.clone(),
                 passkey_public_key: (public_key_x, public_key_y),
                 expected_origin: origin.clone(),
             },
@@ -226,27 +225,32 @@ pub async fn deploy_account(
     let initial_k1_owners = args.initial_k1_owners.unwrap_or_default();
     println!("XDB deploy_account - Initial k1 owners: {:?}", initial_k1_owners);
 
+    let unique_id = hash_unique_account_id(account_id.clone())?;
+
+    println!("XDB deploy_account - unique_id: {}", unique_id);
+
     let deploy_call = instance.deployProxySsoAccount(
-        salt,
-        account_id.clone(),
+        unique_id,
         initial_validators.clone(),
         initial_k1_owners.clone(),
     );
 
-    let mut deploy_tx: TransactionRequest =
-        deploy_call.into_transaction_request();
+    let deploy_tx: TransactionRequest = {
+        let mut deploy_tx = deploy_call.into_transaction_request();
 
-    if let Some(mut paymaster) = args.paymaster {
-        // If paymaster_input is empty, generate default input
-        if paymaster.paymaster_input.is_empty() {
-            paymaster.paymaster_input = generate_paymaster_input(None)?;
+        if let Some(mut paymaster) = args.paymaster {
+            // If paymaster_input is empty, generate default input
+            if paymaster.paymaster_input.is_empty() {
+                paymaster.paymaster_input = generate_paymaster_input(None)?;
+            }
+            deploy_tx = deploy_tx.with_paymaster_params(paymaster);
         }
-        deploy_tx = deploy_tx.with_paymaster_params(paymaster);
-    }
+
+        deploy_tx
+    };
 
     println!("XDB deploy_account - Transaction parameters:");
-    println!("  Salt: 0x{}", hex::encode(salt));
-    println!("  Account ID: {}", account_id);
+    println!("  Unique ID Hash: {}", unique_id);
     println!("  Initial validators: {:?}", initial_validators);
     println!("  Initial k1 owners: {:?}", initial_k1_owners);
     println!(
@@ -299,59 +303,158 @@ fn get_account_created_event(
     Ok(event)
 }
 
+fn hash_unique_account_id(
+    account_id_hex: String,
+) -> eyre::Result<FixedBytes<32>> {
+    let account_id_bytes = hex::decode(account_id_hex)?;
+    println!(
+        "XDB hash_unique_account_id - account_id_bytes: {:?}",
+        account_id_bytes
+    );
+    let hash = keccak256(account_id_bytes);
+    println!("XDB hash_unique_account_id - hash: {:?}", hash);
+    Ok(hash)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
-        utils::contract_deployed::{check_contract_deployed, Contract},
+        utils::contract_deployed::{Contract, check_contract_deployed},
         utils::test_utils::{
             spawn_node_and_deploy_contracts, zksync_wallet_from_anvil_zksync,
         },
     };
     use alloy::{
         network::TransactionBuilder,
-        primitives::{address, hex, U256},
+        primitives::{U256, address, hex},
     };
     use alloy_zksync::{
         network::transaction_request::TransactionRequest,
         provider::zksync_provider,
     };
     use k256::ecdsa::SigningKey;
+    use rand::RngCore;
 
     #[tokio::test]
-    async fn test_deploy_account_with_initial_k1_owners_and_send_transaction(
-    ) -> Result<()> {
+    async fn test_deploy_account() -> Result<()> {
         // Arrange
         let (anvil_zksync, config, _) =
             spawn_node_and_deploy_contracts().await?;
         let node_url = &config.node_url;
 
-        let mut wallet = zksync_wallet_from_anvil_zksync(&anvil_zksync)?;
+        let (wallet, _, _) = zksync_wallet_from_anvil_zksync(&anvil_zksync)?;
+
+        let wallet_address = wallet.default_signer().address();
+        println!("XDB - Wallet address: {}", wallet_address);
+
+        let credential_public_key = vec![
+            165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            34, 88, 32, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        ];
+
+        let credential_id = "unique-base64encoded-string".to_string();
+
+        println!(
+            "XDB - test_deploy_account_with_initial_k1_owners - Credential ID: {}",
+            credential_id
+        );
+
+        let deploy_account_credential = CredentialDetails {
+            id: credential_id.clone(),
+            public_key: credential_public_key,
+        };
+        let unique_account_id = None;
+
+        let contracts = config.clone().contracts;
+
+        let contract_address = contracts.clone().account_factory;
+        {
+            let factory_contract = Contract {
+                address: contract_address,
+                name: "MY_AA_FACTORY".to_string(),
+            };
+            check_contract_deployed(&node_url.clone(), &factory_contract)
+                .await?;
+        };
+
+        let origin: String = "https://example.com".to_string();
+
+        let args = {
+            let paymaster = Some(PaymasterParams {
+                paymaster: contracts.account_paymaster,
+                paymaster_input: Bytes::new(),
+            });
+            DeployAccountArgs {
+                credential: deploy_account_credential,
+                expected_origin: Some(origin),
+                unique_account_id,
+                paymaster,
+                contracts: contracts.clone(),
+                ..Default::default()
+            }
+        };
+
+        let result = deploy_account(args, &config).await?;
+
+        let deployed_account_address = result.address;
+
+        println!(
+            "XDB - test_deploy_account - Deployed account address: {}",
+            deployed_account_address
+        );
+
+        drop(anvil_zksync);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_deploy_account_with_initial_k1_owners_and_send_transaction()
+    -> Result<()> {
+        // Arrange
+        let (anvil_zksync, config, _) =
+            spawn_node_and_deploy_contracts().await?;
+        let node_url = &config.node_url;
+
+        let (mut wallet, _, _) =
+            zksync_wallet_from_anvil_zksync(&anvil_zksync)?;
         let vitalik = address!("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
 
         let wallet_address = wallet.default_signer().address();
         println!("XDB - Wallet address: {}", wallet_address);
 
-        // Deploy the account
-        let sample_public_key = vec![
-            165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69, 109, 166, 67, 163,
-            110, 143, 71, 60, 77, 232, 220, 7, 121, 156, 141, 24, 71, 28, 210,
-            116, 124, 90, 115, 166, 213, 190, 89, 4, 216, 128, 34, 88, 32, 193,
-            67, 151, 85, 245, 24, 139, 246, 220, 204, 228, 76, 247, 65, 179,
-            235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73, 37, 195, 20,
-            194, 9,
+        let credential_public_key = vec![
+            165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            34, 88, 32, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
         ];
+
+        let credential_id = "unique-base64encoded-string".to_string();
+
+        println!(
+            "XDB - test_deploy_account_with_initial_k1_owners - Credential ID: {}",
+            credential_id
+        );
+
+        let deploy_account_credential = CredentialDetails {
+            id: credential_id,
+            public_key: credential_public_key,
+        };
 
         // Generate a random account ID
         let unique_account_id = {
             let mut random_bytes = [0u8; 32];
             rand::rng().fill_bytes(&mut random_bytes);
-            let id = format!("0x{}", hex::encode(random_bytes));
+            let id = hex::encode(random_bytes);
             println!(
                 "XDB - test_deploy_account_with_initial_k1_owners - Generated random account ID: {}",
                 id
             );
-            id
+            Some(id)
         };
 
         let contracts = config.clone().contracts;
@@ -366,23 +469,23 @@ mod tests {
                 .await?;
         };
 
+        let origin: String = "https://example.com".to_string();
+
         let args = {
             let paymaster = Some(PaymasterParams {
                 paymaster: contracts.account_paymaster,
                 paymaster_input: Bytes::new(),
             });
-            let origin: String = "https://example.com".to_string();
             DeployAccountArgs {
-                credential_public_key: sample_public_key,
+                credential: deploy_account_credential,
                 expected_origin: Some(origin),
-                unique_account_id: Some(unique_account_id),
+                unique_account_id,
                 paymaster,
                 contracts: contracts.clone(),
                 initial_k1_owners: Some(vec![wallet_address]),
                 ..Default::default()
             }
         };
-        // assert_eq!(provider, 1);
         let result = deploy_account(args, &config).await?;
         let deployed_account_address = result.address;
         println!(
@@ -432,7 +535,10 @@ mod tests {
                 provider.send_transaction(fund_tx).await?.tx_hash().to_owned();
             let receipt =
                 provider.wait_for_transaction_receipt(fund_tx_hash).await?;
-            println!("XDB - test_deploy_account_with_initial_k1_owners - Fund receipt: {:?}", receipt);
+            println!(
+                "XDB - test_deploy_account_with_initial_k1_owners - Fund receipt: {:?}",
+                receipt
+            );
         }
         println!(
             "XDB - test_deploy_account_with_initial_k1_owners - account funded"

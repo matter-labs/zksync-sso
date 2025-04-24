@@ -5,7 +5,6 @@ import SwiftUI
 public func createAccount(
     userName: String,
     userID: String,
-    secretAccountSalt: Data,
     challenge: Data,
     relyingPartyIdentifier: String,
     controller: AuthorizationController
@@ -42,8 +41,7 @@ public func createAccount(
             credentialId: credentialId,
             rpId: relyingPartyIdentifier,
             uniqueAccountId: userID
-        ),
-        secretAccountSalt: secretAccountSalt
+        )
     )
 }
 

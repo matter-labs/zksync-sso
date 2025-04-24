@@ -2,7 +2,6 @@ use crate::{
     client::passkey::actions::send::prepare::prepare_transaction,
     config::Config,
 };
-use alloy::network::TransactionBuilder;
 use alloy_zksync::network::transaction_request::TransactionRequest;
 
 #[derive(Debug)]
@@ -36,5 +35,6 @@ pub async fn prepare_send_transaction(
 ) -> eyre::Result<PreparedTransaction> {
     println!("XDB prepare_send_transaction - transaction: {:?}", transaction);
     let transaction_request = transaction.try_into()?;
+    println!("XDB prepare_send_transaction - transaction_request: {:?}", transaction_request);
     prepare_transaction(transaction_request, config).await.map(Into::into)
 }

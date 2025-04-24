@@ -47,12 +47,10 @@ pub async fn fetch_account(
 #[uniffi::export(async_runtime = "tokio")]
 pub async fn get_account_by_user_id(
     unique_account_id: String,
-    secret_account_salt: String,
     config: config::Config,
 ) -> Result<super::Account, FetchAccountError> {
     sdk::api::account::fetch::get_account_by_user_id(
         unique_account_id,
-        secret_account_salt,
         &(config.try_into()
             as Result<sdk::config::Config, config::ConfigError>)
             .map_err(|e: config::ConfigError| {

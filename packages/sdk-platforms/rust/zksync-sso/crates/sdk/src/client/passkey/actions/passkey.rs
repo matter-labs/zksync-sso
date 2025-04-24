@@ -1,7 +1,7 @@
 use crate::utils::passkey::passkey::simplewebauthn::{
-    AuthenticatorInfo, CloneablePublicKeyCredentialRequestOptions,
-    VerifyAuthenticationResponseArgs, _start_authentication,
-    _verify_authentication_response,
+    _start_authentication, _verify_authentication_response, AuthenticatorInfo,
+    CloneablePublicKeyCredentialRequestOptions,
+    VerifyAuthenticationResponseArgs,
 };
 use base64_url::encode as base64_encode_url;
 use coset::iana;
@@ -75,6 +75,9 @@ async fn _request_passkey_authentication(
         id: base64_encode_url(&authentication_response.raw_id.to_vec()),
         raw_id: base64_encode_url(&authentication_response.raw_id.to_vec()),
         response: AuthenticatorAssertionResponseJSON {
+            credential_id: base64_encode_url(
+                &authentication_response.raw_id.to_vec(),
+            ),
             client_data_json: base64_encode_url(
                 &authentication_response.response.client_data_json.to_vec(),
             ),
@@ -191,6 +194,7 @@ pub struct AuthenticationResponseJSON {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticatorAssertionResponseJSON {
+    pub credential_id: String,
     pub client_data_json: String,
     pub authenticator_data: String,
     pub signature: String,
@@ -270,11 +274,13 @@ mod tests {
 
         assert!(!result.passkey_authentication_response.id.is_empty());
         assert!(!result.passkey_authentication_response.raw_id.is_empty());
-        assert!(!result
-            .passkey_authentication_response
-            .response
-            .signature
-            .is_empty());
+        assert!(
+            !result
+                .passkey_authentication_response
+                .response
+                .signature
+                .is_empty()
+        );
 
         Ok(())
     }

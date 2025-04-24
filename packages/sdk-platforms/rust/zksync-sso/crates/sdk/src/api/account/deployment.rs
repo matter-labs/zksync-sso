@@ -1,5 +1,8 @@
 use crate::{
-    client::passkey::account_factory::{create_account, AccountParams},
+    client::passkey::{
+        account_factory::{AccountParams, create_account},
+        actions::deploy::CredentialDetails,
+    },
     config::Config,
     utils::passkey::passkey::apple::{
         extract_public_key, verify::verify_registration,
@@ -21,8 +24,15 @@ pub struct DeployedAccountDetails {
     pub transaction_receipt_json: Option<String>,
 }
 
-struct ParsedPasskeyParameters {
+#[derive(Debug, Clone)]
+struct ParsedPasskeyParametersCredential {
+    id: String,
     public_key: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+struct ParsedPasskeyParameters {
+    credential: ParsedPasskeyParametersCredential,
     expected_origin: String,
 }
 
@@ -92,8 +102,15 @@ async fn parse_passkey_parameters(
 
     let expected_origin = format!("https://{}", params.rp_id);
 
+    use base64::Engine;
+    let id_base64 = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .encode(validated.credential_id);
+
     Ok(ParsedPasskeyParameters {
-        public_key: validated.cose_key_cbor,
+        credential: ParsedPasskeyParametersCredential {
+            id: id_base64,
+            public_key: validated.cose_key_cbor,
+        },
         expected_origin,
     })
 }
@@ -104,6 +121,8 @@ pub async fn deploy_account(
 ) -> eyre::Result<DeployedAccountDetails> {
     let parsed_params = parse_passkey_parameters(&passkey_parameters).await?;
 
+    println!("XDB deploy_account - parsed_params: {:?}", parsed_params);
+
     let paymaster = Some(PaymasterParams {
         paymaster: config.contracts.account_paymaster,
         paymaster_input: Bytes::new(),
@@ -111,7 +130,10 @@ pub async fn deploy_account(
 
     let deploy_account_args =
         crate::client::passkey::actions::deploy::DeployAccountArgs {
-            credential_public_key: parsed_params.public_key,
+            credential: CredentialDetails {
+                id: parsed_params.credential.id,
+                public_key: parsed_params.credential.public_key,
+            },
             expected_origin: Some(parsed_params.expected_origin),
             contracts: config.contracts.clone(),
             paymaster,
@@ -126,7 +148,8 @@ pub async fn deploy_account(
         .await?;
 
     let address = deployed_account_details.address;
-    let unique_account_id = deployed_account_details.unique_account_id;
+    let unique_account_id =
+        hex::encode(deployed_account_details.unique_account_id);
     let transaction_receipt_json =
         serde_json::to_string(&deployed_account_details.transaction_receipt)
             .map_err(|e| {
@@ -143,18 +166,27 @@ pub async fn deploy_account(
 pub async fn deploy_account_with_unique_id(
     passkey_parameters: PasskeyParameters,
     unique_account_id: String,
-    secret_account_salt: String,
     config: &Config,
 ) -> eyre::Result<DeployedAccountDetails> {
     let parsed_params = parse_passkey_parameters(&passkey_parameters).await?;
 
+    let paymaster = Some(PaymasterParams {
+        paymaster: config.contracts.account_paymaster,
+        paymaster_input: Bytes::new(),
+    });
+
+    let credential = CredentialDetails {
+        id: parsed_params.credential.id,
+        public_key: parsed_params.credential.public_key,
+    };
+
     let address = create_account(
         unique_account_id.clone(),
-        parsed_params.public_key,
+        credential,
         &AccountParams {
             passkey_expected_origin: parsed_params.expected_origin,
-            secret_account_salt,
         },
+        paymaster,
         config,
     )
     .await?;

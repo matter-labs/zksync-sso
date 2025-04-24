@@ -1,6 +1,7 @@
 pub mod contracts;
+pub mod deploy_wallet;
 
-use crate::config::contracts::PasskeyContracts;
+use crate::config::{contracts::PasskeyContracts, deploy_wallet::DeployWallet};
 use eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::{env, fs, io::Write, path::PathBuf};
@@ -11,22 +12,29 @@ use url::Url;
 pub struct Config {
     pub contracts: PasskeyContracts,
     pub node_url: Url,
+    pub deploy_wallet: DeployWallet,
 }
 
 impl Config {
-    pub fn new(contracts: PasskeyContracts, node_url: Url) -> Self {
-        Self { contracts, node_url }
+    pub fn new(
+        contracts: PasskeyContracts,
+        node_url: Url,
+        deploy_wallet: DeployWallet,
+    ) -> Self {
+        Self { contracts, node_url, deploy_wallet }
     }
 
     pub fn with_url_str(
         contracts: PasskeyContracts,
         node_url: &str,
+        deploy_wallet: DeployWallet,
     ) -> Result<Self> {
         Ok(Self {
             contracts,
             node_url: node_url
                 .parse()
                 .map_err(|e| eyre::eyre!("Invalid node URL: {}", e))?,
+            deploy_wallet,
         })
     }
 

@@ -1,5 +1,8 @@
 use eyre::Result;
-use sdk::{api::utils::deploy_contracts, config::Config};
+use sdk::{
+    api::utils::deploy_contracts,
+    config::{Config, deploy_wallet::DeployWallet},
+};
 use std::{fs, path::PathBuf};
 use url::Url;
 
@@ -15,12 +18,15 @@ pub async fn deploy_contracts_and_update_swift_config(
     println!("  WebAuthValidator: {}", contracts.passkey);
     println!("  SessionKeyValidator: {}", contracts.session);
     println!("  ExampleAuthServerPaymaster: {}", contracts.account_paymaster);
+    println!("  Recovery: {}", contracts.recovery);
 
     let config_path =
         config_path.unwrap_or_else(Config::get_default_swift_config_path);
     println!("\nWriting config to path: {:?}", config_path);
 
-    let config = Config::new(contracts, node_url);
+    let deploy_wallet = DeployWallet::random();
+
+    let config = Config::new(contracts, node_url, deploy_wallet);
     config.write_json(&config_path)?;
 
     println!("\nVerifying written config:");
@@ -37,6 +43,7 @@ pub async fn deploy_contracts_and_update_swift_config(
         "  ExampleAuthServerPaymaster: {}",
         written_config.contracts.account_paymaster
     );
+    println!("  Recovery: {}", written_config.contracts.recovery);
 
     println!("\nSuccessfully updated and verified Swift config values");
     Ok(())

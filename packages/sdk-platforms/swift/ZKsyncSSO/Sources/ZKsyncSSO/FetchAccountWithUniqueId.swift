@@ -1,15 +1,12 @@
 import Foundation
 @preconcurrency import ZKsyncSSOFFI
 
-public func fetchAccount(
-    uniqueAccountId: String,
-    relyingPartyIdentifier: String
-) async throws -> Account {
-    let account = try await ZKsyncSSOFFI.fetchAccount(
+public func fetchAccountWith(uniqueAccountId: String) async throws -> Account {
+    let account = try await ZKsyncSSOFFI.getAccountByUserId(
         uniqueAccountId: uniqueAccountId,
-        expectedOrigin: relyingPartyIdentifier,
         config: Config.default.inner
     )
+    print("account: \(account)")
     return Account(
         address: account.address,
         uniqueAccountId: account.uniqueAccountId

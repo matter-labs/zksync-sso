@@ -17,10 +17,12 @@ pub async fn get_balance(
     let provider = zksync_provider().on_http(config.node_url.clone());
 
     let balance_uint = provider.get_balance(address).await?;
+    println!("XDB get_balance - balance_uint: {:?}", balance_uint);
 
     let money = Money::eth(balance_uint);
 
     let formatter = MoneyFormatter::default().with_display_decimals(6);
+
     let balance = formatter.format(&money);
 
     let balance = GetAccountBalanceResult { balance };

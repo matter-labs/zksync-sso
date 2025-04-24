@@ -119,12 +119,9 @@ public struct LoginView: View {
                 let uniqueAccountId = accountInfo.userID
                 let relyingPartyIdentifier = accountInfo.domain
                 
-                let secretAccountSalt = Data(repeating: 0, count: 32)
-
                 let account = try await getAccountByUserId(
                     uniqueAccountId: uniqueAccountId,
                     relyingPartyIdentifier: relyingPartyIdentifier,
-                    secretAccountSalt: secretAccountSalt
                 )
 
                 let accountDetails = AccountDetails(

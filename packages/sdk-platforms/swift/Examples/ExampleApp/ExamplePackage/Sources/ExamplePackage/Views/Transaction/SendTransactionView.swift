@@ -3,8 +3,12 @@ import SwiftUI
 import ZKsyncSSO
 
 struct SendTransactionView: View {
+    
     let fromAccount: DeployedAccount
+    
     @Environment(\.dismiss) private var dismiss
+  
+    @Environment(\.authorizationController) private var authorizationController
 
     @State private var toAddress: String = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
     @State private var amount: String = "1.0"
@@ -13,8 +17,6 @@ struct SendTransactionView: View {
     @State private var showingSuccess = false
     @State private var preparedTransaction: PreparedTransaction?
     @State private var isPreparing = false
-    
-    @Environment(\.authorizationController) private var authorizationController
     
     private let onTransactionSent: () -> Void
 
@@ -45,8 +47,20 @@ struct SendTransactionView: View {
 
                 if let error = error {
                     Section {
-                        Text(error)
-                            .foregroundStyle(.red)
+                        Button {
+                            UIPasteboard.general.string = error
+                        } label: {
+                            HStack {
+                                Text(error)
+                                    .foregroundStyle(.red)
+                                
+                                Spacer()
+                                
+                                Image(systemName: "doc.on.doc")
+                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: 14))
+                            }
+                        }
                     }
                 }
 
@@ -98,13 +112,22 @@ struct SendTransactionView: View {
     }
 
     private func prepareTransaction() {
+        print("prepareTransaction")
         guard isValidInput else {
+            print("isValidInput")
             preparedTransaction = nil
             return
         }
 
-        guard let amountInEth = Double(amount) else { return }
+        guard let amountInEth = Double(amount) else {
+            print("prepareTransaction invalid amount")
+            return
+        }
+        print("prepareTransaction amountInEth: \(amountInEth)")
+      
         let amountInWei = String(Int(amountInEth * 1_000_000_000_000_000_000.0))
+      
+        print("prepareTransaction amountInWei: \(amountInWei)")
         
         let authenticator = PasskeyAuthenticatorHelper(
             controllerProvider: { self.authorizationController },
@@ -130,9 +153,15 @@ struct SendTransactionView: View {
                     to: toAddress,
                     value: amountInWei
                 )
+              
+                print("prepareTransaction transaction: \(transaction)")
+                
                 let prepared = try await accountClient.prepare(
                     transaction: transaction
                 )
+              
+                print("prepareTransaction prepared: \(prepared)")
+                
                 print(
                     "Prepared transaction JSON: \(prepared.transactionRequestJson)"
                 )
@@ -147,6 +176,7 @@ struct SendTransactionView: View {
     }
 
     private func confirmTransaction() {
+        print("confirmTransaction")
         guard let amountInEth = Double(amount) else { return }
         
         let amountInWei = String(Int(amountInEth * 1_000_000_000_000_000_000.0))
@@ -171,6 +201,7 @@ struct SendTransactionView: View {
 
         Task {
             do {
+                print("going to call accountClient.send")
                 try await accountClient.send(
                     transaction: .init(
                         to: toAddress,
@@ -191,6 +222,7 @@ struct SendTransactionView: View {
                 self.error = error.localizedDescription
                 print(error)
                 isConfirming = false
+                print("Error preparing transaction: \(error)")
             }
         }
     }

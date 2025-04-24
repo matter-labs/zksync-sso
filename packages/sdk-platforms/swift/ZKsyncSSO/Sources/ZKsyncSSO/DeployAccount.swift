@@ -25,10 +25,32 @@ public struct DeployAccountParameters {
 
 public func deployAccountWith(
     params: DeployAccountParameters,
-    secretAccountSalt: Data
 ) async throws -> Account {
+    let passkeyParameters = PasskeyParameters(
+        credentialRawAttestationObject: params.credentialRawAttestationObject,
+        credentialRawClientDataJson: params.credentialRawClientDataJson,
+        credentialId: params.credentialId,
+        rpId: params.rpId
+    )
     
-    let secretAccountSalt = secretAccountSalt.base64EncodedString()
+    let uniqueAccountId = params.uniqueAccountId
+    
+    let account = try await ZKsyncSSOFFI.deployAccount(
+        passkeyParameters: passkeyParameters,
+        config: Config.default.inner
+    )
+    
+    print("account: \(account)")
+    
+    return Account(
+        address: account.address,
+        uniqueAccountId: account.uniqueAccountId
+    )
+}
+
+public func deployAccountWithUniqueId(
+    params: DeployAccountParameters
+) async throws -> Account {
     
     let passkeyParameters = PasskeyParameters(
         credentialRawAttestationObject: params.credentialRawAttestationObject,
@@ -42,13 +64,15 @@ public func deployAccountWith(
     let account = try await ZKsyncSSOFFI.deployAccountWithUniqueId(
         passkeyParameters: passkeyParameters,
         uniqueAccountId: uniqueAccountId,
-        secretAccountSalt: secretAccountSalt,
         config: Config.default.inner
     )
     
     print("account: \(account)")
     
-    return Account(address: account.address, uniqueAccountId: account.uniqueAccountId)
+    return Account(
+        address: account.address,
+        uniqueAccountId: account.uniqueAccountId
+    )
 }
 
 public struct Account: Sendable {

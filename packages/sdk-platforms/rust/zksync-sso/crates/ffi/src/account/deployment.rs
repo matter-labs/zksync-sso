@@ -67,13 +67,11 @@ pub async fn deploy_account(
 pub async fn deploy_account_with_unique_id(
     passkey_parameters: PasskeyParameters,
     unique_account_id: String,
-    secret_account_salt: String,
     config: config::Config,
 ) -> Result<super::Account, DeployAccountError> {
     sdk::api::account::deployment::deploy_account_with_unique_id(
         passkey_parameters.into(),
         unique_account_id,
-        secret_account_salt,
         &(config.try_into()
             as Result<sdk::config::Config, config::ConfigError>)
             .map_err(|e: config::ConfigError| {

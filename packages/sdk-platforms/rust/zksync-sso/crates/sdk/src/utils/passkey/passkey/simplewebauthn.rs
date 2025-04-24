@@ -347,6 +347,7 @@ mod tests {
             id: base64_encode_url(&authed_cred.raw_id.to_vec()),
             raw_id: base64_encode_url(&authed_cred.raw_id.to_vec()),
             response: AuthenticatorAssertionResponseJSON {
+                credential_id: base64_encode_url(&authed_cred.raw_id.to_vec()),
                 client_data_json: base64_encode_url(
                     &authed_cred.response.client_data_json.to_vec(),
                 ),

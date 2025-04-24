@@ -8,13 +8,15 @@ public struct PasskeyContracts {
         accountFactory: String,
         passkey: String,
         session: String,
-        accountPaymaster: String
+        accountPaymaster: String,
+        recovery: String
     ) {
         self.inner = .init(
             accountFactory: accountFactory,
             passkey: passkey,
             session: session,
-            accountPaymaster: accountPaymaster
+            accountPaymaster: accountPaymaster,
+            recovery: recovery
         )
     }
     
