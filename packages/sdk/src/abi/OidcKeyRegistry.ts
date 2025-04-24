@@ -8,6 +8,17 @@ export const OidcKeyRegistryAbi = [
     inputs: [
       {
         internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+    ],
+    name: "EvenRsaModulus",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
         name: "expectedIssHash",
         type: "bytes32",
       },
@@ -34,6 +45,17 @@ export const OidcKeyRegistryAbi = [
   {
     inputs: [
       {
+        internalType: "uint256",
+        name: "index",
+        type: "uint256",
+      },
+    ],
+    name: "KeyIdCannotBeZero",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
         internalType: "bytes32",
         name: "issHash",
         type: "bytes32",
@@ -45,6 +67,54 @@ export const OidcKeyRegistryAbi = [
       },
     ],
     name: "KeyNotFound",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "issHash",
+        type: "bytes32",
+      },
+    ],
+    name: "KidAlreadyRegistered",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+    ],
+    name: "ModulusCannotBeZero",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+      {
+        internalType: "uint256",
+        name: "chunkIndex",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "chunkValue",
+        type: "uint256",
+      },
+    ],
+    name: "ModulusChunkTooLarge",
     type: "error",
   },
   {
@@ -120,6 +190,25 @@ export const OidcKeyRegistryAbi = [
         type: "address",
       },
     ],
+    name: "OwnershipTransferStarted",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "previousOwner",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "newOwner",
+        type: "address",
+      },
+    ],
     name: "OwnershipTransferred",
     type: "event",
   },
@@ -128,9 +217,22 @@ export const OidcKeyRegistryAbi = [
     name: "CIRCOM_BIGINT_CHUNKS",
     outputs: [
       {
-        internalType: "uint8",
+        internalType: "uint256",
         name: "",
-        type: "uint8",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "CIRCOM_BIGINT_CHUNK_SIZE",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -141,46 +243,19 @@ export const OidcKeyRegistryAbi = [
     name: "MAX_KEYS",
     outputs: [
       {
-        internalType: "uint8",
+        internalType: "uint256",
         name: "",
-        type: "uint8",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "issHash",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "OIDCKeys",
-    outputs: [
-      {
-        internalType: "bytes32",
-        name: "issHash",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes32",
-        name: "kid",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes",
-        name: "e",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "view",
+    inputs: [],
+    name: "acceptOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -199,16 +274,11 @@ export const OidcKeyRegistryAbi = [
           },
           {
             internalType: "uint256[17]",
-            name: "n",
+            name: "rsaModulus",
             type: "uint256[17]",
           },
-          {
-            internalType: "bytes",
-            name: "e",
-            type: "bytes",
-          },
         ],
-        internalType: "struct OidcKeyRegistry.Key",
+        internalType: "struct IOidcKeyRegistry.Key",
         name: "newKey",
         type: "tuple",
       },
@@ -234,16 +304,11 @@ export const OidcKeyRegistryAbi = [
           },
           {
             internalType: "uint256[17]",
-            name: "n",
+            name: "rsaModulus",
             type: "uint256[17]",
           },
-          {
-            internalType: "bytes",
-            name: "e",
-            type: "bytes",
-          },
         ],
-        internalType: "struct OidcKeyRegistry.Key[]",
+        internalType: "struct IOidcKeyRegistry.Key[]",
         name: "newKeys",
         type: "tuple[]",
       },
@@ -300,16 +365,11 @@ export const OidcKeyRegistryAbi = [
           },
           {
             internalType: "uint256[17]",
-            name: "n",
+            name: "rsaModulus",
             type: "uint256[17]",
           },
-          {
-            internalType: "bytes",
-            name: "e",
-            type: "bytes",
-          },
         ],
-        internalType: "struct OidcKeyRegistry.Key",
+        internalType: "struct IOidcKeyRegistry.Key",
         name: "",
         type: "tuple",
       },
@@ -341,16 +401,11 @@ export const OidcKeyRegistryAbi = [
           },
           {
             internalType: "uint256[17]",
-            name: "n",
+            name: "rsaModulus",
             type: "uint256[17]",
           },
-          {
-            internalType: "bytes",
-            name: "e",
-            type: "bytes",
-          },
         ],
-        internalType: "struct OidcKeyRegistry.Key[8]",
+        internalType: "struct IOidcKeyRegistry.Key[8]",
         name: "",
         type: "tuple[8]",
       },
@@ -385,19 +440,13 @@ export const OidcKeyRegistryAbi = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "issHash",
-        type: "bytes32",
-      },
-    ],
-    name: "keyIndexes",
+    inputs: [],
+    name: "owner",
     outputs: [
       {
-        internalType: "uint8",
-        name: "keyIndex",
-        type: "uint8",
+        internalType: "address",
+        name: "",
+        type: "address",
       },
     ],
     stateMutability: "view",
@@ -405,7 +454,7 @@ export const OidcKeyRegistryAbi = [
   },
   {
     inputs: [],
-    name: "owner",
+    name: "pendingOwner",
     outputs: [
       {
         internalType: "address",
@@ -436,4 +485,4 @@ export const OidcKeyRegistryAbi = [
     stateMutability: "nonpayable",
     type: "function",
   },
-];
+] as const;
