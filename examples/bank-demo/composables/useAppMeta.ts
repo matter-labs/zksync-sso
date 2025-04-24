@@ -39,6 +39,7 @@ export const useAppMeta = () => {
       accountFactory: config.public.accountFactory as Address,
       passkey: config.public.passkey as Address,
       session: config.public.session as Address,
+      recovery: config.public.recovery as Address,
     },
     deployerKey: config.public.bankDemoDeployerKey,
     aaveAddress: config.public.aaveAddress as Address,
