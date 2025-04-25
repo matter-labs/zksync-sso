@@ -15,17 +15,34 @@ import {
     base64ToArrayBuffer
 } from './utils';
 
+/**
+ * Information about the relying party (RP) for passkey registration
+ */
 export interface RPInfo {
     name: string;
     id: string;
 }
 
+/**
+ * Information about the account being registered
+ */
 export interface AccountInfo {
     name: string;
     userID: string;
     rp: RPInfo;
 }
 
+/**
+ * Registers a new account using a platform passkey and deploys it.
+ * This function handles the creation of a new passkey and the deployment of the account
+ * with the generated credentials.
+ * 
+ * @param accountInfo - Information about the account to register
+ * @param secretAccountSalt - Salt used for account derivation
+ * @param challenge - Challenge string for passkey creation
+ * @param config - Configuration for deployment
+ * @returns A Promise that resolves to the deployed Account
+ */
 export const registerAccountWithUniqueId = async (
     accountInfo: AccountInfo,
     secretAccountSalt: string,
