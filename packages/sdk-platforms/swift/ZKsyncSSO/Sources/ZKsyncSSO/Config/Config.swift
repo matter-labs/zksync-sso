@@ -6,16 +6,24 @@ public struct Config {
 
     public init(
         contracts: PasskeyContracts,
-        nodeUrl: String
+        nodeUrl: String,
+        deployWallet: DeployWallet
     ) {
-        self.inner = .init(contracts: contracts.inner, nodeUrl: nodeUrl)
+        self.inner = .init(
+            contracts: contracts.inner,
+            nodeUrl: nodeUrl,
+            deployWallet: deployWallet
+        )
     }
 
     public static var `default`: Self {
         let innerDefault = ZKsyncSSOFFI.Config.default
         return Self(
-            contracts: PasskeyContracts.init(inner: innerDefault.contracts),
-            nodeUrl: innerDefault.nodeUrl
+            contracts: PasskeyContracts(inner: innerDefault.contracts),
+            nodeUrl: innerDefault.nodeUrl,
+            deployWallet: DeployWallet(
+                privateKeyHex: innerDefault.deployWallet.privateKeyHex
+            )
         )
     }
 }

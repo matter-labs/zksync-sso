@@ -979,12 +979,14 @@ public func FfiConverterTypeAccountBalance_lower(_ value: AccountBalance) -> Rus
 public struct Config {
     public var contracts: PasskeyContracts
     public var nodeUrl: String
+    public var deployWallet: DeployWallet
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(contracts: PasskeyContracts, nodeUrl: String) {
+    public init(contracts: PasskeyContracts, nodeUrl: String, deployWallet: DeployWallet) {
         self.contracts = contracts
         self.nodeUrl = nodeUrl
+        self.deployWallet = deployWallet
     }
 }
 
@@ -1001,12 +1003,16 @@ extension Config: Equatable, Hashable {
         if lhs.nodeUrl != rhs.nodeUrl {
             return false
         }
+        if lhs.deployWallet != rhs.deployWallet {
+            return false
+        }
         return true
     }
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(contracts)
         hasher.combine(nodeUrl)
+        hasher.combine(deployWallet)
     }
 }
 
@@ -1020,13 +1026,15 @@ public struct FfiConverterTypeConfig: FfiConverterRustBuffer {
         return
             try Config(
                 contracts: FfiConverterTypePasskeyContracts.read(from: &buf), 
-                nodeUrl: FfiConverterString.read(from: &buf)
+                nodeUrl: FfiConverterString.read(from: &buf), 
+                deployWallet: FfiConverterTypeDeployWallet.read(from: &buf)
         )
     }
 
     public static func write(_ value: Config, into buf: inout [UInt8]) {
         FfiConverterTypePasskeyContracts.write(value.contracts, into: &buf)
         FfiConverterString.write(value.nodeUrl, into: &buf)
+        FfiConverterTypeDeployWallet.write(value.deployWallet, into: &buf)
     }
 }
 
@@ -1046,19 +1054,83 @@ public func FfiConverterTypeConfig_lower(_ value: Config) -> RustBuffer {
 }
 
 
+public struct DeployWallet {
+    public var privateKeyHex: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(privateKeyHex: String) {
+        self.privateKeyHex = privateKeyHex
+    }
+}
+
+#if compiler(>=6)
+extension DeployWallet: Sendable {}
+#endif
+
+
+extension DeployWallet: Equatable, Hashable {
+    public static func ==(lhs: DeployWallet, rhs: DeployWallet) -> Bool {
+        if lhs.privateKeyHex != rhs.privateKeyHex {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(privateKeyHex)
+    }
+}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDeployWallet: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DeployWallet {
+        return
+            try DeployWallet(
+                privateKeyHex: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DeployWallet, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.privateKeyHex, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDeployWallet_lift(_ buf: RustBuffer) throws -> DeployWallet {
+    return try FfiConverterTypeDeployWallet.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDeployWallet_lower(_ value: DeployWallet) -> RustBuffer {
+    return FfiConverterTypeDeployWallet.lower(value)
+}
+
+
 public struct PasskeyContracts {
     public var accountFactory: String
     public var passkey: String
     public var session: String
     public var accountPaymaster: String
+    public var recovery: String
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(accountFactory: String, passkey: String, session: String, accountPaymaster: String) {
+    public init(accountFactory: String, passkey: String, session: String, accountPaymaster: String, recovery: String) {
         self.accountFactory = accountFactory
         self.passkey = passkey
         self.session = session
         self.accountPaymaster = accountPaymaster
+        self.recovery = recovery
     }
 }
 
@@ -1081,6 +1153,9 @@ extension PasskeyContracts: Equatable, Hashable {
         if lhs.accountPaymaster != rhs.accountPaymaster {
             return false
         }
+        if lhs.recovery != rhs.recovery {
+            return false
+        }
         return true
     }
 
@@ -1089,6 +1164,7 @@ extension PasskeyContracts: Equatable, Hashable {
         hasher.combine(passkey)
         hasher.combine(session)
         hasher.combine(accountPaymaster)
+        hasher.combine(recovery)
     }
 }
 
@@ -1104,7 +1180,8 @@ public struct FfiConverterTypePasskeyContracts: FfiConverterRustBuffer {
                 accountFactory: FfiConverterString.read(from: &buf), 
                 passkey: FfiConverterString.read(from: &buf), 
                 session: FfiConverterString.read(from: &buf), 
-                accountPaymaster: FfiConverterString.read(from: &buf)
+                accountPaymaster: FfiConverterString.read(from: &buf), 
+                recovery: FfiConverterString.read(from: &buf)
         )
     }
 
@@ -1113,6 +1190,7 @@ public struct FfiConverterTypePasskeyContracts: FfiConverterRustBuffer {
         FfiConverterString.write(value.passkey, into: &buf)
         FfiConverterString.write(value.session, into: &buf)
         FfiConverterString.write(value.accountPaymaster, into: &buf)
+        FfiConverterString.write(value.recovery, into: &buf)
     }
 }
 
@@ -1474,6 +1552,8 @@ public enum ConfigError: Swift.Error {
     
     case InvalidContractAddress(String
     )
+    case InvalidDeployWallet(String
+    )
     case InvalidNodeUrl(String
     )
     case WriteError(String
@@ -1497,10 +1577,13 @@ public struct FfiConverterTypeConfigError: FfiConverterRustBuffer {
         case 1: return .InvalidContractAddress(
             try FfiConverterString.read(from: &buf)
             )
-        case 2: return .InvalidNodeUrl(
+        case 2: return .InvalidDeployWallet(
             try FfiConverterString.read(from: &buf)
             )
-        case 3: return .WriteError(
+        case 3: return .InvalidNodeUrl(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 4: return .WriteError(
             try FfiConverterString.read(from: &buf)
             )
 
@@ -1520,13 +1603,18 @@ public struct FfiConverterTypeConfigError: FfiConverterRustBuffer {
             FfiConverterString.write(v1, into: &buf)
             
         
-        case let .InvalidNodeUrl(v1):
+        case let .InvalidDeployWallet(v1):
             writeInt(&buf, Int32(2))
             FfiConverterString.write(v1, into: &buf)
             
         
-        case let .WriteError(v1):
+        case let .InvalidNodeUrl(v1):
             writeInt(&buf, Int32(3))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .WriteError(v1):
+            writeInt(&buf, Int32(4))
             FfiConverterString.write(v1, into: &buf)
             
         }
@@ -2246,11 +2334,11 @@ public func deployAccount(passkeyParameters: PasskeyParameters, config: Config)a
             errorHandler: FfiConverterTypeDeployAccountError_lift
         )
 }
-public func deployAccountWithUniqueId(passkeyParameters: PasskeyParameters, uniqueAccountId: String, secretAccountSalt: String, config: Config)async throws  -> Account  {
+public func deployAccountWithUniqueId(passkeyParameters: PasskeyParameters, uniqueAccountId: String, config: Config)async throws  -> Account  {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_ffi_fn_func_deploy_account_with_unique_id(FfiConverterTypePasskeyParameters_lower(passkeyParameters),FfiConverterString.lower(uniqueAccountId),FfiConverterString.lower(secretAccountSalt),FfiConverterTypeConfig_lower(config)
+                uniffi_ffi_fn_func_deploy_account_with_unique_id(FfiConverterTypePasskeyParameters_lower(passkeyParameters),FfiConverterString.lower(uniqueAccountId),FfiConverterTypeConfig_lower(config)
                 )
             },
             pollFunc: ffi_ffi_rust_future_poll_rust_buffer,
@@ -2294,11 +2382,11 @@ public func generateRandomChallenge() -> String  {
     )
 })
 }
-public func getAccountByUserId(uniqueAccountId: String, secretAccountSalt: String, config: Config)async throws  -> Account  {
+public func getAccountByUserId(uniqueAccountId: String, config: Config)async throws  -> Account  {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_ffi_fn_func_get_account_by_user_id(FfiConverterString.lower(uniqueAccountId),FfiConverterString.lower(secretAccountSalt),FfiConverterTypeConfig_lower(config)
+                uniffi_ffi_fn_func_get_account_by_user_id(FfiConverterString.lower(uniqueAccountId),FfiConverterTypeConfig_lower(config)
                 )
             },
             pollFunc: ffi_ffi_rust_future_poll_rust_buffer,
@@ -2383,7 +2471,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ffi_checksum_func_deploy_account() != 40553) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ffi_checksum_func_deploy_account_with_unique_id() != 62711) {
+    if (uniffi_ffi_checksum_func_deploy_account_with_unique_id() != 10501) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ffi_checksum_func_fetch_account() != 42263) {
@@ -2395,7 +2483,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ffi_checksum_func_generate_random_challenge() != 11583) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ffi_checksum_func_get_account_by_user_id() != 26909) {
+    if (uniffi_ffi_checksum_func_get_account_by_user_id() != 19460) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ffi_checksum_func_get_balance() != 46562) {
@@ -2438,3 +2526,4 @@ public func uniffiEnsureFfiInitialized() {
 // swiftlint:enable all
 extension Config: Codable {}
 extension PasskeyContracts: Codable {}
+extension DeployWallet: Codable {}

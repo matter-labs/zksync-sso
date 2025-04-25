@@ -9,6 +9,7 @@ pub struct PasskeyContracts {
     pub passkey: Address,
     pub session: Address,
     pub account_paymaster: Address,
+    pub recovery: Address,
 }
 
 impl PasskeyContracts {
@@ -17,8 +18,9 @@ impl PasskeyContracts {
         passkey: Address,
         session: Address,
         account_paymaster: Address,
+        recovery: Address,
     ) -> Self {
-        Self { account_factory, passkey, session, account_paymaster }
+        Self { account_factory, passkey, session, account_paymaster, recovery }
     }
 
     pub fn with_address_strs(
@@ -26,6 +28,7 @@ impl PasskeyContracts {
         passkey: &str,
         session: &str,
         account_paymaster: &str,
+        recovery: &str,
     ) -> Result<Self> {
         Ok(Self {
             account_factory: account_factory.parse().map_err(|e| {
@@ -40,6 +43,9 @@ impl PasskeyContracts {
             account_paymaster: account_paymaster.parse().map_err(|e| {
                 eyre::eyre!("Invalid account paymaster address: {}", e)
             })?,
+            recovery: recovery
+                .parse()
+                .map_err(|e| eyre::eyre!("Invalid recovery address: {}", e))?,
         })
     }
 }

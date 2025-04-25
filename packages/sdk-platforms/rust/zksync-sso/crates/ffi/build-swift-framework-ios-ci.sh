@@ -120,4 +120,5 @@ cat <<EOT >> "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 
 extension Config: Codable {}
 extension PasskeyContracts: Codable {}
+extension DeployWallet: Codable {}
 EOT

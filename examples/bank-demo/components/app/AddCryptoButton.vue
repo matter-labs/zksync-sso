@@ -94,7 +94,6 @@ const createAccountWithPasskey = async () => {
 
 const createCryptoAccount = async () => {
   if (!await createAccountWithPasskey()) {
-    console.log("showing non-passkey modal!");
     showModal.value = true;
   } else {
     navigateTo("/crypto-account");

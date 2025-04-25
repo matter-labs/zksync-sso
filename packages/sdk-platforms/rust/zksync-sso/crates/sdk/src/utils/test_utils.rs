@@ -1,29 +1,29 @@
 use crate::{
-    config::{contracts::PasskeyContracts, Config},
-    utils::contract_deployed::check_contracts_deployed,
+    config::{Config, deploy_wallet::DeployWallet},
+    utils::deployment_utils::deploy_contracts,
 };
 use ::alloy::{
     providers::{
-        fillers::{FillProvider, JoinFill, WalletFiller},
         Identity, RootProvider,
+        fillers::{FillProvider, JoinFill, WalletFiller},
     },
-    signers::{local::LocalSigner, Signer},
+    signers::{Signer, local::LocalSigner},
 };
 use alloy_zksync::{
     network::Zksync,
     node_bindings::{AnvilZKsync, AnvilZKsyncError, AnvilZKsyncInstance},
     provider::layers::anvil_zksync::AnvilZKsyncProvider,
-    provider::{zksync_provider, ProviderBuilderExt as _},
+    provider::{ProviderBuilderExt as _, zksync_provider},
     wallet::ZksyncWallet,
 };
-use rand::RngCore;
-use std::{env, fs, path::PathBuf, process::Command};
+use k256::{Secp256k1, elliptic_curve::SecretKey};
 use tokio::task;
 
 pub fn zksync_wallet_from_anvil_zksync(
     anvil_zksync: &AnvilZKsyncInstance,
-) -> eyre::Result<ZksyncWallet> {
-    let default_keys = anvil_zksync.keys().to_vec();
+) -> eyre::Result<(ZksyncWallet, SecretKey<Secp256k1>, Vec<SecretKey<Secp256k1>>)>
+{
+    let default_keys: Vec<SecretKey<Secp256k1>> = anvil_zksync.keys().to_vec();
     let (default_key, remaining_keys) =
         default_keys.split_first().ok_or(AnvilZKsyncError::NoKeysAvailable)?;
 
@@ -36,7 +36,7 @@ pub fn zksync_wallet_from_anvil_zksync(
         wallet.register_signer(signer)
     }
 
-    Ok(wallet)
+    Ok((wallet, default_key.clone(), remaining_keys.to_vec()))
 }
 
 pub async fn spawn_node() -> eyre::Result<(
@@ -46,14 +46,33 @@ pub async fn spawn_node() -> eyre::Result<(
         AnvilZKsyncProvider<RootProvider<Zksync>>,
         Zksync,
     >,
+    DeployWallet,
     url::Url,
 )> {
+    use alloy_zksync::provider::layers::anvil_zksync::AnvilZKsyncLayer;
     let anvil_zksync = AnvilZKsync::new().try_spawn()?;
     let node_url = anvil_zksync.endpoint_url();
-    let f = |anvil_zksync| anvil_zksync;
-    let provider =
-        zksync_provider().try_on_anvil_zksync_with_wallet_and_config(f)?;
-    Ok((anvil_zksync, provider, node_url))
+
+    let (provider, private_key_hex) = {
+        let f = |anvil_zksync: AnvilZKsync| anvil_zksync;
+        let anvil_zksync_layer = AnvilZKsyncLayer::from(f(Default::default()));
+
+        let (wallet, default_key, _) =
+            zksync_wallet_from_anvil_zksync(&anvil_zksync)?;
+
+        let provider = zksync_provider()
+            .wallet(wallet)
+            .layer(anvil_zksync_layer)
+            .on_http(node_url.clone());
+
+        let private_key_hex = hex::encode(default_key.to_bytes());
+
+        (provider, private_key_hex)
+    };
+
+    let deploy_wallet = DeployWallet::try_from(private_key_hex)?;
+
+    Ok((anvil_zksync, provider, deploy_wallet, node_url))
 }
 
 pub async fn spawn_node_and_deploy_contracts() -> eyre::Result<(
@@ -65,158 +84,14 @@ pub async fn spawn_node_and_deploy_contracts() -> eyre::Result<(
         Zksync,
     >,
 )> {
-    let (anvil_zksync, provider, node_url) = spawn_node().await?;
+    let (anvil_zksync, provider, deploy_wallet, node_url) =
+        spawn_node().await?;
+
     let contracts = deploy_contracts(node_url.clone()).await?;
-    let config = Config { contracts, node_url };
+
+    let config = Config { contracts, node_url, deploy_wallet };
+
     Ok((anvil_zksync, config, provider))
-}
-
-fn extract_contract_address<'a>(
-    lines: &'a [&'a str],
-    contract_name: &str,
-) -> eyre::Result<&'a str> {
-    lines
-        .iter()
-        .find(|line| {
-            line.contains(&format!(
-                "{} proxy contract deployed at:",
-                contract_name
-            )) || line
-                .contains(&format!("{} contract deployed at:", contract_name))
-        })
-        .and_then(|line| line.split(": ").nth(1))
-        .map(|addr| addr.trim())
-        .ok_or_else(|| eyre::eyre!("Failed to find {} address", contract_name))
-}
-
-pub async fn deploy_contracts(
-    node_url: url::Url,
-) -> eyre::Result<PasskeyContracts> {
-    println!("Node URL: {}", node_url);
-
-    let manifest_dir = env::var("CARGO_MANIFEST_DIR")?;
-    println!("Manifest directory: {:?}", manifest_dir);
-
-    let contracts_dir = PathBuf::from(&manifest_dir)
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("packages/contracts");
-    println!("Contracts directory: {:?}", contracts_dir);
-    println!("Contracts directory exists: {}", contracts_dir.exists());
-    println!(
-        "Contracts directory is absolute: {}",
-        contracts_dir.is_absolute()
-    );
-
-    let mut random_bytes = [0u8; 16];
-    rand::rng().fill_bytes(&mut random_bytes);
-    let random_suffix = hex::encode(random_bytes);
-    let config_filename = format!("hardhat.config.{}.ts", random_suffix);
-    let config_path = contracts_dir.join(&config_filename);
-    println!("Config path: {:?}", config_path);
-
-    let config_content = format!(
-        r#"import "@typechain/hardhat";
-import "@matterlabs/hardhat-zksync";
-import "@nomicfoundation/hardhat-chai-matchers";
-import "./scripts/deploy";
-import "./scripts/upgrade";
-
-import {{ HardhatUserConfig }} from "hardhat/config";
-
-const config: HardhatUserConfig = {{
-  paths: {{
-    sources: "src",
-    deployPaths: "scripts",
-  }},
-  defaultNetwork: "inMemoryNode",
-  networks: {{
-    inMemoryNode: {{
-      url: "{}",
-      ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
-      zksync: true,
-    }},
-  }},
-  zksolc: {{
-    version: "1.5.9",
-    settings: {{
-      enableEraVMExtensions: true,
-    }},
-  }},
-  solidity: {{
-    version: "0.8.28",
-    settings: {{
-      evmVersion: "cancun",
-    }}
-  }},
-}};
-
-export default config;"#,
-        node_url
-    );
-
-    println!("Writing config to {:?}", config_path);
-    fs::write(&config_path, &config_content)?;
-    println!("Config file exists: {}", config_path.exists());
-    println!("Config file contents: {}", fs::read_to_string(&config_path)?);
-
-    println!("Running pnpm deploy from {:?}", contracts_dir);
-    let output = Command::new("pnpm")
-        .current_dir(&contracts_dir)
-        .arg("run")
-        .arg("deploy")
-        .arg("--network")
-        .arg("inMemoryNode")
-        .arg("--config")
-        .arg(&config_filename)
-        .output()?;
-
-    let cleanup_result = fs::remove_file(&config_path);
-    println!("Config file cleanup result: {:?}", cleanup_result);
-    println!("Config file still exists: {}", config_path.exists());
-
-    println!("Command output: {:?}", output);
-    println!("Command stdout: {}", String::from_utf8_lossy(&output.stdout));
-    println!("Command stderr: {}", String::from_utf8_lossy(&output.stderr));
-
-    if !output.status.success() {
-        return Err(eyre::eyre!(
-            "Failed to deploy contracts: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
-
-    let output_str = String::from_utf8_lossy(&output.stdout);
-    let lines: Vec<&str> = output_str.lines().collect();
-
-    let account_factory = extract_contract_address(&lines, "AAFactory")?;
-    let passkey = extract_contract_address(&lines, "WebAuthValidator")?;
-    let session = extract_contract_address(&lines, "SessionKeyValidator")?;
-    let account_paymaster =
-        extract_contract_address(&lines, "ExampleAuthServerPaymaster")?;
-
-    let contracts = PasskeyContracts::with_address_strs(
-        account_factory,
-        passkey,
-        session,
-        account_paymaster,
-    )?;
-
-    check_contracts_deployed(&node_url, &contracts).await?;
-
-    println!("Contracts deployed: {:?}", contracts);
-
-    Ok(contracts)
 }
 
 #[tokio::test]

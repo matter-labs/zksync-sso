@@ -26,6 +26,9 @@ export function createZksyncPasskeyClient<
 
   const account = toPasskeyAccount({
     address: parameters.address,
+    chain: parameters.chain,
+    contracts: parameters.contracts,
+    transport: parameters.transport,
     sign: async ({ hash }) => {
       const passkeySignature = await requestPasskeyAuthentication({
         challenge: hash,
@@ -35,7 +38,8 @@ export function createZksyncPasskeyClient<
       return passkeyHashSignatureResponseFormat(
         passkeySignature.passkeyAuthenticationResponse.id,
         passkeySignature.passkeyAuthenticationResponse.response,
-        parameters.contracts);
+        parameters.contracts,
+      );
     },
   });
   const client = createClient<transport, chain, Account, rpcSchema>({
@@ -60,6 +64,7 @@ export function createZksyncPasskeyClient<
 export type PasskeyRequiredContracts = {
   session: Address; // Session, spend limit, etc.
   passkey: Address; // Validator for passkey signature
+  recovery: Address; // Validator for account recovery
   accountFactory?: Address; // For account creation
 };
 type ZksyncSsoPasskeyData = {

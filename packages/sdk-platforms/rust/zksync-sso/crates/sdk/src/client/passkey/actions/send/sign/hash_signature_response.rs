@@ -57,12 +57,19 @@ fn decode_signature_response(
         assertion.signature
     );
 
+    println!(
+        "XDB - api::account::sign::decode_signature_response assertion.credential_id: {:?}",
+        assertion.credential_id
+    );
+
+    let credential_id = base64_url::encode(&assertion.credential_id);
     let client_data_json = base64_url::encode(&assertion.raw_client_data_json);
     let authenticator_data =
         base64_url::encode(&assertion.raw_authenticator_data);
     let signature = base64_url::encode(&assertion.signature);
 
     let response = AuthenticatorAssertionResponseJSON {
+        credential_id,
         client_data_json,
         authenticator_data,
         signature,

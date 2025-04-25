@@ -53,6 +53,7 @@ public-suffix = { git = "https://github.com/jackpooleyml/passkey-rs", branch = "
 # URL handling
 url = { workspace = true, features = ["serde"] }
 
+# CBOR
 serde_cbor = "0.11"
 ciborium = { version = "^0.2.1", default-features = false }
 ciborium-io = { version = "^0.2.0", features = ["alloc"] }
