@@ -38,8 +38,8 @@ const props = defineProps({
 
 const { isReady, error } = props.src
   ? useImage({
-    src: props.src,
-  })
+      src: props.src,
+    })
   : { isReady: computed(() => true), error: computed(() => true) };
 </script>
 
