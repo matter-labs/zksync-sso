@@ -1,0 +1,7 @@
+.git
+node_modules
+**/node_modules
+**/*.zkey
+**/*.ptau
+packages/circuits/target
+.nx
