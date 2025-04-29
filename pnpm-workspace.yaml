@@ -1,11 +1,11 @@
 packages:
   - packages/*
   - examples/*
-  - '!**/test/**'
+  - "!**/test/**"
 
 onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@swc/core'
+  - "@parcel/watcher"
+  - "@swc/core"
   - bufferutil
   - cpu-features
   - esbuild
