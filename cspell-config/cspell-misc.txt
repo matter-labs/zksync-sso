@@ -1,39 +1,36 @@
+// examples/bank-demo
+// examples/demo-app
+// examples/nft-quest
+// paymasters
+aave
+Aave
 alice
+cancun
 clsx
 COSEALG
 COSEKTY
 ctap
+demi
+dockerized
+ethereum
+EVMLA
+foundryup
+fren
+Fren
+jdoe
 lintstagedrc
+nfts
 nuxt
 Nuxt
 nuxtjs
-testid
-vueuse
-dockerized
-ethereum
-foundryup
-
-// examples/bank-demo
-ctap
-Aave
-aave
-jdoe
-wght
-topup
 OBAGNSGT
 OXBB
-Usdc
+testid
+topup
+unrs
 usdc
-
-// examples/nft-quest
-Fren
-fren
-nfts
-
-// examples/demo-app
+Usdc
+vueuse
+wght
 zkout
-cancun
-EVMLA
-
-// paymasters
 zyfi
