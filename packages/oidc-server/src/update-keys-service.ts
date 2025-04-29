@@ -5,7 +5,7 @@ import { GoogleFetcher } from "./fetchers/google.js";
 
 const main = async () => {
   const fetcher = new GoogleFetcher();
-  const contractUpdater = new ContractUpdater(env.CONTRACT_ADDRESS, env.RPC_URL, env.ADMIN_PRIVATE_KEY, env.NETWORK);
+  const contractUpdater = new ContractUpdater(env.KEY_REGISTRY_ADDRESS, env.RPC_URL, env.ADMIN_PRIVATE_KEY, env.NETWORK);
 
   try {
     const keys = await fetcher.fetchKeys();

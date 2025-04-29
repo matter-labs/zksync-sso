@@ -13,7 +13,7 @@ export const env = createEnv({
       z.number(),
     ),
     ADMIN_PRIVATE_KEY: hexType,
-    CONTRACT_ADDRESS: hexType,
+    KEY_REGISTRY_ADDRESS: hexType,
     NETWORK: validNetworks,
     RPC_URL: z.string().url(),
   },
