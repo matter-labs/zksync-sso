@@ -9,16 +9,21 @@
     <span v-if="!isLoading">Add Crypto account</span>
     <CommonSpinner v-else class="h-6"/>
   </ZkButton>
+  <div>
+    <NoPasskeyDialog v-if="showModal" />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { createWalletClient, http, type Address, type Chain } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import NoPasskeyDialog from "~/components/app/NoPasskeyDialog.vue";
+import type { Hex } from "viem";
 import { deployAccount } from "zksync-sso/client";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
+import { getDeployerClient } from "../common/CryptoDeployer";
 
 const { appMeta, userDisplay, userId, contracts, deployerKey } = useAppMeta();
 const isLoading = ref(false);
+const showModal = ref(false);
 
 // Convert Uin8Array to string
 const u8ToString = (input: Uint8Array): string => {
@@ -32,40 +37,45 @@ const onClickAddCrypto = async () => {
   isLoading.value = false;
 };
 
-const createCryptoAccount = async () => {
-  let credentialPublicKey: Uint8Array;
-
+const getPublicPasskey = async () => {
   // Create new Passkey
-  if (!appMeta.value || !appMeta.value.credentialPublicKey) {
+  if (!appMeta.value || !appMeta.value.credentialPublicKey || !appMeta.value.credentialId) {
     try {
-      const { credentialPublicKey: newCredentialPublicKey } = await registerNewPasskey({
+      const newPasskey = await registerNewPasskey({
         userDisplayName: userDisplay, // Display name of the user
         userName: userId, // User's unique ID
       });
       appMeta.value = {
         ...appMeta.value,
-        credentialPublicKey: u8ToString(newCredentialPublicKey),
+        credentialPublicKey: u8ToString(newPasskey.credentialPublicKey),
+        credentialId: newPasskey.credentialId,
       };
-      credentialPublicKey = newCredentialPublicKey;
+      return newPasskey;
     } catch (error) {
       console.error("Passkey registration failed:", error);
-      return;
+      return false;
     }
   } else {
-    credentialPublicKey = new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey));
+    return { 
+      credentialPublicKey: new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey)),
+      credentialId: appMeta.value.credentialId,
+    };
+  }
+};
+
+const createAccountWithPasskey = async () => {
+  const publicPassKey = await getPublicPasskey();
+  if (!publicPassKey) {
+    return false;
   }
 
   // Configure deployer account to pay for Account creation
-  const config = useRuntimeConfig();
-  const deployerClient = createWalletClient({
-    account: privateKeyToAccount(deployerKey as Address),
-    chain: config.public.network as Chain,
-    transport: http()
-  });
+  const deployerClient = await getDeployerClient(deployerKey as Hex);
 
   try {
     const { address, transactionReceipt } = await deployAccount(deployerClient, {
-      credentialPublicKey,
+      credentialPublicKey: publicPassKey.credentialPublicKey,
+      credentialId: publicPassKey.credentialId,
       contracts,
     });
 
@@ -75,11 +85,18 @@ const createCryptoAccount = async () => {
     };
     console.log(`Successfully created account: ${address}`);
     console.log(`Transaction receipt: ${transactionReceipt.transactionHash}`);
+    return true;
   } catch (error) {
     console.error(error);
-    return;
+    return false;
   }
+};
 
-  navigateTo("/crypto-account");
+const createCryptoAccount = async () => {
+  if (!await createAccountWithPasskey()) {
+    showModal.value = true;
+  } else {
+    navigateTo("/crypto-account");
+  };
 };
 </script>

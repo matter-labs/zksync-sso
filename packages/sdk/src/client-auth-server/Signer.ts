@@ -279,7 +279,7 @@ export class Signer implements SignerInterface {
         /* eslint-disable @typescript-eslint/no-unused-vars */
         const { chainId: _, ...transaction } = await getTransactionWithPaymasterData(
           this.chain.id,
-          params.from,
+          params.from!,
           params,
           this.paymasterHandler,
         );

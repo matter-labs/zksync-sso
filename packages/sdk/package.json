@@ -79,6 +79,16 @@
       "import": "./dist/_esm/client/passkey/index.js",
       "require": "./dist/_cjs/client/passkey/index.js"
     },
+    "./client/recovery": {
+      "types": "./dist/_types/client/recovery/index.d.ts",
+      "import": "./dist/_esm/client/recovery/index.js",
+      "require": "./dist/_cjs/client/recovery/index.js"
+    },
+    "./client/ecdsa": {
+      "types": "./dist/_types/client/ecdsa/index.d.ts",
+      "import": "./dist/_esm/client/ecdsa/index.js",
+      "require": "./dist/_cjs/client/ecdsa/index.js"
+    },
     "./client/session": {
       "types": "./dist/_types/client/session/index.d.ts",
       "import": "./dist/_esm/client/session/index.js",

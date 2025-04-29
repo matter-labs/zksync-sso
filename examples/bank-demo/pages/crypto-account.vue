@@ -244,9 +244,11 @@
 </template>
 
 <script setup lang="ts">
-import { createPublicClient, formatEther, http, parseEther, TransactionExecutionError, type Address, type Chain } from "viem";
+import { createPublicClient, createWalletClient, formatEther, http, parseEther, TransactionExecutionError, type Address, type Chain } from "viem";
 import { createZksyncPasskeyClient } from "zksync-sso/client/passkey";
+import { createZksyncEcdsaClient } from "zksync-sso/client/ecdsa";
 import OnRampCrypto from "~/components/app/OnRampCrypto.vue";
+import { privateKeyToAccount } from "viem/accounts";
 
 const { appMeta, userDisplay, userId, contracts, aaveAddress, explorerUrl } = useAppMeta();
 const history = useHistory();
@@ -302,6 +304,7 @@ const onClickSupplyEth = async () => {
       if (error.details.includes("function_selector = 0xe7931438")) {
         errorMessage.value = "Insufficient Funds";
       } else {
+        console.warn("TransactionExecutionError", error);
         errorMessage.value = error.details;
       }
     } else {
@@ -313,20 +316,43 @@ const onClickSupplyEth = async () => {
   }
 };
 
+const createClient = async () => {
+  if (appMeta.value.cryptoAccountAddress && appMeta.value.credentialPublicKey) {
+  return createZksyncPasskeyClient({
+      address: appMeta.value.cryptoAccountAddress as Address,
+      credentialPublicKey: new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey)),
+      userDisplayName: userDisplay,
+      userName: userId,
+      contracts,
+      chain: config.public.network as Chain,
+      transport: http(),
+    });
+  } else if (appMeta.value.cryptoAccountAddress && appMeta.value.privateKey) {
+    const eoaClient = createWalletClient({
+      account: privateKeyToAccount(appMeta.value.privateKey as Address),
+      chain: config.public.network as Chain,
+      transport: http(),
+    });
+    const ecdsaClient = await createZksyncEcdsaClient({
+        address: appMeta.value.cryptoAccountAddress as Address,
+        owner: eoaClient.account,
+        contracts,
+        chain: config.public.network as Chain,
+        transport: http(),
+      });
+    return ecdsaClient;
+  }
+};
+
 const supplyEthToAave = async () => {
   // Send some ETH to the AAVE address
-  const passkeyClient = createZksyncPasskeyClient({
-    address: appMeta.value.cryptoAccountAddress! as Address,
-    credentialPublicKey: new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey!)),
-    userDisplayName: userDisplay,
-    userName: userId,
-    contracts,
-    chain: config.public.network as Chain,
-    transport: http(),
-  });
-
+  const client = await createClient();
+  if (!client) {
+    throw new Error("Client not created");
+  }
+  
   console.log(`Sending ${stakeAmount.value} ETH to AAVE Address`, aaveAddress);
-  const transactionReceipt = await passkeyClient.sendTransaction({
+  const transactionReceipt = await client.sendTransaction({
     to: aaveAddress as Address,
     value: parseEther(stakeAmount.value.toString()),
   });

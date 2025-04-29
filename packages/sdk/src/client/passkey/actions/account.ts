@@ -22,6 +22,7 @@ export type DeployAccountArgs = {
     accountFactory: Address;
     passkey: Address;
     session: Address;
+    recovery: Address;
   };
   initialSession?: SessionConfig;
   onTransactionSent?: (hash: Hash) => void;
@@ -37,6 +38,7 @@ export type FetchAccountArgs = {
     accountFactory: Address;
     passkey: Address;
     session: Address;
+    recovery: Address;
   };
 };
 export type FetchAccountReturnType = {
@@ -81,6 +83,11 @@ export const deployAccount = async <
     parameters: args.initialSession ? encodeSession(args.initialSession) : "0x",
   });
 
+  const encodedGuardianRecoveryModuleData = encodeModuleData({
+    address: args.contracts.recovery,
+    parameters: "0x",
+  });
+
   let deployProxyArgs = {
     account: client.account!,
     chain: client.chain!,
@@ -89,7 +96,7 @@ export const deployAccount = async <
     functionName: "deployProxySsoAccount",
     args: [
       keccak256(toHex(accountId)),
-      [encodedPasskeyModuleData, encodedSessionKeyModuleData],
+      [encodedPasskeyModuleData, encodedSessionKeyModuleData, encodedGuardianRecoveryModuleData],
       [],
     ],
   } as any;
@@ -149,7 +156,6 @@ export const fetchAccount = async <
     }
   }
 
-  if (!args.contracts.accountFactory) throw new Error("Account factory address is not set");
   if (!args.contracts.passkey) throw new Error("Passkey module address is not set");
 
   let username: string | undefined = args.uniqueAccountId;

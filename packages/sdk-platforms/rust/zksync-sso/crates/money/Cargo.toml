@@ -1,0 +1,20 @@
+[package]
+name = "money"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+# Alloy
+alloy = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# i18n
+icu = { workspace = true }
+icu_decimal = { workspace = true }
+fixed_decimal = { workspace = true }
+fixed = { workspace = true }

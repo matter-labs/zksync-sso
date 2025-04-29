@@ -1,11 +1,11 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 5.9
 import PackageDescription
 
 let package = Package(
     name: "ZKsyncSSO",
     platforms: [
-        .iOS(.v18),
-        .macOS(.v15),
+        .iOS(.v17),
+        .macOS(.v14),
     ],
     products: [
         .library(
@@ -15,13 +15,16 @@ let package = Package(
     targets: [
         .target(
             name: "ZKsyncSSO",
-            dependencies: ["ZKsyncSSOFFI"]),
+            dependencies: ["ZKsyncSSOFFI"],
+            resources: [
+                .copy("Config/config.json")
+            ]),
         .target(
             name: "ZKsyncSSOFFI",
-            dependencies: ["ffiFFI"]),
+            dependencies: ["ZKsyncSSOCore"]),
         .binaryTarget(
-            name: "ffiFFI",
-            path: "../../rust/zksync-sso/crates/ffi/out/ffiFFI.xcframework"),
+            name: "ZKsyncSSOCore",
+            path: "../../rust/zksync-sso/crates/ffi/out/ZKsyncSSOCore.xcframework"),
         .testTarget(
             name: "ZKsyncSSOTests",
             dependencies: ["ZKsyncSSO"]),
