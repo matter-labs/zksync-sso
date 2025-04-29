@@ -4,4 +4,16 @@ packages:
   - '!**/test/**'
 
 onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@swc/core'
+  - bufferutil
+  - cpu-features
+  - esbuild
+  - keccak
   - nx
+  - protobufjs
+  - secp256k1
+  - ssh2
+  - unrs-resolver
+  - utf-8-validate
+  - vue-demi
