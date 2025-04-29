@@ -73,7 +73,7 @@ is kept in browser local storage tied to the auth server domain.
 
 ### Wallet Connect
 
-Wallet Connect has been integrated to facilitate connections with dApps
-that do not utilize the ZKsync SSO SDK. This implementation currently
-exists as a Proof of Concept (PoC) and should be regarded as experimental.
-As a PoC, it is subject to ongoing modifications and may exhibit instability.
+Wallet Connect has been integrated to facilitate connections with dApps that do
+not utilize the ZKsync SSO SDK. This implementation currently exists as a Proof
+of Concept (PoC) and should be regarded as experimental. As a PoC, it is subject
+to ongoing modifications and may exhibit instability.
