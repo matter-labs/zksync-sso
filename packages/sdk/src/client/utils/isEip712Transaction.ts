@@ -11,7 +11,7 @@ export function isEIP712Transaction(
     || ("paymasterInput" in transaction && transaction.paymasterInput)
     || ("gasPerPubdata" in transaction
       && typeof transaction.gasPerPubdata === "bigint")
-      || ("factoryDeps" in transaction && transaction.factoryDeps)
+    || ("factoryDeps" in transaction && transaction.factoryDeps)
   )
     return true;
   return false;
