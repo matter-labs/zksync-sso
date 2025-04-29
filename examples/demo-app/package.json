@@ -23,7 +23,7 @@
     "zksync-sso": "workspace:*"
   },
   "devDependencies": {
-    "@nuxt/eslint": "^0.5.7",
+    "@nuxt/eslint": "^1.3.0",
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@playwright/test": "^1.47.2",
     "@types/node": "^22.7.5"
