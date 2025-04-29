@@ -75,5 +75,6 @@
       "projectChangelogs": true
     }
   },
-  "extends": "nx/presets/npm.json"
+  "extends": "nx/presets/npm.json",
+  "nxCloudId": "68110ca73864437f59077298"
 }
