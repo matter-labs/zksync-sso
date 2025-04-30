@@ -2,9 +2,9 @@ import { createEnv } from "@t3-oss/env-core";
 import { config } from "dotenv";
 import { z } from "zod";
 
-config();
+import { hexType, validNetworks } from "./types.js";
 
-const validNetworks = ["mainnet", "sepolia", "localhost"] as const;
+config();
 
 export const env = createEnv({
   server: {
@@ -12,10 +12,10 @@ export const env = createEnv({
       (val) => (val === undefined ? 60 * 1000 : Number(val)),
       z.number(),
     ),
-    ADMIN_PRIVATE_KEY: z.string(),
-    CONTRACT_ADDRESS: z.string(),
-    NETWORK: z.enum(validNetworks).optional(),
-    RPC_URL: z.string().url().optional(),
+    ADMIN_PRIVATE_KEY: hexType,
+    KEY_REGISTRY_ADDRESS: hexType,
+    NETWORK: validNetworks,
+    RPC_URL: z.string().url(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
