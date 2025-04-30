@@ -24,8 +24,8 @@
     "test": "vitest"
   },
   "peerDependencies": {
-    "@simplewebauthn/browser": "10.x",
-    "@simplewebauthn/server": "10.x",
+    "@simplewebauthn/browser": "13.x",
+    "@simplewebauthn/server": "13.x",
     "@wagmi/core": "2.x"
   },
   "peerDependenciesMeta": {
@@ -34,7 +34,6 @@
     }
   },
   "devDependencies": {
-    "@simplewebauthn/types": "^10.0.0",
     "@types/ms": "^0.7.34",
     "@types/node": "^22.1.0",
     "eventemitter3": "^5.0.1",
