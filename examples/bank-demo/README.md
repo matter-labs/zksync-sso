@@ -5,6 +5,12 @@ with a Passkey, and stake some ETH with a fully embedded wallet.
 
 ## Running the demo locally
 
+From the packages/contracts directory, deploy the contracts to a local node:
+
+```bash
+pnpm run deploy --file ../../examples/bank-demo/local-node.json
+```
+
 Run the following command from the root of the monorepo:
 
 ```bash
@@ -26,10 +32,12 @@ Account session and data is stored via the browser Local storage.
 
 ## Deploying the Bank demo to Firebase
 
-The Bank demo app uses Demo Node (`https://node.nvillanueva.com`).
+The Bank demo app uses Demo Node (`https://node.nvillanueva.com`). Add your
+deployer private key to the .env file (packages/contracts/.env)
 
 1. Deploy the latest contracts with
-   `pnpm nx deploy contracts -- --network demoNode`.
+
+   `pnpm --dir packages/contracts run deploy --network demoNode`.
 
 2. Update `nuxt.config.ts` contract addresses under `$production`.
 

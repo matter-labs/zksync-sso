@@ -36,7 +36,7 @@ export const proposeGuardian = async <
 
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
-    functionName: "proposeValidationKey",
+    functionName: "proposeGuardian",
     args: [keccak256(toHex(origin)), args.newGuardian],
   });
 
@@ -92,7 +92,7 @@ export const confirmGuardian = async <
   }
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
-    functionName: "addValidationKey",
+    functionName: "addGuardian",
     args: [keccak256(toHex(origin)), args.accountToGuard],
   });
 
@@ -148,7 +148,7 @@ export const removeGuardian = async <
   }
   const callData = encodeFunctionData({
     abi: GuardianRecoveryModuleAbi,
-    functionName: "removeValidationKey",
+    functionName: "removeGuardian",
     args: [keccak256(toHex(origin)), args.guardian],
   });
 
