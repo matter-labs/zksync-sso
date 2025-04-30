@@ -33,15 +33,6 @@ importers:
       '@nx/vite':
         specifier: 19.8.0
         version: 19.8.0(@babel/traverse@7.25.9)(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(nx@19.8.6(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))(typescript@5.6.2)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))(vitest@2.1.8(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
-      '@simplewebauthn/browser':
-        specifier: ^10.0.0
-        version: 10.0.0
-      '@simplewebauthn/server':
-        specifier: ^10.0.1
-        version: 10.0.1
-      '@simplewebauthn/types':
-        specifier: ^10.0.0
-        version: 10.0.0
       '@stylistic/eslint-plugin':
         specifier: 2.8.0
         version: 2.8.0(eslint@9.11.1(jiti@2.4.2))(typescript@5.6.2)
@@ -115,14 +106,11 @@ importers:
         specifier: ^0.5.5
         version: 0.5.5(magicast@0.3.5)(rollup@4.30.1)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
       '@simplewebauthn/browser':
-        specifier: ^10.0.0
-        version: 10.0.0
+        specifier: ^13.1.0
+        version: 13.1.0
       '@simplewebauthn/server':
-        specifier: ^10.0.1
-        version: 10.0.1
-      '@simplewebauthn/types':
-        specifier: ^10.0.0
-        version: 10.0.0
+        specifier: ^13.1.1
+        version: 13.1.1
       '@vueuse/core':
         specifier: ^11.0.0
         version: 11.1.0(vue@3.5.13(typescript@5.6.2))
@@ -149,7 +137,7 @@ importers:
         version: 3.5.13(typescript@5.6.2)
       vue-router:
         specifier: latest
-        version: 4.5.0(vue@3.5.13(typescript@5.6.2))
+        version: 4.5.1(vue@3.5.13(typescript@5.6.2))
       zksync-sso:
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -161,19 +149,16 @@ importers:
         version: 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@5.1.0)
       '@nuxtjs/google-fonts':
         specifier: ^3.2.0
-        version: 3.2.0(magicast@0.3.5)(rollup@4.30.1)
+        version: 3.2.0(magicast@0.3.5)(rollup@4.24.0)
       '@pinia/nuxt':
         specifier: ^0.5.5
-        version: 0.5.5(magicast@0.3.5)(rollup@4.30.1)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
+        version: 0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
       '@simplewebauthn/browser':
-        specifier: ^10.0.0
-        version: 10.0.0
+        specifier: ^13.1.0
+        version: 13.1.0
       '@simplewebauthn/server':
-        specifier: ^10.0.1
-        version: 10.0.1
-      '@simplewebauthn/types':
-        specifier: ^10.0.0
-        version: 10.0.0
+        specifier: ^13.1.1
+        version: 13.1.1
       '@wagmi/core':
         specifier: ^2.13.3
         version: 2.16.7(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.4.0(react@18.3.1))(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))
@@ -185,7 +170,7 @@ importers:
         version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       nuxt:
         specifier: ^3.12.3
-        version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.4.2))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.30.1)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+        version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.4.2))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
       viem:
         specifier: 2.21.14
         version: 2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
@@ -204,10 +189,10 @@ importers:
     devDependencies:
       '@nuxt/eslint':
         specifier: ^0.5.7
-        version: 0.5.7(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.4.2))(magicast@0.3.5)(rollup@4.30.1)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+        version: 0.5.7(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.4.2))(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
       '@nuxtjs/tailwindcss':
         specifier: ^6.12.0
-        version: 6.12.2(magicast@0.3.5)(rollup@4.30.1)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
+        version: 6.12.2(magicast@0.3.5)(rollup@4.24.0)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
       '@playwright/test':
         specifier: ^1.47.2
         version: 1.48.1
@@ -303,7 +288,7 @@ importers:
         version: 1.1.0(vue@3.5.13(typescript@5.6.2))
       vue-router:
         specifier: latest
-        version: 4.5.0(vue@3.5.13(typescript@5.6.2))
+        version: 4.5.1(vue@3.5.13(typescript@5.6.2))
       zksync-ethers:
         specifier: ^6.15.0
         version: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
@@ -538,14 +523,11 @@ importers:
         specifier: 2.3.13
         version: 2.3.13
       '@simplewebauthn/browser':
-        specifier: ^10.0.0
-        version: 10.0.0
+        specifier: ^13.1.0
+        version: 13.1.0
       '@simplewebauthn/server':
-        specifier: ^10.0.1
-        version: 10.0.1
-      '@simplewebauthn/types':
-        specifier: ^10.0.0
-        version: 10.0.0
+        specifier: ^13.1.1
+        version: 13.1.1
       '@stylistic/eslint-plugin':
         specifier: 2.8.0
         version: 2.8.0(eslint@9.11.1(jiti@2.4.2))(typescript@5.6.2)
@@ -656,7 +638,7 @@ importers:
         version: 6.15.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))
       zksync-sso:
         specifier: 0.0.0-beta.2
-        version: 0.0.0-beta.2(@simplewebauthn/browser@10.0.0)(@simplewebauthn/server@10.0.1)(@wagmi/core@2.16.7(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.4.0(react@18.3.1))(viem@2.23.12(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)))(typescript@5.6.2)(zod@3.24.1)
+        version: 0.0.0-beta.2(@simplewebauthn/browser@13.1.0)(@simplewebauthn/server@13.1.1)(@wagmi/core@2.16.7(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.4.0(react@18.3.1))(viem@2.23.12(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)))(typescript@5.6.2)(zod@3.24.1)
 
   packages/sdk:
     dependencies:
@@ -667,11 +649,11 @@ importers:
         specifier: ^2.3.13
         version: 2.3.13
       '@simplewebauthn/browser':
-        specifier: 10.x
-        version: 10.0.0
+        specifier: 13.x
+        version: 13.1.0
       '@simplewebauthn/server':
-        specifier: 10.x
-        version: 10.0.1
+        specifier: 13.x
+        version: 13.1.1
       '@wagmi/core':
         specifier: 2.x
         version: 2.14.1(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.4.0(react@18.3.1))(viem@2.21.14(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))
@@ -688,9 +670,6 @@ importers:
         specifier: ^2.1.3
         version: 2.1.3
     devDependencies:
-      '@simplewebauthn/types':
-        specifier: ^10.0.0
-        version: 10.0.0
       '@types/ms':
         specifier: ^0.7.34
         version: 0.7.34
@@ -4054,15 +4033,12 @@ packages:
     engines: {node: '>= 8.0.0'}
     hasBin: true
 
-  '@simplewebauthn/browser@10.0.0':
-    resolution: {integrity: sha512-hG0JMZD+LiLUbpQcAjS4d+t4gbprE/dLYop/CkE01ugU/9sKXflxV5s0DRjdz3uNMFecatRfb4ZLG3XvF8m5zg==}
+  '@simplewebauthn/browser@13.1.0':
+    resolution: {integrity: sha512-WuHZ/PYvyPJ9nxSzgHtOEjogBhwJfC8xzYkPC+rR/+8chl/ft4ngjiK8kSU5HtRJfczupyOh33b25TjYbvwAcg==}
 
-  '@simplewebauthn/server@10.0.1':
-    resolution: {integrity: sha512-djNWcRn+H+6zvihBFJSpG3fzb0NQS9c/Mw5dYOtZ9H+oDw8qn9Htqxt4cpqRvSOAfwqP7rOvE9rwqVaoGGc3hg==}
+  '@simplewebauthn/server@13.1.1':
+    resolution: {integrity: sha512-1hsLpRHfSuMB9ee2aAdh0Htza/X3f4djhYISrggqGe3xopNjOcePiSDkDDoPzDYaaMCrbqGP1H2TYU7bgL9PmA==}
     engines: {node: '>=20.0.0'}
-
-  '@simplewebauthn/types@10.0.0':
-    resolution: {integrity: sha512-SFXke7xkgPRowY2E+8djKbdEznTVnD5R6GO7GPTthpHrokLvNKw8C3lFZypTxLI7KkCfGPfhtqB3d7OVGGa9jQ==}
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -4946,9 +4922,11 @@ packages:
 
   '@walletconnect/sign-client@2.16.1':
     resolution: {integrity: sha512-s2Tx2n2duxt+sHtuWXrN9yZVaHaYqcEcjwlTD+55/vs5NUPlISf+fFmZLwSeX1kUlrSBrAuxPUcqQuRTKcjLOA==}
+    deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
 
   '@walletconnect/sign-client@2.17.0':
     resolution: {integrity: sha512-sErYwvSSHQolNXni47L3Bm10ptJc1s1YoJvJd34s5E9h9+d3rj7PrhbiW9X82deN+Dm5oA8X9tC4xty1yIBrVg==}
+    deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
 
   '@walletconnect/sign-client@2.18.1':
     resolution: {integrity: sha512-LqsZ4YwR1jXNLhZp3aJiQ4bPO68pCwpp2drhu5KyvTqEYevf1/ckeQ1gQegQQ5e+TXUaPVH2B5lBPTL3SJVvPw==}
@@ -8006,6 +7984,7 @@ packages:
 
   lodash.isequal@4.5.0:
     resolution: {integrity: sha512-pDo3lu8Jhfjqls6GkMgpahsF9kCyayhgykjyLMNFTKWrpVdAQtYyB4muAMWozBB4ig/dtWAmsMxLEI8wuz+DYQ==}
+    deprecated: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
 
   lodash.isplainobject@4.0.6:
     resolution: {integrity: sha512-oSXzaWypCMHkPC3NvBEaPHf0KsA5mvPrOPgQWDsbg8n7orZ290M0BmC/jgRZ4vcJ6DTAhjrsSYgdsW/F+MFOBA==}
@@ -10766,8 +10745,8 @@ packages:
     peerDependencies:
       vue: ^3.2.0
 
-  vue-router@4.5.0:
-    resolution: {integrity: sha512-HDuk+PuH5monfNuY+ct49mNmkCRK4xJAV9Ts4z9UFc4rzdDnxQLyCMGGc8pKhZhHTVzfanpNwB/lwqevcBwI4w==}
+  vue-router@4.5.1:
+    resolution: {integrity: sha512-ogAF3P97NPm8fJsE4by9dwSYtDwXIY1nFY9T6DyQnGHd1E2Da94w9JIolpe42LJGIl0DwOHBi8TcRPlPGwbTtw==}
     peerDependencies:
       vue: ^3.2.0
 
@@ -11174,7 +11153,7 @@ snapshots:
       '@babel/traverse': 7.25.9
       '@babel/types': 7.26.0
       convert-source-map: 2.0.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -11233,7 +11212,7 @@ snapshots:
       '@babel/core': 7.26.0
       '@babel/helper-compilation-targets': 7.25.9
       '@babel/helper-plugin-utils': 7.25.9
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       lodash.debounce: 4.0.8
       resolve: 1.22.8
     transitivePeerDependencies:
@@ -11867,7 +11846,7 @@ snapshots:
       '@babel/parser': 7.26.0
       '@babel/template': 7.25.9
       '@babel/types': 7.26.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -12569,7 +12548,7 @@ snapshots:
   '@eslint/config-array@0.18.0':
     dependencies:
       '@eslint/object-schema': 2.1.4
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -12603,7 +12582,7 @@ snapshots:
   '@eslint/eslintrc@3.1.0':
     dependencies:
       ajv: 6.12.6
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       espree: 10.2.0
       globals: 14.0.0
       ignore: 5.3.2
@@ -13180,7 +13159,7 @@ snapshots:
 
   '@koa/router@12.0.2':
     dependencies:
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       http-errors: 2.0.0
       koa-compose: 4.1.0
       methods: 1.1.2
@@ -13190,7 +13169,7 @@ snapshots:
 
   '@kwsites/file-exists@1.1.1':
     dependencies:
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
@@ -13689,7 +13668,7 @@ snapshots:
       bufferutil: 4.0.8
       cross-fetch: 4.0.0
       date-fns: 2.30.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       eciesjs: 0.4.13
       eventemitter2: 6.4.9
       readable-stream: 3.6.2
@@ -13713,7 +13692,7 @@ snapshots:
       '@paulmillr/qr': 0.2.1
       bowser: 2.11.0
       cross-fetch: 4.0.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       eciesjs: 0.4.13
       eth-rpc-errors: 4.0.3
       eventemitter2: 6.4.9
@@ -13736,7 +13715,7 @@ snapshots:
     dependencies:
       '@ethereumjs/tx': 4.2.0
       '@types/debug': 4.1.12
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       semver: 7.6.3
       superstruct: 1.0.4
     transitivePeerDependencies:
@@ -13749,7 +13728,7 @@ snapshots:
       '@noble/hashes': 1.7.1
       '@scure/base': 1.2.4
       '@types/debug': 4.1.12
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       pony-cause: 2.1.11
       semver: 7.6.3
       uuid: 9.0.1
@@ -13763,7 +13742,7 @@ snapshots:
       '@noble/hashes': 1.7.1
       '@scure/base': 1.2.4
       '@types/debug': 4.1.12
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       pony-cause: 2.1.11
       semver: 7.6.3
       uuid: 9.0.1
@@ -14558,6 +14537,32 @@ snapshots:
       - supports-color
       - typescript
 
+  '@nuxt/eslint@0.5.7(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.4.2))(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))':
+    dependencies:
+      '@eslint/config-inspector': 0.5.5(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.4.2))(utf-8-validate@5.0.10)
+      '@nuxt/devtools-kit': 1.6.0(magicast@0.3.5)(rollup@4.24.0)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+      '@nuxt/eslint-config': 0.5.7(eslint@9.11.1(jiti@2.4.2))(typescript@5.6.2)
+      '@nuxt/eslint-plugin': 0.5.7(eslint@9.11.1(jiti@2.4.2))(typescript@5.6.2)
+      '@nuxt/kit': 3.13.2(magicast@0.3.5)(rollup@4.24.0)
+      chokidar: 3.6.0
+      eslint: 9.11.1(jiti@2.4.2)
+      eslint-flat-config-utils: 0.4.0
+      eslint-typegen: 0.3.2(eslint@9.11.1(jiti@2.4.2))
+      find-up: 7.0.0
+      get-port-please: 3.1.2
+      mlly: 1.7.2
+      pathe: 1.1.2
+      unimport: 3.13.1(rollup@4.24.0)
+    transitivePeerDependencies:
+      - bufferutil
+      - magicast
+      - rollup
+      - supports-color
+      - typescript
+      - utf-8-validate
+      - vite
+      - webpack-sources
+
   '@nuxt/eslint@0.5.7(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.4.2))(magicast@0.3.5)(rollup@4.30.1)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))':
     dependencies:
       '@eslint/config-inspector': 0.5.5(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.4.2))(utf-8-validate@5.0.10)
@@ -15051,6 +15056,17 @@ snapshots:
       - supports-color
       - webpack-sources
 
+  '@nuxtjs/google-fonts@3.2.0(magicast@0.3.5)(rollup@4.24.0)':
+    dependencies:
+      '@nuxt/kit': 3.13.2(magicast@0.3.5)(rollup@4.24.0)
+      google-fonts-helper: 3.6.0
+      pathe: 1.1.2
+    transitivePeerDependencies:
+      - magicast
+      - rollup
+      - supports-color
+      - webpack-sources
+
   '@nuxtjs/google-fonts@3.2.0(magicast@0.3.5)(rollup@4.30.1)':
     dependencies:
       '@nuxt/kit': 3.13.2(magicast@0.3.5)(rollup@4.30.1)
@@ -15131,6 +15147,28 @@ snapshots:
       - supports-color
       - vite
       - vue
+      - webpack-sources
+
+  '@nuxtjs/tailwindcss@6.12.2(magicast@0.3.5)(rollup@4.24.0)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))':
+    dependencies:
+      '@nuxt/kit': 3.13.2(magicast@0.3.5)(rollup@4.24.0)
+      autoprefixer: 10.4.20(postcss@8.4.47)
+      consola: 3.2.3
+      defu: 6.1.4
+      h3: 1.13.0
+      klona: 2.0.6
+      pathe: 1.1.2
+      postcss: 8.4.47
+      postcss-nesting: 13.0.1(postcss@8.4.47)
+      tailwind-config-viewer: 2.0.4(tailwindcss@3.4.14(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2)))
+      tailwindcss: 3.4.14(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
+      ufo: 1.5.4
+      unctx: 2.3.1
+    transitivePeerDependencies:
+      - magicast
+      - rollup
+      - supports-color
+      - ts-node
       - webpack-sources
 
   '@nuxtjs/tailwindcss@6.12.2(magicast@0.3.5)(rollup@4.30.1)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))':
@@ -15812,6 +15850,19 @@ snapshots:
       esquery: 1.6.0
       typescript: 5.6.2
 
+  '@pinia/nuxt@0.5.5(magicast@0.3.5)(rollup@4.24.0)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))':
+    dependencies:
+      '@nuxt/kit': 3.13.2(magicast@0.3.5)(rollup@4.24.0)
+      pinia: 2.2.4(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))
+    transitivePeerDependencies:
+      - '@vue/composition-api'
+      - magicast
+      - rollup
+      - supports-color
+      - typescript
+      - vue
+      - webpack-sources
+
   '@pinia/nuxt@0.5.5(magicast@0.3.5)(rollup@4.30.1)(typescript@5.6.2)(vue@3.5.13(typescript@5.6.2))':
     dependencies:
       '@nuxt/kit': 3.13.2(magicast@0.3.5)(rollup@4.30.1)
@@ -16445,11 +16496,9 @@ snapshots:
       fflate: 0.7.4
       string.prototype.codepointat: 0.2.1
 
-  '@simplewebauthn/browser@10.0.0':
-    dependencies:
-      '@simplewebauthn/types': 10.0.0
+  '@simplewebauthn/browser@13.1.0': {}
 
-  '@simplewebauthn/server@10.0.1':
+  '@simplewebauthn/server@13.1.1':
     dependencies:
       '@hexagon/base64': 1.1.28
       '@levischuck/tiny-cbor': 0.2.2
@@ -16458,12 +16507,6 @@ snapshots:
       '@peculiar/asn1-rsa': 2.3.13
       '@peculiar/asn1-schema': 2.3.13
       '@peculiar/asn1-x509': 2.3.13
-      '@simplewebauthn/types': 10.0.0
-      cross-fetch: 4.0.0
-    transitivePeerDependencies:
-      - encoding
-
-  '@simplewebauthn/types@10.0.0': {}
 
   '@sinclair/typebox@0.27.8': {}
 
@@ -16620,7 +16663,7 @@ snapshots:
       '@swc-node/sourcemap-support': 0.5.1
       '@swc/core': 1.7.26(@swc/helpers@0.5.13)
       colorette: 2.0.20
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       oxc-resolver: 1.12.0
       pirates: 4.0.6
       tslib: 2.8.0
@@ -16893,7 +16936,7 @@ snapshots:
       '@typescript-eslint/types': 8.11.0
       '@typescript-eslint/typescript-estree': 8.11.0(typescript@5.6.2)
       '@typescript-eslint/visitor-keys': 8.11.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       eslint: 9.11.1(jiti@2.4.2)
     optionalDependencies:
       typescript: 5.6.2
@@ -16906,7 +16949,7 @@ snapshots:
       '@typescript-eslint/types': 8.7.0
       '@typescript-eslint/typescript-estree': 8.7.0(typescript@5.6.2)
       '@typescript-eslint/visitor-keys': 8.7.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       eslint: 9.11.1(jiti@2.4.2)
     optionalDependencies:
       typescript: 5.6.2
@@ -16927,7 +16970,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/typescript-estree': 8.11.0(typescript@5.6.2)
       '@typescript-eslint/utils': 8.11.0(eslint@9.11.1(jiti@2.4.2))(typescript@5.6.2)
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       ts-api-utils: 1.3.0(typescript@5.6.2)
     optionalDependencies:
       typescript: 5.6.2
@@ -16939,7 +16982,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/typescript-estree': 8.7.0(typescript@5.6.2)
       '@typescript-eslint/utils': 8.7.0(eslint@9.11.1(jiti@2.4.2))(typescript@5.6.2)
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       ts-api-utils: 1.3.0(typescript@5.6.2)
     optionalDependencies:
       typescript: 5.6.2
@@ -16955,7 +16998,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.11.0
       '@typescript-eslint/visitor-keys': 8.11.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       fast-glob: 3.3.2
       is-glob: 4.0.3
       minimatch: 9.0.5
@@ -16970,7 +17013,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.7.0
       '@typescript-eslint/visitor-keys': 8.7.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       fast-glob: 3.3.2
       is-glob: 4.0.3
       minimatch: 9.0.5
@@ -17142,7 +17185,7 @@ snapshots:
   '@vitest/snapshot@2.1.8':
     dependencies:
       '@vitest/pretty-format': 2.1.8
-      magic-string: 0.30.14
+      magic-string: 0.30.17
       pathe: 1.1.2
 
   '@vitest/spy@2.1.8':
@@ -19046,7 +19089,7 @@ snapshots:
 
   acorn-walk@8.3.4:
     dependencies:
-      acorn: 8.13.0
+      acorn: 8.14.0
 
   acorn@8.12.1: {}
 
@@ -19064,7 +19107,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
@@ -19276,6 +19319,14 @@ snapshots:
   available-typed-arrays@1.0.7:
     dependencies:
       possible-typed-array-names: 1.0.0
+
+  axios@1.7.7:
+    dependencies:
+      follow-redirects: 1.15.9
+      form-data: 4.0.1
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
 
   axios@1.7.7(debug@4.3.7):
     dependencies:
@@ -20242,6 +20293,10 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
+  debug@4.3.7:
+    dependencies:
+      ms: 2.1.3
+
   debug@4.3.7(supports-color@8.1.1):
     dependencies:
       ms: 2.1.3
@@ -20318,7 +20373,7 @@ snapshots:
   detect-port@1.6.1:
     dependencies:
       address: 1.2.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
@@ -20502,7 +20557,7 @@ snapshots:
   engine.io-client@6.6.2(bufferutil@4.0.8)(utf-8-validate@5.0.10):
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       engine.io-parser: 5.2.3
       ws: 8.17.1(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       xmlhttprequest-ssl: 2.1.2
@@ -20712,7 +20767,7 @@ snapshots:
   eslint-plugin-import-x@4.3.1(eslint@9.11.1(jiti@2.4.2))(typescript@5.6.2):
     dependencies:
       '@typescript-eslint/utils': 8.11.0(eslint@9.11.1(jiti@2.4.2))(typescript@5.6.2)
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       doctrine: 3.0.0
       eslint: 9.11.1(jiti@2.4.2)
       eslint-import-resolver-node: 0.3.9
@@ -20731,7 +20786,7 @@ snapshots:
       '@es-joy/jsdoccomment': 0.49.0
       are-docs-informative: 0.0.2
       comment-parser: 1.4.1
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       escape-string-regexp: 4.0.0
       eslint: 9.11.1(jiti@2.4.2)
       espree: 10.2.0
@@ -20849,7 +20904,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.6
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       escape-string-regexp: 4.0.0
       eslint-scope: 8.1.0
       eslint-visitor-keys: 4.1.0
@@ -21286,6 +21341,8 @@ snapshots:
   flat@5.0.2: {}
 
   flatted@3.3.1: {}
+
+  follow-redirects@1.15.9: {}
 
   follow-redirects@1.15.9(debug@4.3.7):
     optionalDependencies:
@@ -21923,7 +21980,7 @@ snapshots:
   http-proxy@1.18.1:
     dependencies:
       eventemitter3: 4.0.7
-      follow-redirects: 1.15.9(debug@4.3.7)
+      follow-redirects: 1.15.9
       requires-port: 1.0.0
     transitivePeerDependencies:
       - debug
@@ -21956,7 +22013,7 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
@@ -22056,7 +22113,7 @@ snapshots:
     dependencies:
       '@ioredis/commands': 1.2.0
       cluster-key-slot: 1.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       denque: 2.1.0
       lodash.defaults: 4.2.0
       lodash.isarguments: 3.1.0
@@ -22345,7 +22402,7 @@ snapshots:
 
   koa-send@5.0.1:
     dependencies:
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       http-errors: 1.8.1
       resolve-path: 1.4.0
     transitivePeerDependencies:
@@ -22365,7 +22422,7 @@ snapshots:
       content-disposition: 0.5.4
       content-type: 1.0.5
       cookies: 0.9.1
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       delegates: 1.0.0
       depd: 2.0.0
       destroy: 1.2.0
@@ -22435,7 +22492,7 @@ snapshots:
     dependencies:
       chalk: 5.3.0
       commander: 12.1.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       execa: 8.0.1
       lilconfig: 3.1.2
       listr2: 8.2.5
@@ -23581,7 +23638,7 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.0-rc.46
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
@@ -23634,7 +23691,7 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.0-rc.46
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
@@ -23686,7 +23743,7 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.0-rc.46
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
@@ -24796,7 +24853,7 @@ snapshots:
   sass@1.80.4:
     dependencies:
       '@parcel/watcher': 2.4.1
-      chokidar: 4.0.1
+      chokidar: 4.0.3
       immutable: 4.3.7
       source-map-js: 1.2.1
 
@@ -24952,7 +25009,7 @@ snapshots:
     dependencies:
       '@kwsites/file-exists': 1.1.1
       '@kwsites/promise-deferred': 1.1.1
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
@@ -25016,7 +25073,7 @@ snapshots:
   socket.io-client@4.8.1(bufferutil@4.0.8)(utf-8-validate@5.0.10):
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       engine.io-client: 6.6.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       socket.io-parser: 4.2.4
     transitivePeerDependencies:
@@ -25027,7 +25084,7 @@ snapshots:
   socket.io-parser@4.2.4:
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
@@ -25433,7 +25490,7 @@ snapshots:
   terser@5.36.0:
     dependencies:
       '@jridgewell/source-map': 0.3.6
-      acorn: 8.13.0
+      acorn: 8.14.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
@@ -25590,7 +25647,7 @@ snapshots:
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
       '@types/node': 20.16.10
-      acorn: 8.13.0
+      acorn: 8.14.0
       acorn-walk: 8.3.4
       arg: 4.1.3
       create-require: 1.1.1
@@ -25610,7 +25667,7 @@ snapshots:
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
       '@types/node': 22.8.0
-      acorn: 8.13.0
+      acorn: 8.14.0
       acorn-walk: 8.3.4
       arg: 4.1.3
       create-require: 1.1.1
@@ -26175,7 +26232,7 @@ snapshots:
   vite-node@2.1.3(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       cac: 6.7.14
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       pathe: 1.1.2
       vite: 5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)
     transitivePeerDependencies:
@@ -26192,7 +26249,7 @@ snapshots:
   vite-node@2.1.8(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       cac: 6.7.14
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       es-module-lexer: 1.5.4
       pathe: 1.1.2
       vite: 5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)
@@ -26233,7 +26290,7 @@ snapshots:
     dependencies:
       '@antfu/utils': 0.7.10
       '@rollup/pluginutils': 5.1.3(rollup@4.24.0)
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       error-stack-parser-es: 0.1.5
       fs-extra: 11.2.0
       open: 10.1.0
@@ -26312,9 +26369,9 @@ snapshots:
       '@vitest/spy': 2.1.8
       '@vitest/utils': 2.1.8
       chai: 5.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       expect-type: 1.1.0
-      magic-string: 0.30.14
+      magic-string: 0.30.17
       pathe: 1.1.2
       std-env: 3.8.0
       tinybench: 2.9.0
@@ -26372,7 +26429,7 @@ snapshots:
 
   vue-eslint-parser@9.4.3(eslint@9.11.1(jiti@2.4.2)):
     dependencies:
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       eslint: 9.11.1(jiti@2.4.2)
       eslint-scope: 7.2.2
       eslint-visitor-keys: 3.4.3
@@ -26392,7 +26449,7 @@ snapshots:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.12(typescript@5.6.2)
 
-  vue-router@4.5.0(vue@3.5.13(typescript@5.6.2)):
+  vue-router@4.5.1(vue@3.5.13(typescript@5.6.2)):
     dependencies:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.13(typescript@5.6.2)
@@ -26698,12 +26755,12 @@ snapshots:
     dependencies:
       ethers: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
 
-  zksync-sso@0.0.0-beta.2(@simplewebauthn/browser@10.0.0)(@simplewebauthn/server@10.0.1)(@wagmi/core@2.16.7(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.4.0(react@18.3.1))(viem@2.23.12(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)))(typescript@5.6.2)(zod@3.24.1):
+  zksync-sso@0.0.0-beta.2(@simplewebauthn/browser@13.1.0)(@simplewebauthn/server@13.1.1)(@wagmi/core@2.16.7(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.4.0(react@18.3.1))(viem@2.23.12(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)))(typescript@5.6.2)(zod@3.24.1):
     dependencies:
       '@peculiar/asn1-ecc': 2.3.14
       '@peculiar/asn1-schema': 2.3.13
-      '@simplewebauthn/browser': 10.0.0
-      '@simplewebauthn/server': 10.0.1
+      '@simplewebauthn/browser': 13.1.0
+      '@simplewebauthn/server': 13.1.1
       '@wagmi/core': 2.16.7(@tanstack/query-core@5.59.16)(immer@10.0.2)(react@18.3.1)(typescript@5.6.2)(use-sync-external-store@1.4.0(react@18.3.1))(viem@2.23.12(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))
       abitype: 1.0.8(typescript@5.6.2)(zod@3.24.1)
       bigint-conversion: 2.4.3
