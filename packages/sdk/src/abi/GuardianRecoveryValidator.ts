@@ -1,4 +1,4 @@
-export const GuardianRecoveryModuleAbi = [
+export const GuardianRecoveryValidatorAbi = [
   {
     inputs: [],
     stateMutability: "nonpayable",

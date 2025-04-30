@@ -102,7 +102,7 @@ export const SsoAccountAbi = [
   },
   {
     inputs: [],
-    name: "InvalidShortString",
+    name: "INVALID_ACCOUNT_KEYS",
     type: "error",
   },
   {
@@ -157,17 +157,6 @@ export const SsoAccountAbi = [
   {
     inputs: [
       {
-        internalType: "string",
-        name: "str",
-        type: "string",
-      },
-    ],
-    name: "StringTooLong",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
         internalType: "address",
         name: "validator",
         type: "address",
@@ -215,12 +204,6 @@ export const SsoAccountAbi = [
       },
     ],
     name: "BatchCallFailure",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [],
-    name: "EIP712DomainChanged",
     type: "event",
   },
   {
@@ -401,49 +384,6 @@ export const SsoAccountAbi = [
     name: "batchCall",
     outputs: [],
     stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "eip712Domain",
-    outputs: [
-      {
-        internalType: "bytes1",
-        name: "fields",
-        type: "bytes1",
-      },
-      {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "version",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "chainId",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "verifyingContract",
-        type: "address",
-      },
-      {
-        internalType: "bytes32",
-        name: "salt",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint256[]",
-        name: "extensions",
-        type: "uint256[]",
-      },
-    ],
-    stateMutability: "view",
     type: "function",
   },
   {
@@ -644,32 +584,6 @@ export const SsoAccountAbi = [
     name: "executeTransactionFromOutside",
     outputs: [],
     stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: "bytes32",
-            name: "signedHash",
-            type: "bytes32",
-          },
-        ],
-        internalType: "struct ERC1271Handler.SsoMessage",
-        name: "ssoMessage",
-        type: "tuple",
-      },
-    ],
-    name: "getEip712Hash",
-    outputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-    ],
-    stateMutability: "view",
     type: "function",
   },
   {
@@ -1190,19 +1104,6 @@ export const SsoAccountAbi = [
     name: "removeModuleValidator",
     outputs: [],
     stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "ssoMessageTypeHash",
-    outputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-    ],
-    stateMutability: "pure",
     type: "function",
   },
   {
