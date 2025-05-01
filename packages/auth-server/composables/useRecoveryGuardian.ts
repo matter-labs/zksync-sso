@@ -2,7 +2,7 @@ import type { Account, Address, Chain, Client, Hex, Transport } from "viem";
 import { encodeFunctionData, keccak256, pad, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
-import { GuardianRecoveryModuleAbi } from "zksync-sso/abi";
+import { GuardianRecoveryValidatorAbi } from "zksync-sso/abi";
 import { confirmGuardian as sdkConfirmGuardian } from "zksync-sso/client";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
 
@@ -25,7 +25,7 @@ export const useRecoveryGuardian = () => {
       const client = getPublicClient({ chainId: defaultChain.id });
       return await client.readContract({
         address: contractsByChain[defaultChain.id].recovery,
-        abi: GuardianRecoveryModuleAbi,
+        abi: GuardianRecoveryValidatorAbi,
         functionName: "guardianOf",
         args: [keccak256(toHex(window.location.origin)), guardianAddress],
       });
@@ -45,7 +45,7 @@ export const useRecoveryGuardian = () => {
       const client = getPublicClient({ chainId: defaultChain.id });
       const data = await client.readContract({
         address: contractsByChain[defaultChain.id].recovery,
-        abi: GuardianRecoveryModuleAbi,
+        abi: GuardianRecoveryValidatorAbi,
         functionName: "guardiansFor",
         args: [keccak256(toHex(window.location.origin)), guardedAccount],
       });
@@ -70,7 +70,7 @@ export const useRecoveryGuardian = () => {
       const client = getPublicClient({ chainId: defaultChain.id });
       return await client.readContract({
         address: contractsByChain[defaultChain.id].recovery,
-        abi: GuardianRecoveryModuleAbi,
+        abi: GuardianRecoveryValidatorAbi,
         functionName: "getPendingRecoveryData",
         args: [keccak256(toHex(window.location.origin)), account],
       });
@@ -125,7 +125,7 @@ export const useRecoveryGuardian = () => {
     const client = getClient({ chainId: defaultChain.id });
     const tx = await client.writeContract({
       address: contractsByChain[defaultChain.id].recovery,
-      abi: GuardianRecoveryModuleAbi,
+      abi: GuardianRecoveryValidatorAbi,
       functionName: "discardRecovery",
       args: [keccak256(toHex(window.location.origin))],
     });
@@ -144,7 +144,7 @@ export const useRecoveryGuardian = () => {
     ] as const;
 
     const calldata = encodeFunctionData({
-      abi: GuardianRecoveryModuleAbi,
+      abi: GuardianRecoveryValidatorAbi,
       functionName: "initRecovery",
       args: [
         accountToRecover,
@@ -173,13 +173,13 @@ export const useRecoveryGuardian = () => {
     const [requestValidityTime, requestDelayTime] = await Promise.all([
       client.readContract({
         address: contractsByChain[defaultChain.id].recovery,
-        abi: GuardianRecoveryModuleAbi,
+        abi: GuardianRecoveryValidatorAbi,
         functionName: "REQUEST_VALIDITY_TIME",
         args: [],
       }),
       client.readContract({
         address: contractsByChain[defaultChain.id].recovery,
-        abi: GuardianRecoveryModuleAbi,
+        abi: GuardianRecoveryValidatorAbi,
         functionName: "REQUEST_DELAY_TIME",
         args: [],
       }),
@@ -208,7 +208,7 @@ export const useRecoveryGuardian = () => {
 
     const eventsFilter = {
       address: contractsByChain[defaultChain.id].recovery,
-      abi: GuardianRecoveryModuleAbi,
+      abi: GuardianRecoveryValidatorAbi,
       args,
       fromBlock: validFromBlock,
       toBlock: "latest",
