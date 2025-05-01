@@ -1,7 +1,8 @@
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
-import { generateAuthenticationOptions, type GenerateAuthenticationOptionsOpts, generateRegistrationOptions, type GenerateRegistrationOptionsOpts, type VerifiedRegistrationResponse, verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
-import { type AuthenticationResponseJSON, type PublicKeyCredentialCreationOptionsJSON, type PublicKeyCredentialRequestOptionsJSON, type RegistrationResponseJSON } from "@simplewebauthn/types";
-import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, toBytes, toHex, type TransactionReceipt, type Transport } from "viem";
+import type { AuthenticationResponseJSON, GenerateAuthenticationOptionsOpts, GenerateRegistrationOptionsOpts, PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON, RegistrationResponseJSON, VerifiedRegistrationResponse } from "@simplewebauthn/server";
+import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
+import type { Account, Address, Chain, Client, Hash, Hex, TransactionReceipt, Transport } from "viem";
+import { encodeFunctionData, toBytes, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
@@ -92,7 +93,9 @@ export const registerNewPasskey = async (args: RegisterNewPasskeyArgs): Promise<
   if (!origin) throw new Error("Can't set origin automatically, please provide it manually in the arguments");
 
   const passkeyRegistrationOptions = "passkeyRegistrationOptions" in args ? args.passkeyRegistrationOptions : await generatePasskeyRegistrationOptions(args);
-  const registrationResponse: RegistrationResponseJSON = await startRegistration(passkeyRegistrationOptions);
+  const registrationResponse: RegistrationResponseJSON = await startRegistration({
+    optionsJSON: passkeyRegistrationOptions,
+  });
   const verification = await verifyRegistrationResponse({
     response: registrationResponse,
     expectedChallenge: passkeyRegistrationOptions.challenge,
@@ -104,8 +107,8 @@ export const registerNewPasskey = async (args: RegisterNewPasskeyArgs): Promise<
     passkeyRegistrationOptions,
     passkeyRegistrationResponse: registrationResponse,
     verificationResponse: verification,
-    credentialPublicKey: verification.registrationInfo.credentialPublicKey,
-    credentialId: verification.registrationInfo.credentialID,
+    credentialPublicKey: verification.registrationInfo.credential.publicKey,
+    credentialId: verification.registrationInfo.credential.id,
   };
 };
 
@@ -123,7 +126,8 @@ export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthentic
   const passkeyAuthenticationOptions = await generatePasskeyAuthenticationOptions({
     challenge: toBytes(args.challenge),
   });
-  const authenticationResponse: AuthenticationResponseJSON = await startAuthentication(passkeyAuthenticationOptions);
+  const optionsJSON: PublicKeyCredentialRequestOptionsJSON = { ...passkeyAuthenticationOptions };
+  const authenticationResponse: AuthenticationResponseJSON = await startAuthentication({ optionsJSON: optionsJSON });
 
   let { rpID, origin } = identifyPasskeyParams();
   rpID = args.rpID || passkeyAuthenticationOptions.rpId || rpID;
@@ -135,10 +139,11 @@ export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthentic
     expectedChallenge: passkeyAuthenticationOptions.challenge,
     expectedOrigin: origin,
     expectedRPID: rpID,
-    authenticator: {
-      credentialPublicKey: args.credentialPublicKey,
-      credentialID: authenticationResponse.id,
+    credential: {
+      id: authenticationResponse.id,
+      publicKey: args.credentialPublicKey,
       counter: 0, // TODO: figure out if this has to be dynamic
+
     },
   });
   if (!verification.verified || !verification.authenticationInfo) throw new Error("Passkey validation failed");
