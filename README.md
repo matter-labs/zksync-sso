@@ -141,7 +141,7 @@ This monorepo is comprised of the following packages, products, and examples:
 
    ```bash
    # Compile and deploy contracts
-   pnpm --dir packages/contracts build
+   pnpm --dir packages/contracts run build
    pnpm --dir packages/contracts run publish ../sdk/src/abi
    pnpm run format-abi
    pnpm --dir packages/contracts run deploy --file ../auth-server/stores/local-node.json
