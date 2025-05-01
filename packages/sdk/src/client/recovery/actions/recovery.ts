@@ -2,7 +2,7 @@ import { type Account, type Address, type Chain, type Client, encodeFunctionData
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
-import { GuardianRecoveryValidatorAbi } from "../../../abi/GuardianRecoveryModule.js";
+import { GuardianRecoveryValidatorAbi } from "../../../abi/GuardianRecoveryValidator.js";
 import { noThrow } from "../../../utils/helpers.js";
 
 export type ProposeGuardianArgs = {
