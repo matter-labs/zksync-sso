@@ -64,7 +64,7 @@ export const useCommunicatorStore = defineStore("communicator", () => {
       reject(new Error("Request rejected"));
     });
     listeners.clear();
-    window.close();
+    console.log("window.close();");
   };
 
   /**

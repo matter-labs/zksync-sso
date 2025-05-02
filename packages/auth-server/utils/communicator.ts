@@ -62,7 +62,7 @@ class PopupCommunicator {
       reject(new Error("Request rejected"));
     });
     this.listeners.clear();
-    window.close();
+    console.log("window.close();");
   };
 
   /**

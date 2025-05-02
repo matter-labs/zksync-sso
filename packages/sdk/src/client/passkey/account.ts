@@ -51,7 +51,9 @@ export function toPasskeyAccount<
       } as ZksyncTransactionSerializableEIP712;
 
       const eip712DomainAndMessage = getEip712Domain(signableTransaction);
+      console.log("signTransaction: eip712DomainAndMessage", eip712DomainAndMessage);
       const digest = hashTypedData(eip712DomainAndMessage);
+      console.log("signTransaction: digest", digest, "digest.length", digest.length);
 
       return serializeTransaction({
         ...signableTransaction,
