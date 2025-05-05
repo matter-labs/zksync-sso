@@ -8,8 +8,8 @@ Run the following (be sure a local node is running, e.g.
 `era_test_node`[https://docs.zksync.io/build/zksync-cli/running-a-node]):
 
 ```sh
-# Deploy the ZKsync SSO contracts
-pnpm nx deploy contracts
+# Deploy the ZKsync SSO contracts (when run from the root)
+pnpm --dir packages/contracts run deploy
 
 # Deploy the contracts for the NFT Quest Demo
 pnpm nx deploy:local nft-quest-contracts

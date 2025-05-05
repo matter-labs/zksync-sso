@@ -11,6 +11,16 @@ export const AAFactoryAbi = [
         name: "_beacon",
         type: "address",
       },
+      {
+        internalType: "address",
+        name: "_passKeyModule",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "_sessionKeyModule",
+        type: "address",
+      },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -24,6 +34,31 @@ export const AAFactoryAbi = [
       },
     ],
     name: "ACCOUNT_ALREADY_EXISTS",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "EMPTY_BEACON_ADDRESS",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "EMPTY_BEACON_BYTECODE_HASH",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "EMPTY_PASSKEY_ADDRESS",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "EMPTY_SESSIONKEY_ADDRESS",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "INVALID_ACCOUNT_KEYS",
     type: "error",
   },
   {
@@ -98,6 +133,40 @@ export const AAFactoryAbi = [
         type: "bytes32",
       },
       {
+        internalType: "bytes",
+        name: "passKey",
+        type: "bytes",
+      },
+      {
+        internalType: "bytes",
+        name: "sessionKey",
+        type: "bytes",
+      },
+      {
+        internalType: "address[]",
+        name: "ownerKeys",
+        type: "address[]",
+      },
+    ],
+    name: "deployModularAccount",
+    outputs: [
+      {
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "uniqueId",
+        type: "bytes32",
+      },
+      {
         internalType: "bytes[]",
         name: "initialValidators",
         type: "bytes[]",
@@ -127,6 +196,32 @@ export const AAFactoryAbi = [
         internalType: "bytes",
         name: "",
         type: "bytes",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "passKeyModule",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "sessionKeyModule",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
       },
     ],
     stateMutability: "view",

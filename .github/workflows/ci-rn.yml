@@ -1,0 +1,100 @@
+name: CI for React Native zkSync SSO
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/sdk-platforms/react-native/react-native-zksync-sso/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/sdk-platforms/react-native/react-native-zksync-sso/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Debug initial setup
+        run: |
+          echo "Current working directory: $(pwd)"
+          echo "Listing subdirectory files:"
+          ls -la . || echo "Dir listing failed"
+          echo "Checking package.json:"
+          cat package.json || echo "No package.json found"
+          echo "Checking yarn.lock:"
+          ls -la yarn.lock || echo "No yarn.lock found"
+          echo "Checking initial .yarnrc.yml:"
+          cat .yarnrc.yml || echo "No .yarnrc.yml found"
+          echo "Checking root for package.json:"
+          ls -la /home/runner/work/zksync-sso/zksync-sso/package.json || echo "No root package.json"
+          echo "Checking root for yarn.lock:"
+          ls -la /home/runner/work/zksync-sso/zksync-sso/yarn.lock || echo "No root yarn.lock"
+
+      - name: Set up Yarn 3.6.1 and plugins
+        run: |
+          # Modify .yarnrc.yml to remove yarnPath and plugin paths
+          echo "Modifying .yarnrc.yml..."
+          sed -i '/yarnPath:/d' .yarnrc.yml
+          sed -i '/- path: .yarn\/plugins/d' .yarnrc.yml
+          echo "Modified .yarnrc.yml:"
+          cat .yarnrc.yml
+          # Enable Corepack and prepare Yarn 3.6.1
+          corepack enable
+          corepack prepare yarn@3.6.1 --activate
+          # Make the Yarn binary executable
+          chmod +x /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js
+          # Verify Yarn version
+          echo "Yarn version:"
+          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js --version
+          # Import plugins
+          echo "Importing plugin interactive-tools..."
+          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js plugin import @yarnpkg/plugin-interactive-tools
+          echo "Importing plugin workspace-tools..."
+          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js plugin import @yarnpkg/plugin-workspace-tools
+
+      - name: Debug post-Yarn setup
+        run: |
+          echo "Checking Yarn plugins directory:"
+          ls -la .yarn/plugins/ || echo "No .yarn/plugins directory"
+          echo "Yarn version again for confirmation:"
+          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js --version
+
+      - name: Install dependencies
+        run: |
+          echo "Running yarn install..."
+          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js install --frozen-lockfile
+
+    # - name: Build
+    #   run: |
+    #     echo "Running yarn prepare..."
+    #     /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js prepare
+
+    #   - name: Debug Jest setup
+    #     run: |
+    #       echo "Node version:"
+    #       node --version
+    #       echo "Yarn version:"
+    #       /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js --version
+    #       echo "Checking node_modules for Jest:"
+    #       ls -la node_modules/jest || echo "Jest not found in node_modules"
+    #       echo "Listing Yarn cache:"
+    #       ls -la .yarn/cache/ || echo "No .yarn/cache directory"
+
+      # - name: Run tests
+      #   run: |
+      #     echo "Running yarn test..."
+      #     /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js test
+
