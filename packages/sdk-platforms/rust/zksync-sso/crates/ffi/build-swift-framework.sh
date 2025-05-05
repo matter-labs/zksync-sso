@@ -5,17 +5,21 @@ set -eo pipefail
 pushd `dirname $0`
 trap popd EXIT
 
-NAME="ffi"
+CRATE_NAME="ffi"
 VERSION=${1:-"1.0"} # first arg or "1.0"
-REVERSE_DOMAIN="dev.matterlabs"
-BUNDLE_IDENTIFIER="$REVERSE_DOMAIN.$NAME"
-LIBRARY_NAME="lib$NAME.a"
-FRAMEWORK_LIBRARY_NAME=${NAME}FFI
+REVERSE_DOMAIN="io.matterlabs"
+BUNDLE_IDENTIFIER="$REVERSE_DOMAIN.$FRAMEWORK_LIBRARY_NAME"
+LIBRARY_NAME="lib$CRATE_NAME.a"
+FRAMEWORK_LIBRARY_NAME="ZKsyncSSOCore"
 FRAMEWORK_NAME="$FRAMEWORK_LIBRARY_NAME.framework"
 XC_FRAMEWORK_NAME="$FRAMEWORK_LIBRARY_NAME.xcframework"
-HEADER_NAME="${NAME}FFI.h"
+HEADER_NAME="$FRAMEWORK_LIBRARY_NAME.h"
+# Generated file names from uniffi
+GENERATED_HEADER="${CRATE_NAME}FFI.h"
+GENERATED_SWIFT="$CRATE_NAME.swift"
+GENERATED_MODULEMAP="${CRATE_NAME}FFI.modulemap"
 OUT_PATH="out"
-MIN_IOS_VERSION="18.0"
+MIN_IOS_VERSION="17.0"
 WRAPPER_PATH="../../../../swift/ZKsyncSSO/Sources/ZKsyncSSOFFI"
 TARGET_PATH="../../target"
 BUILD_TYPE="debug" # use debug during development
@@ -47,7 +51,13 @@ echo "Generating swift wrapper..."
 mkdir -p $OUT_PATH
 mkdir -p $WRAPPER_PATH
 CURRENT_ARCH=$(rustc --version --verbose | grep host | cut -f2 -d' ')
-cargo run --features=uniffi/cli --bin uniffi-bindgen generate --library $TARGET_PATH/$CURRENT_ARCH/$BUILD_TYPE/$LIBRARY_NAME --language swift --out-dir $OUT_PATH
+cargo run --features=uniffi/cli --bin uniffi-bindgen generate \
+    --library $TARGET_PATH/$CURRENT_ARCH/$BUILD_TYPE/$LIBRARY_NAME \
+    --language swift \
+    --out-dir $OUT_PATH
+
+# Rename the generated header file to match our framework name
+mv $OUT_PATH/$GENERATED_HEADER $OUT_PATH/$HEADER_NAME
 
 # Merge libraries with lipo
 echo "Merging libraries with lipo..."
@@ -130,10 +140,42 @@ cat <<EOT > $OUT_PATH/import.txt
 import SystemConfiguration
 #endif
 EOT
-cat $OUT_PATH/import.txt $OUT_PATH/$NAME.swift > $WRAPPER_PATH/$NAME.swift
+# Rename the generated swift file to match our framework name
+mv $OUT_PATH/$GENERATED_SWIFT $OUT_PATH/$FRAMEWORK_LIBRARY_NAME.swift
+# Update the import statements to use our framework name
+sed -i '' "s/canImport(${CRATE_NAME}FFI)/canImport($FRAMEWORK_LIBRARY_NAME)/" "$OUT_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+sed -i '' "s/import ${CRATE_NAME}FFI/import $FRAMEWORK_LIBRARY_NAME/" "$OUT_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+cat $OUT_PATH/import.txt $OUT_PATH/$FRAMEWORK_LIBRARY_NAME.swift > $WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift
 
 # Fix initializationResult compilation error
-sed -i '' 's/private var initializationResult: InitializationResult = {/private let initializationResult: InitializationResult = {/' "$WRAPPER_PATH/$NAME.swift"
+sed -i '' 's/private var initializationResult: InitializationResult = {/private let initializationResult: InitializationResult = {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+
+# Fix compilation error
+sed -i '' 's/private let uniffiContinuationHandleMap = UniffiHandleMap<UnsafeContinuation<Int8, Never>>()/nonisolated(unsafe) private let uniffiContinuationHandleMap = UniffiHandleMap<UnsafeContinuation<Int8, Never>>()/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 
 # Don't format ffi.swift with swift-format
-echo "// swift-format-ignore-file" | cat - "$WRAPPER_PATH/$NAME.swift" > temp && mv temp "$WRAPPER_PATH/$NAME.swift"
+echo "// swift-format-ignore-file" | cat - "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift" > temp && mv temp "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+
+# Fix compilation error
+sed -i '' 's/open class Client:/open class Client:\
+    @unchecked Sendable,/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+
+# Fix compilation error
+sed -i '' 's/private class UniffiHandleMap<T> {/private class UniffiHandleMap<T>: @unchecked Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+
+# Fix compilation error
+sed -i '' 's/private class UniffiHandleMap<T> {/private class UniffiHandleMap<T>: @unchecked Sendable {/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+
+# Fix compilation error
+sed -i '' 's/static var vtable: UniffiVTableCallbackInterfacePasskeyAuthenticator = .init(/nonisolated(unsafe) static var vtable: UniffiVTableCallbackInterfacePasskeyAuthenticator = .init(/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+
+# Fix compilation error
+sed -i '' 's/fileprivate static var handleMap = UniffiHandleMap<PasskeyAuthenticator>()/fileprivate static let handleMap = UniffiHandleMap<PasskeyAuthenticator>()/' "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+
+# Add Codable conformance for Config and PasskeyContracts
+cat <<EOT >> "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
+
+extension Config: Codable {}
+extension PasskeyContracts: Codable {}
+EOT
+

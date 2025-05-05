@@ -141,9 +141,9 @@ This monorepo is comprised of the following packages, products, and examples:
 
    ```bash
    # Compile and deploy contracts
-   cd packages/contracts
-   pnpm build
+   pnpm --dir packages/contracts run build
    pnpm --dir packages/contracts run publish ../sdk/src/abi
+   pnpm run format-abi
    pnpm --dir packages/contracts run deploy --file ../auth-server/stores/local-node.json
    ```
 
@@ -199,7 +199,7 @@ To execute the end-to-end tests for the `demo-app` (or similarly for
 
 1. Start `era_test_node` (In a separate terminal, run
    `npx zksync-cli dev start`)
-2. Deploy the smart contracts, `pnpm nx deploy contracts`
+2. Deploy the smart contracts, `pnpm --dir packages/contracts run deploy`
 
 Once the local node is configured with the smart contracts deployed, you can run
 the e2e tests:
