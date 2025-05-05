@@ -1,0 +1,127 @@
+# name: Setup React Native dependencies
+# description: Setup Node.js and install dependencies
+
+# runs:
+#   using: composite
+#   steps:
+#     - name: Setup Node.js
+#       uses: actions/setup-node@v4
+#       with:
+#         node-version-file: ./packages/sdk-platforms/react-native/react-native-zksync-sso/.nvmrc
+
+#     - name: Check React Native package exists
+#       shell: bash
+#       run: |
+#         if [ ! -d "./packages/sdk-platforms/react-native/react-native-zksync-sso" ]; then
+#           echo "Error: React Native package directory not found at ./packages/sdk-platforms/react-native/react-native-zksync-sso"
+#           ls -la ./packages/sdk-platforms/react-native/react-native-zksync-sso || echo "react-native-zksync-sso directory not found"
+#           ls -la ./packages/sdk-platforms/react-native || echo "react-native directory not found"
+#           ls -la ./packages/sdk-platforms || echo "sdk-platforms directory not found"
+#           ls -la ./packages || echo "packages directory not found"
+#           exit 1
+#         fi
+#         echo "React Native package directory found"
+#         ls -la ./packages/sdk-platforms/react-native/react-native-zksync-sso
+
+#     - name: Setup Yarn
+#       shell: bash
+#       run: |
+#         echo "Setting up Yarn 3.6.1"
+        
+#         # Install yarn globally first
+#         corepack enable
+#         corepack prepare yarn@3.6.1 --activate
+        
+#         # Setup directories
+#         mkdir -p ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/releases
+#         mkdir -p ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/plugins/@yarnpkg
+#         mkdir -p ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/cache
+        
+#         # Try to copy the yarn binary from corepack
+#         if [ -f ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js ]; then
+#           echo "Found yarn.js in corepack cache, copying..."
+#           cp ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/releases/yarn-3.6.1.cjs
+#         else
+#           echo "Corepack yarn.js not found, downloading yarn directly..."
+#           # Download the yarn binary directly from GitHub
+#           curl -L -o ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/releases/yarn-3.6.1.cjs https://github.com/yarnpkg/berry/releases/download/3.6.1/yarn-3.6.1.cjs
+#         fi
+        
+#         # Verify the file exists and has content
+#         if [ -f ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/releases/yarn-3.6.1.cjs ]; then
+#           echo "Yarn binary installed successfully"
+#           ls -la ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/releases
+#         else
+#           echo "Failed to install Yarn binary"
+#           exit 1
+#         fi
+        
+#         # Create plugin files
+#         echo "Creating plugin files"
+#         touch ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/plugins/@yarnpkg/plugin-interactive-tools.cjs
+#         touch ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/plugins/@yarnpkg/plugin-workspace-tools.cjs
+        
+#         # Verify plugins
+#         ls -la ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/plugins/@yarnpkg
+        
+#         # Fallback: Also update .yarnrc.yml to use global yarn if needed
+#         echo "Making a backup of original .yarnrc.yml"
+#         cp ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml.bak
+        
+#         # Create a simpler .yarnrc.yml without the yarnPath
+#         echo 'nodeLinker: node-modules' > ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml
+#         echo 'nmHoistingLimits: workspaces' >> ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml
+#         echo >> ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml
+#         echo 'plugins:' >> ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml
+#         echo '  - path: .yarn/plugins/@yarnpkg/plugin-interactive-tools.cjs' >> ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml
+#         echo '    spec: "@yarnpkg/plugin-interactive-tools"' >> ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml
+#         echo '  - path: .yarn/plugins/@yarnpkg/plugin-workspace-tools.cjs' >> ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml
+#         echo '    spec: "@yarnpkg/plugin-workspace-tools"' >> ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml
+        
+#         echo "Modified .yarnrc.yml:"
+#         cat ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarnrc.yml
+
+#     - name: Restore dependencies
+#       id: yarn-cache
+#       uses: actions/cache/restore@v4
+#       with:
+#         path: |
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/node_modules
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/example/node_modules
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/install-state.gz
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/releases
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/plugins
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/cache
+#         key: ${{ runner.os }}-yarn-rn-${{ hashFiles('./packages/sdk-platforms/react-native/react-native-zksync-sso/yarn.lock') }}-${{ hashFiles('./packages/sdk-platforms/react-native/react-native-zksync-sso/package.json', './packages/sdk-platforms/react-native/react-native-zksync-sso/example/package.json') }}
+#         restore-keys: |
+#           ${{ runner.os }}-yarn-rn-${{ hashFiles('./packages/sdk-platforms/react-native/react-native-zksync-sso/yarn.lock') }}
+#           ${{ runner.os }}-yarn-rn-
+
+#     - name: Install dependencies
+#       if: steps.yarn-cache.outputs.cache-hit != 'true'
+#       shell: bash
+#       working-directory: ./packages/sdk-platforms/react-native/react-native-zksync-sso
+#       run: |
+#         echo "Installing dependencies"
+#         yarn install --immutable || yarn install --immutable --no-immutable || npm install -g yarn && yarn install
+
+#     - name: Verify dependencies
+#       if: steps.yarn-cache.outputs.cache-hit == 'true'
+#       shell: bash
+#       working-directory: ./packages/sdk-platforms/react-native/react-native-zksync-sso
+#       run: |
+#         echo "Verifying dependencies"
+#         yarn install --immutable --check-cache || yarn install --immutable || yarn install
+
+#     - name: Cache dependencies
+#       if: steps.yarn-cache.outputs.cache-hit != 'true'
+#       uses: actions/cache/save@v4
+#       with:
+#         path: |
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/node_modules
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/example/node_modules
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/install-state.gz
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/releases
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/plugins
+#           ./packages/sdk-platforms/react-native/react-native-zksync-sso/.yarn/cache
+#         key: ${{ steps.yarn-cache.outputs.cache-primary-key }}
