@@ -2,7 +2,7 @@ import { type Account, type Address, type Chain, type Client, encodeFunctionData
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
-import { GuardianRecoveryModuleAbi } from "../../../abi/GuardianRecoveryModule.js";
+import { GuardianRecoveryValidatorAbi } from "../../../abi/GuardianRecoveryValidator.js";
 import { noThrow } from "../../../utils/helpers.js";
 
 export type ProposeGuardianArgs = {
@@ -35,8 +35,8 @@ export const proposeGuardian = async <
   }
 
   const callData = encodeFunctionData({
-    abi: GuardianRecoveryModuleAbi,
-    functionName: "proposeValidationKey",
+    abi: GuardianRecoveryValidatorAbi,
+    functionName: "proposeGuardian",
     args: [keccak256(toHex(origin)), args.newGuardian],
   });
 
@@ -91,8 +91,8 @@ export const confirmGuardian = async <
     }
   }
   const callData = encodeFunctionData({
-    abi: GuardianRecoveryModuleAbi,
-    functionName: "addValidationKey",
+    abi: GuardianRecoveryValidatorAbi,
+    functionName: "addGuardian",
     args: [keccak256(toHex(origin)), args.accountToGuard],
   });
 
@@ -147,8 +147,8 @@ export const removeGuardian = async <
     }
   }
   const callData = encodeFunctionData({
-    abi: GuardianRecoveryModuleAbi,
-    functionName: "removeValidationKey",
+    abi: GuardianRecoveryValidatorAbi,
+    functionName: "removeGuardian",
     args: [keccak256(toHex(origin)), args.guardian],
   });
 

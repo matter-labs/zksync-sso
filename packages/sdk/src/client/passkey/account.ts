@@ -1,22 +1,32 @@
 import type { Address } from "abitype";
-import { type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, type LocalAccount } from "viem";
+import { type Chain, type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, type LocalAccount, type Transport } from "viem";
 import { toAccount } from "viem/accounts";
 import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
 
 import { getEip712Domain } from "../utils/getEip712Domain.js";
+import type { PasskeyRequiredContracts } from "./client.js";
 
-export type ToPasskeyAccountParameters = {
+export type ToPasskeyAccountParameters<
+  transport extends Transport = Transport,
+  chain extends Chain = Chain,
+> = {
   /** Address of the deployed Account's Contract implementation. */
   address: Address;
   sign: (parameters: { hash: Hash }) => Promise<Hex>;
+  chain: NonNullable<chain>;
+  transport: transport;
+  contracts: PasskeyRequiredContracts;
 };
 
 export type PasskeyAccount = LocalAccount<"ssoPasskeyAccount"> & {
   sign: NonNullable<CustomSource["sign"]>;
 };
 
-export function toPasskeyAccount(
-  parameters: ToPasskeyAccountParameters,
+export function toPasskeyAccount<
+  transport extends Transport = Transport,
+  chain extends Chain = Chain,
+>(
+  parameters: ToPasskeyAccountParameters<transport, chain>,
 ): PasskeyAccount {
   const { address, sign } = parameters;
 
@@ -26,6 +36,11 @@ export function toPasskeyAccount(
     async signMessage({ message }) {
       return sign({
         hash: hashMessage(message),
+      });
+    },
+    async signTypedData(typedData) {
+      return sign({
+        hash: hashTypedData(typedData),
       });
     },
     async signTransaction(transaction) {
@@ -43,11 +58,6 @@ export function toPasskeyAccount(
         customSignature: await sign({
           hash: digest,
         }),
-      });
-    },
-    async signTypedData(typedData) {
-      return sign({
-        hash: hashTypedData(typedData),
       });
     },
   });

@@ -1,5 +1,30 @@
 export const WebAuthValidatorAbi = [
   {
+    inputs: [],
+    name: "ACCOUNT_EXISTS",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "BAD_CREDENTIAL_ID_LENGTH",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "BAD_DOMAIN_LENGTH",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "EMPTY_KEY",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "KEY_EXISTS",
+    type: "error",
+  },
+  {
     inputs: [
       {
         internalType: "address",
@@ -8,11 +33,6 @@ export const WebAuthValidatorAbi = [
       },
     ],
     name: "NOT_KEY_OWNER",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "WEBAUTHN_KEY_EXISTS",
     type: "error",
   },
   {
@@ -84,13 +104,7 @@ export const WebAuthValidatorAbi = [
       },
     ],
     name: "addValidationKey",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
+    outputs: [],
     stateMutability: "nonpayable",
     type: "function",
   },
@@ -147,40 +161,6 @@ export const WebAuthValidatorAbi = [
     name: "onUninstall",
     outputs: [],
     stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "string",
-        name: "originDomain",
-        type: "string",
-      },
-      {
-        internalType: "bytes",
-        name: "credentialId",
-        type: "bytes",
-      },
-      {
-        internalType: "address",
-        name: "accountAddress",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "publicKeys",
-    outputs: [
-      {
-        internalType: "bytes32",
-        name: "publicKey",
-        type: "bytes32",
-      },
-    ],
-    stateMutability: "view",
     type: "function",
   },
   {
