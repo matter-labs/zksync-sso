@@ -3,6 +3,7 @@ import { type Address, createPublicClient, createWalletClient, custom, http, pub
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
+import { createZksyncEcdsaClient } from "zksync-sso/client/ecdsa";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 
@@ -40,7 +41,7 @@ export const chainParameters: Record<SupportedChainId, { blockTime: number }> = 
 
 export const useClientStore = defineStore("client", () => {
   const runtimeConfig = useRuntimeConfig();
-  const { address, username, passkey } = storeToRefs(useAccountStore());
+  const { address, username, passkey, ownerPrivateKey } = storeToRefs(useAccountStore());
 
   const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
   const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
@@ -59,7 +60,7 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
-  const getClient = ({ chainId }: { chainId: SupportedChainId }) => {
+  const getPasskeyClient = ({ chainId }: { chainId: SupportedChainId }) => {
     if (!address.value) throw new Error("Address is not set");
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
@@ -70,6 +71,23 @@ export const useClientStore = defineStore("client", () => {
       credentialPublicKey: passkey.value!,
       userName: username.value!,
       userDisplayName: username.value!,
+      contracts,
+      chain,
+      transport: http(),
+    });
+
+    return client;
+  };
+
+  const getEcdsaClient = ({ chainId }: { chainId: SupportedChainId }) => {
+    if (!address.value) throw new Error("Address is not set");
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+
+    const client = createZksyncEcdsaClient({
+      address: address.value,
+      owner: ownerPrivateKey.value!,
       contracts,
       chain,
       transport: http(),
@@ -93,7 +111,7 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
-  const getConfigurableClient = ({
+  const getCustomPasskeyClient = ({
     chainId,
     address,
     credentialPublicKey,
@@ -160,10 +178,11 @@ export const useClientStore = defineStore("client", () => {
   return {
     defaultChain,
     getPublicClient,
-    getClient,
+    getPasskeyClient,
+    getEcdsaClient,
     getThrowAwayClient,
     getWalletClient,
     getRecoveryClient,
-    getConfigurableClient,
+    getCustomPasskeyClient,
   };
 });

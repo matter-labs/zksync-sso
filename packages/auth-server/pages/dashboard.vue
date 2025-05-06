@@ -46,7 +46,7 @@
 <script setup lang="ts">
 import { ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
 
-const accountStore = useAccountStore();
+const { address } = useAccountStore();
 const walletConnectStore = useWalletConnectStore();
 const { checkRecoveryRequest, discardRecovery } = useRecoveryGuardian();
 
@@ -57,8 +57,8 @@ onMounted(async () => {
 });
 
 watchEffect(async () => {
-  if (!accountStore.address) return;
-  const recoveryRequest = await checkRecoveryRequest({ address: accountStore.address });
+  if (!address) return;
+  const recoveryRequest = await checkRecoveryRequest({ address });
   pendingRecovery.value = recoveryRequest?.pendingRecovery ?? false;
 });
 

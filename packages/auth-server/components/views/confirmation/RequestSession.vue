@@ -93,7 +93,7 @@ const { isLoggedIn } = storeToRefs(useAccountStore());
 const { createAccount } = useAccountCreate(computed(() => requestChain.value!.id));
 const { respond, deny } = useRequestsStore();
 const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
-const { getClient } = useClientStore();
+const { getPasskeyClient } = useClientStore();
 
 const defaults = {
   expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
@@ -145,7 +145,7 @@ const confirmConnection = async () => {
       };
     } else {
       // create a new session for the existing account
-      const client = getClient({ chainId: requestChain.value!.id });
+      const client = getPasskeyClient({ chainId: requestChain.value!.id });
       const paymasterAddress = contractsByChain[requestChain.value!.id].accountPaymaster;
       const sessionKey = generatePrivateKey();
       const session = {

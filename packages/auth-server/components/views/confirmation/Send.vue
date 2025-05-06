@@ -166,7 +166,7 @@ import type { ExtractParams } from "zksync-sso/client-auth-server";
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
 const { responseInProgress, responseError, request, requestChain } = storeToRefs(useRequestsStore());
-const { getClient } = useClientStore();
+const { getPasskeyClient } = useClientStore();
 
 const transactionParams = computed(() => {
   const params = request.value!.content.action.params as ExtractParams<"eth_sendTransaction">;
@@ -183,7 +183,7 @@ const advancedInfoOpened = ref(false);
 
 const { result: preparedTransaction, inProgress: preparingTransaction, error: preparingFailed, execute: prepareTransaction } = useAsync(async () => {
   if (!request.value) return null;
-  const client = getClient({ chainId: requestChain.value!.id });
+  const client = getPasskeyClient({ chainId: requestChain.value!.id });
   return await client.prepareTransactionRequest(transactionParams.value);
 });
 const { resume: resumeAutoReEstimation, pause: pauseAutoReEstimation } = useIntervalFn(async () => {
@@ -227,7 +227,7 @@ const totalFee = computed<bigint>(() => {
 
 const confirmTransaction = async () => {
   respond(async () => {
-    const client = getClient({ chainId: requestChain.value!.id });
+    const client = getPasskeyClient({ chainId: requestChain.value!.id });
     const transactionHash = await client.sendTransaction(transactionParams.value);
     return {
       result: {

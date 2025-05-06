@@ -3,7 +3,7 @@ import { WebAuthValidatorAbi } from "zksync-sso/abi";
 import { fetchAccount } from "zksync-sso/client";
 
 export const useConfigurableAccount = () => {
-  const { getPublicClient, getConfigurableClient, defaultChain } = useClientStore();
+  const { getPublicClient, getCustomPasskeyClient, defaultChain } = useClientStore();
 
   const { inProgress: getConfigurableAccountInProgress, error: getConfigurableAccountError, execute: getConfigurableAccount } = useAsync(async ({ address }: { address: Address }) => {
     const publicClient = getPublicClient({ chainId: defaultChain.id });
@@ -58,7 +58,7 @@ export const useConfigurableAccount = () => {
       uniqueAccountId: latestEvent.args.credentialId,
     });
 
-    return getConfigurableClient({
+    return getCustomPasskeyClient({
       chainId: defaultChain.id,
       address,
       credentialPublicKey: passkeyPublicKey,

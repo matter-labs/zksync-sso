@@ -75,14 +75,14 @@ const expiresAt = computed<number>(() => bigintDateToDate(props.session.expiresA
 const timeLeft = computed<number>(() => Math.max(0, expiresAt.value - now.value));
 const isExpired = computed(() => timeLeft.value <= 0);
 
-const { defaultChain, getClient, getPublicClient } = useClientStore();
+const { defaultChain, getPasskeyClient, getPublicClient } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
 
 const {
   inProgress: sessionsInProgress,
   execute: revokeSession,
 } = useAsync(async () => {
-  const client = getClient({ chainId: defaultChain.id });
+  const client = getPasskeyClient({ chainId: defaultChain.id });
   const paymasterAddress = contractsByChain[defaultChain.id].accountPaymaster;
   await client.revokeSession({
     sessionId: props.sessionId,
