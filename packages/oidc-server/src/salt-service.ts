@@ -3,6 +3,7 @@ import cors from "cors";
 import crypto from "crypto";
 import { config } from "dotenv";
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 import * as jose from "jose";
 import { bytesToHex } from "viem";
 import { z } from "zod";
@@ -28,9 +29,17 @@ const JwtPayloadSchema = z.object({
   sub: z.string(),
 });
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100, // 100 requets per window.
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+});
+
 const app = express();
 
 app.use(cors({ origin: env.AUTH_SERVER_URL }));
+app.use(limiter);
 
 app.get("/salt", async (req, res): Promise<void> => {
   const authHeader = req.headers.authorization;
