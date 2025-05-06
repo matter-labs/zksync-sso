@@ -1,4 +1,3 @@
-
 declare module "nuxt/schema" {
   interface PublicRuntimeConfig {
     aaveAddress: `0x${string}`;

@@ -25,6 +25,7 @@
         "command": "pnpm run build:types"
       },
       "inputs": ["production"],
+      "dependsOn": ["^build"],
       "outputs": ["{projectRoot}/dist/_esm"]
     },
     "build:types": {
@@ -35,11 +36,13 @@
         "command": "pnpm run build:types"
       },
       "inputs": ["production"],
+      "dependsOn": ["^build"],
       "outputs": ["{projectRoot}/dist/_types"]
     },
     "build:cjs": {
       "executor": "nx:run-commands",
       "cache": true,
+      "dependsOn": ["^build"],
       "options": {
         "cwd": "packages/sdk",
         "command": "pnpm run build:cjs",

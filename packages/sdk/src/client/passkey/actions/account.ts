@@ -23,6 +23,7 @@ export type DeployAccountArgs = {
     passkey: Address;
     session: Address;
     recovery: Address;
+    recoveryOidc: Address;
   };
   initialSession?: SessionConfig;
   onTransactionSent?: (hash: Hash) => void;
@@ -88,6 +89,11 @@ export const deployAccount = async <
     parameters: "0x",
   });
 
+  const encodedOidcRecoveryModuleData = encodeModuleData({
+    address: args.contracts.recoveryOidc,
+    parameters: "0x",
+  });
+
   let deployProxyArgs = {
     account: client.account!,
     chain: client.chain!,
@@ -96,7 +102,7 @@ export const deployAccount = async <
     functionName: "deployProxySsoAccount",
     args: [
       keccak256(toHex(accountId)),
-      [encodedPasskeyModuleData, encodedSessionKeyModuleData, encodedGuardianRecoveryModuleData],
+      [encodedPasskeyModuleData, encodedSessionKeyModuleData, encodedGuardianRecoveryModuleData, encodedOidcRecoveryModuleData],
       [],
     ],
   } as any;
