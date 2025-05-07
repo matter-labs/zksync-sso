@@ -10,7 +10,7 @@ pub struct DeployWallet {
 }
 
 impl DeployWallet {
-    fn new(private_key_hex: String) -> eyre::Result<Self> {
+    pub fn new(private_key_hex: String) -> eyre::Result<Self> {
         _ = PrivateKeySigner::from_str(&private_key_hex)?;
         Ok(Self { private_key_hex })
     }

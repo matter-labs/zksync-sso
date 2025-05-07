@@ -23,3 +23,11 @@ sol!(
     AAFactory,
     "../../../../../contracts/artifacts-zk/src/AAFactory.sol/AAFactory.json"
 );
+
+sol!(
+    #[derive(Debug, Default)]
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    AccountProxy,
+    "../../../../../contracts/artifacts-zk/src/AccountProxy.sol/AccountProxy.json"
+);

@@ -2,7 +2,7 @@ use alloy::primitives::Address;
 use eyre::Result;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PasskeyContracts {
     pub account_factory: Address,
@@ -10,6 +10,7 @@ pub struct PasskeyContracts {
     pub session: Address,
     pub account_paymaster: Address,
     pub recovery: Address,
+    // pub account_proxy: Address,
 }
 
 impl PasskeyContracts {
@@ -19,8 +20,16 @@ impl PasskeyContracts {
         session: Address,
         account_paymaster: Address,
         recovery: Address,
+        // account_proxy: Address,
     ) -> Self {
-        Self { account_factory, passkey, session, account_paymaster, recovery }
+        Self {
+            account_factory,
+            passkey,
+            session,
+            account_paymaster,
+            recovery,
+            // account_proxy,
+        }
     }
 
     pub fn with_address_strs(
@@ -29,6 +38,7 @@ impl PasskeyContracts {
         session: &str,
         account_paymaster: &str,
         recovery: &str,
+        // account_proxy: &str,
     ) -> Result<Self> {
         Ok(Self {
             account_factory: account_factory.parse().map_err(|e| {
@@ -46,6 +56,9 @@ impl PasskeyContracts {
             recovery: recovery
                 .parse()
                 .map_err(|e| eyre::eyre!("Invalid recovery address: {}", e))?,
+            // account_proxy: account_proxy
+            //     .parse()
+            //     .map_err(|e| eyre::eyre!("Invalid account proxy address: {}", e))?,
         })
     }
 }

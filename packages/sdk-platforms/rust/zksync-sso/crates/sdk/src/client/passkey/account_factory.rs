@@ -27,7 +27,7 @@ pub struct AccountParams {
     pub passkey_expected_origin: String,
 }
 
-async fn get_smart_account_bytecode_hash(
+pub(crate) async fn get_smart_account_bytecode_hash(
     config: &Config,
 ) -> eyre::Result<FixedBytes<32>> {
     let contracts = config.contracts.clone();
@@ -52,7 +52,7 @@ async fn get_smart_account_bytecode_hash(
     Ok(hash)
 }
 
-async fn get_smart_account_proxy_address(
+pub(crate) async fn get_smart_account_proxy_address(
     config: &Config,
 ) -> eyre::Result<Bytes> {
     let contracts = config.contracts.clone();

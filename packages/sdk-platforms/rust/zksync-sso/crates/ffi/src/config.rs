@@ -21,6 +21,7 @@ pub struct PasskeyContracts {
     pub session: String,
     pub account_paymaster: String,
     pub recovery: String,
+    // pub account_proxy: String,
 }
 
 #[derive(Debug, uniffi::Record)]
@@ -46,6 +47,7 @@ impl TryFrom<Config> for SdkConfig {
                 &config.contracts.session,
                 &config.contracts.account_paymaster,
                 &config.contracts.recovery,
+                // &config.contracts.account_proxy,
             )
             .map_err(|e| ConfigError::InvalidContractAddress(e.to_string()))?,
             &config.node_url,
@@ -73,6 +75,7 @@ impl From<SdkConfig> for Config {
                     .account_paymaster
                     .to_string(),
                 recovery: sdk_config.contracts.recovery.to_string(),
+                // account_proxy: sdk_config.contracts.account_proxy.to_string(),
             },
             node_url: sdk_config.node_url.to_string(),
             deploy_wallet: DeployWallet {

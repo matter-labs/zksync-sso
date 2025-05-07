@@ -123,6 +123,8 @@ export default config;"#,
         extract_contract_address(&lines, "ExampleAuthServerPaymaster")?;
     let recovery =
         extract_contract_address(&lines, "GuardianRecoveryValidator")?;
+    // let account_proxy =
+    //     extract_contract_address(&lines, "AccountProxy")?;
 
     let contracts = PasskeyContracts::with_address_strs(
         account_factory,
@@ -130,6 +132,7 @@ export default config;"#,
         session,
         account_paymaster,
         recovery,
+        // account_proxy,
     )?;
 
     check_contracts_deployed(&node_url, &contracts).await?;

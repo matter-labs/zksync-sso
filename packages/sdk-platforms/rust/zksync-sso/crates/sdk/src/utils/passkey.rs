@@ -110,6 +110,7 @@ mod tests {
                 "0000000000000000000000000000000000000000"
             ),
             recovery: address!("0000000000000000000000000000000000000000"),
+            // account_proxy: address!("0000000000000000000000000000000000000000"),
         };
 
         let result = passkey_hash_signature_response_format(
