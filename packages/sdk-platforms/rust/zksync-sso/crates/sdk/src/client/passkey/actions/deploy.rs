@@ -83,14 +83,28 @@ pub async fn deploy_account(
     args: DeployAccountArgs,
     config: &Config,
 ) -> Result<DeployedAccountDetails> {
+    println!(
+        "args.unique_account_id: {}",
+        args.unique_account_id.clone().unwrap()
+    );
+
     let provider = {
-        fn zksync_wallet() -> eyre::Result<ZksyncWallet> {
-            let signer = PrivateKeySigner::random();
-            let zksync_wallet = ZksyncWallet::from(signer);
-            Ok(zksync_wallet)
-        }
+        // fn zksync_wallet() -> eyre::Result<ZksyncWallet> {
+        //     let signer = PrivateKeySigner::random();
+        //     let zksync_wallet = ZksyncWallet::from(signer);
+        //     Ok(zksync_wallet)
+        // }
+
+        // let wallet = zksync_wallet().unwrap();
+
         let node_url: url::Url = config.clone().node_url;
-        let wallet = zksync_wallet().unwrap();
+
+        let deploy_wallet = config.clone().deploy_wallet;
+
+        let wallet = ZksyncWallet::from(PrivateKeySigner::from_str(
+            &deploy_wallet.private_key_hex,
+        )?);
+
         let provider = zksync_provider()
             .with_recommended_fillers()
             .wallet(wallet.clone())
@@ -233,6 +247,13 @@ pub async fn deploy_account(
     println!("XDB deploy_account - Initial k1 owners: {:?}", initial_k1_owners);
 
     let unique_id = hash_unique_account_id(account_id.clone())?;
+    let expected_unique_id = [0; 32].to_vec();
+    eyre::ensure!(
+        unique_id.to_vec() == expected_unique_id,
+        "unique_id {:?} is not equal to expected_unique_id {:?} ",
+        unique_id.to_vec(),
+        expected_unique_id
+    );
 
     println!("XDB deploy_account - unique_id: {}", unique_id);
 
