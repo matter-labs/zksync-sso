@@ -128,7 +128,7 @@ import { InformationCircleIcon } from "@heroicons/vue/20/solid";
 import { zksyncInMemoryNode } from "viem/chains";
 import { SsoAccountAbi } from "zksync-sso/abi";
 
-const { defaultChain, getPublicClient, getPasskeyClient } = useClientStore();
+const { defaultChain, getPublicClient, getEcdsaClient } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
 
 const {
@@ -157,7 +157,7 @@ const addPrivateKey = async () => {
   }
 
   try {
-    const client = getPasskeyClient({ chainId: defaultChain.id });
+    const client = getEcdsaClient({ chainId: defaultChain.id });
     const signer = await client.getSigner();
     const contract = new client.Contract(address.value, SsoAccountAbi, signer);
 

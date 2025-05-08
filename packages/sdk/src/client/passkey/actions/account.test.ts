@@ -3,7 +3,7 @@ import { type Address, type Hash, keccak256, type TransactionReceipt } from "vie
 import { waitForTransactionReceipt, writeContract } from "viem/actions";
 import { describe, expect, test, vi } from "vitest";
 
-import { deployAccount } from "./account.js";
+import { deployPasskeyAccount } from "./account.js";
 
 // Mock the passkey utils
 vi.mock("../../../utils/passkey.js", () => ({
@@ -22,7 +22,7 @@ vi.mock("viem/actions", () => ({
   waitForTransactionReceipt: vi.fn(),
 }));
 
-describe("deployAccount", () => {
+describe("deployPasskeyAccount", () => {
   // CBOR-encoded COSE key with known x,y coordinates
   const mockCredentialPublicKey = new Uint8Array([
     0xa5, // map of 5 pairs
@@ -89,7 +89,7 @@ describe("deployAccount", () => {
     vi.mocked(writeContract).mockResolvedValue(mockTransactionHash);
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
 
-    const result = await deployAccount(mockClient, {
+    const result = await deployPasskeyAccount(mockClient, {
       credentialId: randomBytes(43).toString("hex"),
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
@@ -121,7 +121,7 @@ describe("deployAccount", () => {
     });
 
     await expect(
-      deployAccount(mockClient, {
+      deployPasskeyAccount(mockClient, {
         credentialId: randomBytes(43).toString("hex"),
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
@@ -139,7 +139,7 @@ describe("deployAccount", () => {
     });
 
     await expect(
-      deployAccount(mockClient, {
+      deployPasskeyAccount(mockClient, {
         credentialId: randomBytes(43).toString("hex"),
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
@@ -158,7 +158,7 @@ describe("deployAccount", () => {
     });
 
     await expect(
-      deployAccount(mockClient, {
+      deployPasskeyAccount(mockClient, {
         credentialId: randomBytes(32).toString("hex"),
         credentialPublicKey: mockCredentialPublicKey,
         contracts: mockContracts,
@@ -172,7 +172,7 @@ describe("deployAccount", () => {
     vi.mocked(writeContract).mockResolvedValue(mockTransactionHash);
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
 
-    await deployAccount(mockClient, {
+    await deployPasskeyAccount(mockClient, {
       credentialId: keccak256(randomBytes(32)),
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
@@ -198,7 +198,7 @@ describe("deployAccount", () => {
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
 
     const writeContractSpy = vi.mocked(writeContract);
-    await deployAccount(mockClient, {
+    await deployPasskeyAccount(mockClient, {
       credentialId: keccak256(randomBytes(32)),
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,
@@ -223,7 +223,7 @@ describe("deployAccount", () => {
     const paymasterAddress = "0x5234567890123456789012345678901234567890" as Address;
     const paymasterInput = "0x1234" as const;
 
-    await deployAccount(mockClient, {
+    await deployPasskeyAccount(mockClient, {
       credentialId: keccak256(randomBytes(32)),
       credentialPublicKey: mockCredentialPublicKey,
       contracts: mockContracts,

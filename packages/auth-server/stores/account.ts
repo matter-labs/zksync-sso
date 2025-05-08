@@ -15,6 +15,9 @@ export const useAccountStore = defineStore("account", () => {
     serializer: StorageSerializers.object,
   });
   const address = computed(() => accountData.value?.address || null);
+  const factory = computed(() => accountData.value?.factory || null);
+  const ownerPublicKey = computed(() => accountData.value?.ownerPublicKey || null);
+  const ownerPrivateKey = computed(() => accountData.value?.ownerPrivateKey || null);
   const passkey = computed(() => accountData.value?.passkey ? toBytes(accountData.value?.passkey) : null);
   const username = computed(() => accountData.value?.username || null);
   const isLoggedIn = computed(() => !!address.value);
@@ -31,6 +34,9 @@ export const useAccountStore = defineStore("account", () => {
   });
 
   return {
+    factory,
+    ownerPublicKey,
+    ownerPrivateKey,
     address,
     passkey,
     username,

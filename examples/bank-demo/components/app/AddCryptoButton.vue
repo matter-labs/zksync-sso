@@ -17,7 +17,7 @@
 <script setup lang="ts">
 import NoPasskeyDialog from "~/components/app/NoPasskeyDialog.vue";
 import type { Hex } from "viem";
-import { deployAccount } from "zksync-sso/client";
+import { deployPasskeyAccount } from "zksync-sso/client";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
 import { getDeployerClient } from "../common/CryptoDeployer";
 
@@ -73,7 +73,7 @@ const createAccountWithPasskey = async () => {
   const deployerClient = await getDeployerClient(deployerKey as Hex);
 
   try {
-    const { address, transactionReceipt } = await deployAccount(deployerClient, {
+    const { address, transactionReceipt } = await deployPasskeyAccount(deployerClient, {
       credentialPublicKey: publicPassKey.credentialPublicKey,
       credentialId: publicPassKey.credentialId,
       contracts,

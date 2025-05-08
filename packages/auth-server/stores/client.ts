@@ -84,10 +84,11 @@ export const useClientStore = defineStore("client", () => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
     const contracts = contractsByChain[chainId];
+    if (!ownerPrivateKey) throw new Error("Owner private key is not set");
 
     const client = createZksyncEcdsaClient({
       address: address.value,
-      owner: ownerPrivateKey.value!,
+      owner: ownerPrivateKey.value,
       contracts,
       chain,
       transport: http(),

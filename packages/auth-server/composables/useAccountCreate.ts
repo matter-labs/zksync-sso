@@ -26,21 +26,37 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
       };
     }
 
+    // Don't yet want this to be imported as part of the setup process
+    const ownerKey = generatePrivateKey();
+
     const deployerClient = getThrowAwayClient({ chainId: chainId.value });
 
     const deployedAccount = await deployAccount(deployerClient, {
-      credentialId,
-      credentialPublicKey,
+      accountFactory: contractsByChain[chainId.value].accountFactory,
+      passkeyModule: {
+        location: contractsByChain[chainId.value].passkey,
+        credentialId,
+        credentialPublicKey,
+      },
+      paymaster: {
+        location: contractsByChain[chainId.value].accountPaymaster,
+      },
       uniqueAccountId: credentialId,
-      contracts: contractsByChain[chainId.value],
-      paymasterAddress: contractsByChain[chainId.value].accountPaymaster,
-      initialSession: sessionData || undefined,
+      sessionModule: {
+        location: contractsByChain[chainId.value].session,
+        initialSession: sessionData,
+      },
+      owners: [ownerKey],
+      installNoDataModules: [contractsByChain[chainId.value].recovery],
     });
 
     login({
+      factory: contractsByChain[chainId.value].accountFactory,
       username: credentialId,
       address: deployedAccount.address,
       passkey: toHex(credentialPublicKey),
+      ownerPublicKey: privateKeyToAddress(ownerKey),
+      ownerPrivateKey: ownerKey,
     });
 
     return {

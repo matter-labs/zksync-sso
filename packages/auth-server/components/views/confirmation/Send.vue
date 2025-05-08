@@ -145,9 +145,18 @@
           :disabled="preparingTransaction"
           :loading="!appMeta || responseInProgress"
           data-testid="confirm"
-          @click="confirmTransaction()"
+          @click="confirmPasskeyTransaction()"
         >
-          Confirm
+          Confirm (passkey)
+        </ZkButton>
+        <ZkButton
+          class="w-full"
+          :disabled="preparingTransaction"
+          :loading="!appMeta || responseInProgress"
+          data-testid="confirm"
+          @click="confirmPrivateKeyTransaction()"
+        >
+          Confirm (private-key)
         </ZkButton>
       </div>
     </template>
@@ -166,7 +175,7 @@ import type { ExtractParams } from "zksync-sso/client-auth-server";
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
 const { responseInProgress, responseError, request, requestChain } = storeToRefs(useRequestsStore());
-const { getPasskeyClient } = useClientStore();
+const { getPasskeyClient, getEcdsaClient } = useClientStore();
 
 const transactionParams = computed(() => {
   const params = request.value!.content.action.params as ExtractParams<"eth_sendTransaction">;
@@ -225,9 +234,25 @@ const totalFee = computed<bigint>(() => {
   return 0n;
 });
 
-const confirmTransaction = async () => {
+const confirmPasskeyTransaction = async () => {
   respond(async () => {
     const client = getPasskeyClient({ chainId: requestChain.value!.id });
+    const transactionHash = await client.sendTransaction(transactionParams.value);
+    return {
+      result: {
+        value: transactionHash,
+      },
+    };
+  });
+};
+
+const confirmPrivateKeyTransaction = async () => {
+  const requestedChain = requestChain.value;
+  if (!requestedChain) {
+    throw new Error("No chain requested");
+  }
+  respond(async () => {
+    const client = await getEcdsaClient({ chainId: requestedChain.id });
     const transactionHash = await client.sendTransaction(transactionParams.value);
     return {
       result: {
