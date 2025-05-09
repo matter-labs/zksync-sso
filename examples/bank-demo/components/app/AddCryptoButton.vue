@@ -74,9 +74,15 @@ const createAccountWithPasskey = async () => {
 
   try {
     const { address, transactionReceipt } = await deployAccount(deployerClient, {
-      credentialPublicKey: publicPassKey.credentialPublicKey,
-      credentialId: publicPassKey.credentialId,
-      contracts,
+      passkeyModule: {
+        location: contracts.passkey,
+        credentialPublicKey: publicPassKey.credentialPublicKey,
+        credentialId: publicPassKey.credentialId,
+      },
+      accountFactory: contracts.accountFactory,
+      installNoDataModules: [],
+      // installing creator as an account owner!
+      owners: [deployerClient.account.address],
     });
 
     appMeta.value = {

@@ -11,7 +11,7 @@ const getGuardiansError = ref<Error | null>(null);
 const getGuardiansData = ref<readonly { addr: Address; isReady: boolean }[] | null>(null);
 
 export const useRecoveryGuardian = () => {
-  const { getClient, getPublicClient, getRecoveryClient, defaultChain } = useClientStore();
+  const { getPasskeyClient, getPublicClient, getRecoveryClient, defaultChain } = useClientStore();
   const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
 
   const getGuardedAccountsInProgress = ref(false);
@@ -83,7 +83,7 @@ export const useRecoveryGuardian = () => {
   }
 
   const { inProgress: proposeGuardianInProgress, error: proposeGuardianError, execute: proposeGuardian } = useAsync(async (address: Address) => {
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getPasskeyClient({ chainId: defaultChain.id });
     const tx = await client.proposeGuardian({
       newGuardian: address,
       paymaster: {
@@ -95,7 +95,7 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: removeGuardianInProgress, error: removeGuardianError, execute: removeGuardian } = useAsync(async (address: Address) => {
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getPasskeyClient({ chainId: defaultChain.id });
     const tx = await client.removeGuardian({
       guardian: address,
       paymaster: {
@@ -122,7 +122,7 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: discardRecoveryInProgress, error: discardRecoveryError, execute: discardRecovery } = useAsync(async () => {
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getPasskeyClient({ chainId: defaultChain.id });
     const tx = await client.writeContract({
       address: contractsByChain[defaultChain.id].recovery,
       abi: GuardianRecoveryValidatorAbi,

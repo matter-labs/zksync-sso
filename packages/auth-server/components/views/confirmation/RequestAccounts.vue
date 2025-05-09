@@ -55,11 +55,11 @@ const { appMeta, domain } = useAppMeta();
 const { respond, deny } = useRequestsStore();
 const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { address } = storeToRefs(useAccountStore());
-const { getClient } = useClientStore();
+const { getPasskeyClient } = useClientStore();
 
 const confirmConnection = () => {
   respond(async () => {
-    const client = getClient({ chainId: requestChain.value!.id });
+    const client = getPasskeyClient({ chainId: requestChain.value!.id });
     return {
       result: constructReturn(client.account.address, client.chain.id),
     };

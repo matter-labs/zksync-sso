@@ -2,9 +2,12 @@ import { StorageSerializers, useStorage } from "@vueuse/core";
 import { type Address, type Hash, toBytes } from "viem";
 
 type SmartAccount = {
-  username: string;
-  address: Address;
-  passkey: Hash;
+  factory: Address; // where was this account made (helps with version)
+  username: string; // unique id in the factory (prevent duplicate sign-up)
+  address: Address; // public address (of the SSO Beacon proxy deployed)
+  passkey: Hash; // Raw Public Key (for signing)
+  ownerPublicKey: Address; // owner id of the account
+  ownerPrivateKey: Hash; // owner signing key of the account for signing
 };
 
 export const useAccountStore = defineStore("account", () => {
@@ -12,6 +15,9 @@ export const useAccountStore = defineStore("account", () => {
     serializer: StorageSerializers.object,
   });
   const address = computed(() => accountData.value?.address || null);
+  const factory = computed(() => accountData.value?.factory || null);
+  const ownerPublicKey = computed(() => accountData.value?.ownerPublicKey || null);
+  const ownerPrivateKey = computed(() => accountData.value?.ownerPrivateKey || null);
   const passkey = computed(() => accountData.value?.passkey ? toBytes(accountData.value?.passkey) : null);
   const username = computed(() => accountData.value?.username || null);
   const isLoggedIn = computed(() => !!address.value);
@@ -28,6 +34,9 @@ export const useAccountStore = defineStore("account", () => {
   });
 
   return {
+    factory,
+    ownerPublicKey,
+    ownerPrivateKey,
     address,
     passkey,
     username,
