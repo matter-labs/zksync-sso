@@ -25,13 +25,13 @@ development principles in mind.
 
    ```ts
    import { generatePrivateKey, privateKeyToAddress } from "viem";
-   import { deployPasskeyAccount } from "zksync-sso/client";
+   import { deployAccount } from "zksync-sso/client";
 
    const deployerClient = ...; // Any client for deploying the account, make sure it has enough balance to cover the deployment cost
    const sessionKey = generatePrivateKey();
    const sessionPublicKey = privateKeyToAddress(sessionKey.value);
 
-   const { address } = await deployPasskeyAccount(deployerClient, {
+   const { address } = await deployAccount(deployerClient, {
       credentialPublicKey,
       contracts,
 

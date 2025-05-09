@@ -25,13 +25,13 @@ export type DeployAccountSessionArgs = {
 };
 
 export type DeployAccountArgs = {
+  accountFactory: Address;
+  installNoDataModules: Address[];
+  owners: Address[]; // ECDSA owners (can be empty)
   sessionModule?: DeployAccountSessionArgs;
   paymaster?: DeployAccountPaymasterArgs;
   passkeyModule?: DeployAccountPasskeyArgs;
-  accountFactory: Address;
   uniqueAccountId?: string; // Unique account ID, can be omitted if you don't need it
-  installNoDataModules: Address[];
-  owners: Address[]; // ECDSA owners (can be empty)
   onTransactionSent?: (hash: Hash) => void;
 };
 
