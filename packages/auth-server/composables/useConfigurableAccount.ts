@@ -1,6 +1,6 @@
 import type { Address } from "viem";
 import { WebAuthValidatorAbi } from "zksync-sso/abi";
-import { fetchAccount } from "zksync-sso/client";
+import { fetchPasskeyAccount } from "zksync-sso/client";
 
 export const useConfigurableAccount = () => {
   const { getPublicClient, getCustomPasskeyClient, defaultChain } = useClientStore();
@@ -53,7 +53,7 @@ export const useConfigurableAccount = () => {
     const latestEvent = activeEvents[activeEvents.length - 1];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { username, passkeyPublicKey } = await fetchAccount(publicClient as any, {
+    const { username, passkeyPublicKey } = await fetchPasskeyAccount(publicClient as any, {
       contracts: contractsByChain[defaultChain.id],
       uniqueAccountId: latestEvent.args.credentialId,
     });

@@ -16,20 +16,15 @@ export type DeployAccountReturnType = {
   address: Address;
   transactionReceipt: TransactionReceipt;
 };
-export type FetchAccountArgs = {
-  uniqueAccountId?: string; // Unique account ID, can be omitted if you don't need it
-  expectedOrigin?: string; // Expected origin of the passkey
-  contracts: {
-    accountFactory: Address;
-    passkey: Address;
-    session: Address;
-    recovery: Address;
-  };
+export type FetchAccountByPasskeyArgs = {
+  webAuthnModule: Address; // Passkey contract module address
+  expectedOrigin: string; // Required passkey domain
+  credentialId?: Hash; // if not provided, will be requested from the user
 };
 export type FetchAccountReturnType = {
-  username: string;
-  address: Address;
-  passkeyPublicKey: Uint8Array;
+  credentialId: string; // Unique id of the passkey public key (base64)
+  address: Address; // account address
+  passkeyPublicKey: Uint8Array; // Public key of the previously registered passkey
 };
 
 const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -63,7 +58,7 @@ export const fetchAccount = async <
   account extends Account,
 >(
   client: Client<transport, chain, account>, // Account deployer (any viem client)
-  args: Prettify<FetchAccountArgs>,
+  args: Prettify<FetchAccountByPasskeyArgs>,
 ): Promise<FetchAccountReturnType> => {
   let origin: string | undefined = args.expectedOrigin;
   if (!origin) {
@@ -74,10 +69,10 @@ export const fetchAccount = async <
     }
   }
 
-  if (!args.contracts.passkey) throw new Error("Passkey module address is not set");
+  if (!args.webAuthnModule) throw new Error("Passkey module address is not set");
 
-  let username: string | undefined = args.uniqueAccountId;
-  if (!username) {
+  let passkeyId: string | undefined = args.credentialId;
+  if (!passkeyId) {
     try {
       const credential = await navigator.credentials.get({
         publicKey: {
@@ -87,37 +82,39 @@ export const fetchAccount = async <
       }) as PublicKeyCredential | null;
 
       if (!credential) throw new Error("No registered passkeys");
-      username = credential.id;
+      passkeyId = credential.id;
     } catch {
       throw new Error("Unable to retrieve passkey");
     }
   }
 
-  if (!username) throw new Error("No account found");
+  if (!passkeyId) throw new Error("No passkey found");
 
-  const credentialId = toHex(base64UrlToUint8Array(username));
+  const credentialId = toHex(base64UrlToUint8Array(passkeyId));
   const accountAddress = await readContract(client, {
     abi: WebAuthValidatorAbi,
-    address: args.contracts.passkey,
+    address: args.webAuthnModule,
     functionName: "registeredAddress",
     args: [origin, credentialId],
   });
 
-  if (!accountAddress || accountAddress == NULL_ADDRESS) throw new Error(`No account found for username: ${username}`);
+  if (!accountAddress || accountAddress == NULL_ADDRESS) {
+    throw new Error(`No account found for ${passkeyId} on ${origin}`);
+  }
 
   const publicKey = await readContract(client, {
     abi: WebAuthValidatorAbi,
-    address: args.contracts.passkey,
+    address: args.webAuthnModule,
     functionName: "getAccountKey",
     args: [origin, credentialId, accountAddress],
   });
 
-  if (!publicKey || !publicKey[0] || !publicKey[1]) throw new Error(`Passkey credentials not found in on-chain module for passkey ${username}`);
+  if (!publicKey || !publicKey[0] || !publicKey[1]) throw new Error(`Passkey credentials not found in on-chain module for passkey ${passkeyId}`);
 
   const passkeyPublicKey = getPasskeySignatureFromPublicKeyBytes(publicKey);
 
   return {
-    username,
+    credentialId: passkeyId,
     address: accountAddress,
     passkeyPublicKey,
   };

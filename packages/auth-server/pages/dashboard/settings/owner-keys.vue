@@ -76,6 +76,7 @@
           <ZkButton
             type="primary"
             class="w-full"
+            @click="addPrivateKey"
           >
             Add Private Key
           </ZkButton>
@@ -125,10 +126,11 @@
 
 <script setup lang="ts">
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
+import { toHex } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { SsoAccountAbi } from "zksync-sso/abi";
 
-const { defaultChain, getPublicClient, getEcdsaClient } = useClientStore();
+const { defaultChain, getPublicClient, getPasskeyClient } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
 
 const {
@@ -138,6 +140,7 @@ const {
 } = useAsync(async () => {
   if (!address.value) return [];
   const publicClient = getPublicClient({ chainId: defaultChain.id });
+  /*
   const k1OwnerList = await publicClient.readContract({
     address: address.value,
     abi: SsoAccountAbi,
@@ -145,6 +148,15 @@ const {
     args: [],
   });
   return k1OwnerList;
+  */
+  return await publicClient.getContractEvents({
+    abi: SsoAccountAbi,
+    address: address.value,
+    eventName: "K1OwnerAdded",
+    args: {
+      addr: address.value,
+    },
+  });
 });
 
 ownerKeysFetch();
@@ -153,15 +165,22 @@ const newPrivateKey = ref("");
 
 const addPrivateKey = async () => {
   if (!newPrivateKey.value) {
+    console.error("Private key is required");
+    return;
+  }
+  if (!address.value) {
+    console.error("Account address is required");
     return;
   }
 
   try {
-    const client = getEcdsaClient({ chainId: defaultChain.id });
-    const signer = await client.getSigner();
-    const contract = new client.Contract(address.value, SsoAccountAbi, signer);
-
-    await contract.write.addK1Owner([newPrivateKey]);
+    const client = await getPasskeyClient({ chainId: defaultChain.id });
+    client.writeContract({
+      address: address.value,
+      abi: SsoAccountAbi,
+      functionName: "addK1Owner",
+      args: [toHex(newPrivateKey.value)],
+    });
 
     newPrivateKey.value = ""; // Clear the input field
     await ownerKeysFetch(); // Refresh the owner keys list

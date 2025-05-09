@@ -151,6 +151,7 @@
         </ZkButton>
         <ZkButton
           class="w-full"
+          :hidden="!ownerPrivateKey"
           :disabled="preparingTransaction"
           :loading="!appMeta || responseInProgress"
           data-testid="confirm"
@@ -174,6 +175,7 @@ import type { ExtractParams } from "zksync-sso/client-auth-server";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
+const { ownerPrivateKey } = storeToRefs(useAccountStore());
 const { responseInProgress, responseError, request, requestChain } = storeToRefs(useRequestsStore());
 const { getPasskeyClient, getEcdsaClient } = useClientStore();
 
@@ -250,6 +252,9 @@ const confirmPrivateKeyTransaction = async () => {
   const requestedChain = requestChain.value;
   if (!requestedChain) {
     throw new Error("No chain requested");
+  }
+  if (!ownerPrivateKey || !ownerPrivateKey.value) {
+    throw new Error("No owner keys available");
   }
   respond(async () => {
     const client = await getEcdsaClient({ chainId: requestedChain.id });
