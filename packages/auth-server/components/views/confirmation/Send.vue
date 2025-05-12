@@ -154,7 +154,7 @@
           :hidden="!ownerPrivateKey"
           :disabled="preparingTransaction"
           :loading="!appMeta || responseInProgress"
-          data-testid="confirm"
+          data-testid="sign"
           @click="confirmPrivateKeyTransaction()"
         >
           Confirm (private-key)
