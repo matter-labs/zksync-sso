@@ -8,6 +8,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
   const { login } = useAccountStore();
   const { getThrowAwayClient } = useClientStore();
   const { registerPasskey } = usePasskeyRegister();
+  const chainContracts = contractsByChain[chainId.value];
 
   const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionConfig, "signer">) => {
     const result = await registerPasskey();
@@ -28,34 +29,35 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
 
     // Don't yet want this to be imported as part of the setup process
     const ownerKey = generatePrivateKey();
+    const ownerAddress = privateKeyToAddress(ownerKey);
 
     const deployerClient = getThrowAwayClient({ chainId: chainId.value });
 
     const deployedAccount = await deployAccount(deployerClient, {
-      accountFactory: contractsByChain[chainId.value].accountFactory,
+      accountFactory: chainContracts.accountFactory,
       passkeyModule: {
-        location: contractsByChain[chainId.value].passkey,
+        location: chainContracts.passkey,
         credentialId,
         credentialPublicKey,
       },
       paymaster: {
-        location: contractsByChain[chainId.value].accountPaymaster,
+        location: chainContracts.accountPaymaster,
       },
       uniqueAccountId: credentialId,
       sessionModule: {
-        location: contractsByChain[chainId.value].session,
+        location: chainContracts.session,
         initialSession: sessionData,
       },
-      owners: [ownerKey],
-      installNoDataModules: [contractsByChain[chainId.value].recovery],
+      owners: [ownerAddress],
+      installNoDataModules: [chainContracts.recovery],
     });
 
     login({
-      factory: contractsByChain[chainId.value].accountFactory,
+      factory: chainContracts.accountFactory,
       username: credentialId,
       address: deployedAccount.address,
       passkey: toHex(credentialPublicKey),
-      ownerPublicKey: privateKeyToAddress(ownerKey),
+      ownerPublicKey: ownerAddress,
       ownerPrivateKey: ownerKey,
     });
 

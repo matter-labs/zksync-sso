@@ -25,6 +25,7 @@ type ChainContracts = PasskeyRequiredContracts & {
   accountFactory: NonNullable<PasskeyRequiredContracts["accountFactory"]>;
   accountPaymaster: Address;
 };
+
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksyncSepoliaTestnet.id]: eraSepoliaChainData,
   [zksyncInMemoryNode.id]: localChainData,
@@ -84,11 +85,11 @@ export const useClientStore = defineStore("client", () => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
     const contracts = contractsByChain[chainId];
-    if (!ownerPrivateKey) throw new Error("Owner private key is not set");
+    if (!ownerPrivateKey || !ownerPrivateKey.value) throw new Error("Owner private key is not set");
 
     const client = createZksyncEcdsaClient({
       address: address.value,
-      owner: ownerPrivateKey.value,
+      owner: privateKeyToAccount(ownerPrivateKey.value),
       contracts,
       chain,
       transport: http(),
