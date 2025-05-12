@@ -163,7 +163,6 @@ describe("deployAccount", () => {
       logs: [],
     });
     vi.mocked(parseEventLogs).mockClear();
-    vi.mocked(parseEventLogs).mockReturnValue([]);
 
     await expect(
       deployAccount(mockClient, {
