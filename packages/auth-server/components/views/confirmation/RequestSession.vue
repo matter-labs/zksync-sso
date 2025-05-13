@@ -90,9 +90,9 @@ const props = defineProps({
 
 const { appMeta, appOrigin } = useAppMeta();
 const { isLoggedIn } = storeToRefs(useAccountStore());
+const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { createAccount } = useAccountCreate(computed(() => requestChain.value!.id));
 const { respond, deny } = useRequestsStore();
-const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { getPasskeyClient } = useClientStore();
 
 const defaults = {
