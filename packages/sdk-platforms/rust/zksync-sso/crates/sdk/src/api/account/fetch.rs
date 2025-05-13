@@ -83,7 +83,8 @@ pub async fn get_account_by_user_id(
     config: &Config,
 ) -> eyre::Result<super::Account> {
     crate::client::passkey::account_factory::get_smart_account_address_by_user_id(
-        &user_id, config,
+        user_id.clone(),
+        config,
     )
     .await
     .map_err(|e| eyre::eyre!(e))

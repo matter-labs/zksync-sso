@@ -38,14 +38,12 @@ export interface AccountInfo {
  * with the generated credentials.
  * 
  * @param accountInfo - Information about the account to register
- * @param secretAccountSalt - Salt used for account derivation
  * @param challenge - Challenge string for passkey creation
  * @param config - Configuration for deployment
  * @returns A Promise that resolves to the deployed Account
  */
 export const registerAccountWithUniqueId = async (
     accountInfo: AccountInfo,
-    secretAccountSalt: string,
     challenge: string,
     config: Config
 ): Promise<Account> => {
@@ -82,7 +80,6 @@ export const registerAccountWithUniqueId = async (
     const deployedAccount: Account = await deployAccountWithUniqueId(
         passkeyParameters,
         uniqueAccountId,
-        secretAccountSalt,
         config,
     );
     console.log("Deployed account:", deployedAccount);

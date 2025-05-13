@@ -23,7 +23,10 @@ const config = {
         session: "0x...",
         accountPaymaster: "0x..."
     },
-    nodeUrl: "https://..."
+    nodeUrl: "https://...",
+    deployWallet: {
+        privateKeyHex: "..."
+    }
 };
 
 const accountInfo = {
@@ -34,8 +37,6 @@ const accountInfo = {
 
 const challenge = generateRandomChallenge();
 
-const secretAccountSalt = ...;
-
 const deployedAccount = await registerAccountWithUniqueId(
     {
         name: accountInfo.name,
@@ -45,7 +46,6 @@ const deployedAccount = await registerAccountWithUniqueId(
             id: accountInfo.domain
         }
     },
-    secretAccountSalt,
     challenge,
     config
 );

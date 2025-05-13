@@ -1,7 +1,6 @@
 import { loadConfig } from './loadConfig';
 import sdk from '../../../../src';
 import type { AccountInfo, DeployedAccount } from '../types';
-import { createSecretAccountSalt } from './createSecretAccountSalt';
 
 /**
  * Creates a passkey for the given account info
@@ -13,7 +12,6 @@ export const createPasskey = async (
 ): Promise<DeployedAccount> => {
     const config = loadConfig();
     const challenge = sdk.ffi.generateRandomChallenge();
-    const secretAccountSalt = createSecretAccountSalt();
     const account = await sdk.register.registerAccountWithUniqueId(
         {
             name: accountInfo.name,
@@ -23,7 +21,6 @@ export const createPasskey = async (
                 id: accountInfo.domain
             }
         },
-        secretAccountSalt,
         challenge,
         config
     );

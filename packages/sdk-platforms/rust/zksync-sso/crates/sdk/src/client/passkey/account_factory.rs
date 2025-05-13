@@ -27,22 +27,16 @@ pub struct AccountParams {
     pub passkey_expected_origin: String,
 }
 
-async fn get_smart_account_bytecode_hash(
+pub(crate) async fn get_smart_account_bytecode_hash(
     config: &Config,
 ) -> eyre::Result<FixedBytes<32>> {
     let contracts = config.contracts.clone();
     let provider = {
-        let signer =
-            PrivateKeySigner::from_str(&config.deploy_wallet.private_key_hex)?;
-        let wallet = ZksyncWallet::from(signer);
         let node_url: url::Url = config.clone().node_url;
-        let provider = zksync_provider()
+        
+        zksync_provider()
             .with_recommended_fillers()
-            .wallet(wallet.clone())
-            .on_http(node_url.clone());
-        let wallet_address = wallet.default_signer().address();
-        println!("XDB - Wallet address: {}", wallet_address);
-        provider
+            .on_http(node_url.clone())
     };
     let factory = AAFactory::new(contracts.account_factory, &provider);
     let result = factory.beaconProxyBytecodeHash().call().await?;
@@ -52,22 +46,16 @@ async fn get_smart_account_bytecode_hash(
     Ok(hash)
 }
 
-async fn get_smart_account_proxy_address(
+pub(crate) async fn get_smart_account_proxy_address(
     config: &Config,
 ) -> eyre::Result<Bytes> {
     let contracts = config.contracts.clone();
     let provider = {
-        let signer =
-            PrivateKeySigner::from_str(&config.deploy_wallet.private_key_hex)?;
-        let wallet = ZksyncWallet::from(signer);
         let node_url: url::Url = config.clone().node_url;
-        let provider = zksync_provider()
+        
+        zksync_provider()
             .with_recommended_fillers()
-            .wallet(wallet.clone())
-            .on_http(node_url.clone());
-        let wallet_address = wallet.default_signer().address();
-        println!("XDB - Wallet address: {}", wallet_address);
-        provider
+            .on_http(node_url.clone())
     };
     let factory = AAFactory::new(contracts.account_factory, &provider);
     let result = factory.getEncodedBeacon().call().await?;
@@ -75,49 +63,36 @@ async fn get_smart_account_proxy_address(
 }
 
 async fn is_account_deployed(
-    user_id: &str,
+    user_id: String,
     config: &Config,
 ) -> eyre::Result<bool> {
     let smart_account_address =
         get_smart_account_address_by_user_id(user_id, config).await?;
     let provider = {
-        let signer =
-            PrivateKeySigner::from_str(&config.deploy_wallet.private_key_hex)?;
-        let wallet = ZksyncWallet::from(signer);
         let node_url: url::Url = config.clone().node_url;
-        let provider = zksync_provider()
+        
+        zksync_provider()
             .with_recommended_fillers()
-            .wallet(wallet.clone())
-            .on_http(node_url.clone());
-        let wallet_address = wallet.default_signer().address();
-        println!("XDB - Wallet address: {}", wallet_address);
-        provider
+            .on_http(node_url.clone())
     };
     let address_bytecode = provider.get_code_at(smart_account_address).await?;
     Ok(!address_bytecode.is_empty())
 }
 
-pub fn get_account_id_by_user_id(
-    user_id: &str,
-    deploy_wallet_address: &Address,
-) -> FixedBytes<32> {
-    let combined = {
-        let wallet_address_str = deploy_wallet_address.to_string();
-        println!(
-            "XDB get_account_id_by_user_id - wallet_address_str: {:?}",
-            wallet_address_str
-        );
-        let combined = [user_id, &wallet_address_str].concat();
-        println!("XDB get_account_id_by_user_id - combined: {:?}", combined);
-        combined
-    };
-    let hash: FixedBytes<32> = keccak256(combined);
-    println!("XDB get_account_id_by_user_id - hash: {:?}", hash);
-    hash
+pub fn get_account_id_by_user_id(user_id: String) -> FixedBytes<32> {
+    println!("XDB get_account_id_by_user_id - user_id: {}", user_id);
+
+    let salt = hex::encode(user_id);
+    println!("XDB salt: {:?}", salt);
+
+    let salt_hash = keccak256(salt);
+    println!("XDB salt_hash: {:?}", salt_hash);
+
+    salt_hash
 }
 
 pub async fn get_smart_account_address_by_user_id(
-    user_id: &str,
+    user_id: String,
     config: &Config,
 ) -> eyre::Result<Address> {
     let contracts = config.contracts.clone();
@@ -129,40 +104,87 @@ pub async fn get_smart_account_address_by_user_id(
         },
     )
     .await?;
-    let account_id =
-        get_account_id_by_user_id(user_id, &config.deploy_wallet.address());
+    let unique_id = get_account_id_by_user_id(user_id.clone());
     println!(
-        "XDB get_smart_account_address_by_user_id - Account ID: {}",
-        hex::encode(account_id.as_slice())
+        "XDB get_smart_account_address_by_user_id - unique_id: {}",
+        unique_id
     );
+
     let smart_account_proxy_address =
         get_smart_account_proxy_address(config).await?;
     println!(
         "XDB get_smart_account_address_by_user_id - Smart account proxy address: {}",
         smart_account_proxy_address
     );
+
     let smart_account_bytecode_hash =
         get_smart_account_bytecode_hash(config).await?;
     println!(
         "XDB get_smart_account_address_by_user_id - Smart account bytecode hash: {}",
         smart_account_bytecode_hash
     );
-    let account_address = create2_address(
+
+    let account_id_hash = unique_id;
+
+    let deploy_wallet_address = {
+        let signer =
+            PrivateKeySigner::from_str(&config.deploy_wallet.private_key_hex)?;
+        let wallet = ZksyncWallet::from(signer);
+        
+        wallet.default_signer().address()
+    };
+
+    let wallet_address_bytes = deploy_wallet_address.0.to_vec();
+    println!(
+        "XDB get_predicted_deployed_account_address - wallet_address_bytes: {:?}",
+        wallet_address_bytes
+    );
+
+    let concatenated_bytes = {
+        let mut concatenated_bytes = Vec::new();
+        concatenated_bytes.extend(account_id_hash.to_vec());
+        concatenated_bytes.extend(wallet_address_bytes);
+        concatenated_bytes
+    };
+    println!(
+        "XDB get_predicted_deployed_account_address - concatenated_bytes: {:?}",
+        concatenated_bytes
+    );
+
+    let concatenated_bytes_hex = hex::encode(concatenated_bytes.clone());
+    println!(
+        "XDB get_predicted_deployed_account_address - concatenated_bytes_hex: {:?}",
+        concatenated_bytes_hex
+    );
+
+    let unique_salt = keccak256(concatenated_bytes.clone());
+    println!(
+        "XDB get_predicted_deployed_account_address - unique_salt: {:?}",
+        unique_salt
+    );
+
+    let unique_salt_hex = hex::encode(unique_salt);
+    println!(
+        "XDB get_predicted_deployed_account_address - unique_salt_hex: {:?}",
+        unique_salt_hex
+    );
+
+    let address = create2_address(
         contracts.account_factory,
         smart_account_bytecode_hash,
-        account_id,
+        unique_salt,
         smart_account_proxy_address,
     );
     println!(
         "XDB get_smart_account_address_by_user_id - Smart account address: {}",
-        account_address
+        address
     );
-    Ok(account_address)
+
+    Ok(address)
 }
 
 async fn deploy_smart_account(
-    user_id: &str,
-    account_id: &FixedBytes<32>,
+    user_id: String,
     credential: &CredentialDetails,
     account_params: &AccountParams,
     paymaster: Option<PaymasterParams>,
@@ -175,12 +197,12 @@ async fn deploy_smart_account(
             id: credential.id.clone(),
             public_key: credential.public_key.clone(),
         },
-        // salt: Some(account_id.as_slice().try_into().unwrap()),
         expected_origin: Some(account_params.passkey_expected_origin.clone()),
-        unique_account_id: Some(hex::encode(account_id.as_slice())),
+        unique_account_id: Some(user_id.clone()),
         paymaster,
         contracts: contracts.clone(),
-        initial_k1_owners: None, // TODO: add initial k1 owners
+        initial_k1_owners: None,
+        ..Default::default()
     };
 
     let result = deploy_account(args, config).await?;
@@ -188,11 +210,13 @@ async fn deploy_smart_account(
     println!("Deployed account address: {}", deployed_account_address);
 
     let derived_address =
-        get_smart_account_address_by_user_id(user_id, config).await?;
+        get_smart_account_address_by_user_id(user_id.clone(), config).await?;
 
     if derived_address != deployed_account_address {
         return Err(eyre::eyre!(
-            "Deployed address doesn't match derived address"
+            "Deployed address {} doesn't match derived address: {}",
+            deployed_account_address,
+            derived_address
         ));
     }
 
@@ -212,17 +236,12 @@ pub async fn create_account(
     println!("XDB create_account - paymaster: {:?}", paymaster);
     println!("XDB create_account - config: {:?}", config);
 
-    let deploy_wallet = config.deploy_wallet.clone();
-
     let address =
-        get_smart_account_address_by_user_id(&user_id, config).await?;
+        get_smart_account_address_by_user_id(user_id.clone(), config).await?;
     println!("XDB create_account - address: {}", address);
 
-    let account_id =
-        get_account_id_by_user_id(&user_id, &deploy_wallet.address());
-    println!("XDB create_account - account_id: {}", account_id);
-
-    let is_already_deployed = is_account_deployed(&user_id, config).await?;
+    let is_already_deployed =
+        is_account_deployed(user_id.clone(), config).await?;
     println!(
         "XDB create_account - is_already_deployed: {}",
         is_already_deployed
@@ -234,8 +253,7 @@ pub async fn create_account(
     }
 
     _ = deploy_smart_account(
-        &user_id,
-        &account_id,
+        user_id.clone(),
         &credential,
         account_params,
         paymaster,
@@ -251,27 +269,13 @@ pub async fn create_account(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::spawn_node_and_deploy_contracts;
-    use alloy::primitives::address;
-
-    // Sample COSE key in hex format
-    const SAMPLE_COSE_KEY: &[u8] = &[
-        0xa5, // map of 5 elements
-        0x01, 0x02, // kty: EC2
-        0x03, 0x26, // alg: ES256
-        0x20, 0x01, // crv: P-256
-        0x21, 0x58, 0x20, // x: bytes(32)
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x22, 0x58,
-        0x20, // y: bytes(32)
-        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
-        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
-        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
-    ];
+    use crate::{
+        client::passkey::actions::deploy::CredentialDetails,
+        utils::test_utils::spawn_node_and_deploy_contracts,
+    };
+    use alloy::signers::local::PrivateKeySigner;
 
     #[tokio::test]
-    #[ignore = "This test is currently broken for unknown reasons"]
     async fn test_get_smart_account_bytecode_hash() -> eyre::Result<()> {
         // Arrange
         let (anvil_zksync, config, _) =
@@ -293,46 +297,53 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "This test is currently broken due to the account not being deployed to the same address as the expected address"]
     async fn test_create_account() -> eyre::Result<()> {
         // Arrange
         let (anvil_zksync, config, _) =
             spawn_node_and_deploy_contracts().await?;
 
-        let user_id = "unique-base64encoded-string".to_string();
-        let credential_public_key = SAMPLE_COSE_KEY.to_vec();
-        let account_params = AccountParams {
-            passkey_expected_origin: "https://example.com".to_string(),
-        };
+        let user_id = "unique-id".to_string();
 
-        let credential_id = user_id.clone();
+        let credential_public_key = vec![
+            165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            34, 88, 32, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        ];
+
+        let contracts = config.clone().contracts;
+
+        let origin: String = "https://example.com".to_string();
+
+        let account_params = AccountParams { passkey_expected_origin: origin };
+
+        let credential_id = "unique-base64encoded-string".to_string();
         let credential = CredentialDetails {
             id: credential_id,
             public_key: credential_public_key.clone(),
         };
+
+        let paymaster = Some(PaymasterParams {
+            paymaster: contracts.account_paymaster,
+            paymaster_input: Bytes::new(),
+        });
 
         // Act - Create account first time
         let address1 = create_account(
             user_id.clone(),
             credential.clone(),
             &account_params,
-            None,
+            paymaster,
             &config,
         )
         .await?;
 
         // Assert
-        // 1. Address should be valid (20 bytes)
-        eyre::ensure!(
-            address1.as_slice().len() == 20,
-            "Address should be 20 bytes"
-        );
-
-        // 2. Account should be deployed
-        let is_deployed = is_account_deployed(&user_id, &config).await?;
+        // 1. Account should be deployed
+        let is_deployed = is_account_deployed(user_id.clone(), &config).await?;
         eyre::ensure!(is_deployed, "Account should be deployed");
 
-        // 3. Creating account again should return same address (idempotent)
+        // 2. Creating account again should return same address (idempotent)
         let address2 = create_account(
             user_id.clone(),
             credential.clone(),
@@ -348,7 +359,8 @@ mod tests {
 
         // 4. Verify the address matches what we expect from create2
         let expected_address =
-            get_smart_account_address_by_user_id(&user_id, &config).await?;
+            get_smart_account_address_by_user_id(user_id.clone(), &config)
+                .await?;
         eyre::ensure!(
             address1 == expected_address,
             "Address should match create2 computation"
@@ -361,64 +373,84 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "This test is currently broken due address derivation not working"]
     async fn test_get_smart_account_address_by_user_id() -> eyre::Result<()> {
         // Arrange
         let (anvil_zksync, config, _) =
             spawn_node_and_deploy_contracts().await?;
-        let contracts = config.contracts.clone();
 
-        let user_id = "test_user_123";
-        let deploy_wallet_address =
-            address!("1234567890123456789012345678901234567890");
+        let wallet_address = {
+            let wallet = ZksyncWallet::from(PrivateKeySigner::from_str(
+                &config.deploy_wallet.private_key_hex,
+            )?);
+            wallet.default_signer().address()
+        };
+        println!("XDB - Wallet address: {}", wallet_address);
+
+        let account_factory_address = config.contracts.account_factory;
+        println!("XDB - Account factory address: {}", account_factory_address);
 
         // Act
+        let user_id = "unique-id".to_string();
         let address1 =
-            get_smart_account_address_by_user_id(user_id, &config).await?;
+            get_smart_account_address_by_user_id(user_id.clone(), &config)
+                .await?;
 
         // Assert
         // 1. Address should be valid (20 bytes)
-        assert_eq!(address1.as_slice().len(), 20);
+        eyre::ensure!(
+            address1.as_slice().len() == 20,
+            "Address should be 20 bytes"
+        );
 
         // 2. Test determinism - same inputs should give same address
         let address2 =
-            get_smart_account_address_by_user_id(user_id, &config).await?;
-        assert_eq!(
-            address1, address2,
+            get_smart_account_address_by_user_id(user_id.clone(), &config)
+                .await?;
+        eyre::ensure!(
+            address1 == address2,
             "Address generation should be deterministic"
         );
 
         // 3. Different user_id should give different address
-        let different_address =
-            get_smart_account_address_by_user_id("different_user", &config)
-                .await?;
-        assert_ne!(
-            address1, different_address,
+        let different_address = get_smart_account_address_by_user_id(
+            "different_user".to_string(),
+            &config,
+        )
+        .await?;
+        eyre::ensure!(
+            address1 != different_address,
             "Different user_id should give different address"
         );
 
-        // 4. Different salt should give different address
-        let different_salt_address =
-            get_smart_account_address_by_user_id(user_id, &config).await?;
-        assert_ne!(
-            address1, different_salt_address,
-            "Different salt should give different address"
-        );
+        // 4. Verify components are correctly used
 
-        // 5. Verify components are correctly used
-        let account_id =
-            get_account_id_by_user_id(user_id, &deploy_wallet_address);
+        let account_id_hash = get_account_id_by_user_id(user_id.clone());
+        let deploy_wallet_address = {
+            let signer = PrivateKeySigner::from_str(
+                &config.deploy_wallet.private_key_hex,
+            )?;
+            let wallet = ZksyncWallet::from(signer);
+            
+            wallet.default_signer().address()
+        };
+        let wallet_address_bytes = deploy_wallet_address.0.to_vec();
+        let concatenated_bytes = {
+            let mut concatenated_bytes = Vec::new();
+            concatenated_bytes.extend(account_id_hash.to_vec());
+            concatenated_bytes.extend(wallet_address_bytes);
+            concatenated_bytes
+        };
+        let unique_salt = keccak256(concatenated_bytes.clone());
         let bytecode_hash = get_smart_account_bytecode_hash(&config).await?;
         let proxy_address = get_smart_account_proxy_address(&config).await?;
-
         let expected_address = create2_address(
-            contracts.account_factory,
+            account_factory_address,
             bytecode_hash,
-            account_id,
+            unique_salt,
             proxy_address,
         );
-        assert_eq!(
-            address1, expected_address,
+        eyre::ensure!(
+            address1 == expected_address,
             "Address should match manual calculation"
         );
 

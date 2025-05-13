@@ -11,7 +11,7 @@ import TransactionFormFields from './TransactionFormFields';
 import TransactionFeeView from './TransactionFeeView';
 import ToastView from './ToastView';
 import ActionButton, { ButtonStyle } from './ActionButton';
-import { type PreparedTransaction } from '../../../src';
+import { type Transaction, type PreparedTransaction } from '../../../src';
 import { AccountClient } from '../../../src/passkey/authenticate/account_client';
 import { loadConfig } from './helpers/loadConfig';
 
@@ -64,12 +64,21 @@ const SendTransactionView: React.FC<SendTransactionViewProps> = ({
 
         try {
             const config = loadConfig();
-            const accountClient = new AccountClient({
-                address: fromAccount.address,
-                uniqueAccountId: fromAccount.uniqueAccountId
-            }, fromAccount.info.domain, config);
-
-            const prepared = await accountClient.prepareTransaction(toAddress, amountInWei);
+            const accountClient = new AccountClient(
+                {
+                    address: fromAccount.address,
+                    uniqueAccountId: fromAccount.uniqueAccountId
+                },
+                fromAccount.info.domain,
+                config
+            );
+            const transaction: Transaction = {
+                to: toAddress,
+                value: amountInWei,
+                from: fromAccount.address,
+                input: undefined
+            };
+            const prepared = await accountClient.prepareTransaction(transaction);
             console.log("Prepared transaction:", prepared);
             setPreparedTransaction(prepared);
         } catch (err) {
@@ -97,7 +106,14 @@ const SendTransactionView: React.FC<SendTransactionViewProps> = ({
                 uniqueAccountId: fromAccount.uniqueAccountId
             }, fromAccount.info.domain, config);
 
-            await accountClient.sendTransaction(toAddress, amountInWei);
+            const transaction: Transaction = {
+                to: toAddress,
+                value: amountInWei,
+                from: fromAccount.address,
+                input: undefined
+            };
+
+            await accountClient.sendTransaction(transaction);
             setShowingSuccess(true);
             onTransactionSent();
 
@@ -156,7 +172,7 @@ const SendTransactionView: React.FC<SendTransactionViewProps> = ({
                     action={confirmTransaction}
                 />
             </ScrollView>
-            
+
             {showingSuccess && (
                 <View style={styles.toastOverlay}>
                     <ToastView

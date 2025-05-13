@@ -71,13 +71,7 @@ impl Default for DeployAccountArgs {
             expected_origin: None,
             unique_account_id: None,
             paymaster: None,
-            contracts: PasskeyContracts::new(
-                Address::default(),
-                Address::default(),
-                Address::default(),
-                Address::default(),
-                Address::default(),
-            ),
+            contracts: PasskeyContracts::default(),
             initial_k1_owners: None,
         }
     }
@@ -87,20 +81,24 @@ pub async fn deploy_account(
     args: DeployAccountArgs,
     config: &Config,
 ) -> Result<DeployedAccountDetails> {
+    println!("args.unique_account_id: {:?}", args.unique_account_id.clone());
+
     let provider = {
-        fn zksync_wallet() -> eyre::Result<ZksyncWallet> {
-            let signer = PrivateKeySigner::random();
-            let zksync_wallet = ZksyncWallet::from(signer);
-            Ok(zksync_wallet)
-        }
         let node_url: url::Url = config.clone().node_url;
-        let wallet = zksync_wallet().unwrap();
+
+        let deploy_wallet = config.clone().deploy_wallet;
+
+        let wallet = ZksyncWallet::from(PrivateKeySigner::from_str(
+            &deploy_wallet.private_key_hex,
+        )?);
+
         let provider = zksync_provider()
             .with_recommended_fillers()
             .wallet(wallet.clone())
             .on_http(node_url.clone());
         let wallet_address = wallet.default_signer().address();
         println!("XDB - Wallet address: {}", wallet_address);
+
         provider
     };
 
@@ -198,8 +196,8 @@ pub async fn deploy_account(
 
     let account_id = args
         .unique_account_id
+        .map(hex::encode)
         .unwrap_or_else(|| hex::encode(encoded_passkey_parameters));
-
     println!("XDB deploy_account - Using account ID: {}", account_id);
 
     let account_factory = args.contracts.account_factory;
@@ -226,7 +224,6 @@ pub async fn deploy_account(
     println!("XDB deploy_account - Initial k1 owners: {:?}", initial_k1_owners);
 
     let unique_id = hash_unique_account_id(account_id.clone())?;
-
     println!("XDB deploy_account - unique_id: {}", unique_id);
 
     let deploy_call = instance.deployProxySsoAccount(
@@ -306,12 +303,11 @@ fn get_account_created_event(
 fn hash_unique_account_id(
     account_id_hex: String,
 ) -> eyre::Result<FixedBytes<32>> {
-    let account_id_bytes = hex::decode(account_id_hex)?;
     println!(
-        "XDB hash_unique_account_id - account_id_bytes: {:?}",
-        account_id_bytes
+        "XDB hash_unique_account_id - account_id_hex: {:?}",
+        account_id_hex
     );
-    let hash = keccak256(account_id_bytes);
+    let hash = keccak256(account_id_hex);
     println!("XDB hash_unique_account_id - hash: {:?}", hash);
     Ok(hash)
 }

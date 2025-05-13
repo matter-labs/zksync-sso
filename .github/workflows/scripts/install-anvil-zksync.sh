@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/matter-labs/anvil-zksync.git"
-RELEASE_VERSION="v0.3.2"
+RELEASE_VERSION="v0.6.1"
 RELEASE_FILE_NAME="anvil-zksync-${RELEASE_VERSION}-aarch64-apple-darwin.tar.gz"
 RELEASE_URL="https://github.com/matter-labs/anvil-zksync/releases/download/${RELEASE_VERSION}/${RELEASE_FILE_NAME}"
 INSTALL_DIR="/usr/local/bin"
