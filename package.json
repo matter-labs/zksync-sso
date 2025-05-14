@@ -18,6 +18,8 @@
     "lint": "pnpm run lint:eslint && pnpm run lint:markdown && pnpm run lint:spelling && pnpm run lint:prettier",
     "lint:fix": "pnpm eslint --fix --ignore-pattern 'packages/*' --ignore-pattern 'examples/*' . && pnpm nx affected -t lint --fix && pnpm prettier --write . | grep -v 'unchanged' | xargs",
     "format-abi": "pnpm eslint --fix packages/sdk/src/abi && pnpm nx affected -t lint --fix && pnpm prettier --write packages/sdk/src/abi | grep -v 'unchanged' | xargs",
+    "format-auth-server": "pnpm eslint --fix packages/auth-server && pnpm nx affected -t lint --fix && pnpm prettier --write packages/auth-server | grep -v 'unchanged' | xargs",
+    "format-package": "pnpm eslint --fix package.json && pnpm nx affected -t lint --fix && pnpm prettier --write package.json | grep -v 'unchanged' | xargs",
     "lint:eslint": "pnpm nx run-many -t lint --all && pnpm eslint --ignore-pattern 'packages/*' --ignore-pattern 'examples/*' .",
     "lint:markdown": "markdownlint-cli2 '**/*.md'",
     "lint:spelling": "cspell .",
