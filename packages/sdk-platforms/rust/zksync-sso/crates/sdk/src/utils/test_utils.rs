@@ -2,7 +2,7 @@ use crate::{
     config::{Config, deploy_wallet::DeployWallet},
     utils::deployment_utils::deploy_contracts,
 };
-use ::alloy::{
+use alloy::{
     providers::{
         Identity, RootProvider,
         fillers::{FillProvider, JoinFill, WalletFiller},
@@ -12,8 +12,8 @@ use ::alloy::{
 use alloy_zksync::{
     network::Zksync,
     node_bindings::{AnvilZKsync, AnvilZKsyncError, AnvilZKsyncInstance},
-    provider::layers::anvil_zksync::AnvilZKsyncProvider,
-    provider::{ProviderBuilderExt as _, zksync_provider},
+    provider::layers::anvil_zksync::{AnvilZKsyncLayer, AnvilZKsyncProvider},
+    provider::zksync_provider,
     wallet::ZksyncWallet,
 };
 use k256::{Secp256k1, elliptic_curve::SecretKey};
@@ -49,15 +49,14 @@ pub async fn spawn_node() -> eyre::Result<(
     DeployWallet,
     url::Url,
 )> {
-    use alloy_zksync::provider::layers::anvil_zksync::AnvilZKsyncLayer;
     let anvil_zksync = AnvilZKsync::new().try_spawn()?;
     let node_url = anvil_zksync.endpoint_url();
 
-    let (provider, private_key_hex) = {
+    let (provider, deploy_key_hex) = {
         let f = |anvil_zksync: AnvilZKsync| anvil_zksync;
         let anvil_zksync_layer = AnvilZKsyncLayer::from(f(Default::default()));
 
-        let (wallet, default_key, _) =
+        let (wallet, _, remaining_keys) =
             zksync_wallet_from_anvil_zksync(&anvil_zksync)?;
 
         let provider = zksync_provider()
@@ -65,12 +64,15 @@ pub async fn spawn_node() -> eyre::Result<(
             .layer(anvil_zksync_layer)
             .on_http(node_url.clone());
 
-        let private_key_hex = hex::encode(default_key.to_bytes());
+        let deploy_key =
+            remaining_keys.first().ok_or(AnvilZKsyncError::NoKeysAvailable)?;
 
-        (provider, private_key_hex)
+        let deploy_key_hex = hex::encode(deploy_key.to_bytes());
+
+        (provider, deploy_key_hex)
     };
 
-    let deploy_wallet = DeployWallet::try_from(private_key_hex)?;
+    let deploy_wallet = DeployWallet::try_from(deploy_key_hex)?;
 
     Ok((anvil_zksync, provider, deploy_wallet, node_url))
 }

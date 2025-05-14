@@ -35,9 +35,10 @@ public func deployAccountWith(
     
     let uniqueAccountId = params.uniqueAccountId
     
-    let account = try await ZKsyncSSOFFI.deployAccount(
-        passkeyParameters: passkeyParameters,
-        config: Config.default.inner
+    let account = try await ZKsyncSSOFFI.deployAccountWithUniqueId(
+      passkeyParameters: passkeyParameters,
+      uniqueAccountId: params.uniqueAccountId,
+      config: Config.default.inner
     )
     
     print("account: \(account)")

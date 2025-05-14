@@ -31,15 +31,14 @@ export class AccountClient {
      * @returns Prepared transaction with fee information
      */
     async prepareTransaction(transaction: Transaction): Promise<PreparedTransaction> {
-        const from = this.account.address;
-        const transaction: Transaction = {
-            to,
-            value,
-            from,
+        const tx: Transaction = {
+            to: transaction.to,
+            value: transaction.value,
+            from: this.account.address,
+            input: transaction.input ?? undefined,
         };
         const preparedTransaction = await prepareSendTransaction(
-            transaction,
-            from,
+            tx,
             this.config
         );
         return preparedTransaction;
@@ -50,10 +49,10 @@ export class AccountClient {
      * @param transaction The transaction to send
      * @returns Transaction hash
      */
-    async sendTransaction(to: Transaction): Promise<SendTransactionResult> {
+    async sendTransaction(transaction: Transaction): Promise<SendTransactionResult> {
         const authenticator = new Authenticator(this.rpId);
         const result = await sendTransactionAsyncSigner(
-            prepared,
+            transaction,
             authenticator,
             this.config
         );

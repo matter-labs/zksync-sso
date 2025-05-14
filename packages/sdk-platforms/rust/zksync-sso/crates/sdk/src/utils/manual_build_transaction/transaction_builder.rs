@@ -4,6 +4,10 @@ use alloy::{
     eips::Encodable2718,
     network::TransactionBuilder,
     primitives::{Bytes, PrimitiveSignature, U256},
+    providers::{
+        SendableTx,
+        SendableTx::{Builder, Envelope},
+    },
 };
 use alloy_zksync::{
     network::{
@@ -82,13 +86,13 @@ impl From<TransactionRequestWrapper> for TxEip712 {
 }
 
 #[derive(Clone, Debug)]
-pub struct SendableTxWrapper(pub alloy::providers::SendableTx<Zksync>);
+pub struct SendableTxWrapper(pub SendableTx<Zksync>);
 
 impl From<SendableTxWrapper> for TransactionRequest {
     fn from(sendable_tx: SendableTxWrapper) -> Self {
         match sendable_tx.0 {
-            alloy::providers::SendableTx::Builder(tx) => tx,
-            alloy::providers::SendableTx::Envelope(tx) => tx.into(),
+            Builder(tx) => tx,
+            Envelope(tx) => tx.into(),
         }
     }
 }

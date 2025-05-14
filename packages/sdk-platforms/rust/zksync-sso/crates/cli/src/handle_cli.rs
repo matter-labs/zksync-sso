@@ -1,3 +1,4 @@
+use crate::handle_cli::Commands::DeployContracts;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use url::Url;
@@ -27,7 +28,7 @@ pub async fn handle_cli() -> eyre::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::DeployContracts { node_url, config_path } => {
+        DeployContracts { node_url, config_path } => {
             super::deploy_contracts::deploy_contracts_and_update_swift_config(
                 node_url,
                 config_path,

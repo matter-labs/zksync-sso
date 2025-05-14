@@ -2,7 +2,7 @@ use alloy::primitives::Address;
 use eyre::Result;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PasskeyContracts {
     pub account_factory: Address,
