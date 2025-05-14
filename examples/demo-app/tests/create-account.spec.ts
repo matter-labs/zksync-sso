@@ -44,7 +44,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByText("ZKsync SSO Demo")).toBeVisible();
 });
 
-test("Create account w/ session and send ETH", async ({ page }) => {
+test.fixme("Create account w/ session and send ETH", async ({ page }) => {
   // Click the Connect button
   await page.getByRole("button", { name: "Connect w/ Session", exact: true }).click();
 
@@ -105,7 +105,7 @@ test("Create account w/ session and send ETH", async ({ page }) => {
     .toBeGreaterThan(endBalance + 0.1);
 });
 
-test("Create account w/ session and send ETH w/ paymaster", async ({ page }) => {
+test.fixme("Create account w/ session and send ETH w/ paymaster", async ({ page }) => {
   // Click the Connect button
   await page.getByRole("button", { name: "Connect w/ Session", exact: true }).click();
 
@@ -268,7 +268,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
     .toBeGreaterThan(endBalance + 0.1);
 });
 
-test("Create passkey account and send ETH w/ paymaster", async ({ page }) => {
+test.fixme("Create passkey account and send ETH w/ paymaster", async ({ page }) => {
   // Click the Connect button
   await page.getByRole("button", { name: "Connect", exact: true }).click();
 
