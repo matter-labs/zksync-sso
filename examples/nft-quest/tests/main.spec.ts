@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 async function waitForServicesToLoad(page: Page): Promise<void> {
-  const maxRetryAttempts = 60;
+  const maxRetryAttempts = 20;
   const pageTimeout = 5000;
   let retryCount = 0;
 
@@ -47,8 +47,8 @@ test.beforeEach(async ({ page }) => {
 
 test("Create account, session key, and mint NFT", async ({ page }) => {
   const waitTimeout = 4000;
-  const popupTimeout = 30000;
-  const mintTimeout = 60000;
+  const popupTimeout = 8000;
+  const mintTimeout = 4000;
   // Click the Let's Go button
   await page.getByRole("button", { name: "Let's Go" }).click();
 
@@ -142,7 +142,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
     authenticatorId: result.authenticatorId,
     credential: newCredential!,
   });
-  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
+  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible({ timeout: popupTimeout });
 
   // Logout
   await popup.getByTestId("logout").click();
@@ -152,7 +152,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   await popup.getByTestId("login").click();
 
   // Add session
-  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
+  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible({ timeout: popupTimeout });
   await expect(popup.getByText("Permissions")).toBeVisible();
   await popup.getByTestId("connect").click();
 
