@@ -1,14 +1,15 @@
 import { expect, type Page, test } from "@playwright/test";
 
 async function waitForServicesToLoad(page: Page): Promise<void> {
-  const maxRetryAttempts = 30;
+  const maxRetryAttempts = 20;
+  const pageTimeout = 5000;
   let retryCount = 0;
 
   // Wait for nft-quest to finish loading
   await page.goto("/");
   let demoButton = page.getByText("Let's Go");
   while (!(await demoButton.isVisible()) && retryCount < maxRetryAttempts) {
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(pageTimeout);
     demoButton = page.getByText("Let's Go");
     retryCount++;
 
@@ -21,7 +22,7 @@ async function waitForServicesToLoad(page: Page): Promise<void> {
   await page.goto("http://localhost:3002");
   let authServerHeader = page.getByTestId("signup");
   while (!(await authServerHeader.isVisible()) && retryCount < maxRetryAttempts) {
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(pageTimeout);
     authServerHeader = page.getByTestId("signup");
     retryCount++;
 
@@ -45,13 +46,16 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("Create account, session key, and mint NFT", async ({ page }) => {
+  const waitTimeout = 4000;
+  const popupTimeout = 8000;
+  const mintTimeout = 4000;
   // Click the Let's Go button
   await page.getByRole("button", { name: "Let's Go" }).click();
 
   // Ensure popup is displayed
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(waitTimeout);
   let popup = page.context().pages()[1];
-  await expect(popup.getByText("Connect to ZK NFT Quest")).toBeVisible({ timeout: 15000 });
+  await expect(popup.getByText("Connect to ZK NFT Quest")).toBeVisible({ timeout: popupTimeout });
   popup.on("console", (msg) => {
     if (msg.type() === "error")
       console.log(`Auth server error console: "${msg.text()}"`);
@@ -90,15 +94,16 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   });
 
   // Add session
-  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
+  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible({ timeout: popupTimeout });
   await expect(popup.getByText("Permissions")).toBeVisible();
   await popup.getByTestId("connect").click();
 
   // Waits for session to complete and popup to close
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(waitTimeout);
 
   // Mint your NFT
-  await page.getByRole("button", { name: "Mint 100% free NFT" }).click();
+  await page.getByRole("button", { name: "Mint 100% free NFT" }).click({ timeout: mintTimeout });
+  await page.waitForTimeout(mintTimeout);
   await expect(page.getByTestId("spinner")).not.toBeVisible();
 
   // Send a friend the NFT
@@ -107,7 +112,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   await page.getByPlaceholder("Wallet address").fill(richWallet0);
   await page.getByRole("button", { name: "Mint and send" }).click();
   await expect(page.getByTestId("spinner")).not.toBeVisible();
-  await expect(page.getByText("You've sent the minted copy to")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("You've sent the minted copy to")).toBeVisible({ timeout: popupTimeout });
 
   // Disconnect and try again by logging in with the existing passkey
   await page.getByText("keyboard_arrow_down").click();
@@ -116,7 +121,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   await page.getByText("Let's Go").click();
 
   // Wait for Auth Server to pop back up
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(waitTimeout);
   popup = page.context().pages()[1];
 
   // We need to recreate the virtual authenticator to match the previous one
@@ -137,7 +142,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
     authenticatorId: result.authenticatorId,
     credential: newCredential!,
   });
-  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
+  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible({ timeout: popupTimeout });
 
   // Logout
   await popup.getByTestId("logout").click();
@@ -147,15 +152,16 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   await popup.getByTestId("login").click();
 
   // Add session
-  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
+  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible({ timeout: popupTimeout });
   await expect(popup.getByText("Permissions")).toBeVisible();
   await popup.getByTestId("connect").click();
 
   // Waits for session to complete and popup to close
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(waitTimeout);
 
   // Mint another NFT
-  await page.getByRole("button", { name: "Mint 100% free NFT" }).click({ timeout: 60000 });
+  await page.getByRole("button", { name: "Mint 100% free NFT" }).click({ timeout: mintTimeout });
+  await page.waitForTimeout(mintTimeout);
   await expect(page.getByTestId("spinner")).not.toBeVisible();
   await expect(page.getByText("You've got Zeek.")).toBeVisible();
 });

@@ -8,6 +8,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
   const { login } = useAccountStore();
   const { getThrowAwayClient } = useClientStore();
   const { registerPasskey } = usePasskeyRegister();
+  const chainContracts = contractsByChain[chainId.value];
 
   const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionConfig, "signer">) => {
     const result = await registerPasskey();
@@ -26,21 +27,38 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
       };
     }
 
+    // Don't yet want this to be imported as part of the setup process
+    const ownerKey = generatePrivateKey();
+    const ownerAddress = privateKeyToAddress(ownerKey);
+
     const deployerClient = getThrowAwayClient({ chainId: chainId.value });
 
     const deployedAccount = await deployAccount(deployerClient, {
-      credentialId,
-      credentialPublicKey,
+      accountFactory: chainContracts.accountFactory,
+      passkeyModule: {
+        location: chainContracts.passkey,
+        credentialId,
+        credentialPublicKey,
+      },
+      paymaster: {
+        location: chainContracts.accountPaymaster,
+      },
       uniqueAccountId: credentialId,
-      contracts: contractsByChain[chainId.value],
-      paymasterAddress: contractsByChain[chainId.value].accountPaymaster,
-      initialSession: sessionData || undefined,
+      sessionModule: {
+        location: chainContracts.session,
+        initialSession: sessionData,
+      },
+      owners: [ownerAddress],
+      installNoDataModules: [chainContracts.recovery],
     });
 
     login({
+      factory: chainContracts.accountFactory,
       username: credentialId,
       address: deployedAccount.address,
       passkey: toHex(credentialPublicKey),
+      ownerPublicKey: ownerAddress,
+      ownerPrivateKey: ownerKey,
     });
 
     return {
