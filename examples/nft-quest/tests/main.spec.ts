@@ -102,7 +102,8 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   await page.waitForTimeout(waitTimeout);
 
   // Mint your NFT
-  await page.getByRole("button", { name: "Mint 100% free NFT" }).click();
+  await page.getByRole("button", { name: "Mint 100% free NFT" }).click({ timeout: mintTimeout });
+  await page.waitForTimeout(mintTimeout);
   await expect(page.getByTestId("spinner")).not.toBeVisible();
 
   // Send a friend the NFT
@@ -160,6 +161,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
 
   // Mint another NFT
   await page.getByRole("button", { name: "Mint 100% free NFT" }).click({ timeout: mintTimeout });
+  await page.waitForTimeout(mintTimeout);
   await expect(page.getByTestId("spinner")).not.toBeVisible();
   await expect(page.getByText("You've got Zeek.")).toBeVisible();
 });
