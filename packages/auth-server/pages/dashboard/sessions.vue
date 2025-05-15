@@ -5,7 +5,7 @@
         Sessions
       </template>
       <template #aside>
-        <transition v-bind="TransitionOpacity">
+        <!-- <transition v-bind="TransitionOpacity">
           <ZkButton
             v-if="sessions?.length"
             type="danger"
@@ -18,7 +18,7 @@
             </template>
             <span class="leading-tight">End all sessions</span>
           </ZkButton>
-        </transition>
+        </transition> -->
       </template>
     </layout-header>
 

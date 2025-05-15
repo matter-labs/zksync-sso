@@ -38,22 +38,7 @@ const NavLinks = [
   {
     title: "Account Recovery",
     description: "Configure your account recovery settings.",
-    path: "/dashboard/settings/account-recovery",
-  },
-  {
-    title: "Owner Keys",
-    description: "Configure ECDSA Private Keys.",
-    path: "/dashboard/settings/owner-keys",
-  },
-  {
-    title: "Passkeys",
-    description: "Configure WebAuthn Passkeys.",
-    path: "/dashboard/settings/passkeys",
-  },
-  {
-    title: "Sessions",
-    description: "Manage Application Sessions.",
-    path: "/dashboard/settings/sessions",
+    path: "/dashboard/settings",
   },
 ];
 

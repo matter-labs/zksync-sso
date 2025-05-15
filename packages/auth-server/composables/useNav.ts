@@ -21,8 +21,8 @@ export function useNav() {
       icon: "grid_view",
     },
     {
-      href: "/dashboard/manage-keys",
-      name: "Keys",
+      href: "/dashboard/sessions",
+      name: "Sessions",
       icon: "link",
     },
     {
