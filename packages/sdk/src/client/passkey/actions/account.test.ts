@@ -3,7 +3,7 @@ import { type Address, type Hash, keccak256, parseEventLogs, type TransactionRec
 import { waitForTransactionReceipt, writeContract } from "viem/actions";
 import { describe, expect, test, vi } from "vitest";
 
-import { deployAccount } from "../../index.js";
+import { deployModularAccount as deployAccount } from "../../index.js";
 
 // Mock the passkey utils
 vi.mock("../../../utils/passkey.js", () => ({
