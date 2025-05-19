@@ -53,7 +53,7 @@ export const deployModularAccount = async <
     uniqueIds.push(toHex(args.uniqueAccountId));
   }
   if (args.owners) {
-    uniqueIds.concat(args.owners);
+    uniqueIds.push(...args.owners);
   }
 
   const modules = [];
