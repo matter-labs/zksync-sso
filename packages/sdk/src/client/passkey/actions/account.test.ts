@@ -21,8 +21,8 @@ vi.mock("viem/actions", () => ({
   writeContract: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
 }));
-vi.mock(import("viem"), async (importOriginal) => {
-  const actual = await importOriginal();
+vi.mock("viem", async () => {
+  const actual = await import("viem");
   return {
     ...actual,
     parseEventLogs: vi.fn(),
