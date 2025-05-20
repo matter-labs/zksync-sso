@@ -68,6 +68,15 @@ export const deployModularAccount = async <
     modules.push(await encodePasskeyModuleData(args.passkeyModule));
   }
 
+  if (args.installNoDataModules) {
+    args.installNoDataModules.forEach((moduleNoDataInstall) => {
+      modules.push(encodeModuleData({
+        address: moduleNoDataInstall,
+        parameters: "0x",
+      }));
+    });
+  }
+
   let deployProxyArgs = {
     account: client.account!,
     chain: client.chain!,
