@@ -4,7 +4,7 @@ import { zksyncInMemoryNode } from "viem/chains";
 
 import type { CustomPaymasterHandler } from "../../paymaster/index.js";
 import { encodeSessionTx } from "../../utils/encoding.js";
-import type { SessionConfig } from "../../utils/session.js";
+import type { SessionConfig, SessionStateEventCallback } from "../../utils/session.js";
 import { toSessionAccount } from "./account.js";
 import { publicActionsRewrite } from "./decorators/publicActionsRewrite.js";
 import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "./decorators/wallet.js";
@@ -90,6 +90,7 @@ export function createZksyncSessionClient<
       sessionConfig: parameters.sessionConfig,
       contracts: parameters.contracts,
       paymasterHandler: parameters.paymasterHandler,
+      onSessionStateChange: parameters.onSessionStateChange,
     }))
     .extend(publicActions)
     .extend(publicActionsRewrite)
@@ -105,6 +106,7 @@ type ZksyncSsoSessionData = {
   sessionConfig: SessionConfig;
   contracts: SessionRequiredContracts;
   paymasterHandler?: CustomPaymasterHandler;
+  onSessionStateChange?: SessionStateEventCallback;
 };
 
 export type ClientWithZksyncSsoSessionData<
@@ -143,4 +145,5 @@ export interface ZksyncSsoSessionClientConfig<
   key?: string;
   name?: string;
   paymasterHandler?: CustomPaymasterHandler;
+  onSessionStateChange?: SessionStateEventCallback;
 }

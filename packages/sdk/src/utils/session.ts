@@ -1,4 +1,5 @@
-import { type Address, getAddress, type Hash, type Hex } from "viem";
+import { type Address, bytesToBigInt, getAddress, type Hash, type Hex } from "viem";
+import { hexToBytes } from "viem";
 
 export enum LimitType {
   Unlimited = 0,
@@ -167,3 +168,389 @@ export const getPeriodIdsForTransaction = (args: {
   ];
   return periodIds;
 };
+
+export enum SessionErrorType {
+  SessionInactive = "session_inactive",
+  SessionExpired = "session_expired",
+  FeeLimitExceeded = "fee_limit_exceeded",
+  NoCallPolicy = "no_call_policy",
+  NoTransferPolicy = "no_transfer_policy",
+  MaxValuePerUseExceeded = "max_value_per_use_exceeded",
+  ValueLimitExceeded = "value_limit_exceeded",
+  ConstraintIndexOutOfBounds = "constraint_index_out_of_bounds",
+  NoLimitStateFound = "no_limit_state_found",
+  ParameterLimitExceeded = "parameter_limit_exceeded",
+  ConstraintEqualViolated = "constraint_equal_violated",
+  ConstraintGreaterViolated = "constraint_greater_violated",
+  ConstraintLessViolated = "constraint_less_violated",
+  ConstraintGreaterEqualViolated = "constraint_greater_equal_violated",
+  ConstraintLessEqualViolated = "constraint_less_equal_violated",
+  ConstraintNotEqualViolated = "constraint_not_equal_violated",
+}
+
+export enum SessionEventType {
+  Expired = "session_expired",
+  Revoked = "session_revoked",
+  Inactive = "session_inactive",
+}
+
+export type SessionStateEvent = {
+  type: SessionEventType;
+  sessionId?: Hash;
+  expiresAt?: bigint;
+  message: string;
+};
+
+export type SessionStateEventCallback = (event: SessionStateEvent) => void;
+
+export type ValidationResult = {
+  valid: boolean;
+  error: null | {
+    type: SessionErrorType;
+    message: string;
+  };
+};
+
+export type TransactionValidationArgs = {
+  sessionState: SessionState;
+  sessionConfig: SessionConfig;
+  transaction: {
+    to: Address;
+    value?: bigint;
+    data?: Hex;
+    gas?: bigint;
+    gasPrice?: bigint;
+    maxFeePerGas?: bigint;
+    maxPriorityFeePerGas?: bigint;
+  };
+  currentTimestamp?: bigint;
+};
+
+/**
+ * Validates if a transaction adheres to session restrictions
+ * @param args The validation arguments
+ * @returns ValidationResult object with validity, error type, and error message
+ */
+export function validateSessionTransaction(args: TransactionValidationArgs): ValidationResult {
+  const { sessionState, sessionConfig, transaction, currentTimestamp } = args;
+  const timestamp = currentTimestamp || BigInt(Math.floor(Date.now() / 1000));
+
+  // 1. Check if session is active
+  if (sessionState.status !== SessionStatus.Active) {
+    return {
+      valid: false,
+      error: {
+        type: SessionErrorType.SessionInactive,
+        message: "Session is not active",
+      },
+    };
+  }
+
+  // 2. Check if session hasn't expired
+  if (sessionConfig.expiresAt <= timestamp) {
+    return {
+      valid: false,
+      error: {
+        type: SessionErrorType.SessionExpired,
+        message: "Session has expired",
+      },
+    };
+  }
+
+  // 3. Extract transaction data
+  const to = getAddress(transaction.to.toLowerCase());
+  const value = transaction.value || 0n;
+  const data = transaction.data || "0x";
+  const selector = data.length >= 10 ? data.slice(0, 10) as Hash : undefined;
+
+  // 4. Calculate total fee based on gas parameters
+  const totalFee = calculateTotalFee({
+    gas: transaction.gas,
+    gasPrice: transaction.gasPrice,
+    maxFeePerGas: transaction.maxFeePerGas,
+    maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
+  });
+
+  // 5. Verify fee limit
+  if (totalFee > sessionState.feesRemaining) {
+    return {
+      valid: false,
+      error: {
+        type: SessionErrorType.FeeLimitExceeded,
+        message: `Transaction fee ${totalFee} exceeds remaining fee limit ${sessionState.feesRemaining}`,
+      },
+    };
+  }
+
+  // 6. Check if a policy exists for this target and call type
+  const isContractCall = !!selector;
+  let policy: TransferPolicy | CallPolicy | undefined;
+
+  if (isContractCall) {
+    // This is a contract call
+    policy = sessionConfig.callPolicies.find(
+      (policy) => policy.target === to && policy.selector === selector,
+    );
+
+    if (!policy) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.NoCallPolicy,
+          message: `No call policy found for target ${to} with selector ${selector}`,
+        },
+      };
+    }
+
+    // Verify max value per use
+    if (value > (policy as CallPolicy).maxValuePerUse) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.MaxValuePerUseExceeded,
+          message: `Transaction value ${value} exceeds max value per use ${(policy as CallPolicy).maxValuePerUse}`,
+        },
+      };
+    }
+
+    // Verify remaining value limit
+    const remainingValue = findRemainingValue(sessionState.callValue, to, selector);
+    if (remainingValue === undefined || value > remainingValue) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.ValueLimitExceeded,
+          message: `Transaction value ${value} exceeds remaining value limit ${remainingValue || 0n}`,
+        },
+      };
+    }
+
+    // Verify constraints if they exist
+    if ((policy as CallPolicy).constraints.length > 0) {
+      const constraintResult = validateConstraints(data, (policy as CallPolicy).constraints, sessionState.callParams);
+      if (!constraintResult.valid) {
+        return constraintResult;
+      }
+    }
+  } else {
+    // This is a simple transfer
+    policy = sessionConfig.transferPolicies.find((policy) => policy.target === to);
+
+    if (!policy) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.NoTransferPolicy,
+          message: `No transfer policy found for target ${to}`,
+        },
+      };
+    }
+
+    // Verify max value per use
+    if (value > policy.maxValuePerUse) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.MaxValuePerUseExceeded,
+          message: `Transaction value ${value} exceeds max value per use ${policy.maxValuePerUse}`,
+        },
+      };
+    }
+
+    // Verify remaining value limit
+    const remainingValue = findRemainingValue(sessionState.transferValue, to);
+    if (remainingValue === undefined || value > remainingValue) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.ValueLimitExceeded,
+          message: `Transaction value ${value} exceeds remaining value limit ${remainingValue || 0n}`,
+        },
+      };
+    }
+  }
+
+  return {
+    valid: true,
+    error: null,
+  };
+}
+
+/**
+ * Calculate the total fee based on gas parameters
+ */
+function calculateTotalFee(fee: {
+  gas?: bigint;
+  gasPrice?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
+}): bigint {
+  if (!fee.gas) return 0n;
+
+  if (fee.gasPrice) {
+    return fee.gas * fee.gasPrice;
+  } else if (fee.maxFeePerGas && fee.maxPriorityFeePerGas) {
+    return fee.gas * fee.maxFeePerGas;
+  } else if (fee.maxFeePerGas) {
+    return fee.gas * fee.maxFeePerGas;
+  } else if (fee.maxPriorityFeePerGas) {
+    return fee.gas * fee.maxPriorityFeePerGas;
+  }
+
+  return 0n;
+}
+
+/**
+ * Find the remaining value for a target/selector combination in the session state
+ */
+function findRemainingValue(
+  valueArray: { remaining: bigint; target: Address; selector: Hash; index: bigint }[],
+  target: Address,
+  selector?: Hash,
+): bigint | undefined {
+  if (selector) {
+    const item = valueArray.find(
+      (item) => item.target === target && item.selector === selector,
+    );
+    return item?.remaining;
+  } else {
+    const item = valueArray.find((item) => item.target === target);
+    return item?.remaining;
+  }
+}
+
+/**
+ * Validate transaction data against constraints
+ */
+function validateConstraints(
+  data: Hex,
+  constraints: Constraint[],
+  callParams: { remaining: bigint; target: Address; selector: Hash; index: bigint }[],
+): ValidationResult {
+  const dataBytes = hexToBytes(data);
+
+  for (const constraint of constraints) {
+    // Skip unconstrained entries
+    if (constraint.condition === ConstraintCondition.Unconstrained) continue;
+
+    // Find proper index and extract data
+    const index = Number(constraint.index);
+    if (index + 32 > dataBytes.length) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.ConstraintIndexOutOfBounds,
+          message: `Constraint index ${index} out of bounds for data length ${dataBytes.length}`,
+        },
+      };
+    }
+
+    const parameterBytes = dataBytes.slice(index, index + 32);
+    const parameterValue = bytesToBigInt(parameterBytes);
+    const refValue = bytesToBigInt(hexToBytes(constraint.refValue));
+
+    // Find remaining limit value if applicable
+    let remaining: bigint | undefined;
+    if (constraint.limit.limitType !== LimitType.Unlimited) {
+      const paramItem = callParams.find((item) => Number(item.index) === index);
+      remaining = paramItem?.remaining;
+
+      // If this is a limited constraint, but we don't have state for it, something is wrong
+      if (remaining === undefined) {
+        return {
+          valid: false,
+          error: {
+            type: SessionErrorType.NoLimitStateFound,
+            message: `No remaining limit state found for constraint at index ${index}`,
+          },
+        };
+      }
+
+      // Check if parameter value exceeds remaining limit
+      if (parameterValue > remaining) {
+        return {
+          valid: false,
+          error: {
+            type: SessionErrorType.ParameterLimitExceeded,
+            message: `Parameter value ${parameterValue} at index ${index} exceeds remaining limit ${remaining}`,
+          },
+        };
+      }
+    }
+
+    // Check condition
+    switch (constraint.condition) {
+      case ConstraintCondition.Equal:
+        if (parameterValue !== refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintEqualViolated,
+              message: `Parameter value ${parameterValue} must equal ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.Greater:
+        if (parameterValue <= refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintGreaterViolated,
+              message: `Parameter value ${parameterValue} must be greater than ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.Less:
+        if (parameterValue >= refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintLessViolated,
+              message: `Parameter value ${parameterValue} must be less than ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.GreaterEqual:
+        if (parameterValue < refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintGreaterEqualViolated,
+              message: `Parameter value ${parameterValue} must be greater than or equal to ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.LessEqual:
+        if (parameterValue > refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintLessEqualViolated,
+              message: `Parameter value ${parameterValue} must be less than or equal to ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.NotEqual:
+        if (parameterValue === refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintNotEqualViolated,
+              message: `Parameter value ${parameterValue} must not equal ${refValue}`,
+            },
+          };
+        }
+        break;
+    }
+  }
+
+  return {
+    valid: true,
+    error: null,
+  };
+}
