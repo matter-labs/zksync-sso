@@ -43,6 +43,8 @@ jobs:
       # Local node to have target for deploy
       - name: Era Test Node Action
         uses: dutterbutter/anvil-zksync-action@v1.1.0
+        with:
+          releaseTag: 'v0.6.1'
 
       - name: Deploy contracts
         run: pnpm run deploy --file ../auth-server/stores/local-node.json
