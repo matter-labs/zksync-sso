@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { type Address, type Hash, keccak256, parseEventLogs, type TransactionReceipt } from "viem";
+import { type Address, type Hash, keccak256, type TransactionReceipt } from "viem";
 import { waitForTransactionReceipt, writeContract } from "viem/actions";
 import { describe, expect, test, vi } from "vitest";
 
@@ -11,9 +11,9 @@ vi.mock("../../../utils/passkey.js", () => ({
     Buffer.from("0000000000000000000000000000000000000000000000000000000000000001", "hex"),
     Buffer.from("0000000000000000000000000000000000000000000000000000000000000002", "hex"),
   ]),
-  base64UrlToUint8Array: vi.fn().mockReturnValue(
+  base64UrlToUint8Array: vi.fn().mockReturnValue([
     Buffer.from("0000000000000000000000000000000000000000000000000000000000000003", "hex"),
-  ),
+  ]),
 }));
 
 // Mock viem actions
@@ -21,13 +21,6 @@ vi.mock("viem/actions", () => ({
   writeContract: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
 }));
-vi.mock("viem", async () => {
-  const actual = await import("viem");
-  return {
-    ...actual,
-    parseEventLogs: vi.fn(),
-  };
-});
 
 describe("deployAccount", () => {
   // CBOR-encoded COSE key with known x,y coordinates
@@ -55,7 +48,7 @@ describe("deployAccount", () => {
     accountFactory: "0x1234567890123456789012345678901234567890" as Address,
     passkey: "0x2234567890123456789012345678901234567890" as Address,
     session: "0x3234567890123456789012345678901234567890" as Address,
-    recovery: "0x4234567890123456789012345678901234567891" as Address,
+    recovery: "0x4234567890123456789012345678901234567890" as Address,
   };
 
   const mockTransactionHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hash;
@@ -90,34 +83,22 @@ describe("deployAccount", () => {
     to: "0x1234567890123456789012345678901234567890",
     transactionIndex: 0,
   };
-  const mockLogs = [{ eventName: "AccountCreated", args: {
-    accountAddress: mockTransactionReceipt.contractAddress,
-    uniqueAccountId: mockTransactionReceipt.contractAddress,
-  } } as any];
 
   test("deploys account successfully", async () => {
     // Setup mocks
     vi.mocked(writeContract).mockResolvedValue(mockTransactionHash);
-    vi.mocked(waitForTransactionReceipt).mockClear();
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
-    vi.mocked(parseEventLogs).mockClear();
-    vi.mocked(parseEventLogs).mockReturnValue(mockLogs);
 
     const result = await deployAccount(mockClient, {
-      accountFactory: mockContracts.accountFactory,
-      owners: [mockClient.account],
-      installNoDataModules: [],
-      passkeyModule: {
-        location: mockContracts.passkey,
-        credentialId: randomBytes(5).toString("base64url"),
-        credentialPublicKey: mockCredentialPublicKey,
-        expectedOrigin: "https://example.com",
-      },
+      credentialId: randomBytes(43).toString("hex"),
+      credentialPublicKey: mockCredentialPublicKey,
+      contracts: mockContracts,
+      expectedOrigin: "https://example.com",
     });
 
     // Verify the result
     expect(result).toEqual({
-      address: mockTransactionReceipt.contractAddress,
+      address: "0x4234567890123456789012345678901234567890",
       transactionReceipt: mockTransactionReceipt,
     });
 
@@ -141,15 +122,10 @@ describe("deployAccount", () => {
 
     await expect(
       deployAccount(mockClient, {
-        accountFactory: mockContracts.accountFactory,
-        owners: [mockClient.account],
-        installNoDataModules: [],
-        passkeyModule: {
-          location: mockContracts.passkey,
-          credentialId: randomBytes(5).toString("base64url"),
-          credentialPublicKey: mockCredentialPublicKey,
-          expectedOrigin: "https://example.com",
-        },
+        credentialId: randomBytes(43).toString("hex"),
+        credentialPublicKey: mockCredentialPublicKey,
+        contracts: mockContracts,
+        expectedOrigin: "https://example.com",
       }),
     ).rejects.toThrow("Account deployment transaction reverted");
   });
@@ -157,24 +133,19 @@ describe("deployAccount", () => {
   test("handles missing events in receipt", async () => {
     // Setup mock for missing contract address
     vi.mocked(writeContract).mockResolvedValue(mockTransactionHash);
-    vi.mocked(waitForTransactionReceipt).mockClear();
     vi.mocked(waitForTransactionReceipt).mockResolvedValue({
       ...mockTransactionReceipt,
       logs: [],
     });
-    vi.mocked(parseEventLogs).mockClear();
 
     await expect(
       deployAccount(mockClient, {
-        accountFactory: mockContracts.accountFactory,
-        owners: [mockClient.account],
-        installNoDataModules: [],
-        passkeyModule: {
-          location: mockContracts.passkey,
-          credentialId: randomBytes(5).toString("base64url"),
-          credentialPublicKey: mockCredentialPublicKey,
-          expectedOrigin: "https://example.com",
-        } }));
+        credentialId: randomBytes(43).toString("hex"),
+        credentialPublicKey: mockCredentialPublicKey,
+        contracts: mockContracts,
+        expectedOrigin: "https://example.com",
+      }),
+    );
   });
 
   test("handles missing contract address in receipt", async () => {
@@ -185,20 +156,13 @@ describe("deployAccount", () => {
       contractAddress: null,
       logs: [],
     });
-    vi.mocked(parseEventLogs).mockClear();
-    vi.mocked(parseEventLogs).mockReturnValue([]);
 
     await expect(
       deployAccount(mockClient, {
-        accountFactory: mockContracts.accountFactory,
-        owners: [mockClient.account],
-        installNoDataModules: [],
-        passkeyModule: {
-          location: mockContracts.passkey,
-          credentialId: randomBytes(5).toString("base64url"),
-          credentialPublicKey: mockCredentialPublicKey,
-          expectedOrigin: "https://example.com",
-        },
+        credentialId: randomBytes(32).toString("hex"),
+        credentialPublicKey: mockCredentialPublicKey,
+        contracts: mockContracts,
+        expectedOrigin: "https://example.com",
       }),
     ).rejects.toThrow("No contract address in transaction receipt");
   });
@@ -207,20 +171,13 @@ describe("deployAccount", () => {
     const onTransactionSent = vi.fn();
     vi.mocked(writeContract).mockResolvedValue(mockTransactionHash);
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
-    vi.mocked(parseEventLogs).mockClear();
-    vi.mocked(parseEventLogs).mockReturnValue(mockLogs);
 
     await deployAccount(mockClient, {
+      credentialId: keccak256(randomBytes(32)),
+      credentialPublicKey: mockCredentialPublicKey,
+      contracts: mockContracts,
+      expectedOrigin: "https://example.com",
       onTransactionSent,
-      accountFactory: mockContracts.accountFactory,
-      owners: [mockClient.account],
-      installNoDataModules: [],
-      passkeyModule: {
-        location: mockContracts.passkey,
-        credentialId: randomBytes(32).toString("base64url"),
-        credentialPublicKey: mockCredentialPublicKey,
-        expectedOrigin: "https://example.com",
-      },
     });
 
     expect(onTransactionSent).toHaveBeenCalledWith(mockTransactionHash);
@@ -239,19 +196,12 @@ describe("deployAccount", () => {
 
     vi.mocked(writeContract).mockResolvedValue(mockTransactionHash);
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
-    vi.mocked(parseEventLogs).mockClear();
-    vi.mocked(parseEventLogs).mockReturnValue(mockLogs);
 
     const writeContractSpy = vi.mocked(writeContract);
     await deployAccount(mockClient, {
-      accountFactory: mockContracts.accountFactory,
-      owners: [mockClient.account],
-      installNoDataModules: [],
-      passkeyModule: {
-        location: mockContracts.passkey,
-        credentialId: keccak256(randomBytes(32)),
-        credentialPublicKey: mockCredentialPublicKey,
-      },
+      credentialId: keccak256(randomBytes(32)),
+      credentialPublicKey: mockCredentialPublicKey,
+      contracts: mockContracts,
     });
 
     // Simpler assertion that just checks the key parts
@@ -269,26 +219,17 @@ describe("deployAccount", () => {
   test("handles paymaster configuration", async () => {
     vi.mocked(writeContract).mockResolvedValue(mockTransactionHash);
     vi.mocked(waitForTransactionReceipt).mockResolvedValue(mockTransactionReceipt);
-    vi.mocked(parseEventLogs).mockClear();
-    vi.mocked(parseEventLogs).mockReturnValue(mockLogs);
 
     const paymasterAddress = "0x5234567890123456789012345678901234567890" as Address;
     const paymasterInput = "0x1234" as const;
 
     await deployAccount(mockClient, {
-      accountFactory: mockContracts.accountFactory,
-      owners: [mockClient.account],
-      installNoDataModules: [],
-      passkeyModule: {
-        location: mockContracts.passkey,
-        credentialId: randomBytes(5).toString("base64url"),
-        credentialPublicKey: mockCredentialPublicKey,
-        expectedOrigin: "https://example.com",
-      },
-      paymaster: {
-        location: paymasterAddress,
-        input: paymasterInput,
-      },
+      credentialId: keccak256(randomBytes(32)),
+      credentialPublicKey: mockCredentialPublicKey,
+      contracts: mockContracts,
+      expectedOrigin: "https://example.com",
+      paymasterAddress,
+      paymasterInput,
     });
 
     expect(writeContract).toHaveBeenCalledWith(
