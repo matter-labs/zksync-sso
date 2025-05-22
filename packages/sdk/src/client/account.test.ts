@@ -3,7 +3,7 @@ import { type Address, type Hash, keccak256, parseEventLogs, type TransactionRec
 import { waitForTransactionReceipt, writeContract } from "viem/actions";
 import { describe, expect, test, vi } from "vitest";
 
-import { deployAccount } from "./account.js";
+import { deployModularAccount } from "./index.js";
 
 // Mock the passkey utils
 vi.mock("../../../utils/passkey.js", () => ({
@@ -29,7 +29,7 @@ vi.mock("viem", async () => {
   };
 });
 
-describe("deployAccount", () => {
+describe("deployModularAccount", () => {
   // CBOR-encoded COSE key with known x,y coordinates
   const mockCredentialPublicKey = new Uint8Array([
     0xa5, // map of 5 pairs
@@ -103,7 +103,7 @@ describe("deployAccount", () => {
     vi.mocked(parseEventLogs).mockClear();
     vi.mocked(parseEventLogs).mockReturnValue(mockLogs);
 
-    const result = await deployAccount(mockClient, {
+    const result = await deployModularAccount(mockClient, {
       accountFactory: mockContracts.accountFactory,
       owners: [mockClient.account],
       installNoDataModules: [],
@@ -140,7 +140,7 @@ describe("deployAccount", () => {
     });
 
     await expect(
-      deployAccount(mockClient, {
+      deployModularAccount(mockClient, {
         accountFactory: mockContracts.accountFactory,
         owners: [mockClient.account],
         installNoDataModules: [],
@@ -165,7 +165,7 @@ describe("deployAccount", () => {
     vi.mocked(parseEventLogs).mockClear();
 
     await expect(
-      deployAccount(mockClient, {
+      deployModularAccount(mockClient, {
         accountFactory: mockContracts.accountFactory,
         owners: [mockClient.account],
         installNoDataModules: [],
@@ -189,7 +189,7 @@ describe("deployAccount", () => {
     vi.mocked(parseEventLogs).mockReturnValue([]);
 
     await expect(
-      deployAccount(mockClient, {
+      deployModularAccount(mockClient, {
         accountFactory: mockContracts.accountFactory,
         owners: [mockClient.account],
         installNoDataModules: [],
@@ -210,7 +210,7 @@ describe("deployAccount", () => {
     vi.mocked(parseEventLogs).mockClear();
     vi.mocked(parseEventLogs).mockReturnValue(mockLogs);
 
-    await deployAccount(mockClient, {
+    await deployModularAccount(mockClient, {
       onTransactionSent,
       accountFactory: mockContracts.accountFactory,
       owners: [mockClient.account],
@@ -243,7 +243,7 @@ describe("deployAccount", () => {
     vi.mocked(parseEventLogs).mockReturnValue(mockLogs);
 
     const writeContractSpy = vi.mocked(writeContract);
-    await deployAccount(mockClient, {
+    await deployModularAccount(mockClient, {
       accountFactory: mockContracts.accountFactory,
       owners: [mockClient.account],
       installNoDataModules: [],
@@ -275,7 +275,7 @@ describe("deployAccount", () => {
     const paymasterAddress = "0x5234567890123456789012345678901234567890" as Address;
     const paymasterInput = "0x1234" as const;
 
-    await deployAccount(mockClient, {
+    await deployModularAccount(mockClient, {
       accountFactory: mockContracts.accountFactory,
       owners: [mockClient.account],
       installNoDataModules: [],
