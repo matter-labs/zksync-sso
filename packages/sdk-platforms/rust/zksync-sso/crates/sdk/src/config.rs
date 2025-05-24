@@ -66,6 +66,14 @@ impl Config {
         )
     }
 
+    pub fn get_default_react_native_config_path() -> PathBuf {
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let workspace_root = PathBuf::from(manifest_dir);
+        workspace_root.join(
+            "../../../../react-native/react-native-zksync-sso/example/src/config.json",
+        )
+    }
+
     pub fn local() -> Self {
         let config_path = Self::get_default_swift_config_path();
         let config_json = fs::read_to_string(&config_path)

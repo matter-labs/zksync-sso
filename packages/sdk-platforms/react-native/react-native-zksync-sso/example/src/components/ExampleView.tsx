@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import type { AccountDetails } from './types';
+import type { AccountDetails, RpId, RpIdHelper } from './types';
 import AccountDetailsView from './AccountDetailsView';
 import LoggedOutView from './LoggedOutView';
 
 interface ExampleViewProps {
-    relyingPartyIdentifier: string;
+    rpId: RpId;
 }
 
-const ExampleView: React.FC<ExampleViewProps> = ({ relyingPartyIdentifier }) => {
+const ExampleView: React.FC<ExampleViewProps> = ({ rpId }) => {
     const [accountDetails, setAccountDetails] = useState<AccountDetails | null>(null);
 
     return (
@@ -23,9 +23,9 @@ const ExampleView: React.FC<ExampleViewProps> = ({ relyingPartyIdentifier }) => 
             ) : (
                 <LoggedOutView
                     accountInfo={{
-                        name: "Jane Doe",
-                        userID: "jdoe@example.com",
-                        domain: relyingPartyIdentifier,
+                        name: "JDoe",
+                        userID: "jdoe",
+                        rpId
                     }}
                     onAccountCreated={(account) => {
                         setAccountDetails(account);

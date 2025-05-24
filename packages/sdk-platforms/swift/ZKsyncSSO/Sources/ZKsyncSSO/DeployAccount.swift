@@ -30,7 +30,7 @@ public func deployAccountWith(
         credentialRawAttestationObject: params.credentialRawAttestationObject,
         credentialRawClientDataJson: params.credentialRawClientDataJson,
         credentialId: params.credentialId,
-        rpId: params.rpId
+        rpId: .apple(params.rpId),
     )
     
     let uniqueAccountId = params.uniqueAccountId
@@ -57,7 +57,7 @@ public func deployAccountWithUniqueId(
         credentialRawAttestationObject: params.credentialRawAttestationObject,
         credentialRawClientDataJson: params.credentialRawClientDataJson,
         credentialId: params.credentialId,
-        rpId: params.rpId
+        rpId: .apple(params.rpId),
     )
     
     let uniqueAccountId = params.uniqueAccountId

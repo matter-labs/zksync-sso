@@ -34,6 +34,8 @@ class NativeFfi : public jsi::HostObject {
     jsi::Value cpp_uniffi_ffi_fn_func_generate_random_challenge(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_fn_func_get_account_by_user_id(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_fn_func_get_balance(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
+    jsi::Value cpp_uniffi_ffi_fn_func_init_android_logger(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
+    jsi::Value cpp_uniffi_ffi_fn_func_init_apple_logger(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_fn_func_prepare_send_transaction(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_fn_func_send_transaction(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_fn_func_send_transaction_async_signer(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
@@ -96,6 +98,8 @@ class NativeFfi : public jsi::HostObject {
     jsi::Value cpp_uniffi_ffi_checksum_func_generate_random_challenge(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_checksum_func_get_account_by_user_id(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_checksum_func_get_balance(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
+    jsi::Value cpp_uniffi_ffi_checksum_func_init_android_logger(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
+    jsi::Value cpp_uniffi_ffi_checksum_func_init_apple_logger(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_checksum_func_prepare_send_transaction(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_checksum_func_send_transaction(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);
     jsi::Value cpp_uniffi_ffi_checksum_func_send_transaction_async_signer(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count);

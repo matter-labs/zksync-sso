@@ -6,6 +6,7 @@ use crate::{
     config::Config,
 };
 use alloy::network::ReceiptResponse;
+use log::debug;
 use std::{fmt::Debug, future::Future};
 
 pub mod prepare;
@@ -25,7 +26,7 @@ where
     F: Fn(&[u8]) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = Result<Vec<u8>, String>> + Send,
 {
-    println!(
+    debug!(
         "XDB api::account::send::send_transaction - transaction: {:?}",
         transaction
     );
@@ -33,7 +34,7 @@ where
 
     let transaction_request = transaction.try_into()?;
 
-    println!(
+    debug!(
         "XDB api::account::send::send_transaction - transaction_request: {:?}",
         transaction_request
     );
@@ -50,7 +51,7 @@ where
 
     let result = SendTransactionResult { tx_hash, receipt_json };
 
-    println!("XDB api::account::send::send_transaction - result: {:?}", result);
+    debug!("XDB api::account::send::send_transaction - result: {:?}", result);
 
     Ok(result)
 }
@@ -63,7 +64,7 @@ pub async fn send_transaction_fnonce_signer<F>(
 where
     F: FnOnce(&[u8]) -> Result<Vec<u8>, String> + Clone + Send + Sync + 'static,
 {
-    println!(
+    debug!(
         "XDB api::account::send::send_transaction - transaction: {:?}",
         transaction
     );
@@ -72,7 +73,7 @@ where
 
     let transaction_request = transaction.try_into()?;
 
-    println!(
+    debug!(
         "XDB api::account::send::send_transaction - transaction_request: {:?}",
         transaction_request
     );
@@ -89,7 +90,7 @@ where
 
     let result = SendTransactionResult { tx_hash, receipt_json };
 
-    println!("XDB api::account::send::send_transaction - result: {:?}", result);
+    debug!("XDB api::account::send::send_transaction - result: {:?}", result);
 
     Ok(result)
 }

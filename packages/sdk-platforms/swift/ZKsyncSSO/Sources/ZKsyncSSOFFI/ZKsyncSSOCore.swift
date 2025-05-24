@@ -976,6 +976,76 @@ public func FfiConverterTypeAccountBalance_lower(_ value: AccountBalance) -> Rus
 }
 
 
+public struct AndroidRpId {
+    public var origin: String
+    public var rpId: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(origin: String, rpId: String) {
+        self.origin = origin
+        self.rpId = rpId
+    }
+}
+
+#if compiler(>=6)
+extension AndroidRpId: Sendable {}
+#endif
+
+
+extension AndroidRpId: Equatable, Hashable {
+    public static func ==(lhs: AndroidRpId, rhs: AndroidRpId) -> Bool {
+        if lhs.origin != rhs.origin {
+            return false
+        }
+        if lhs.rpId != rhs.rpId {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(origin)
+        hasher.combine(rpId)
+    }
+}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeAndroidRpId: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AndroidRpId {
+        return
+            try AndroidRpId(
+                origin: FfiConverterString.read(from: &buf), 
+                rpId: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: AndroidRpId, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.origin, into: &buf)
+        FfiConverterString.write(value.rpId, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAndroidRpId_lift(_ buf: RustBuffer) throws -> AndroidRpId {
+    return try FfiConverterTypeAndroidRpId.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAndroidRpId_lower(_ value: AndroidRpId) -> RustBuffer {
+    return FfiConverterTypeAndroidRpId.lower(value)
+}
+
+
 public struct Config {
     public var contracts: PasskeyContracts
     public var nodeUrl: String
@@ -1214,11 +1284,11 @@ public struct PasskeyParameters {
     public var credentialRawAttestationObject: Data
     public var credentialRawClientDataJson: Data
     public var credentialId: Data
-    public var rpId: String
+    public var rpId: RpId
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(credentialRawAttestationObject: Data, credentialRawClientDataJson: Data, credentialId: Data, rpId: String) {
+    public init(credentialRawAttestationObject: Data, credentialRawClientDataJson: Data, credentialId: Data, rpId: RpId) {
         self.credentialRawAttestationObject = credentialRawAttestationObject
         self.credentialRawClientDataJson = credentialRawClientDataJson
         self.credentialId = credentialId
@@ -1268,7 +1338,7 @@ public struct FfiConverterTypePasskeyParameters: FfiConverterRustBuffer {
                 credentialRawAttestationObject: FfiConverterData.read(from: &buf), 
                 credentialRawClientDataJson: FfiConverterData.read(from: &buf), 
                 credentialId: FfiConverterData.read(from: &buf), 
-                rpId: FfiConverterString.read(from: &buf)
+                rpId: FfiConverterTypeRpId.read(from: &buf)
         )
     }
 
@@ -1276,7 +1346,7 @@ public struct FfiConverterTypePasskeyParameters: FfiConverterRustBuffer {
         FfiConverterData.write(value.credentialRawAttestationObject, into: &buf)
         FfiConverterData.write(value.credentialRawClientDataJson, into: &buf)
         FfiConverterData.write(value.credentialId, into: &buf)
-        FfiConverterString.write(value.rpId, into: &buf)
+        FfiConverterTypeRpId.write(value.rpId, into: &buf)
     }
 }
 
@@ -2102,6 +2172,79 @@ extension PrepareTransactionError: Foundation.LocalizedError {
 }
 
 
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+
+public enum RpId {
+    
+    case apple(String
+    )
+    case android(AndroidRpId
+    )
+}
+
+
+#if compiler(>=6)
+extension RpId: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRpId: FfiConverterRustBuffer {
+    typealias SwiftType = RpId
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RpId {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .apple(try FfiConverterString.read(from: &buf)
+        )
+        
+        case 2: return .android(try FfiConverterTypeAndroidRpId.read(from: &buf)
+        )
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: RpId, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case let .apple(v1):
+            writeInt(&buf, Int32(1))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .android(v1):
+            writeInt(&buf, Int32(2))
+            FfiConverterTypeAndroidRpId.write(v1, into: &buf)
+            
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRpId_lift(_ buf: RustBuffer) throws -> RpId {
+    return try FfiConverterTypeRpId.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRpId_lower(_ value: RpId) -> RustBuffer {
+    return FfiConverterTypeRpId.lower(value)
+}
+
+
+extension RpId: Equatable, Hashable {}
+
+
+
 
 public enum SendTransactionError: Swift.Error {
 
@@ -2410,6 +2553,23 @@ public func getBalance(address: String, config: Config)async throws  -> AccountB
             errorHandler: FfiConverterTypeGetAccountBalanceError_lift
         )
 }
+/**
+ * Initialize the Android logger
+ */
+public func initAndroidLogger()  {try! rustCall() {
+    uniffi_ffi_fn_func_init_android_logger($0
+    )
+}
+}
+/**
+ * Initialize the Apple logger
+ */
+public func initAppleLogger(bundleIdentifier: String)  {try! rustCall() {
+    uniffi_ffi_fn_func_init_apple_logger(
+        FfiConverterString.lower(bundleIdentifier),$0
+    )
+}
+}
 public func prepareSendTransaction(transaction: Transaction, config: Config)async throws  -> PreparedTransaction  {
     return
         try  await uniffiRustCallAsync(
@@ -2487,6 +2647,12 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ffi_checksum_func_get_balance() != 46562) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ffi_checksum_func_init_android_logger() != 13601) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ffi_checksum_func_init_apple_logger() != 707) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ffi_checksum_func_prepare_send_transaction() != 13974) {

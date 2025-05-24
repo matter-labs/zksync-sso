@@ -26,7 +26,8 @@ const LoggedOutView: React.FC<LoggedOutViewProps> = ({
             const uniqueAccountId = accountInfo.userID;
 
             const deployedAccount = await getAccountByUserIdWrapper(
-                uniqueAccountId
+                uniqueAccountId,
+                accountInfo.rpId
             );
 
             const accountDetails = createAccountDetails(accountInfo, deployedAccount);

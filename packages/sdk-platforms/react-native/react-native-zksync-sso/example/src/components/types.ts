@@ -1,9 +1,71 @@
-import type { Config, Account } from '../../../src';
+import type { Config, Account, RpId as FfiRpId } from '../../../src';
+import { Platform } from 'react-native';
+
+export interface AndroidRpId {
+    rp_id: string;
+    origin: string;
+}
+
+export type RpId =
+    | { platform: 'apple'; value: string }
+    | { platform: 'android'; value: AndroidRpId };
+
+export class RpIdHelper {
+    static createApple(rpId: string): RpId {
+        return { platform: 'apple', value: rpId };
+    }
+
+    static createAndroid(rpId: string, origin: string): RpId {
+        return { platform: 'android', value: { rp_id: rpId, origin } };
+    }
+
+    static origin(rpId: RpId): string {
+        switch (rpId.platform) {
+            case 'apple':
+                return rpId.value;
+            case 'android':
+                return rpId.value.origin;
+        }
+    }
+
+    static rpId(rpId: RpId): string {
+        switch (rpId.platform) {
+            case 'apple':
+                return rpId.value;
+            case 'android':
+                return rpId.value.rp_id;
+        }
+    }
+
+    static createForCurrentPlatform(rpId: string, androidOrigin: string): RpId {
+        return Platform.OS === 'ios'
+            ? RpIdHelper.createApple(rpId)
+            : RpIdHelper.createAndroid(rpId, androidOrigin);
+    }
+
+    /**
+     * Converts our local RpId type to the FFI RpId type
+     */
+    static toFfiRpId(rpId: RpId): FfiRpId {
+        // Import the FFI RpId constructors
+        const { RpId: FfiRpIdClass } = require('../../../src');
+
+        switch (rpId.platform) {
+            case 'apple':
+                return FfiRpIdClass.Apple.new(rpId.value);
+            case 'android':
+                return FfiRpIdClass.Android.new({
+                    rpId: rpId.value.rp_id,
+                    origin: rpId.value.origin
+                });
+        }
+    }
+}
 
 export interface AccountInfo {
     name: string;
     userID: string;
-    domain: string;
+    rpId: RpId;
 }
 
 export interface DeployedAccount {
