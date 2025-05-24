@@ -3,6 +3,7 @@ use alloy::sol;
 use alloy::sol_types::SolType;
 use eyre::Result;
 use crate::utils::passkey::signature_encoding::base64_url_to_uint8_array;
+use log::debug;
 
 pub mod paymaster;
 
@@ -25,16 +26,16 @@ pub fn encode_passkey_module_parameters(
     passkey: PasskeyModuleParams,
 ) -> Result<Bytes> {
 
-    println!("XDB encode_passkey_module_parameters - passkey_id: {:?}", passkey.passkey_id);
-    println!("XDB encode_passkey_module_parameters - passkey_public_key: {:?}", passkey.passkey_public_key);
-    println!("XDB encode_passkey_module_parameters - expected_origin: {:?}", passkey.expected_origin);
+    debug!("XDB encode_passkey_module_parameters - passkey_id: {:?}", passkey.passkey_id);
+    debug!("XDB encode_passkey_module_parameters - passkey_public_key: {:?}", passkey.passkey_public_key);
+    debug!("XDB encode_passkey_module_parameters - expected_origin: {:?}", passkey.expected_origin);
 
     let credential_id = base64_url_to_uint8_array(
         passkey.passkey_id.clone(),
         true
     )?;
 
-    println!("XDB encode_passkey_module_parameters - credential_id: {:?}", credential_id);  
+    debug!("XDB encode_passkey_module_parameters - credential_id: {:?}", credential_id);  
 
     let x = FixedBytes::from_slice(&passkey.passkey_public_key.0);
     let y = FixedBytes::from_slice(&passkey.passkey_public_key.1);

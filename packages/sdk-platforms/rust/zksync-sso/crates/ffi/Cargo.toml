@@ -25,12 +25,29 @@ async-trait.workspace = true
 eyre.workspace = true
 thiserror.workspace = true
 
+# Logging
+log.workspace = true
+
 # Random bytes generation
 rand.workspace = true
 base64.workspace = true
 
 # Hex encoding/decoding
 hex.workspace = true
+
+# Target-specific dependencies - Android
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger.workspace = true
+openssl = { workspace = true, features = ["vendored"] }
+
+# Ensure all transitive dependencies use static OpenSSL on Android
+[target.'cfg(target_os = "android")'.dependencies.native-tls]
+version = "0.2"
+features = ["vendored"]
+
+# Target-specific dependencies - Apple (iOS and macOS)
+[target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
+oslog.workspace = true
 
 [build-dependencies]
 uniffi = { workspace = true, features = ["build", "cli"] }

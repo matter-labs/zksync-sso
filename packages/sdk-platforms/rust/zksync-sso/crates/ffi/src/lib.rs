@@ -3,6 +3,7 @@ uniffi::setup_scaffolding!();
 mod account;
 mod config;
 mod native_apis;
+mod utils;
 
 use base64::Engine;
 use rand::{Rng, rng};

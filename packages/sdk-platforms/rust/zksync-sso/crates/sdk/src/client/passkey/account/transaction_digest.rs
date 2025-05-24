@@ -8,6 +8,7 @@ use alloy::{
 use alloy_zksync::network::transaction_request::TransactionRequest;
 use serde::{Deserialize, Serialize};
 use serde_json::{self};
+use log::debug;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct TransactionDigest(pub FixedBytes<32>);
@@ -101,16 +102,16 @@ impl TryFrom<TransactionRequest> for Transaction {
             paymasterInput: paymaster_input,
         };
 
-        println!(
+        debug!(
             "XDB - transform_to_transaction - raw data: {}",
             hex::encode(&transaction.data)
         );
-        println!(
+        debug!(
             "XDB - transform_to_transaction - raw paymasterInput: {}",
             hex::encode(&transaction.paymasterInput)
         );
 
-        println!(
+        debug!(
             "XDB - transform_to_transaction - raw factoryDeps: {:?}",
             transaction.factoryDeps.iter().map(hex::encode).collect::<Vec<_>>()
         );
@@ -129,17 +130,17 @@ pub fn get_digest(
 
     let typed_data =
         TypedData::from_struct(&sol_transaction, Some(domain.clone()));
-    println!(
+    debug!(
         "XDB - get_transaction_digest_from_sol - TypedData: {}",
         serde_json::to_string_pretty(&typed_data)?
     );
 
     let digest = sol_transaction.eip712_signing_hash(&domain);
-    println!(
+    debug!(
         "XDB - get_transaction_digest_from_sol - digest: {}",
         digest.clone()
     );
-    println!(
+    debug!(
         "XDB - get_transaction_digest_from_sol - hex::encode(digest): {}",
         hex::encode(digest)
     );

@@ -39,6 +39,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use url::Url;
+use log::debug;
 
 #[derive(Clone, Debug)]
 pub struct TransactionRequestWrapper(pub TransactionRequest);
@@ -108,20 +109,20 @@ pub(crate) async fn populate_tx_request(
     let mut tx_request: TransactionRequest = tx_request;
     tx_request.set_gas_per_pubdata(U256::from(50000));
 
-    println!(
+    debug!(
         "XDB - populate_tx_request - going to fill transaction: {:?}",
         tx_request
     );
     let sendable_tx: alloy::providers::SendableTx<Zksync> =
         provider.fill(tx_request.clone()).await?;
-    println!(
+    debug!(
         "XDB - populate_tx_request - transaction filled, sendable_tx: {:?}",
         sendable_tx
     );
 
     let mut tx: TransactionRequest = SendableTxWrapper(sendable_tx).into();
 
-    println!("XDB - populate_tx_request - transaction filled, tx: {:?}", tx);
+    debug!("XDB - populate_tx_request - transaction filled, tx: {:?}", tx);
 
     let max_priority_fee_per_gas = tx.max_fee_per_gas().unwrap_or_default();
     tx.set_max_priority_fee_per_gas(max_priority_fee_per_gas);
@@ -130,7 +131,7 @@ pub(crate) async fn populate_tx_request(
 
     assert!(tx.gas_per_pubdata().unwrap() == U256::from(50000));
 
-    println!(
+    debug!(
         "XDB - populate_tx_request - Built TransactionRequest tx: \n{:?}",
         tx
     );
@@ -150,7 +151,7 @@ pub(crate) fn build_raw_tx(tx: TransactionRequest) -> eyre::Result<Vec<u8>> {
         envelope.encode_2718(&mut out);
         out
     };
-    println!(
+    debug!(
         "Encoded transaction with custom signature: 0x{}",
         hex::encode(&out)
     );
@@ -245,7 +246,7 @@ async fn authenticate_apple_passkey(
         .store()
         .find_credentials(Some(&ids), rp_id)
         .await?;
-    println!(
+    debug!(
         "XDB - authenticate_apple_passkey - Available passkeys: {:?}",
         passkeys
     );
@@ -282,7 +283,7 @@ async fn authenticate_apple_passkey(
         .await
         .authenticate(&origin, options, DefaultClientData)
         .await?;
-    println!(
+    debug!(
         "XDB - authenticate_apple_passkey - Auth response credential ID: {:?}",
         auth_response.id
     );

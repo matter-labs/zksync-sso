@@ -5,6 +5,7 @@ use alloy_zksync::network::{
 };
 use eyre::{Result, eyre};
 use std::time::Duration;
+use log::debug;
 
 pub trait ProviderExt: Provider<Zksync> + Clone {
     async fn wait_for_transaction_receipt(
@@ -27,7 +28,7 @@ pub trait ProviderExt: Provider<Zksync> + Clone {
             match self.get_transaction_receipt(tx_hash).await? {
                 Some(receipt) => return Ok(receipt),
                 None => {
-                    println!(
+                    debug!(
                         "Debug: Receipt not found, attempt {} of {}",
                         attempt + 1,
                         max_attempts
@@ -71,12 +72,11 @@ mod tests {
                 assert!(false, "Unexpected success: receipt found for dummy tx")
             }
             Err(e) => {
-                println!("Error: {}", e);
+                debug!("Error: {}", e);
                 assert!(
                     e.to_string()
                         .contains("Transaction receipt not found after")
                 );
-                println!("Expected error received: {}", e);
             }
         }
 

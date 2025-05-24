@@ -51,6 +51,7 @@ import {
   FfiConverterUInt64,
   RustBuffer,
   UniffiAbstractObject,
+  UniffiEnum,
   UniffiError,
   UniffiInternalError,
   UniffiResult,
@@ -303,6 +304,31 @@ export async function getBalance(
     throw __error;
   }
 }
+/**
+ * Initialize the Android logger
+ */
+export function initAndroidLogger(): void {
+  uniffiCaller.rustCall(
+    /*caller:*/ (callStatus) => {
+      nativeModule().ubrn_uniffi_ffi_fn_func_init_android_logger(callStatus);
+    },
+    /*liftString:*/ FfiConverterString.lift
+  );
+}
+/**
+ * Initialize the Apple logger
+ */
+export function initAppleLogger(bundleIdentifier: string): void {
+  uniffiCaller.rustCall(
+    /*caller:*/ (callStatus) => {
+      nativeModule().ubrn_uniffi_ffi_fn_func_init_apple_logger(
+        FfiConverterString.lower(bundleIdentifier),
+        callStatus
+      );
+    },
+    /*liftString:*/ FfiConverterString.lift
+  );
+}
 export async function prepareSendTransaction(
   transaction: Transaction,
   config: Config,
@@ -527,6 +553,64 @@ const FfiConverterTypeAccountBalance = (() => {
   return new FFIConverter();
 })();
 
+export type AndroidRpId = {
+  origin: string;
+  rpId: string;
+};
+
+/**
+ * Generated factory for {@link AndroidRpId} record objects.
+ */
+export const AndroidRpId = (() => {
+  const defaults = () => ({});
+  const create = (() => {
+    return uniffiCreateRecord<AndroidRpId, ReturnType<typeof defaults>>(
+      defaults
+    );
+  })();
+  return Object.freeze({
+    /**
+     * Create a frozen instance of {@link AndroidRpId}, with defaults specified
+     * in Rust, in the {@link ffi} crate.
+     */
+    create,
+
+    /**
+     * Create a frozen instance of {@link AndroidRpId}, with defaults specified
+     * in Rust, in the {@link ffi} crate.
+     */
+    new: create,
+
+    /**
+     * Defaults specified in the {@link ffi} crate.
+     */
+    defaults: () => Object.freeze(defaults()) as Partial<AndroidRpId>,
+  });
+})();
+
+const FfiConverterTypeAndroidRpId = (() => {
+  type TypeName = AndroidRpId;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      return {
+        origin: FfiConverterString.read(from),
+        rpId: FfiConverterString.read(from),
+      };
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      FfiConverterString.write(value.origin, into);
+      FfiConverterString.write(value.rpId, into);
+    }
+    allocationSize(value: TypeName): number {
+      return (
+        FfiConverterString.allocationSize(value.origin) +
+        FfiConverterString.allocationSize(value.rpId)
+      );
+    }
+  }
+  return new FFIConverter();
+})();
+
 export type Config = {
   contracts: PasskeyContracts;
   nodeUrl: string;
@@ -713,7 +797,7 @@ export type PasskeyParameters = {
   credentialRawAttestationObject: ArrayBuffer;
   credentialRawClientDataJson: ArrayBuffer;
   credentialId: ArrayBuffer;
-  rpId: string;
+  rpId: RpId;
 };
 
 /**
@@ -754,14 +838,14 @@ const FfiConverterTypePasskeyParameters = (() => {
         credentialRawAttestationObject: FfiConverterArrayBuffer.read(from),
         credentialRawClientDataJson: FfiConverterArrayBuffer.read(from),
         credentialId: FfiConverterArrayBuffer.read(from),
-        rpId: FfiConverterString.read(from),
+        rpId: FfiConverterTypeRpId.read(from),
       };
     }
     write(value: TypeName, into: RustBuffer): void {
       FfiConverterArrayBuffer.write(value.credentialRawAttestationObject, into);
       FfiConverterArrayBuffer.write(value.credentialRawClientDataJson, into);
       FfiConverterArrayBuffer.write(value.credentialId, into);
-      FfiConverterString.write(value.rpId, into);
+      FfiConverterTypeRpId.write(value.rpId, into);
     }
     allocationSize(value: TypeName): number {
       return (
@@ -772,7 +856,7 @@ const FfiConverterTypePasskeyParameters = (() => {
           value.credentialRawClientDataJson
         ) +
         FfiConverterArrayBuffer.allocationSize(value.credentialId) +
-        FfiConverterString.allocationSize(value.rpId)
+        FfiConverterTypeRpId.allocationSize(value.rpId)
       );
     }
   }
@@ -1974,6 +2058,137 @@ const FfiConverterTypePrepareTransactionError = (() => {
   return new FFIConverter();
 })();
 
+// Enum: RpId
+export enum RpId_Tags {
+  Apple = 'Apple',
+  Android = 'Android',
+}
+export const RpId = (() => {
+  type Apple__interface = {
+    tag: RpId_Tags.Apple;
+    inner: Readonly<[string]>;
+  };
+
+  class Apple_ extends UniffiEnum implements Apple__interface {
+    /**
+     * @private
+     * This field is private and should not be used, use `tag` instead.
+     */
+    readonly [uniffiTypeNameSymbol] = 'RpId';
+    readonly tag = RpId_Tags.Apple;
+    readonly inner: Readonly<[string]>;
+    constructor(v0: string) {
+      super('RpId', 'Apple');
+      this.inner = Object.freeze([v0]);
+    }
+
+    static new(v0: string): Apple_ {
+      return new Apple_(v0);
+    }
+
+    static instanceOf(obj: any): obj is Apple_ {
+      return obj.tag === RpId_Tags.Apple;
+    }
+  }
+
+  type Android__interface = {
+    tag: RpId_Tags.Android;
+    inner: Readonly<[AndroidRpId]>;
+  };
+
+  class Android_ extends UniffiEnum implements Android__interface {
+    /**
+     * @private
+     * This field is private and should not be used, use `tag` instead.
+     */
+    readonly [uniffiTypeNameSymbol] = 'RpId';
+    readonly tag = RpId_Tags.Android;
+    readonly inner: Readonly<[AndroidRpId]>;
+    constructor(v0: AndroidRpId) {
+      super('RpId', 'Android');
+      this.inner = Object.freeze([v0]);
+    }
+
+    static new(v0: AndroidRpId): Android_ {
+      return new Android_(v0);
+    }
+
+    static instanceOf(obj: any): obj is Android_ {
+      return obj.tag === RpId_Tags.Android;
+    }
+  }
+
+  function instanceOf(obj: any): obj is RpId {
+    return obj[uniffiTypeNameSymbol] === 'RpId';
+  }
+
+  return Object.freeze({
+    instanceOf,
+    Apple: Apple_,
+    Android: Android_,
+  });
+})();
+
+export type RpId = InstanceType<
+  (typeof RpId)[keyof Omit<typeof RpId, 'instanceOf'>]
+>;
+
+// FfiConverter for enum RpId
+const FfiConverterTypeRpId = (() => {
+  const ordinalConverter = FfiConverterInt32;
+  type TypeName = RpId;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      switch (ordinalConverter.read(from)) {
+        case 1:
+          return new RpId.Apple(FfiConverterString.read(from));
+        case 2:
+          return new RpId.Android(FfiConverterTypeAndroidRpId.read(from));
+        default:
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      switch (value.tag) {
+        case RpId_Tags.Apple: {
+          ordinalConverter.write(1, into);
+          const inner = value.inner;
+          FfiConverterString.write(inner[0], into);
+          return;
+        }
+        case RpId_Tags.Android: {
+          ordinalConverter.write(2, into);
+          const inner = value.inner;
+          FfiConverterTypeAndroidRpId.write(inner[0], into);
+          return;
+        }
+        default:
+          // Throwing from here means that RpId_Tags hasn't matched an ordinal.
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+    allocationSize(value: TypeName): number {
+      switch (value.tag) {
+        case RpId_Tags.Apple: {
+          const inner = value.inner;
+          let size = ordinalConverter.allocationSize(1);
+          size += FfiConverterString.allocationSize(inner[0]);
+          return size;
+        }
+        case RpId_Tags.Android: {
+          const inner = value.inner;
+          let size = ordinalConverter.allocationSize(2);
+          size += FfiConverterTypeAndroidRpId.allocationSize(inner[0]);
+          return size;
+        }
+        default:
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+  }
+  return new FFIConverter();
+})();
+
 // Error type: SendTransactionError
 
 // Enum: SendTransactionError
@@ -2599,6 +2814,20 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
+    nativeModule().ubrn_uniffi_ffi_checksum_func_init_android_logger() !== 13601
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_ffi_checksum_func_init_android_logger'
+    );
+  }
+  if (
+    nativeModule().ubrn_uniffi_ffi_checksum_func_init_apple_logger() !== 707
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_ffi_checksum_func_init_apple_logger'
+    );
+  }
+  if (
     nativeModule().ubrn_uniffi_ffi_checksum_func_prepare_send_transaction() !==
     13974
   ) {
@@ -2647,6 +2876,7 @@ export default Object.freeze({
   converters: {
     FfiConverterTypeAccount,
     FfiConverterTypeAccountBalance,
+    FfiConverterTypeAndroidRpId,
     FfiConverterTypeConfig,
     FfiConverterTypeDeployWallet,
     FfiConverterTypePasskeyAuthenticator,
@@ -2654,6 +2884,7 @@ export default Object.freeze({
     FfiConverterTypePasskeyContracts,
     FfiConverterTypePasskeyParameters,
     FfiConverterTypePreparedTransaction,
+    FfiConverterTypeRpId,
     FfiConverterTypeSendTransactionResult,
     FfiConverterTypeTransaction,
   },

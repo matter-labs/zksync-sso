@@ -5,6 +5,7 @@ use passkey::{
     authenticator::{Authenticator, UserCheck, UserValidationMethod},
     client::{Client, WebauthnError},
     types::{
+        Bytes, Passkey,
         crypto::sha256,
         ctap2::*,
         rand::random_vec,
@@ -12,7 +13,6 @@ use passkey::{
             AttestationStatementFormatIdentifiers,
             AuthenticationExtensionsClientInputs, PublicKeyCredentialHints, *,
         },
-        Bytes, Passkey,
     },
 };
 use passkey_client::DefaultClientData;
@@ -255,7 +255,7 @@ async fn client_setup(
     let store: Option<Passkey> = None;
     let my_authenticator =
         Authenticator::new(my_aaguid, store, user_validation_method);
-    
+
     let mut my_client = Client::new(my_authenticator);
 
     let request = CredentialCreationOptions {
@@ -279,7 +279,7 @@ async fn client_setup(
 
     let my_webauthn_credential =
         my_client.register(origin, request, DefaultClientData).await?;
-    
+
     let challenge_bytes_from_rp: Bytes = random_vec(32).into();
 
     let credential_request = CredentialRequestOptions {
@@ -320,11 +320,11 @@ mod tests {
 
         let (created_cred, authed_cred) =
             create_credential(origin, id, challenge).await?;
-        
+
         assert_eq!(created_cred.ty, PublicKeyCredentialType::PublicKey);
         assert!(!created_cred.raw_id.is_empty());
         assert!(!created_cred.response.attestation_object.is_empty());
-        
+
         assert_eq!(authed_cred.ty, PublicKeyCredentialType::PublicKey);
         assert!(!authed_cred.raw_id.is_empty());
         assert!(!authed_cred.response.signature.is_empty());
