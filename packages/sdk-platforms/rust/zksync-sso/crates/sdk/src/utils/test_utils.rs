@@ -12,8 +12,10 @@ use alloy::{
 use alloy_zksync::{
     network::Zksync,
     node_bindings::{AnvilZKsync, AnvilZKsyncError, AnvilZKsyncInstance},
-    provider::layers::anvil_zksync::{AnvilZKsyncLayer, AnvilZKsyncProvider},
-    provider::zksync_provider,
+    provider::{
+        layers::anvil_zksync::{AnvilZKsyncLayer, AnvilZKsyncProvider},
+        zksync_provider,
+    },
     wallet::ZksyncWallet,
 };
 use k256::{Secp256k1, elliptic_curve::SecretKey};

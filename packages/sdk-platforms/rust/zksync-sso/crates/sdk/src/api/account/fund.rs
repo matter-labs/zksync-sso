@@ -1,11 +1,11 @@
-use crate::config::Config;
-use crate::utils::alloy::extensions::ProviderExt;
+use crate::{config::Config, utils::alloy::extensions::ProviderExt};
 use alloy::{
     network::TransactionBuilder,
     primitives::{Address, U256},
     providers::Provider,
 };
 use alloy_zksync::network::transaction_request::TransactionRequest;
+use log::debug;
 use money::Money;
 use rand::Rng;
 
@@ -15,13 +15,12 @@ pub async fn fund_account(
     amount: U256,
     config: &Config,
 ) -> eyre::Result<()> {
-    println!("XDB fund_account - address: {:?}", address);
+    debug!("XDB fund_account - address: {:?}", address);
 
     let provider = {
         use alloy::signers::local::PrivateKeySigner;
         use alloy_zksync::{provider::zksync_provider, wallet::ZksyncWallet};
-        pub const RICH_WALLET_PRIVATE_KEY_2: &str =
-        "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
+        pub const RICH_WALLET_PRIVATE_KEY_2: &str = "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
 
         fn zksync_wallet_3() -> eyre::Result<ZksyncWallet> {
             let signer =
@@ -46,7 +45,7 @@ pub async fn fund_account(
 
     let receipt = provider.wait_for_transaction_receipt(tx_hash).await?;
 
-    println!("XDB fund_account - Got receipt: {receipt:#?}");
+    debug!("XDB fund_account - Got receipt: {receipt:#?}");
 
     Ok(())
 }
@@ -64,7 +63,7 @@ pub fn generate_random_eth() -> Money {
         .checked_add(U256::from(decimals))
         .unwrap();
 
-    println!(
+    debug!(
         "XDB - generate_random_eth - Generated {}.{:018} ETH ({} wei)",
         whole_eth, decimals, wei
     );

@@ -5,6 +5,7 @@ use alloy::{dyn_abi::SolType, sol};
 use base64::Engine;
 use eyre::Result;
 use hex;
+use log::debug;
 
 type FatSignature = sol! { tuple(bytes, bytes, bytes32[2], bytes) };
 type FullSignature = sol! { tuple(bytes, address, bytes[]) };
@@ -79,27 +80,27 @@ fn encode_full_signature_with_validator_data(
         validator_data,
     ));
 
-    println!("\nEncoded ABI Parameters:");
-    println!("Result: 0x{}", hex::encode(&encoded));
+    debug!("\nEncoded ABI Parameters:");
+    debug!("Result: 0x{}", hex::encode(&encoded));
 
     // Print detailed structure for debugging
-    println!("\nEncoded Data Structure:");
-    println!(
+    debug!("\nEncoded Data Structure:");
+    debug!(
         "- First 32 bytes (offset to fat signature): 0x{}",
         hex::encode(&encoded[0..32])
     );
-    println!(
+    debug!(
         "- Next 32 bytes (validator address): {}",
         hex::encode(&encoded[32..64])
     );
-    println!(
+    debug!(
         "- Next 32 bytes (offset to validator data array): {}",
         hex::encode(&encoded[64..96])
     );
 
     if encoded.len() > 96 {
-        println!("- Fat signature length: {}", encoded_fat_signature.len());
-        println!(
+        debug!("- Fat signature length: {}", encoded_fat_signature.len());
+        debug!(
             "- Fat signature data starts at: {}",
             hex::encode(&encoded[96..128])
         );

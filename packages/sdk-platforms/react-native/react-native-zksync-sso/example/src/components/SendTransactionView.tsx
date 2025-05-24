@@ -11,14 +11,14 @@ import TransactionFormFields from './TransactionFormFields';
 import TransactionFeeView from './TransactionFeeView';
 import ToastView from './ToastView';
 import ActionButton, { ButtonStyle } from './ActionButton';
-import { type Transaction, type PreparedTransaction } from '../../../src';
+import { type Transaction, type PreparedTransaction, RpId } from '../../../src';
 import { AccountClient } from '../../../src/passkey/authenticate/account_client';
 import { loadConfig } from './helpers/loadConfig';
 
 interface SendTransactionViewProps {
     fromAccount: {
         info: {
-            domain: string;
+            rpId: RpId;
             name?: string;
             userID?: string;
         };
@@ -69,16 +69,16 @@ const SendTransactionView: React.FC<SendTransactionViewProps> = ({
                     address: fromAccount.address,
                     uniqueAccountId: fromAccount.uniqueAccountId
                 },
-                fromAccount.info.domain,
+                fromAccount.info.rpId,
                 config
             );
             const transaction: Transaction = {
-                to: toAddress,
+                to: toAddress as string,
                 value: amountInWei,
                 from: fromAccount.address,
                 input: undefined
             };
-            const prepared = await accountClient.prepareTransaction(transaction);
+            const prepared = await accountClient.prepareTransaction(transaction as any);
             console.log("Prepared transaction:", prepared);
             setPreparedTransaction(prepared);
         } catch (err) {
@@ -104,16 +104,16 @@ const SendTransactionView: React.FC<SendTransactionViewProps> = ({
             const accountClient = new AccountClient({
                 address: fromAccount.address,
                 uniqueAccountId: fromAccount.uniqueAccountId
-            }, fromAccount.info.domain, config);
+            }, fromAccount.info.rpId, config);
 
             const transaction: Transaction = {
-                to: toAddress,
+                to: toAddress as string,
                 value: amountInWei,
                 from: fromAccount.address,
                 input: undefined
             };
 
-            await accountClient.sendTransaction(transaction);
+            await accountClient.sendTransaction(transaction as any);
             setShowingSuccess(true);
             onTransactionSent();
 

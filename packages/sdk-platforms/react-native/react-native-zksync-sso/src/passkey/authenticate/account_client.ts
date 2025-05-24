@@ -5,6 +5,7 @@ import {
     type PreparedTransaction,
     type Transaction,
     type SendTransactionResult,
+    type RpId,
     sendTransactionAsyncSigner,
     prepareSendTransaction,
 } from 'react-native-zksync-sso';
@@ -16,10 +17,10 @@ export { type PreparedTransaction };
  */
 export class AccountClient {
     private account: Account;
-    private rpId: string;
+    private rpId: RpId;
     private config: Config;
 
-    constructor(account: Account, rpId: string, config: Config) {
+    constructor(account: Account, rpId: RpId, config: Config) {
         this.account = account;
         this.rpId = rpId;
         this.config = config;
@@ -56,7 +57,6 @@ export class AccountClient {
             authenticator,
             this.config
         );
-        console.log("result: ", result);
         return result;
     }
 }

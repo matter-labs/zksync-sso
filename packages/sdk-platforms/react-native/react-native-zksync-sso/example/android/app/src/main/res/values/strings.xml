@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ZksyncSsoExample</string>
+    <string name="asset_statements" translatable="false">[{ \"include\": \"https://soo-sdk-example-pages.pages.dev/.well-known/assetlinks.json\" }]</string>
 </resources>

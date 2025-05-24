@@ -3,6 +3,7 @@ use crate::{
     config::Config,
 };
 use alloy_zksync::network::transaction_request::TransactionRequest;
+use log::debug;
 
 #[derive(Debug)]
 pub struct PreparedTransaction {
@@ -33,8 +34,11 @@ pub async fn prepare_send_transaction(
     transaction: super::Transaction,
     config: &Config,
 ) -> eyre::Result<PreparedTransaction> {
-    println!("XDB prepare_send_transaction - transaction: {:?}", transaction);
+    debug!("XDB prepare_send_transaction - transaction: {:?}", transaction);
     let transaction_request = transaction.try_into()?;
-    println!("XDB prepare_send_transaction - transaction_request: {:?}", transaction_request);
+    debug!(
+        "XDB prepare_send_transaction - transaction_request: {:?}",
+        transaction_request
+    );
     prepare_transaction(transaction_request, config).await.map(Into::into)
 }
