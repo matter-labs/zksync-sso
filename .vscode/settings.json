@@ -36,5 +36,12 @@
   "[solidity]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "css.customData": [".vscode/tailwind.json"]
+  "css.customData": [".vscode/tailwind.json"],
+  "nxConsole.generateAiAgentRules": true,
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
