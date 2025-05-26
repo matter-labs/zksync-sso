@@ -277,11 +277,11 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
   const isContractCall = !!selector;
   if (isContractCall) {
     // This is a contract call
-    const policy = sessionConfig.callPolicies.find(
+    const policies = sessionConfig.callPolicies.filter(
       (policy) => policy.target === to && policy.selector === selector,
     );
 
-    if (!policy) {
+    if (!policies.length) {
       return {
         valid: false,
         error: {
@@ -292,12 +292,15 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
     }
 
     // Verify max value per use
-    if (value > policy.maxValuePerUse) {
+    const minimalMaxValuePerUse = policies.reduce((min, policy) => {
+      return policy.maxValuePerUse < min.maxValuePerUse ? policy : min;
+    }, policies[0]).maxValuePerUse;
+    if (value > minimalMaxValuePerUse) {
       return {
         valid: false,
         error: {
           type: SessionErrorType.MaxValuePerUseExceeded,
-          message: `Transaction value ${value} exceeds max value per use ${policy.maxValuePerUse}`,
+          message: `Transaction value ${value} exceeds max value per use ${minimalMaxValuePerUse}`,
         },
       };
     }
@@ -317,9 +320,8 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
     // TODO: verify constraints
   } else {
     // This is a simple transfer
-    const policy = sessionConfig.transferPolicies.find((policy) => policy.target === to);
-
-    if (!policy) {
+    const policies = sessionConfig.transferPolicies.filter((policy) => policy.target === to);
+    if (!policies.length) {
       return {
         valid: false,
         error: {
@@ -330,19 +332,22 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
     }
 
     // Verify max value per use
-    if (value > policy.maxValuePerUse) {
+    const minimalMaxValuePerUse = policies.reduce((min, policy) => {
+      return policy.maxValuePerUse < min.maxValuePerUse ? policy : min;
+    }, policies[0]).maxValuePerUse;
+    if (value > minimalMaxValuePerUse) {
       return {
         valid: false,
         error: {
           type: SessionErrorType.MaxValuePerUseExceeded,
-          message: `Transaction value ${value} exceeds max value per use ${policy.maxValuePerUse}`,
+          message: `Transaction value ${value} exceeds max value per use ${minimalMaxValuePerUse}`,
         },
       };
     }
 
     // Verify remaining value limit
     const remainingValue = findRemainingValue(sessionState.transferValue, to);
-    if (remainingValue === undefined || value > remainingValue) {
+    if (value > remainingValue) {
       return {
         valid: false,
         error: {
@@ -359,50 +364,27 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
   };
 }
 
-/**
- * Calculate the total fee based on gas parameters
- */
-// function calculateTotalFee(fee: {
-//   gas?: bigint;
-//   gasPrice?: bigint;
-//   maxFeePerGas?: bigint;
-//   maxPriorityFeePerGas?: bigint;
-// }): bigint {
-//   if (!fee.gas) return 0n;
-
-//   if (fee.gasPrice) {
-//     return fee.gas * fee.gasPrice;
-//   } else if (fee.maxFeePerGas && fee.maxPriorityFeePerGas) {
-//     return fee.gas * fee.maxFeePerGas;
-//   } else if (fee.maxFeePerGas) {
-//     return fee.gas * fee.maxFeePerGas;
-//   } else if (fee.maxPriorityFeePerGas) {
-//     return fee.gas * fee.maxPriorityFeePerGas;
-//   }
-
-//   return 0n;
-// }
-
-/**
- * Find the remaining value for a target/selector combination in the session state
- */
 function findRemainingValue(
-  valueArray: { remaining: bigint; target: Address; selector: Hash; index: bigint }[],
+  valueArray: SessionState["transferValue"] | SessionState["callValue"],
   target: Address,
   selector?: Hash,
 ): bigint {
   if (selector) {
-    const lowestRemaining = valueArray.filter(
-      (item) => item.target === target && item.selector === selector,
-    )
-      .map((item) => item.remaining)
-      .reduce((min, current) => (current < min ? current : min), 0n);
+    const filtered = valueArray
+      .filter((item) => item.target === target && item.selector === selector)
+      .map((item) => item.remaining);
+    if (!filtered.length) return 0n;
+
+    const lowestRemaining = filtered
+      .reduce((min, e) => (e < min ? e : min), filtered[0]);
     return lowestRemaining;
   } else {
-    const lowestRemaining = valueArray
+    const filtered = valueArray
       .filter((item) => item.target === target)
-      .map((item) => item.remaining)
-      .reduce((min, current) => (current < min ? current : min), 0n);
+      .map((item) => item.remaining);
+    if (!filtered.length) return 0n;
+
+    const lowestRemaining = filtered.reduce((min, e) => e < min ? e : min, filtered[0]);
     return lowestRemaining;
   }
 }
