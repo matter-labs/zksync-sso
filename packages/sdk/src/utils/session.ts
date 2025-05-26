@@ -1,5 +1,7 @@
 import { type Address, getAddress, type Hash, type Hex } from "viem";
 
+import { findSmallestBigInt } from "./helpers.js";
+
 export enum LimitType {
   Unlimited = 0,
   Lifetime = 1,
@@ -167,3 +169,198 @@ export const getPeriodIdsForTransaction = (args: {
   ];
   return periodIds;
 };
+
+export enum SessionErrorType {
+  SessionInactive = "session_inactive",
+  SessionExpired = "session_expired",
+  FeeLimitExceeded = "fee_limit_exceeded",
+  NoCallPolicy = "no_call_policy",
+  NoTransferPolicy = "no_transfer_policy",
+  MaxValuePerUseExceeded = "max_value_per_use_exceeded",
+  ValueLimitExceeded = "value_limit_exceeded",
+  ConstraintIndexOutOfBounds = "constraint_index_out_of_bounds",
+  NoLimitStateFound = "no_limit_state_found",
+  ParameterLimitExceeded = "parameter_limit_exceeded",
+  ConstraintEqualViolated = "constraint_equal_violated",
+  ConstraintGreaterViolated = "constraint_greater_violated",
+  ConstraintLessViolated = "constraint_less_violated",
+  ConstraintGreaterEqualViolated = "constraint_greater_equal_violated",
+  ConstraintLessEqualViolated = "constraint_less_equal_violated",
+  ConstraintNotEqualViolated = "constraint_not_equal_violated",
+}
+
+export enum SessionEventType {
+  Expired = "session_expired",
+  Revoked = "session_revoked",
+  Inactive = "session_inactive",
+}
+
+export type SessionStateEvent = {
+  type: SessionEventType;
+  message: string;
+};
+
+export type SessionStateEventCallback = (event: SessionStateEvent) => void;
+
+export type ValidationResult = {
+  valid: boolean;
+  error: null | {
+    type: SessionErrorType;
+    message: string;
+  };
+};
+
+export type TransactionValidationArgs = {
+  sessionState: SessionState;
+  sessionConfig: SessionConfig;
+  transaction: {
+    to: Address;
+    value?: bigint;
+    data?: Hex;
+    gas?: bigint;
+    gasPrice?: bigint;
+    maxFeePerGas?: bigint;
+    maxPriorityFeePerGas?: bigint;
+  };
+  currentTimestamp?: bigint;
+};
+
+export function validateSessionTransaction(args: TransactionValidationArgs): ValidationResult {
+  const { sessionState, sessionConfig, transaction, currentTimestamp } = args;
+  const timestamp = currentTimestamp || BigInt(Math.floor(Date.now() / 1000));
+
+  // 1. Check if session is active
+  if (sessionState.status !== SessionStatus.Active) {
+    return {
+      valid: false,
+      error: {
+        type: SessionErrorType.SessionInactive,
+        message: "Session is not active",
+      },
+    };
+  }
+
+  // 2. Check if session hasn't expired
+  if (sessionConfig.expiresAt <= timestamp) {
+    return {
+      valid: false,
+      error: {
+        type: SessionErrorType.SessionExpired,
+        message: "Session has expired",
+      },
+    };
+  }
+
+  // 3. Extract transaction data
+  const to = getAddress(transaction.to.toLowerCase());
+  const value = transaction.value || 0n;
+  const data = transaction.data || "0x";
+  const selector = data.length >= 10 ? data.slice(0, 10) as Hash : undefined;
+
+  /* TODO: implement fee verification (including paymaster scenario) */
+
+  const isContractCall = !!selector;
+  if (isContractCall) {
+    // This is a contract call
+    const policies = sessionConfig.callPolicies.filter(
+      (policy) => policy.target === to && policy.selector === selector,
+    );
+
+    if (!policies.length) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.NoCallPolicy,
+          message: `No call policy found for target ${to} with selector ${selector}`,
+        },
+      };
+    }
+
+    // Verify max value per use
+    const lowestMaxValuePerUse = findSmallestBigInt(policies.map((policy) => policy.maxValuePerUse));
+    if (value > lowestMaxValuePerUse) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.MaxValuePerUseExceeded,
+          message: `Transaction value ${value} exceeds max value per use ${lowestMaxValuePerUse}`,
+        },
+      };
+    }
+
+    // Verify remaining value limit
+    const remainingValue = findLowestRemainingValue(sessionState.callValue, to, selector);
+    if (value > remainingValue) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.ValueLimitExceeded,
+          message: `Transaction value ${value} exceeds remaining value limit ${remainingValue || 0n}`,
+        },
+      };
+    }
+
+    // TODO: verify constraints
+  } else {
+    // This is a simple transfer
+    const policies = sessionConfig.transferPolicies.filter((policy) => policy.target === to);
+    if (!policies.length) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.NoTransferPolicy,
+          message: `No transfer policy found for target ${to}`,
+        },
+      };
+    }
+
+    // Verify max value per use
+    const lowestMaxValuePerUse = findSmallestBigInt(policies.map((policy) => policy.maxValuePerUse));
+    if (value > lowestMaxValuePerUse) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.MaxValuePerUseExceeded,
+          message: `Transaction value ${value} exceeds max value per use ${lowestMaxValuePerUse}`,
+        },
+      };
+    }
+
+    // Verify remaining value limit
+    const remainingValue = findLowestRemainingValue(sessionState.transferValue, to);
+    if (value > remainingValue) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.ValueLimitExceeded,
+          message: `Transaction value ${value} exceeds remaining value limit ${remainingValue || 0n}`,
+        },
+      };
+    }
+  }
+
+  return {
+    valid: true,
+    error: null,
+  };
+}
+
+function findLowestRemainingValue(
+  valueArray: SessionState["transferValue"] | SessionState["callValue"],
+  target: Address,
+  selector?: Hash,
+): bigint {
+  if (selector) {
+    const filtered = valueArray
+      .filter((item) => item.target === target && item.selector === selector)
+      .map((item) => item.remaining);
+    if (!filtered.length) return 0n;
+    return findSmallestBigInt(filtered);
+  } else {
+    const filtered = valueArray
+      .filter((item) => item.target === target)
+      .map((item) => item.remaining);
+    if (!filtered.length) return 0n;
+    return findSmallestBigInt(filtered);
+  }
+}

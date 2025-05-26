@@ -4,6 +4,7 @@ import type { TransactionRequestEIP712 } from "viem/chains";
 import { createZksyncSessionClient, type ZksyncSsoSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
 import { type CustomPaymasterHandler, getTransactionWithPaymasterData } from "../paymaster/index.js";
+import type { SessionStateEvent } from "../utils/session.js";
 import { StorageItem } from "../utils/storage.js";
 import type { AppMetadata, RequestArguments } from "./interface.js";
 import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
@@ -41,6 +42,7 @@ type SignerConstructorParams = {
   transports?: Record<number, Transport>;
   session?: () => SessionPreferences | Promise<SessionPreferences>;
   paymasterHandler?: CustomPaymasterHandler;
+  onSessionStateChange?: (event: { address: Address; chainId: number; state: SessionStateEvent }) => void;
 };
 
 type ChainsInfo = ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema>["chainsInfo"];
@@ -53,12 +55,13 @@ export class Signer implements SignerInterface {
   private readonly transports: Record<number, Transport> = {};
   private readonly sessionParameters?: () => (SessionPreferences | Promise<SessionPreferences>);
   private readonly paymasterHandler?: CustomPaymasterHandler;
+  private readonly onSessionStateChange?: SignerConstructorParams["onSessionStateChange"];
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
   private client: { instance: ZksyncSsoSessionClient; type: "session" } | { instance: WalletClient; type: "auth-server" } | undefined;
 
-  constructor({ metadata, communicator, updateListener, session, chains, transports, paymasterHandler }: SignerConstructorParams) {
+  constructor({ metadata, communicator, updateListener, session, chains, transports, paymasterHandler, onSessionStateChange }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
 
     this.getMetadata = metadata;
@@ -68,6 +71,7 @@ export class Signer implements SignerInterface {
     this.chains = chains;
     this.transports = transports || {};
     this.paymasterHandler = paymasterHandler;
+    this.onSessionStateChange = onSessionStateChange;
 
     this._account = new StorageItem<Account | null>(StorageItem.scopedStorageKey("account"), null, {
       onChange: (newValue) => {
@@ -142,6 +146,14 @@ export class Signer implements SignerInterface {
           chain,
           transport: this.transports[chain.id] || http(),
           paymasterHandler: this.paymasterHandler,
+          onSessionStateChange: (event: SessionStateEvent) => {
+            if (!this.onSessionStateChange) return;
+            this.onSessionStateChange({
+              state: event,
+              address: this.account!.address,
+              chainId: chain.id,
+            });
+          },
         }),
       };
     } else {

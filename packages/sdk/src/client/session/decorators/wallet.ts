@@ -4,19 +4,50 @@ import {
   type Transport, type WalletActions } from "viem";
 import {
   deployContract, getAddresses, getCallsStatus, getCapabilities, getChainId, prepareAuthorization, sendCalls, sendRawTransaction,
-  showCallsStatus,
-  signAuthorization,
-  signMessage, signTypedData, waitForCallsStatus, writeContract,
+  showCallsStatus, signAuthorization, signMessage, signTypedData, waitForCallsStatus, writeContract,
 } from "viem/actions";
 import { signTransaction, type TransactionRequestEIP712, type ZksyncEip712Meta } from "viem/zksync";
 
 import { getTransactionWithPaymasterData } from "../../../paymaster/index.js";
+import { SessionErrorType, SessionEventType, type SessionState, validateSessionTransaction } from "../../../utils/session.js";
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
+import { getSessionState, sessionStateNotify } from "../actions/session.js";
 import type { ClientWithZksyncSsoSessionData } from "../client.js";
 
 export type ZksyncSsoWalletActions<chain extends Chain, account extends Account> = Omit<
   WalletActions<chain, account>, "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset" | "prepareTransactionRequest"
 >;
+
+const sessionErrorToSessionEventType = {
+  [SessionErrorType.SessionInactive]: SessionEventType.Inactive,
+  [SessionErrorType.SessionExpired]: SessionEventType.Expired,
+};
+
+/**
+ * Helper function to check session state and notify via callback
+ */
+async function getSessionStateAndNotify<
+  transport extends Transport,
+  chain extends Chain,
+  account extends Account,
+>(client: ClientWithZksyncSsoSessionData<transport, chain, account>): Promise<SessionState> {
+  const { sessionState } = await getSessionState(client, {
+    account: client.account.address,
+    sessionConfig: client.sessionConfig,
+    contracts: client.contracts,
+  });
+
+  if (client.onSessionStateChange) {
+    sessionStateNotify({
+      sessionConfig: client.sessionConfig,
+      sessionState,
+      onSessionStateChange: client.onSessionStateChange,
+      sessionNotifyTimeout: client._sessionNotifyTimeout,
+    });
+  }
+
+  return sessionState;
+}
 
 export function zksyncSsoWalletActions<
   transport extends Transport,
@@ -29,6 +60,29 @@ export function zksyncSsoWalletActions<
     getChainId: () => getChainId(client),
     sendRawTransaction: (args) => sendRawTransaction(client, args),
     sendTransaction: async (args) => {
+      // Get current session state and trigger callback if needed
+      const sessionState = await getSessionStateAndNotify(client);
+
+      // Validate transaction against session constraints
+      const validationResult = validateSessionTransaction({
+        sessionState,
+        sessionConfig: client.sessionConfig,
+        transaction: args as any,
+      });
+
+      // Throw error if validation fails
+      if (validationResult.error) {
+        // If validation fails due to session issues, notify via callback
+        if (client.onSessionStateChange && Object.keys(sessionErrorToSessionEventType).includes(validationResult.error.type)) {
+          client.onSessionStateChange({
+            type: sessionErrorToSessionEventType[validationResult.error.type as keyof typeof sessionErrorToSessionEventType],
+            message: validationResult.error.message,
+          });
+        }
+        throw new Error(`Session validation failed: ${validationResult.error.message} (${validationResult.error.type})`);
+      }
+
+      // Process transaction if it's valid
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const unformattedTx: any = Object.assign({}, args);
 
