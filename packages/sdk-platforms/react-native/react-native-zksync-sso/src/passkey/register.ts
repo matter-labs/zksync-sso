@@ -3,34 +3,26 @@ import {
     type Config,
     type Account,
     type PasskeyParameters,
+    type RpId,
     deployAccountWithUniqueId,
     deployAccount
 } from 'react-native-zksync-sso';
 import {
     Passkey,
+    type PasskeyGetRequest,
+    type PasskeyGetResult,
     type PasskeyCreateResult,
     type PasskeyCreateRequest
 } from 'react-native-passkey';
+import { Platform } from 'react-native';
 import {
-    base64ToArrayBuffer
+    base64ToArrayBuffer,
+    arrayBufferToHexString,
+    type RPInfo,
+    type AccountInfo,
+    getRpIdString
 } from './utils';
-
-/**
- * Information about the relying party (RP) for passkey registration
- */
-export interface RPInfo {
-    name: string;
-    id: string;
-}
-
-/**
- * Information about the account being registered
- */
-export interface AccountInfo {
-    name: string;
-    userID: string;
-    rp: RPInfo;
-}
+import { register_passkey } from './passkey_utils';
 
 /**
  * Registers a new account using a platform passkey and deploys it.
@@ -47,30 +39,16 @@ export const registerAccountWithUniqueId = async (
     challenge: string,
     config: Config
 ): Promise<Account> => {
-    const requestJson: PasskeyCreateRequest = {
-        challenge: challenge,
-        rp: accountInfo.rp,
-        user: {
-            id: accountInfo.userID,
-            name: accountInfo.name,
-            displayName: accountInfo.name
-        },
-        pubKeyCredParams: [],
-    };
-    const result: PasskeyCreateResult = await Passkey.createPlatformKey(
-        requestJson
-    );
-    console.log("result: ", result);
-
+    const passkeyCreationResult = await register_passkey(challenge, accountInfo);
     const rpId = accountInfo.rp.id;
     const uniqueAccountId = accountInfo.userID;
-    const credentialRawAttestationObject = base64ToArrayBuffer(
-        result.response.attestationObject
+    const credentialRawAttestationObject: ArrayBuffer = base64ToArrayBuffer(
+        passkeyCreationResult.response.attestationObject
     );
-    const credentialRawClientDataJson = base64ToArrayBuffer(
-        result.response.clientDataJSON
+    const credentialRawClientDataJson: ArrayBuffer = base64ToArrayBuffer(
+        passkeyCreationResult.response.clientDataJSON
     );
-    const credentialId = base64ToArrayBuffer(result.id);
+    const credentialId: ArrayBuffer = base64ToArrayBuffer(passkeyCreationResult.id);
     const passkeyParameters: PasskeyParameters = {
         credentialRawAttestationObject,
         credentialRawClientDataJson,
@@ -82,7 +60,6 @@ export const registerAccountWithUniqueId = async (
         uniqueAccountId,
         config,
     );
-    console.log("Deployed account:", deployedAccount);
     return deployedAccount;
 };
 
@@ -91,6 +68,7 @@ export const registerAccount = async (
     challenge: string,
     config: Config
 ): Promise<Account> => {
+    const rpId = accountInfo.rp.id;
     const requestJson: PasskeyCreateRequest = {
         challenge: challenge,
         rp: accountInfo.rp,
@@ -104,9 +82,6 @@ export const registerAccount = async (
     const result: PasskeyCreateResult = await Passkey.createPlatformKey(
         requestJson
     );
-    console.log("result: ", result);
-
-    const rpId = accountInfo.rp.id;
     const uniqueAccountId = accountInfo.userID;
     const credentialRawAttestationObject = base64ToArrayBuffer(
         result.response.attestationObject

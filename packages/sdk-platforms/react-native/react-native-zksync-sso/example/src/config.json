@@ -1,13 +1,13 @@
 {
-    "contracts": {
-        "accountFactory": "0x940adfe6b30536d22ed78870aa79c9dc0835556c",
-        "passkey": "0xddb1e5ecd29aac588e0fb0a7eab1b589fe7d7dcd",
-        "session": "0xcc8bd0d99cf35e5f07d5fbbfd8f7b628010e52c2",
-        "accountPaymaster": "0x025a31e05306e1db13d1f54581f6c729be284fd4",
-        "recovery": "0xe797b5a28b73925250e70e4077568bf3a4cdc240"
-    },
-    "nodeUrl": "http://localhost:8011/",
-    "deployWallet": {
-        "privateKeyHex": "ae2a6fe1362b976aa540139994d9a3fd36dbd292380d878d09566b57bb1b54df"
-    }
+  "contracts": {
+    "accountFactory": "0xda635aa336e8f5c1c3c19e6a0db6d601fa1e3e05",
+    "passkey": "0xa472581ea2aca6e6bd8ea6cca95d3e1297aa5ae3",
+    "session": "0x6e2eef457e8a4dc33f6259ff0a933a2f94d64a8e",
+    "accountPaymaster": "0x18d0069ac0e0431f2af792ec425950427b775f1d",
+    "recovery": "0xe72da237538a1854535e9565dbee0b414f382698"
+  },
+  "nodeUrl": "http://localhost:8011/",
+  "deployWallet": {
+    "privateKeyHex": "6e506f9206f270f6a64d23b6e66f092bc77b5a4701f7c8c532e997dd48d65aa8"
+  }
 }

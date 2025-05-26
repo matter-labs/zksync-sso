@@ -1,13 +1,8 @@
-use eyre::Result;
+use crate::utils::passkey::authenticators::verify::ValidatedPasskey;
+use log::error;
 use passkey::client::apple::{
     ApplePasskeyRegistration, ValidatedPasskey as PasskeyValidated,
 };
-
-pub struct ValidatedPasskey {
-    pub public_key: Vec<u8>,
-    pub credential_id: Vec<u8>,
-    pub cose_key_cbor: Vec<u8>,
-}
 
 impl From<PasskeyValidated> for ValidatedPasskey {
     fn from(validated: PasskeyValidated) -> Self {
@@ -19,12 +14,12 @@ impl From<PasskeyValidated> for ValidatedPasskey {
     }
 }
 
-pub async fn verify_registration(
+pub(crate) async fn verify_registration(
     raw_attestation_object: &[u8],
     raw_client_data_json: &[u8],
     credential_id: &[u8],
-    expected_rp_id: &str,
-) -> Result<ValidatedPasskey> {
+    expected_origin: &str,
+) -> eyre::Result<ValidatedPasskey> {
     let registration = ApplePasskeyRegistration {
         raw_attestation_object: raw_attestation_object.to_vec(),
         raw_client_data_json: raw_client_data_json.to_vec(),
@@ -40,9 +35,9 @@ pub async fn verify_registration(
     )?;
 
     let validated = registration
-        .validate(&challenge, expected_rp_id)
+        .validate(&challenge, expected_origin)
         .map_err(|e| {
-            eprintln!("Validation failed: {:?}", e);
+            error!("Validation failed: {:?}", e);
             eyre::eyre!("Passkey validation failed: {:?}", e)
         })
         .map(Into::into)?;
@@ -58,7 +53,7 @@ mod tests {
             Authenticator, MemoryStore, UserCheck, UserValidationMethod,
         },
         client::{Client, DefaultClientData},
-        types::{crypto::sha256, ctap2::*, webauthn::*, Passkey},
+        types::{Passkey, crypto::sha256, ctap2::*, webauthn::*},
     };
     use url::Url;
 
@@ -86,7 +81,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_verify_registration() -> Result<()> {
+    async fn test_verify_registration() -> eyre::Result<()> {
         let challenge = sha256(b"test challenge");
         let rp_id = "future.1password.com";
         let origin = Url::parse(&format!("https://{}", rp_id)).unwrap();

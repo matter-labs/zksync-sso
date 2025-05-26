@@ -1,6 +1,6 @@
-use base64_url::base64::{engine::general_purpose::STANDARD, Engine};
+use base64_url::base64::{Engine, engine::general_purpose::STANDARD};
 use eyre::Result;
-use serde::{de::Deserializer, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::Deserializer};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -77,6 +77,15 @@ interface NativeModuleInterface {
     address: Uint8Array,
     config: Uint8Array
   ): bigint;
+  ubrn_uniffi_ffi_fn_func_init_android_logger(
+    level: Uint8Array,
+    uniffi_out_err: UniffiRustCallStatus
+  ): void;
+  ubrn_uniffi_ffi_fn_func_init_apple_logger(
+    bundleIdentifier: Uint8Array,
+    level: Uint8Array,
+    uniffi_out_err: UniffiRustCallStatus
+  ): void;
   ubrn_uniffi_ffi_fn_func_prepare_send_transaction(
     transaction: Uint8Array,
     config: Uint8Array
@@ -241,6 +250,8 @@ interface NativeModuleInterface {
   ubrn_uniffi_ffi_checksum_func_generate_random_challenge(): number;
   ubrn_uniffi_ffi_checksum_func_get_account_by_user_id(): number;
   ubrn_uniffi_ffi_checksum_func_get_balance(): number;
+  ubrn_uniffi_ffi_checksum_func_init_android_logger(): number;
+  ubrn_uniffi_ffi_checksum_func_init_apple_logger(): number;
   ubrn_uniffi_ffi_checksum_func_prepare_send_transaction(): number;
   ubrn_uniffi_ffi_checksum_func_send_transaction(): number;
   ubrn_uniffi_ffi_checksum_func_send_transaction_async_signer(): number;

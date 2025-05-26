@@ -1,33 +1,44 @@
 use ciborium::Value;
 use eyre::Result;
 use hex;
+use log::debug;
 
 pub mod verify;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct AttestationObject {
     pub auth_data: AuthenticatorData,
+    #[allow(dead_code)]
     pub fmt: String,
+    #[allow(dead_code)]
     pub att_stmt: AttestationStatement,
 }
 
 #[derive(Debug)]
 pub struct AuthenticatorData {
+    #[allow(dead_code)]
     pub rp_id_hash: [u8; 32],
+    #[allow(dead_code)]
     pub flags: u8,
+    #[allow(dead_code)]
     pub counter: u32,
     pub attested_data: Option<AttestedCredentialData>,
 }
 
 #[derive(Debug)]
 pub struct AttestedCredentialData {
+    #[allow(dead_code)]
     pub aaguid: [u8; 16],
+    #[allow(dead_code)]
     pub credential_id: Vec<u8>,
     pub cose_key: Vec<u8>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct AttestationStatement {
+    #[allow(dead_code)]
     pub x5c: Vec<Vec<u8>>,
 }
 
@@ -49,12 +60,12 @@ pub fn extract_public_key(
 fn parse_attestation_object(
     raw_attestation: &[u8],
 ) -> Result<AttestationObject> {
-    println!("Raw attestation hex: {}", hex::encode(raw_attestation));
+    debug!("Raw attestation hex: {}", hex::encode(raw_attestation));
 
     let value: Value = ciborium::de::from_reader(raw_attestation)
         .map_err(|e| eyre::eyre!("Failed to parse CBOR: {}", e))?;
 
-    println!("Parsed CBOR value: {:?}", value);
+    debug!("Parsed CBOR value: {:?}", value);
 
     let map = value
         .as_map()
@@ -62,13 +73,13 @@ fn parse_attestation_object(
 
     let auth_data_bytes = map
         .iter()
-        .find(|(k, _)| k.as_text().map_or(false, |t| t == "authData"))
+        .find(|(k, _)| k.as_text() == Some("authData"))
         .and_then(|(_, v)| v.as_bytes())
         .ok_or_else(|| eyre::eyre!("Missing or invalid authData"))?;
 
     let fmt = map
         .iter()
-        .find(|(k, _)| k.as_text().map_or(false, |t| t == "fmt"))
+        .find(|(k, _)| k.as_text() == Some("fmt"))
         .and_then(|(_, v)| v.as_text())
         .ok_or_else(|| eyre::eyre!("Missing or invalid fmt"))?
         .to_string();
@@ -82,7 +93,7 @@ fn parse_attestation_object(
 }
 
 fn parse_authenticator_data(data: &[u8]) -> Result<AuthenticatorData> {
-    println!("Parsing authenticator data: {}", hex::encode(data));
+    debug!("Parsing authenticator data: {}", hex::encode(data));
 
     if data.len() < 37 {
         return Err(eyre::eyre!("Auth data too short"));
@@ -94,15 +105,15 @@ fn parse_authenticator_data(data: &[u8]) -> Result<AuthenticatorData> {
     let flags = data[32];
     let counter = u32::from_be_bytes(data[33..37].try_into()?);
 
-    println!("RP ID Hash: {}", hex::encode(rp_id_hash));
-    println!("Flags: {:08b}", flags);
-    println!("Counter: {}", counter);
+    debug!("RP ID Hash: {}", hex::encode(rp_id_hash));
+    debug!("Flags: {:08b}", flags);
+    debug!("Counter: {}", counter);
 
     let attested_data = if (flags & 0b01000000) != 0 {
-        println!("AT flag set, parsing attested credential data...");
+        debug!("AT flag set, parsing attested credential data...");
         Some(parse_attested_credential_data(&data[37..])?)
     } else {
-        println!("No AT flag, skipping attested credential data");
+        debug!("No AT flag, skipping attested credential data");
         None
     };
 

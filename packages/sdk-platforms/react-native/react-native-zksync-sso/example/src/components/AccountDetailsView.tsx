@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Pressable, SafeAreaView, StatusBar, Linking, Modal } from 'react-native';
 import type { AccountDetails } from './types.ts';
+import { RpIdHelper } from './types';
 import ActionButton, { ButtonStyle } from './ActionButton';
 import { loadBalance } from './helpers/loadBalance';
 import { fundAccount } from './helpers/fundAccount';
@@ -177,7 +178,11 @@ const AccountDetailsView: React.FC<AccountDetailsViewProps> = ({
                 >
                     <SendTransactionView
                         fromAccount={{
-                            info: account.info,
+                            info: {
+                                rpId: RpIdHelper.toFfiRpId(account.info.rpId),
+                                name: account.info.name,
+                                userID: account.info.userID
+                            },
                             address: account.address,
                             uniqueAccountId: account.uniqueAccountId,
                         }}

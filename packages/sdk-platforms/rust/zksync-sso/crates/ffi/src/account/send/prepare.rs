@@ -2,10 +2,12 @@ use super::SendTransactionError::{
     InvalidAddress as SendInvalidAddress,
     SendTransaction as SendSendTransaction,
 };
-use crate::account::send::prepare::PrepareTransactionError::{
-    InvalidAddress, PrepareTransaction,
+use crate::{
+    account::send::prepare::PrepareTransactionError::{
+        InvalidAddress, PrepareTransaction,
+    },
+    config,
 };
-use crate::config;
 
 #[derive(Debug, uniffi::Record)]
 pub struct PreparedTransaction {
