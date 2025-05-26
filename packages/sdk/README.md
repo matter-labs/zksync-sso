@@ -80,11 +80,11 @@ const ssoConnector = zksyncSsoConnector({
       }),
     ],
   },
-  
+
   // Optional: Receive notifications about session state changes
   onSessionStateChange: ({ state, address, chainId }) => {
     console.log(`Session state for address ${address} changed: ${state.type} - ${state.message}`);
-    
+
     // Use this to notify users and restart the session if needed
     // - Session expired: state.type === 'session_expired'
     // - Session inactive (e.g. was revoked): eve.state.type === 'session_inactive'
