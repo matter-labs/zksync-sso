@@ -9,14 +9,19 @@ import {
 import { signTransaction, type TransactionRequestEIP712, type ZksyncEip712Meta } from "viem/zksync";
 
 import { getTransactionWithPaymasterData } from "../../../paymaster/index.js";
-import { SessionEventType, type SessionState, validateSessionTransaction } from "../../../utils/session.js";
+import { SessionErrorType, SessionEventType, type SessionState, validateSessionTransaction } from "../../../utils/session.js";
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
-import { checkSessionState, getSessionState } from "../actions/session.js";
+import { getSessionState, sessionStateNotify } from "../actions/session.js";
 import type { ClientWithZksyncSsoSessionData } from "../client.js";
 
 export type ZksyncSsoWalletActions<chain extends Chain, account extends Account> = Omit<
   WalletActions<chain, account>, "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset" | "prepareTransactionRequest"
 >;
+
+const sessionErrorToSessionEventType = {
+  [SessionErrorType.SessionInactive]: SessionEventType.Inactive,
+  [SessionErrorType.SessionExpired]: SessionEventType.Expired,
+};
 
 /**
  * Helper function to check session state and notify via callback
@@ -26,45 +31,22 @@ async function getSessionStateAndNotify<
   chain extends Chain,
   account extends Account,
 >(client: ClientWithZksyncSsoSessionData<transport, chain, account>): Promise<SessionState> {
-  // Check if callback is provided, set up session state monitoring
+  const { sessionState } = await getSessionState(client, {
+    account: client.account.address,
+    sessionConfig: client.sessionConfig,
+    contracts: client.contracts,
+  });
+
   if (client.onSessionStateChange) {
-    try {
-      const { sessionState } = await getSessionState(client, {
-        account: client.account.address,
-        sessionConfig: client.sessionConfig,
-        contracts: client.contracts,
-      });
-
-      // Schedule session state check using the new function from actions/session
-      checkSessionState(client, {
-        account: client.account.address,
-        sessionConfig: client.sessionConfig,
-        contracts: client.contracts,
-        onSessionStateChange: client.onSessionStateChange,
-      }).catch((error) => {
-        console.error("Error checking session state:", error);
-      });
-
-      return sessionState;
-    } catch (error) {
-      // If there's an error getting the session state, notify and rethrow
-      if (client.onSessionStateChange) {
-        client.onSessionStateChange({
-          type: SessionEventType.Inactive,
-          message: `Error checking session state: ${(error as Error).message}`,
-        });
-      }
-      throw error;
-    }
-  } else {
-    // If no callback, just get the session state
-    const { sessionState } = await getSessionState(client, {
-      account: client.account.address,
+    sessionStateNotify({
       sessionConfig: client.sessionConfig,
-      contracts: client.contracts,
+      sessionState,
+      onSessionStateChange: client.onSessionStateChange,
+      sessionNotifyTimeout: client._sessionNotifyTimeout,
     });
-    return sessionState;
   }
+
+  return sessionState;
 }
 
 export function zksyncSsoWalletActions<
@@ -72,17 +54,6 @@ export function zksyncSsoWalletActions<
   chain extends Chain,
   account extends Account,
 >(client: ClientWithZksyncSsoSessionData<transport, chain, account>): ZksyncSsoWalletActions<chain, account> {
-  // Check session state on initialization if callback is provided
-  if (client.onSessionStateChange) {
-    checkSessionState(client, {
-      account: client.account.address,
-      sessionConfig: client.sessionConfig,
-      contracts: client.contracts,
-      onSessionStateChange: client.onSessionStateChange,
-    }).catch((error) => {
-      console.error("Error checking session state:", error);
-    });
-  }
   return {
     deployContract: (args) => deployContract(client, args),
     getAddresses: () => getAddresses(client),
@@ -96,19 +67,15 @@ export function zksyncSsoWalletActions<
       const validationResult = validateSessionTransaction({
         sessionState,
         sessionConfig: client.sessionConfig,
-        transaction: args,
+        transaction: args as any,
       });
 
       // Throw error if validation fails
-      if (!validationResult.valid && validationResult.error) {
+      if (validationResult.error) {
         // If validation fails due to session issues, notify via callback
-        if (client.onSessionStateChange
-          && (validationResult.error.type === "session_inactive"
-            || validationResult.error.type === "session_expired")) {
+        if (client.onSessionStateChange && Object.keys(sessionErrorToSessionEventType).includes(validationResult.error.type)) {
           client.onSessionStateChange({
-            type: validationResult.error.type === "session_inactive"
-              ? SessionEventType.Inactive
-              : SessionEventType.Expired,
+            type: sessionErrorToSessionEventType[validationResult.error.type as keyof typeof sessionErrorToSessionEventType],
             message: validationResult.error.message,
           });
         }
@@ -150,32 +117,6 @@ export function zksyncSsoWalletActions<
     signMessage: (args) => signMessage(client, args),
 
     signTransaction: async (args) => {
-      // Get current session state and trigger callback if needed
-      const sessionState = await getSessionStateAndNotify(client);
-
-      // Validate transaction against session constraints
-      const validationResult = validateSessionTransaction({
-        sessionState,
-        sessionConfig: client.sessionConfig,
-        transaction: args,
-      });
-
-      // Throw error if validation fails
-      if (!validationResult.valid && validationResult.error) {
-        // If validation fails due to session issues, notify via callback
-        if (client.onSessionStateChange
-          && (validationResult.error.type === "session_inactive"
-            || validationResult.error.type === "session_expired")) {
-          client.onSessionStateChange({
-            type: validationResult.error.type === "session_inactive"
-              ? SessionEventType.Inactive
-              : SessionEventType.Expired,
-            message: validationResult.error.message,
-          });
-        }
-        throw new Error(`Session validation failed: ${validationResult.error.message} (${validationResult.error.type})`);
-      }
-
       const { chainId: _, ...unformattedTxWithPaymaster } = await getTransactionWithPaymasterData(
         client.chain.id,
         client.account.address,

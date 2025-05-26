@@ -196,8 +196,6 @@ export enum SessionEventType {
 
 export type SessionStateEvent = {
   type: SessionEventType;
-  sessionId?: Hash;
-  expiresAt?: bigint;
   message: string;
 };
 
@@ -226,11 +224,6 @@ export type TransactionValidationArgs = {
   currentTimestamp?: bigint;
 };
 
-/**
- * Validates if a transaction adheres to session restrictions
- * @param args The validation arguments
- * @returns ValidationResult object with validity, error type, and error message
- */
 export function validateSessionTransaction(args: TransactionValidationArgs): ValidationResult {
   const { sessionState, sessionConfig, transaction, currentTimestamp } = args;
   const timestamp = currentTimestamp || BigInt(Math.floor(Date.now() / 1000));
@@ -264,31 +257,28 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
   const selector = data.length >= 10 ? data.slice(0, 10) as Hash : undefined;
 
   // 4. Calculate total fee based on gas parameters
-  const totalFee = calculateTotalFee({
-    gas: transaction.gas,
-    gasPrice: transaction.gasPrice,
-    maxFeePerGas: transaction.maxFeePerGas,
-    maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
-  });
+  // const totalFee = calculateTotalFee({
+  //   gas: transaction.gas,
+  //   gasPrice: transaction.gasPrice,
+  //   maxFeePerGas: transaction.maxFeePerGas,
+  //   maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
+  // });
 
   // 5. Verify fee limit
-  if (totalFee > sessionState.feesRemaining) {
-    return {
-      valid: false,
-      error: {
-        type: SessionErrorType.FeeLimitExceeded,
-        message: `Transaction fee ${totalFee} exceeds remaining fee limit ${sessionState.feesRemaining}`,
-      },
-    };
-  }
+  // if (totalFee > sessionState.feesRemaining) {
+  //   return {
+  //     valid: false,
+  //     error: {
+  //       type: SessionErrorType.FeeLimitExceeded,
+  //       message: `Transaction fee ${totalFee} exceeds remaining fee limit ${sessionState.feesRemaining}`,
+  //     },
+  //   };
+  // }
 
-  // 6. Check if a policy exists for this target and call type
   const isContractCall = !!selector;
-  let policy: TransferPolicy | CallPolicy | undefined;
-
   if (isContractCall) {
     // This is a contract call
-    policy = sessionConfig.callPolicies.find(
+    const policy = sessionConfig.callPolicies.find(
       (policy) => policy.target === to && policy.selector === selector,
     );
 
@@ -303,19 +293,19 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
     }
 
     // Verify max value per use
-    if (value > (policy as CallPolicy).maxValuePerUse) {
+    if (value > policy.maxValuePerUse) {
       return {
         valid: false,
         error: {
           type: SessionErrorType.MaxValuePerUseExceeded,
-          message: `Transaction value ${value} exceeds max value per use ${(policy as CallPolicy).maxValuePerUse}`,
+          message: `Transaction value ${value} exceeds max value per use ${policy.maxValuePerUse}`,
         },
       };
     }
 
     // Verify remaining value limit
     const remainingValue = findRemainingValue(sessionState.callValue, to, selector);
-    if (remainingValue === undefined || value > remainingValue) {
+    if (value > 0n && (!remainingValue || value > remainingValue)) {
       return {
         valid: false,
         error: {
@@ -326,15 +316,15 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
     }
 
     // Verify constraints if they exist
-    if ((policy as CallPolicy).constraints.length > 0) {
-      const constraintResult = validateConstraints(data, (policy as CallPolicy).constraints, sessionState.callParams);
-      if (!constraintResult.valid) {
-        return constraintResult;
-      }
-    }
+    // if (policy.constraints.length > 0) {
+    //   const constraintResult = validateConstraints(data, policy.constraints, sessionState.callParams);
+    //   if (!constraintResult.valid) {
+    //     return constraintResult;
+    //   }
+    // }
   } else {
     // This is a simple transfer
-    policy = sessionConfig.transferPolicies.find((policy) => policy.target === to);
+    const policy = sessionConfig.transferPolicies.find((policy) => policy.target === to);
 
     if (!policy) {
       return {
@@ -379,26 +369,26 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
 /**
  * Calculate the total fee based on gas parameters
  */
-function calculateTotalFee(fee: {
-  gas?: bigint;
-  gasPrice?: bigint;
-  maxFeePerGas?: bigint;
-  maxPriorityFeePerGas?: bigint;
-}): bigint {
-  if (!fee.gas) return 0n;
+// function calculateTotalFee(fee: {
+//   gas?: bigint;
+//   gasPrice?: bigint;
+//   maxFeePerGas?: bigint;
+//   maxPriorityFeePerGas?: bigint;
+// }): bigint {
+//   if (!fee.gas) return 0n;
 
-  if (fee.gasPrice) {
-    return fee.gas * fee.gasPrice;
-  } else if (fee.maxFeePerGas && fee.maxPriorityFeePerGas) {
-    return fee.gas * fee.maxFeePerGas;
-  } else if (fee.maxFeePerGas) {
-    return fee.gas * fee.maxFeePerGas;
-  } else if (fee.maxPriorityFeePerGas) {
-    return fee.gas * fee.maxPriorityFeePerGas;
-  }
+//   if (fee.gasPrice) {
+//     return fee.gas * fee.gasPrice;
+//   } else if (fee.maxFeePerGas && fee.maxPriorityFeePerGas) {
+//     return fee.gas * fee.maxFeePerGas;
+//   } else if (fee.maxFeePerGas) {
+//     return fee.gas * fee.maxFeePerGas;
+//   } else if (fee.maxPriorityFeePerGas) {
+//     return fee.gas * fee.maxPriorityFeePerGas;
+//   }
 
-  return 0n;
-}
+//   return 0n;
+// }
 
 /**
  * Find the remaining value for a target/selector combination in the session state
@@ -422,6 +412,7 @@ function findRemainingValue(
 /**
  * Validate transaction data against constraints
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function validateConstraints(
   data: Hex,
   constraints: Constraint[],

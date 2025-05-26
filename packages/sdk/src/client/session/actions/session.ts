@@ -4,10 +4,9 @@ import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
 import { SessionKeyValidatorAbi } from "../../../abi/SessionKeyValidator.js";
 import { type CustomPaymasterHandler, getTransactionWithPaymasterData } from "../../../paymaster/index.js";
-import { encodeSession } from "../../../utils/encoding.js";
 import { noThrow } from "../../../utils/helpers.js";
 import type { SessionConfig, SessionState, SessionStateEventCallback } from "../../../utils/session.js";
-import { SessionEventType } from "../../../utils/session.js";
+import { SessionEventType, SessionStatus } from "../../../utils/session.js";
 
 export type CreateSessionArgs = {
   sessionConfig: SessionConfig;
@@ -149,83 +148,57 @@ export const getSessionState = async <
 };
 
 export type CheckSessionStateArgs = {
-  account: Address;
   sessionConfig: SessionConfig;
-  contracts: {
-    session: Address; // session module
-  };
+  sessionState: SessionState;
   onSessionStateChange: SessionStateEventCallback;
+  sessionNotifyTimeout?: NodeJS.Timeout;
 };
-
-// Store timeouts by sessionId to allow cleanup
-const sessionTimeouts = new Map<string, NodeJS.Timeout[]>();
+export type CheckSessionStateReturnType = {
+  newTimeout?: NodeJS.Timeout;
+};
 
 /**
  * Checks the current session state and sets up expiry notification.
  * This function will trigger the callback with the session state.
  */
-export const checkSessionState = async <
-  transport extends Transport,
-  chain extends Chain,
->(client: Client<transport, chain>, args: Prettify<CheckSessionStateArgs>): Promise<void> => {
+export const sessionStateNotify = (args: Prettify<CheckSessionStateArgs>): CheckSessionStateReturnType => {
   // Generate a session ID for tracking timeouts
-  const sessionId = `${args.account}_${encodeSession(args.sessionConfig)}`;
+  const { sessionState } = args;
+  const now = BigInt(Math.floor(Date.now() / 1000));
 
-  // Clear any existing timeouts for this session
-  if (sessionTimeouts.has(sessionId)) {
-    sessionTimeouts.get(sessionId)?.forEach((timeout) => clearTimeout(timeout));
-    sessionTimeouts.delete(sessionId);
-  }
-
-  try {
-    // Get current session state
-    const { sessionState } = await getSessionState(client, {
-      account: args.account,
-      sessionConfig: args.sessionConfig,
-      contracts: args.contracts,
-    });
-
-    const now = BigInt(Math.floor(Date.now() / 1000));
-
-    // Check session status
-    if (sessionState.status === 0) { // Not initialized
-      args.onSessionStateChange({
-        type: SessionEventType.Inactive,
-        message: "Session is not initialized",
-      });
-    } else if (sessionState.status === 2) { // Closed/Revoked
-      args.onSessionStateChange({
-        type: SessionEventType.Revoked,
-        message: "Session has been revoked",
-      });
-    } else if (args.sessionConfig.expiresAt <= now) {
-      // Session has expired
-      args.onSessionStateChange({
-        type: SessionEventType.Expired,
-        expiresAt: args.sessionConfig.expiresAt,
-        message: "Session has expired",
-      });
-    } else {
-      // Session is active, set up expiry notification
-      const timeToExpiry = Number(args.sessionConfig.expiresAt - now) * 1000; // Convert to milliseconds
-
-      // Set up a timeout for session expiry
-      const expiryTimeout = setTimeout(() => {
-        args.onSessionStateChange({
-          type: SessionEventType.Expired,
-          expiresAt: args.sessionConfig.expiresAt,
-          message: "Session has expired",
-        });
-      }, timeToExpiry);
-
-      // Track the timeout for potential cleanup
-      sessionTimeouts.set(sessionId, [expiryTimeout]);
-    }
-  } catch (error) {
-    // In case of error fetching session state
+  // Check session status
+  if (sessionState.status === SessionStatus.NotInitialized) { // Not initialized
     args.onSessionStateChange({
       type: SessionEventType.Inactive,
-      message: `Error checking session state: ${(error as Error).message}`,
+      message: "Session is not initialized",
     });
+  } else if (sessionState.status === SessionStatus.Closed) { // Closed/Revoked
+    args.onSessionStateChange({
+      type: SessionEventType.Revoked,
+      message: "Session has been revoked",
+    });
+  } else if (args.sessionConfig.expiresAt <= now) {
+    // Session has expired
+    args.onSessionStateChange({
+      type: SessionEventType.Expired,
+      message: "Session has expired",
+    });
+  } else {
+    // Session is active, set up expiry notification
+    const timeToExpiry = Number(args.sessionConfig.expiresAt - now) * 1000;
+    if (args.sessionNotifyTimeout) {
+      clearTimeout(args.sessionNotifyTimeout);
+    }
+    const newTimeout = setTimeout(() => {
+      args.onSessionStateChange({
+        type: SessionEventType.Expired,
+        message: "Session has expired",
+      });
+    }, timeToExpiry);
+    return {
+      newTimeout,
+    };
   }
+
+  return {};
 };
