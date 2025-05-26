@@ -19,7 +19,7 @@ simplifying user authentication, session management, and transaction processing.
 - 🔑 Passkey authentication (no seed phrases)
 - ⏰ Sessions w/ easy configuration and management
 - 💰 Integrated paymaster support
-- ❤️‍🩹 Account recovery _(Coming Soon)_
+- ❤️‍🩹 Account recovery
 - 💻 Simple SDKs : JavaScript, iOS/Android _(Coming Soon)_
 - 🤝 Open-source authentication server
 - 🎓 Examples to get started quickly
@@ -81,6 +81,15 @@ const ssoConnector = zksyncSsoConnector({
             ],
          }),
       ],
+   },
+   
+   // Optional: Receive notifications about session state changes
+   onSessionStateChange: ({ state, address, chainId }) => {
+      console.log(`Session state for address ${address} changed: ${state.type} - ${state.message}`);
+      
+      // Use this to notify users and restart the session if needed
+      // - Session expired: state.type === 'session_expired'
+      // - Session inactive (e.g. was revoked): state.type === 'session_inactive'
    },
 });
 
