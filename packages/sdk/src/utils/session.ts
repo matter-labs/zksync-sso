@@ -314,13 +314,7 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
       };
     }
 
-    // Verify constraints if they exist
-    // if (policy.constraints.length > 0) {
-    //   const constraintResult = validateConstraints(data, policy.constraints, sessionState.callParams);
-    //   if (!constraintResult.valid) {
-    //     return constraintResult;
-    //   }
-    // }
+    // TODO: verify constraints
   } else {
     // This is a simple transfer
     const policy = sessionConfig.transferPolicies.find((policy) => policy.target === to);
