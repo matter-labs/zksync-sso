@@ -1,5 +1,7 @@
 import { type Address, getAddress, type Hash, type Hex } from "viem";
 
+import { findSmallestBigInt } from "./helpers.js";
+
 export enum LimitType {
   Unlimited = 0,
   Lifetime = 1,
@@ -255,24 +257,7 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
   const data = transaction.data || "0x";
   const selector = data.length >= 10 ? data.slice(0, 10) as Hash : undefined;
 
-  // 4. Calculate total fee based on gas parameters
-  // const totalFee = calculateTotalFee({
-  //   gas: transaction.gas,
-  //   gasPrice: transaction.gasPrice,
-  //   maxFeePerGas: transaction.maxFeePerGas,
-  //   maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
-  // });
-
-  // 5. Verify fee limit
-  // if (totalFee > sessionState.feesRemaining) {
-  //   return {
-  //     valid: false,
-  //     error: {
-  //       type: SessionErrorType.FeeLimitExceeded,
-  //       message: `Transaction fee ${totalFee} exceeds remaining fee limit ${sessionState.feesRemaining}`,
-  //     },
-  //   };
-  // }
+  /* TODO: implement fee verification (including paymaster scenario) */
 
   const isContractCall = !!selector;
   if (isContractCall) {
@@ -292,21 +277,19 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
     }
 
     // Verify max value per use
-    const minimalMaxValuePerUse = policies.reduce((min, policy) => {
-      return policy.maxValuePerUse < min.maxValuePerUse ? policy : min;
-    }, policies[0]).maxValuePerUse;
-    if (value > minimalMaxValuePerUse) {
+    const lowestMaxValuePerUse = findSmallestBigInt(policies.map((policy) => policy.maxValuePerUse));
+    if (value > lowestMaxValuePerUse) {
       return {
         valid: false,
         error: {
           type: SessionErrorType.MaxValuePerUseExceeded,
-          message: `Transaction value ${value} exceeds max value per use ${minimalMaxValuePerUse}`,
+          message: `Transaction value ${value} exceeds max value per use ${lowestMaxValuePerUse}`,
         },
       };
     }
 
     // Verify remaining value limit
-    const remainingValue = findRemainingValue(sessionState.callValue, to, selector);
+    const remainingValue = findLowestRemainingValue(sessionState.callValue, to, selector);
     if (value > remainingValue) {
       return {
         valid: false,
@@ -332,21 +315,19 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
     }
 
     // Verify max value per use
-    const minimalMaxValuePerUse = policies.reduce((min, policy) => {
-      return policy.maxValuePerUse < min.maxValuePerUse ? policy : min;
-    }, policies[0]).maxValuePerUse;
-    if (value > minimalMaxValuePerUse) {
+    const lowestMaxValuePerUse = findSmallestBigInt(policies.map((policy) => policy.maxValuePerUse));
+    if (value > lowestMaxValuePerUse) {
       return {
         valid: false,
         error: {
           type: SessionErrorType.MaxValuePerUseExceeded,
-          message: `Transaction value ${value} exceeds max value per use ${minimalMaxValuePerUse}`,
+          message: `Transaction value ${value} exceeds max value per use ${lowestMaxValuePerUse}`,
         },
       };
     }
 
     // Verify remaining value limit
-    const remainingValue = findRemainingValue(sessionState.transferValue, to);
+    const remainingValue = findLowestRemainingValue(sessionState.transferValue, to);
     if (value > remainingValue) {
       return {
         valid: false,
@@ -364,7 +345,7 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
   };
 }
 
-function findRemainingValue(
+function findLowestRemainingValue(
   valueArray: SessionState["transferValue"] | SessionState["callValue"],
   target: Address,
   selector?: Hash,
@@ -374,17 +355,12 @@ function findRemainingValue(
       .filter((item) => item.target === target && item.selector === selector)
       .map((item) => item.remaining);
     if (!filtered.length) return 0n;
-
-    const lowestRemaining = filtered
-      .reduce((min, e) => (e < min ? e : min), filtered[0]);
-    return lowestRemaining;
+    return findSmallestBigInt(filtered);
   } else {
     const filtered = valueArray
       .filter((item) => item.target === target)
       .map((item) => item.remaining);
     if (!filtered.length) return 0n;
-
-    const lowestRemaining = filtered.reduce((min, e) => e < min ? e : min, filtered[0]);
-    return lowestRemaining;
+    return findSmallestBigInt(filtered);
   }
 }
