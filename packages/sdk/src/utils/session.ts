@@ -1,6 +1,6 @@
 import { type Address, getAddress, type Hash, type Hex } from "viem";
 
-import { findSmallestBigInt } from "./helpers.js";
+import { calculateMaxFee, findSmallestBigInt } from "./helpers.js";
 
 export enum LimitType {
   Unlimited = 0,
@@ -255,13 +255,28 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
   const to = getAddress(transaction.to.toLowerCase());
   const value = transaction.value || 0n;
   const data = transaction.data || "0x";
+  const gas = transaction.gas || 0n;
   const selector = data.length >= 10 ? data.slice(0, 10) as Hash : undefined;
 
-  /* TODO: implement fee verification (including paymaster scenario) */
+  const maxFee = calculateMaxFee({
+    gas,
+    gasPrice: transaction.gasPrice,
+    maxFeePerGas: transaction.maxFeePerGas,
+    maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
+  });
+
+  if (maxFee > sessionState.feesRemaining) {
+    return {
+      valid: false,
+      error: {
+        type: SessionErrorType.FeeLimitExceeded,
+        message: `Transaction max fee ${maxFee} exceeds remaining fee limit ${sessionState.feesRemaining}`,
+      },
+    };
+  }
 
   const isContractCall = !!selector;
   if (isContractCall) {
-    // This is a contract call
     const policies = sessionConfig.callPolicies.filter(
       (policy) => policy.target === to && policy.selector === selector,
     );
