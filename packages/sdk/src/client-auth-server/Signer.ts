@@ -43,6 +43,7 @@ type SignerConstructorParams = {
   session?: () => SessionPreferences | Promise<SessionPreferences>;
   paymasterHandler?: CustomPaymasterHandler;
   onSessionStateChange?: (event: { address: Address; chainId: number; state: SessionStateEvent }) => void;
+  skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
 };
 
 type ChainsInfo = ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema>["chainsInfo"];
@@ -56,12 +57,13 @@ export class Signer implements SignerInterface {
   private readonly sessionParameters?: () => (SessionPreferences | Promise<SessionPreferences>);
   private readonly paymasterHandler?: CustomPaymasterHandler;
   private readonly onSessionStateChange?: SignerConstructorParams["onSessionStateChange"];
+  private readonly skipPreTransactionStateValidation?: boolean;
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
   private client: { instance: ZksyncSsoSessionClient; type: "session" } | { instance: WalletClient; type: "auth-server" } | undefined;
 
-  constructor({ metadata, communicator, updateListener, session, chains, transports, paymasterHandler, onSessionStateChange }: SignerConstructorParams) {
+  constructor({ metadata, communicator, updateListener, session, chains, transports, paymasterHandler, onSessionStateChange, skipPreTransactionStateValidation }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
 
     this.getMetadata = metadata;
@@ -72,6 +74,7 @@ export class Signer implements SignerInterface {
     this.transports = transports || {};
     this.paymasterHandler = paymasterHandler;
     this.onSessionStateChange = onSessionStateChange;
+    this.skipPreTransactionStateValidation = skipPreTransactionStateValidation;
 
     this._account = new StorageItem<Account | null>(StorageItem.scopedStorageKey("account"), null, {
       onChange: (newValue) => {
@@ -154,6 +157,7 @@ export class Signer implements SignerInterface {
               chainId: chain.id,
             });
           },
+          skipPreTransactionStateValidation: this.skipPreTransactionStateValidation,
         }),
       };
     } else {

@@ -278,6 +278,23 @@ describe("session utils", () => {
       expect(result.error?.type).toBe(SessionErrorType.FeeLimitExceeded);
     });
 
+    test("allows transaction with paymaster to bypass fee limit validation", () => {
+      const result = validateSessionTransaction({
+        sessionState: mockActiveSessionState,
+        sessionConfig: mockSessionConfig,
+        transaction: {
+          to: "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB" as Address,
+          value: 100000000000n,
+          gas: 100000000000n,
+          maxFeePerGas: 10000000000000n, // Very high gas price that would exceed fee limit
+          paymaster: "0xdDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd" as Address,
+        },
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBe(null);
+    });
+
     test("rejects transaction with no matching call policy", () => {
       const result = validateSessionTransaction({
         sessionState: mockActiveSessionState,

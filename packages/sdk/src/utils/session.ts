@@ -221,6 +221,7 @@ export type TransactionValidationArgs = {
     gasPrice?: bigint;
     maxFeePerGas?: bigint;
     maxPriorityFeePerGas?: bigint;
+    paymaster?: Address;
   };
   currentTimestamp?: bigint;
 };
@@ -258,21 +259,23 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
   const gas = transaction.gas || 0n;
   const selector = data.length >= 10 ? data.slice(0, 10) as Hash : undefined;
 
-  const maxFee = calculateMaxFee({
-    gas,
-    gasPrice: transaction.gasPrice,
-    maxFeePerGas: transaction.maxFeePerGas,
-    maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
-  });
+  if (!transaction.paymaster) {
+    const maxFee = calculateMaxFee({
+      gas,
+      gasPrice: transaction.gasPrice,
+      maxFeePerGas: transaction.maxFeePerGas,
+      maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
+    });
 
-  if (maxFee > sessionState.feesRemaining) {
-    return {
-      valid: false,
-      error: {
-        type: SessionErrorType.FeeLimitExceeded,
-        message: `Transaction max fee ${maxFee} exceeds remaining fee limit ${sessionState.feesRemaining}`,
-      },
-    };
+    if (maxFee > sessionState.feesRemaining) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.FeeLimitExceeded,
+          message: `Transaction max fee ${maxFee} exceeds remaining fee limit ${sessionState.feesRemaining}`,
+        },
+      };
+    }
   }
 
   const isContractCall = !!selector;
