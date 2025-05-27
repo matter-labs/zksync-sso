@@ -128,6 +128,7 @@ type ZksyncSsoSessionData = {
   contracts: SessionRequiredContracts;
   paymasterHandler?: CustomPaymasterHandler;
   onSessionStateChange?: SessionStateEventCallback;
+  skipPreTransactionStateValidation?: boolean;
   _sessionNotifyTimeout?: NodeJS.Timeout;
 };
 
@@ -168,4 +169,5 @@ export interface ZksyncSsoSessionClientConfig<
   name?: string;
   paymasterHandler?: CustomPaymasterHandler;
   onSessionStateChange?: SessionStateEventCallback;
+  skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
 }

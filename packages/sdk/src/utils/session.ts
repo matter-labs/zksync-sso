@@ -1,6 +1,6 @@
-import { type Address, getAddress, type Hash, type Hex } from "viem";
+import { type Address, bytesToHex, getAddress, type Hash, type Hex, hexToBigInt, hexToBytes } from "viem";
 
-import { findSmallestBigInt } from "./helpers.js";
+import { calculateMaxFee, findSmallestBigInt } from "./helpers.js";
 
 export enum LimitType {
   Unlimited = 0,
@@ -221,6 +221,7 @@ export type TransactionValidationArgs = {
     gasPrice?: bigint;
     maxFeePerGas?: bigint;
     maxPriorityFeePerGas?: bigint;
+    paymaster?: Address;
   };
   currentTimestamp?: bigint;
 };
@@ -255,13 +256,30 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
   const to = getAddress(transaction.to.toLowerCase());
   const value = transaction.value || 0n;
   const data = transaction.data || "0x";
+  const gas = transaction.gas || 0n;
   const selector = data.length >= 10 ? data.slice(0, 10) as Hash : undefined;
 
-  /* TODO: implement fee verification (including paymaster scenario) */
+  if (!transaction.paymaster) {
+    const maxFee = calculateMaxFee({
+      gas,
+      gasPrice: transaction.gasPrice,
+      maxFeePerGas: transaction.maxFeePerGas,
+      maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
+    });
+
+    if (maxFee > sessionState.feesRemaining) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.FeeLimitExceeded,
+          message: `Transaction max fee ${maxFee} exceeds remaining fee limit ${sessionState.feesRemaining}`,
+        },
+      };
+    }
+  }
 
   const isContractCall = !!selector;
   if (isContractCall) {
-    // This is a contract call
     const policies = sessionConfig.callPolicies.filter(
       (policy) => policy.target === to && policy.selector === selector,
     );
@@ -300,7 +318,10 @@ export function validateSessionTransaction(args: TransactionValidationArgs): Val
       };
     }
 
-    // TODO: verify constraints
+    for (const policy of policies) {
+      const constraintResult = validateConstraints(data, policy.constraints, sessionState.callParams);
+      if (!constraintResult.valid) return constraintResult;
+    }
   } else {
     // This is a simple transfer
     const policies = sessionConfig.transferPolicies.filter((policy) => policy.target === to);
@@ -363,4 +384,141 @@ function findLowestRemainingValue(
     if (!filtered.length) return 0n;
     return findSmallestBigInt(filtered);
   }
+}
+
+function validateConstraints(
+  data: Hex,
+  constraints: Constraint[],
+  callParams: SessionState["callParams"],
+): ValidationResult {
+  const dataBytes = hexToBytes(data);
+
+  for (const constraint of constraints) {
+    // Find proper index and extract data
+    const index = Number(constraint.index);
+    if (index + 32 > dataBytes.length) {
+      return {
+        valid: false,
+        error: {
+          type: SessionErrorType.ConstraintIndexOutOfBounds,
+          message: `Constraint index ${index} out of bounds for data length ${dataBytes.length}`,
+        },
+      };
+    }
+
+    const parameterBytes = dataBytes.slice(index, index + 32);
+    const parameterValue = bytesToHex(parameterBytes);
+    const refValue = constraint.refValue;
+
+    // Find remaining limit value if applicable
+    let remaining: bigint | undefined;
+    if (constraint.limit.limitType !== LimitType.Unlimited) {
+      const paramItem = callParams.find((item) => Number(item.index) === index);
+      remaining = paramItem?.remaining;
+
+      // If this is a limited constraint, but we don't have state for it, something is wrong
+      if (remaining === undefined) {
+        return {
+          valid: false,
+          error: {
+            type: SessionErrorType.NoLimitStateFound,
+            message: `No remaining limit state found for constraint at index ${index}`,
+          },
+        };
+      }
+
+      // Check if parameter value exceeds remaining limit
+      const parameterValueBigInt = hexToBigInt(parameterValue);
+      if (parameterValueBigInt > remaining) {
+        return {
+          valid: false,
+          error: {
+            type: SessionErrorType.ParameterLimitExceeded,
+            message: `Parameter value ${parameterValueBigInt} at index ${index} exceeds remaining limit ${remaining}`,
+          },
+        };
+      }
+    }
+
+    // Check condition
+    switch (constraint.condition) {
+      case ConstraintCondition.Equal:
+        if (parameterValue !== refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintEqualViolated,
+              message: `Parameter value ${parameterValue} must equal ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.Greater:
+        if (parameterValue <= refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintGreaterViolated,
+              message: `Parameter value ${parameterValue} must be greater than ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.Less:
+        if (parameterValue >= refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintLessViolated,
+              message: `Parameter value ${parameterValue} must be less than ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.GreaterEqual:
+        if (parameterValue < refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintGreaterEqualViolated,
+              message: `Parameter value ${parameterValue} must be greater than or equal to ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.LessEqual:
+        if (parameterValue > refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintLessEqualViolated,
+              message: `Parameter value ${parameterValue} must be less than or equal to ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.NotEqual:
+        if (parameterValue === refValue) {
+          return {
+            valid: false,
+            error: {
+              type: SessionErrorType.ConstraintNotEqualViolated,
+              message: `Parameter value ${parameterValue} must not equal ${refValue}`,
+            },
+          };
+        }
+        break;
+      case ConstraintCondition.Unconstrained:
+        // Unconstrained means no checks, so we skip
+        break;
+      default:
+        console.warn(`Unhandled constraint condition: ${constraint.condition}`);
+        break;
+    }
+  }
+
+  return {
+    valid: true,
+    error: null,
+  };
 }

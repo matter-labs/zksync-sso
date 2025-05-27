@@ -50,3 +50,22 @@ export function findSmallestBigInt(arr: bigint[]): bigint {
   }
   return smallest;
 }
+
+export function calculateMaxFee(fee: {
+  gas?: bigint;
+  gasPrice?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
+}): bigint {
+  if (!fee.gas) return 0n;
+
+  if (fee.gasPrice) {
+    return fee.gas * fee.gasPrice;
+  } else if (fee.maxFeePerGas) {
+    return fee.gas * fee.maxFeePerGas;
+  } else if (fee.maxPriorityFeePerGas) {
+    return fee.gas * fee.maxPriorityFeePerGas;
+  }
+
+  return 0n;
+}

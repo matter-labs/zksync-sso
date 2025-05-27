@@ -60,29 +60,6 @@ export function zksyncSsoWalletActions<
     getChainId: () => getChainId(client),
     sendRawTransaction: (args) => sendRawTransaction(client, args),
     sendTransaction: async (args) => {
-      // Get current session state and trigger callback if needed
-      const sessionState = await getSessionStateAndNotify(client);
-
-      // Validate transaction against session constraints
-      const validationResult = validateSessionTransaction({
-        sessionState,
-        sessionConfig: client.sessionConfig,
-        transaction: args as any,
-      });
-
-      // Throw error if validation fails
-      if (validationResult.error) {
-        // If validation fails due to session issues, notify via callback
-        if (client.onSessionStateChange && Object.keys(sessionErrorToSessionEventType).includes(validationResult.error.type)) {
-          client.onSessionStateChange({
-            type: sessionErrorToSessionEventType[validationResult.error.type as keyof typeof sessionErrorToSessionEventType],
-            message: validationResult.error.message,
-          });
-        }
-        throw new Error(`Session validation failed: ${validationResult.error.message} (${validationResult.error.type})`);
-      }
-
-      // Process transaction if it's valid
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const unformattedTx: any = Object.assign({}, args);
 
@@ -112,6 +89,30 @@ export function zksyncSsoWalletActions<
         type: "eip712",
       };
 
+      if (client.skipPreTransactionStateValidation !== false) {
+        // Get current session state and trigger callback if needed
+        const sessionState = await getSessionStateAndNotify(client);
+
+        // Validate transaction against session constraints
+        const validationResult = validateSessionTransaction({
+          sessionState,
+          sessionConfig: client.sessionConfig,
+          transaction: tx,
+        });
+
+        // Throw error if validation fails
+        if (validationResult.error) {
+          // If validation fails due to session issues, notify via callback
+          if (client.onSessionStateChange && Object.keys(sessionErrorToSessionEventType).includes(validationResult.error.type)) {
+            client.onSessionStateChange({
+              type: sessionErrorToSessionEventType[validationResult.error.type as keyof typeof sessionErrorToSessionEventType],
+              message: validationResult.error.message,
+            });
+          }
+          throw new Error(`Session validation failed: ${validationResult.error.message} (${validationResult.error.type})`);
+        }
+      }
+
       return await sendEip712Transaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
@@ -126,6 +127,7 @@ export function zksyncSsoWalletActions<
       return signTransaction(client, {
         ...args,
         unformattedTxWithPaymaster,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any) as any;
     },
     signTypedData: (args) => signTypedData(client, args),

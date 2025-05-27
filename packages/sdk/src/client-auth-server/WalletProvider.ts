@@ -26,13 +26,14 @@ export type WalletProviderConstructorOptions = {
   authServerUrl?: string;
   paymasterHandler?: CustomPaymasterHandler;
   onSessionStateChange?: (state: { address: Address; chainId: number; state: SessionStateEvent }) => void;
+  skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
 };
 
 export class WalletProvider extends EventEmitter implements ProviderInterface {
   readonly isZksyncSso = true;
   private signer: Signer;
 
-  constructor({ metadata, chains, transports, session, authServerUrl, paymasterHandler, onSessionStateChange }: WalletProviderConstructorOptions) {
+  constructor({ metadata, chains, transports, session, authServerUrl, paymasterHandler, onSessionStateChange, skipPreTransactionStateValidation }: WalletProviderConstructorOptions) {
     super();
     const communicator = new PopupCommunicator(authServerUrl || DEFAULT_AUTH_SERVER_URL);
     this.signer = new Signer({
@@ -48,6 +49,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       session: typeof session === "object" ? () => session : session,
       paymasterHandler,
       onSessionStateChange,
+      skipPreTransactionStateValidation,
     });
   }
 
