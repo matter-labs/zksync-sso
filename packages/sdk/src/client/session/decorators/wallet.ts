@@ -89,7 +89,7 @@ export function zksyncSsoWalletActions<
         type: "eip712",
       };
 
-      if (client.skipPreTransactionStateValidation !== false) {
+      if (client.skipPreTransactionStateValidation !== true) {
         // Get current session state and trigger callback if needed
         const sessionState = await getSessionStateAndNotify(client);
 
