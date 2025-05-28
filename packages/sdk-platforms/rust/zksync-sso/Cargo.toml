@@ -8,6 +8,13 @@ edition = "2024"
 rust-version = "1.86"
 license = "Apache-2.0"
 
+[profile.release]
+opt-level = "s"   # Optimize for size instead of speed
+lto = true        # Link Time Optimization - removes dead code
+codegen-units = 1 # Single codegen unit for better optimization
+panic = "abort"   # Smaller panic handling
+strip = true      # Remove debug symbols
+
 [workspace.dependencies]
 
 # Alloy
