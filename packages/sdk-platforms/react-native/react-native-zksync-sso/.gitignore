@@ -87,5 +87,5 @@ nitrogen/
 
 # React Native
 .yarn/*
-ZksyncSsoFramework.xcframework
+build/ZksyncSsoFramework.xcframework
 android/src/main/jniLibs

@@ -1246,7 +1246,7 @@ PODS:
     - React-Codegen
     - React-Core
     - ReactCommon/turbomodule/core
-  - react-native-zksync-sso (0.1.0):
+  - react-native-zksync-sso (0.0.1-alpha.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1817,7 +1817,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 39e87693178fd6483bb5ca8b851fae362d49409a
   React-microtasksnativemodule: b740ebae7fad70aa78bc24cc0dfc15ac9637b6eb
   react-native-passkey: 3aac247c18127443ef4a002b59d8e12dc7e99f2e
-  react-native-zksync-sso: a865c9c4fec2e8aa95c38feac64e13b80821491e
+  react-native-zksync-sso: af0f30c30629e2d51559e646e5c6f8e4e14e6fb3
   React-NativeModulesApple: af0571ac115d09c9a669ed45ce6a4ca960598a2d
   React-perflogger: 26d07766b033f84559bd520e949453dba8bf1cd8
   React-performancetimeline: 0f3e0b6e2152951257bd8c90f95d527cf4316fa8
