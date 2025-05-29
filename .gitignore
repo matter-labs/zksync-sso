@@ -50,3 +50,5 @@ timeline.xctimeline
 playground.xcworkspace
 .build/
 out/
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md

@@ -1,4 +1,4 @@
-import type { Chain } from "viem";
+import type { Chain } from "viem/chains";
 
 declare module "nuxt/schema" {
   interface PublicRuntimeConfig {
@@ -6,6 +6,7 @@ declare module "nuxt/schema" {
     contracts: {
       nft: `0x${string}`;
       paymaster: `0x${string}`;
+      marketplace: `0x${string}`;
     };
     baseUrl: string;
     authServerUrl: string;
