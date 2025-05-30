@@ -175,16 +175,16 @@ import {
   type TypedDataDefinition } from "viem";
 import { reactive, ref } from "vue";
 
-const { wagmiConfig, account } = storeToRefs(useConnectorStore());
+const { account } = storeToRefs(useConnectorStore());
 
 const runtimeConfig = useRuntimeConfig();
-const chainId = runtimeConfig.public.chainId;
+const chain = runtimeConfig.public.chain;
 
 const config = reactive({
   marketplaceName: "SimpleMarketplace",
   marketplaceVersion: "v0.0.1",
-  marketplaceAddress: runtimeConfig.public.marketplaceAddress,
-  nftContractAddress: runtimeConfig.public.nftContractAddress,
+  marketplaceAddress: runtimeConfig.public.contracts.marketplace,
+  nftContractAddress: runtimeConfig.public.contracts.nft,
   tokenId: "0", // Will be converted to BigInt
   priceInEth: "0.01", // Will be converted to wei (BigInt)
   sellerNonce: "0", // Will be converted to BigInt
@@ -223,12 +223,23 @@ async function handleSignListRequest() {
   signedTypes.value = null;
   signedMessage.value = null;
 
-  if (!config.marketplaceAddress || !account.value.address || !config.nftContractAddress) {
-    errorMsg.value = "Marketplace, Smart Account, and NFT addresses are required.";
+  if (!config.marketplaceAddress) {
+    errorMsg.value = "Marketplace address is required.";
+    isLoading.value = false;
+    console.error("Marketplace address is required.", runtimeConfig.public.contracts.marketplace);
+    return;
+  }
+  if (!account.value.address) {
+    errorMsg.value = "Smart Account address is required.";
     isLoading.value = false;
     return;
   }
-  if (!chainId) {
+  if (!config.nftContractAddress) {
+    errorMsg.value = "nft address is required.";
+    isLoading.value = false;
+    return;
+  }
+  if (!chain.id) {
     errorMsg.value = "Chain ID is required.";
     isLoading.value = false;
     return;
@@ -236,9 +247,8 @@ async function handleSignListRequest() {
 
   try {
     const accountValue = account.value;
-    const chain = wagmiConfig.value.chains.find((c) => c.id === chainId);
     if (!chain) {
-      errorMsg.value = `Chain with ID ${chainId} not found in wagmiConfig.`;
+      errorMsg.value = `Chain with ID ${chain.id} not found in wagmiConfig.`;
       isLoading.value = false;
       return;
     }
@@ -260,7 +270,7 @@ async function handleSignListRequest() {
     const domain = {
       name: config.marketplaceName,
       version: config.marketplaceVersion,
-      chainId: BigInt(wagmiConfig.value.chains[0].id),
+      chainId: BigInt(chain.id),
       verifyingContract: config.marketplaceAddress as Address,
     } as const;
 
