@@ -12,13 +12,16 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const nftContract = await deployContract("ZeekNFTQuest", [baseTokenURI]);
 
   const paymasterContract = await deployContract("NFTQuestPaymaster", [await nftContract.getAddress()]);
+  const marketplaceContract = await deployContract("SimpleMarketplace", ["SimpleMarketplace", "v0.0.1"]);
 
   console.log("NFT CONTRACT: ", await nftContract.getAddress());
   console.log("PAYMASTER CONTRACT: ", await paymasterContract.getAddress());
+  console.log("MARKETPLACE CONTRACT: ", await marketplaceContract.getAddress());
 
   if (hre.network.config.ethNetwork.includes("localhost")) {
     const nftQuestAddress = await nftContract.getAddress();
     const paymasterContractAddress = await paymasterContract.getAddress();
+    const marketplaceContractAddress = await marketplaceContract.getAddress();
 
     // Update the .env.local file with the contract addresses for NFT Quest app
     const envFilePath = path.join(__dirname, "../../nft-quest/.env.local");
@@ -29,7 +32,10 @@ export default async function (hre: HardhatRuntimeEnvironment) {
       console.log(`.env.local file has been created at ${envFilePath}`);
     }
 
-    const envContent = `NUXT_PUBLIC_CONTRACTS_NFT=${nftQuestAddress}\nNUXT_PUBLIC_CONTRACTS_PAYMASTER=${paymasterContractAddress}\n`;
+    const envContent = `
+    NUXT_PUBLIC_CONTRACTS_NFT=${nftQuestAddress}
+    NUXT_PUBLIC_CONTRACTS_PAYMASTER=${paymasterContractAddress}
+    NUXT_PUBLIC_CONTRACTS_MARKETPLACE=${marketplaceContractAddress}`;
 
     fs.writeFileSync(envFilePath, envContent, { encoding: "utf8" });
     console.log(`.env.local file has been updated at ${envFilePath}`);
