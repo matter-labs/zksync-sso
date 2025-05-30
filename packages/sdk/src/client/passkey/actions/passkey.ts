@@ -44,7 +44,7 @@ export const generatePasskeyRegistrationOptions = async (args: GeneratePasskeyRe
     excludeCredentials: [],
     // See "Guiding use of authenticators via authenticatorSelection" below
     authenticatorSelection: {
-      residentKey: "required",
+      authenticatorAttachment: "platform", // prefer platform authenticators (e.g. phone, laptop)
       userVerification: "discouraged",
     },
     supportedAlgorithmIDs: [-7], // only supports ES256 (no windows hello)
