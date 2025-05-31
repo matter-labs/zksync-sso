@@ -14,87 +14,128 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+    runs-on: macos-15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Debug initial setup
-        run: |
-          echo "Current working directory: $(pwd)"
-          echo "Listing subdirectory files:"
-          ls -la . || echo "Dir listing failed"
-          echo "Checking package.json:"
-          cat package.json || echo "No package.json found"
-          echo "Checking yarn.lock:"
-          ls -la yarn.lock || echo "No yarn.lock found"
-          echo "Checking initial .yarnrc.yml:"
-          cat .yarnrc.yml || echo "No .yarnrc.yml found"
-          echo "Checking root for package.json:"
-          ls -la /home/runner/work/zksync-sso/zksync-sso/package.json || echo "No root package.json"
-          echo "Checking root for yarn.lock:"
-          ls -la /home/runner/work/zksync-sso/zksync-sso/yarn.lock || echo "No root yarn.lock"
-
-      - name: Set up Yarn 3.6.1 and plugins
-        run: |
-          # Modify .yarnrc.yml to remove yarnPath and plugin paths
-          echo "Modifying .yarnrc.yml..."
-          sed -i '/yarnPath:/d' .yarnrc.yml
-          sed -i '/- path: .yarn\/plugins/d' .yarnrc.yml
-          echo "Modified .yarnrc.yml:"
-          cat .yarnrc.yml
-          # Enable Corepack and prepare Yarn 3.6.1
-          corepack enable
-          corepack prepare yarn@3.6.1 --activate
-          # Make the Yarn binary executable
-          chmod +x /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js
-          # Verify Yarn version
-          echo "Yarn version:"
-          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js --version
-          # Import plugins
-          echo "Importing plugin interactive-tools..."
-          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js plugin import @yarnpkg/plugin-interactive-tools
-          echo "Importing plugin workspace-tools..."
-          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js plugin import @yarnpkg/plugin-workspace-tools
-
-      - name: Debug post-Yarn setup
-        run: |
-          echo "Checking Yarn plugins directory:"
-          ls -la .yarn/plugins/ || echo "No .yarn/plugins directory"
-          echo "Yarn version again for confirmation:"
-          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js --version
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.11.0
 
       - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
+
+      - name: Install contract dependencies
+        run: pnpm install -r --frozen-lockfile
+        working-directory: packages/contracts
+
+      - name: Build contracts
+        run: pnpm build
+        working-directory: packages/contracts
+
+      - name: Install build tools
         run: |
-          echo "Running yarn install..."
-          /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js install --frozen-lockfile
+          brew install cmake ninja clang-format
 
-    # - name: Build
-    #   run: |
-    #     echo "Running yarn prepare..."
-    #     /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js prepare
+      - name: Set up Yarn 3.6.1 and plugins
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: |
+          # Clean any existing Yarn state that could interfere with the install
+          rm -rf .yarn/cache .yarn/install-state.gz .pnp.* .yarn/unplugged .yarn/build-state.yml || true
 
-    #   - name: Debug Jest setup
-    #     run: |
-    #       echo "Node version:"
-    #       node --version
-    #       echo "Yarn version:"
-    #       /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js --version
-    #       echo "Checking node_modules for Jest:"
-    #       ls -la node_modules/jest || echo "Jest not found in node_modules"
-    #       echo "Listing Yarn cache:"
-    #       ls -la .yarn/cache/ || echo "No .yarn/cache directory"
+          # Remove Yarn path & plugin paths from .yarnrc.yml (they break CI)
+          echo "Modifying .yarnrc.yml..."
+          sed -i '' '/yarnPath:/d' .yarnrc.yml
+          sed -i '' '/- path: .yarn\/plugins/d' .yarnrc.yml
+          echo "Modified .yarnrc.yml:" && cat .yarnrc.yml
 
-      # - name: Run tests
-      #   run: |
-      #     echo "Running yarn test..."
-      #     /home/runner/.cache/node/corepack/v1/yarn/3.6.1/yarn.js test
+          # Enable Corepack and activate the desired Yarn version
+          corepack enable
+          corepack prepare yarn@3.6.1 --activate
+
+          # Make sure the Yarn binary is executable (sometimes acls strip exec bit)
+          chmod +x ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js
+
+          # Show the Yarn version we just installed
+          echo "Yarn version:" && ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js --version
+
+          # Add helpful plugins that our repo relies on
+          echo "Importing plugin interactive-tools..."
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js plugin import @yarnpkg/plugin-interactive-tools
+          echo "Importing plugin workspace-tools..."
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js plugin import @yarnpkg/plugin-workspace-tools
+
+          # Explicitly force the classic node-modules linker & disable PnP to avoid issues
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js config set nodeLinker node-modules
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js config set enableGlobalCache false
+
+          # Install dependencies strictly as locked in yarn.lock
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js install --immutable
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Add Android and iOS Rust targets
+        run: |
+          rustup target add \
+            aarch64-linux-android \
+            armv7-linux-androideabi \
+            aarch64-apple-ios \
+            aarch64-apple-ios-sim \
+            x86_64-apple-ios
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Select Xcode 16.3
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 12266719
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android NDK
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;29.0.13113456"
+
+      - name: Set Android environment variables
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.13113456" >> $GITHUB_ENV
+          echo "ANDROID_API_LEVEL=36" >> $GITHUB_ENV
+
+      - name: Build native code (ubrn:build)
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js ubrn:build
+
+      - name: Generate bindings (ubrn:generate)
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js ubrn:generate
+
+      - name: Build TypeScript (yarn prepare)
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js prepare
+
+      - name: Type checking
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js typecheck
+
+      - name: Run tests
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js test
 

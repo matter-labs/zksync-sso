@@ -1,8 +1,6 @@
 import { loadConfig } from './loadConfig';
 import sdk from '../../../../src';
-import type { RpId } from '../../../../src';
 import type { AccountInfo, DeployedAccount } from '../types';
-import { RpIdHelper } from '../types';
 
 /**
  * Creates a passkey for the given account info
@@ -15,15 +13,16 @@ export const createPasskey = async (
     console.log("createPasskey - accountInfo:", accountInfo);
     const config = loadConfig();
     console.log("createPasskey - config:", config);
-    const challenge = sdk.ffi.generateRandomChallenge();
+    const challenge = sdk.utils.generateRandomChallenge();
     console.log("createPasskey - challenge:", challenge);
+    const rpIdString = sdk.utils.getRpIdString(accountInfo.rpId);
     const account = await sdk.register.registerAccountWithUniqueId(
         {
             name: accountInfo.name,
             userID: accountInfo.userID,
             rp: {
-                name: RpIdHelper.rpId(accountInfo.rpId),
-                id: RpIdHelper.toFfiRpId(accountInfo.rpId)
+                name: rpIdString,
+                id: accountInfo.rpId
             }
         },
         challenge,

@@ -1,8 +1,10 @@
 name: Lint
 
+# Temporarily disabled while working on ci-rn
 on:
-  pull_request:
   workflow_dispatch:
+# Original triggers:
+#   pull_request:
 
 jobs:
   lint:

@@ -7,7 +7,6 @@ on:
   pull_request:
     paths-ignore:
       - 'packages/sdk-platforms/**'
-  workflow_dispatch:
 
 jobs:
   e2e-demo-app:
