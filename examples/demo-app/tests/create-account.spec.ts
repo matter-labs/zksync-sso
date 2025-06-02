@@ -44,7 +44,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByText("ZKsync SSO Demo")).toBeVisible();
 });
 
-test("Create account w/ session and send ETH", async ({ page }) => {
+test("Create account with session and send ETH", async ({ page }) => {
   // Click the Connect button
   await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
 
@@ -105,7 +105,7 @@ test("Create account w/ session and send ETH", async ({ page }) => {
     .toBeGreaterThan(endBalance + 0.1);
 });
 
-test("Create account w/ session and send ETH w/ paymaster", async ({ page }) => {
+test("Create account with session and send ETH with paymaster", async ({ page }) => {
   // Click the Connect button
   await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
 
@@ -156,9 +156,9 @@ test("Create account w/ session and send ETH w/ paymaster", async ({ page }) => 
     .replace("Balance: ", "")
     .replace(" ETH", "");
 
-  // Send some eth w/ paymaster
-  await page.getByRole("button", { name: "Send 0.1 ETH w/ Paymaster", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Send 0.1 ETH w/ Paymaster", exact: true })).toBeEnabled();
+  // Send some eth with paymaster
+  await page.getByRole("button", { name: "Send 0.1 ETH with Paymaster", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH with Paymaster", exact: true })).toBeEnabled();
   const endBalance = +(await page.getByText("Balance:").innerText())
     .replace("Balance: ", "")
     .replace(" ETH", "");
@@ -268,7 +268,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
     .toBeGreaterThan(endBalance + 0.1);
 });
 
-test("Create passkey account and send ETH w/ paymaster", async ({ page }) => {
+test("Create passkey account and send ETH with paymaster", async ({ page }) => {
   // Click the Connect button
   await page.getByRole("button", { name: "Connect", exact: true }).click();
 
@@ -325,8 +325,8 @@ test("Create passkey account and send ETH w/ paymaster", async ({ page }) => {
     .replace("Balance: ", "")
     .replace(" ETH", "");
 
-  // Send some eth w/ paymaster
-  await page.getByRole("button", { name: "Send 0.1 ETH w/ Paymaster", exact: true }).click();
+  // Send some eth with paymaster
+  await page.getByRole("button", { name: "Send 0.1 ETH with Paymaster", exact: true }).click();
 
   // Wait for Auth Server to pop back up
   await page.waitForTimeout(2000);
@@ -362,7 +362,7 @@ test("Create passkey account and send ETH w/ paymaster", async ({ page }) => {
   await page.waitForTimeout(2000);
 
   // Confirm transfer completed and balance updated
-  await expect(page.getByRole("button", { name: "Send 0.1 ETH w/ Paymaster", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH with Paymaster", exact: true })).toBeEnabled();
   const endBalance = +(await page.getByText("Balance:").innerText())
     .replace("Balance: ", "")
     .replace(" ETH", "");
