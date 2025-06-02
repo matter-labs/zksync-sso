@@ -1,14 +1,13 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import ExampleView from './components/ExampleView';
-import { initializePlatformLogger } from '../../src/passkey/utils';
-import { RpIdHelper } from './components/types';
+import sdk from '../../src';
 
 export default function App() {
   // Initialize platform-specific logging before any SDK usage
-  initializePlatformLogger("io.jackpooley.MLSSOExampleRN");
+  sdk.utils.initializePlatformLogger("io.jackpooley.MLSSOExampleRN");
 
-  const rpId = RpIdHelper.createForCurrentPlatform(
+  const rpId = sdk.utils.createRpId(
     "soo-sdk-example-pages.pages.dev", // RP ID (same for both platforms)
     "android:apk-key-hash:-sYXRdwJA3hvue3mKpYrOZ9zSPC7b4mbgzJmdZEDO5w" // Android origin
   );
