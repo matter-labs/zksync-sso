@@ -46,7 +46,7 @@ test.beforeEach(async ({ page }) => {
 
 test("Create account w/ session and send ETH", async ({ page }) => {
   // Click the Connect button
-  await page.getByRole("button", { name: "Connect w/ Session", exact: true }).click();
+  await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
 
   // Ensure popup is displayed
   await page.waitForTimeout(2000);
@@ -107,7 +107,7 @@ test("Create account w/ session and send ETH", async ({ page }) => {
 
 test("Create account w/ session and send ETH w/ paymaster", async ({ page }) => {
   // Click the Connect button
-  await page.getByRole("button", { name: "Connect w/ Session", exact: true }).click();
+  await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
 
   // Ensure popup is displayed
   await page.waitForTimeout(2000);

@@ -1,6 +1,7 @@
 import { FetchError } from "ofetch";
 import { erc20Abi, formatUnits, toFunctionSelector } from "viem";
 import type { Address } from "viem/accounts";
+import type { UnwrapRef } from "vue";
 import { type Limit, LimitType, LimitUnlimited, type SessionConfig } from "zksync-sso/utils";
 
 export const useSessionConfigInfo = (
@@ -11,7 +12,8 @@ export const useSessionConfigInfo = (
   const chainId = toRef(_chainId);
   const sessionConfig = toRef(_sessionConfig);
 
-  const { getToken, getTokenInProgress, fetchTokens } = (useTokensStore());
+  const { getToken, getTokenInProgress, fetchTokens } = useTokensStore();
+  const { checkTargetAddress } = useProhibitedCallsCheck(chainId);
 
   const onchainActionsCount = computed(() => {
     return sessionConfig.value.callPolicies.length + sessionConfig.value.transferPolicies.length;
@@ -26,8 +28,7 @@ export const useSessionConfigInfo = (
       chainId: chainId.value,
       tokenAddresses: tokenAddresses.value,
       throwErrorAsserter: (e) => {
-        // if (import.meta.dev) return false;
-        if (e instanceof FetchError && e.statusCode === 404) return false;
+        if (e instanceof FetchError && e.statusCode === 404) return false; // Contract was not a token
         return true;
       },
     });
@@ -182,6 +183,33 @@ export const useSessionConfigInfo = (
     return acc + (parseFloat(formattedTokenAmount) * item.token.price);
   }, 0));
 
+  const dangerousActions = computed(() => {
+    const actions: string[] = [];
+
+    const hasAllowanceCall = sessionConfig.value.callPolicies.some((policy) => {
+      const approveAbi = erc20Abi.find((e) => e.type === "function" && e.name === "approve")!;
+      return policy.selector === toFunctionSelector(approveAbi);
+    });
+    if (hasAllowanceCall) {
+      actions.push("One of the onchain actions allows to use your funds even after the session expires or is revoked.");
+    }
+
+    const hasUnlimitedSpend = spendLimitTokens.value.some((item) => item.amount === "unlimited");
+    if (hasUnlimitedSpend) {
+      actions.push("Unlimited spend is requested for some of the tokens.");
+    }
+
+    if (fetchTokensError.value) {
+      actions.push("Failed to fetch token information. Displayed tokens and spend limits may be incorrect.");
+    }
+
+    return actions;
+  });
+
+  const hasProhibitedCallTarget = computed(() => {
+    return sessionConfig.value.callPolicies.some((policy) => checkTargetAddress(policy.target));
+  });
+
   return {
     onchainActionsCount,
     fetchTokensError,
@@ -190,5 +218,9 @@ export const useSessionConfigInfo = (
     spendLimitTokens,
     hasUnlimitedSpend,
     totalUsd,
+    dangerousActions,
+    hasProhibitedCallTarget,
   };
 };
+
+export type UseSessionConfigInfoReturn = UnwrapRef<ReturnType<typeof useSessionConfigInfo>>;
