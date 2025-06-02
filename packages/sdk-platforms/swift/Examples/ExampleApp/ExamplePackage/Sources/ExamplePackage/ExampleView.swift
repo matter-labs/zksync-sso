@@ -10,7 +10,7 @@ public struct ExampleView: View {
     public init(relyingPartyIdentifier: String, bundleIdentifier: String) {
         self.relyingPartyIdentifier = relyingPartyIdentifier
         
-        ZKsyncSSO.initLogger(bundleIdentifier: bundleIdentifier)
+        ZKsyncSSO.initLogger(bundleIdentifier: bundleIdentifier, level: .trace)
     }
 
     public var body: some View {

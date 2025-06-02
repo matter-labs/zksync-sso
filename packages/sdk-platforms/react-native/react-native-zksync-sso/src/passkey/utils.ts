@@ -1,5 +1,5 @@
 // @ts-ignore
-import { initAndroidLogger, initAppleLogger, testLogging, type RpId, LogLevel } from 'react-native-zksync-sso';
+import { initAndroidLogger, initAppleLogger, testLogging, type RpId, LogLevel, generateRandomChallenge as ffiGenerateRandomChallenge, RpId as FfiRpId, type AndroidRpId } from 'react-native-zksync-sso';
 import { Platform } from 'react-native';
 
 /**
@@ -200,4 +200,54 @@ export function arrayBufferToHexString(buffer: ArrayBuffer): string {
     return Array.from(new Uint8Array(buffer))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
+}
+
+/**
+ * Generates a random challenge for passkey registration or authentication.
+ * This is a cryptographically secure random value used in the WebAuthn flow.
+ * 
+ * @returns A random challenge string
+ */
+export function generateRandomChallenge(): string {
+    return ffiGenerateRandomChallenge();
+}
+
+/**
+ * Creates an RpId for iOS platforms
+ * @param rpId The relying party identifier (domain)
+ * @returns RpId object for use with the SDK
+ */
+export function createAppleRpId(rpId: string): RpId {
+    return FfiRpId.Apple.new(rpId);
+}
+
+/**
+ * Creates an RpId for Android platforms
+ * @param rpId The relying party identifier (domain)
+ * @param origin The Android app origin (APK signature hash)
+ * @returns RpId object for use with the SDK
+ */
+export function createAndroidRpId(rpId: string, origin: string): RpId {
+    const androidRpId: AndroidRpId = {
+        rpId: rpId,
+        origin: origin
+    };
+    return FfiRpId.Android.new(androidRpId);
+}
+
+/**
+ * Creates a platform-appropriate RpId based on the current platform
+ * @param rpId The relying party identifier (domain)
+ * @param androidOrigin The Android app origin (required for Android, ignored on iOS)
+ * @returns RpId object for use with the SDK
+ * @throws Error if the platform is not supported (e.g., web)
+ */
+export function createRpId(rpId: string, androidOrigin: string): RpId {
+    if (Platform.OS === 'ios') {
+        return createAppleRpId(rpId);
+    } else if (Platform.OS === 'android') {
+        return createAndroidRpId(rpId, androidOrigin);
+    } else {
+        throw new Error(`Unsupported platform: ${Platform.OS}. Only iOS and Android are supported.`);
+    }
 }

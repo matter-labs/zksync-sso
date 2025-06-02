@@ -2,3 +2,11 @@
 rust:
     directory: ./../../rust/zksync-sso/crates/ffi
     manifest-path: Cargo.toml
+android:
+  targets:
+    - arm64-v8a
+    - armeabi-v7a
+    # - x86
+    # - x86_64
+ios:
+  frameworkName: build/ZksyncSsoFramework

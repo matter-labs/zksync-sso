@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import type { AccountDetails, RpId, RpIdHelper } from './types';
+import type { AccountDetails } from './types';
+import type { RpId } from '../../../src';
 import AccountDetailsView from './AccountDetailsView';
 import LoggedOutView from './LoggedOutView';
 
