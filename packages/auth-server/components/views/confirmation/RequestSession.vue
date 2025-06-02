@@ -208,7 +208,7 @@ const startCheckboxErrorHighlight = () => {
 const sessionError = ref("");
 
 const sessionScrollableArea = ref<HTMLElement | undefined>();
-const scrollOffsetPx = 50;
+const scrollOffsetPx = 60;
 const sessionScrollY = ref(0);
 const scrollProgressPercent = ref(0);
 const arrivedAtBottom = ref(false);
