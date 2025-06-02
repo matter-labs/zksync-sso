@@ -117,7 +117,8 @@ This monorepo is comprised of the following packages, products, and examples:
   session key management
 - `packages/contracts` are the on-chain smart contracts behind ZKsync SSO
   accounts
-- `examples/nft-quest` is an app demonstrating the use of ZKsync SSO with sessions
+- `examples/nft-quest` is an app demonstrating the use of ZKsync SSO with
+  sessions
 - `examples/nft-quest-contracts` are the smart contracts for `nft-quest`
 - `examples/demo-app` is a test app mostly used for CI testing
 - `examples/bank-demo` is an app demonstrating the fully embedded experience
