@@ -4,8 +4,29 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish (e.g., 1.0.0)"
+        description: "Version to publish (e.g., 1.0.0, 1.0.0-alpha.1)"
         default: "1.0.0"
+        required: true
+      tag:
+        description: "NPM tag to publish under"
+        type: choice
+        options:
+          - latest
+          - alpha
+          - beta
+          - rc
+          - next
+          - canary
+          - dev
+        default: "latest"
+        required: true
+      access:
+        description: "NPM access level"
+        type: choice
+        options:
+          - public
+          - restricted
+        default: "public"
         required: true
 
 jobs:
@@ -117,12 +138,44 @@ jobs:
         run: ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js ubrn:release
         working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
 
+      - name: Validate version and tag combination
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          TAG="${{ github.event.inputs.tag }}"
+          ACCESS="${{ github.event.inputs.access }}"
+          
+          echo "Publishing version: $VERSION with tag: $TAG and access: $ACCESS"
+          
+          # Warn if version contains prerelease identifier but tag is 'latest'
+          if [[ "$VERSION" =~ -(alpha|beta|rc|dev|canary) ]] && [[ "$TAG" == "latest" ]]; then
+            echo "⚠️  Warning: Publishing prerelease version ($VERSION) with 'latest' tag"
+            echo "   Consider using a prerelease tag (alpha, beta, rc, etc.)"
+          fi
+          
+          # Warn if version is stable but tag is not 'latest'
+          if [[ ! "$VERSION" =~ -(alpha|beta|rc|dev|canary) ]] && [[ "$TAG" != "latest" ]]; then
+            echo "⚠️  Warning: Publishing stable version ($VERSION) with '$TAG' tag"
+            echo "   Consider using 'latest' tag for stable releases"
+          fi
+          
+          # Info about access levels
+          if [[ "$ACCESS" == "restricted" ]]; then
+            echo "📝 Note: Package will be published as RESTRICTED (private access)"
+            echo "   Only authorized users can install this package"
+          else
+            echo "📝 Note: Package will be published as PUBLIC"
+            echo "   Anyone can install this package"
+          fi
+
       - name: Prepare package.json
         if: github.event_name == 'workflow_dispatch'
         working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
         run: node prepare-package.mjs
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          INPUT_ACCESS: ${{ github.event.inputs.access }}
 
       - name: Dry run - Verify package build
         if: github.event_name == 'push'
@@ -131,6 +184,11 @@ jobs:
           echo "Build completed successfully for push testing"
           echo "Package contents:"
           ls -la
+          echo ""
+          echo "Current package.json version:"
+          node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)"
+          echo ""
+          echo "This would be published with tag 'latest' by default"
           
       - name: Create .npmrc for NPM
         if: github.event_name == 'workflow_dispatch'
@@ -139,7 +197,7 @@ jobs:
       - name: Publish to NPM
         if: github.event_name == 'workflow_dispatch'
         working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
-        run: npm publish --access public
+        run: npm publish --access ${{ github.event.inputs.access }} --tag ${{ github.event.inputs.tag }}
     
     #   - name: Create .npmrc for GitHub Packages
     #     run: echo "@OWNER:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
