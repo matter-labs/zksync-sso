@@ -173,6 +173,7 @@ import {
   http,
   parseEther,
   type TypedDataDefinition } from "viem";
+import { erc7739Actions } from "viem/experimental";
 import { reactive, ref } from "vue";
 
 const { account } = storeToRefs(useConnectorStore());
@@ -239,6 +240,11 @@ async function handleSignListRequest() {
     isLoading.value = false;
     return;
   }
+  if (!chain) {
+    errorMsg.value = "Chain not found in wagmiConfig.";
+    isLoading.value = false;
+    return;
+  }
   if (!chain.id) {
     errorMsg.value = "Chain ID is required.";
     isLoading.value = false;
@@ -247,11 +253,6 @@ async function handleSignListRequest() {
 
   try {
     const accountValue = account.value;
-    if (!chain) {
-      errorMsg.value = `Chain with ID ${chain.id} not found in wagmiConfig.`;
-      isLoading.value = false;
-      return;
-    }
     if (!accountValue || !accountValue.address) {
       errorMsg.value = "Smart Account address is required.";
       isLoading.value = false;
@@ -262,11 +263,12 @@ async function handleSignListRequest() {
       isLoading.value = false;
       return;
     }
+    // this needs to be a wagmi account, not a private key
     const client = createWalletClient({
       account: accountValue,
       chain: chain,
       transport: http(),
-    });
+    }).extend(erc7739Actions());
     const domain = {
       name: config.marketplaceName,
       version: config.marketplaceVersion,

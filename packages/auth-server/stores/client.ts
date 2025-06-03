@@ -2,6 +2,7 @@ import { useAppKitProvider } from "@reown/appkit/vue";
 import { type Address, createPublicClient, createWalletClient, custom, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import { erc7739Actions } from "viem/experimental";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
@@ -154,7 +155,9 @@ export const useClientStore = defineStore("client", () => {
     })
       .extend(publicActions)
       .extend(walletActions)
-      .extend(eip712WalletActions());
+      .extend(eip712WalletActions())
+      .extend(erc7739Actions());
+    ;
   };
 
   return {
