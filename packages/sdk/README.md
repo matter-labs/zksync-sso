@@ -15,7 +15,7 @@ simplifying user authentication, session management, and transaction processing.
 - 🧩 Modular smart accounts based on
   [ERC-7579](https://eips.ethereum.org/EIPS/eip-7579#modules)
 - 🔑 Passkey authentication (no seed phrases)
-- ⏰ Sessions w/ easy configuration and management
+- ⏰ Sessions with easy configuration and management
 - 💰 Integrated paymaster support
 - ❤️‍🩹 Account recovery
 - 💻 Simple SDKs : JavaScript, iOS/Android _(Coming Soon)_

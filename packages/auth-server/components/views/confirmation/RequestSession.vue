@@ -1,5 +1,5 @@
 <template>
-  <SessionTemplate class="text-neutral-300">
+  <SessionTemplate>
     <template
       v-if="isLoggedIn"
       #header
@@ -33,9 +33,45 @@
       </div>
     </div>
     <SessionTokens
-      :session="sessionConfig"
+      :onchain-actions-count="onchainActionsCount"
+      :fetch-tokens-error="fetchTokensError"
+      :tokens-loading="tokensLoading"
+      :spend-limit-tokens="spendLimitTokens"
+      :has-unlimited-spend="hasUnlimitedSpend"
+      :total-usd="totalUsd"
       class="mt-1"
     />
+
+    <div
+      v-if="hasDangerousActions"
+      class="mt-2 bg-neutral-975 rounded-[28px]"
+    >
+      <div class="px-5 py-2 text-error-600 font-bold">
+        Warning
+      </div>
+      <CommonLine class="text-pretty">
+        <ul class="text-sm px-5 py-2 space-y-2 text-error-50">
+          <li
+            v-for="action in dangerousActions"
+            :key="action"
+            class="list-['-'] list-outside pl-1 ml-3"
+          >
+            {{ action }}
+          </li>
+        </ul>
+        <div
+          ref="checkbox"
+          class="px-5 mt-2 mb-3 text-white"
+        >
+          <ZkCheckbox
+            v-model="dangerCheckboxConfirmed"
+            :error="dangerCheckboxErrorHighlight"
+          >
+            I understand that by continuing, I risk losing my funds.
+          </ZkCheckbox>
+        </div>
+      </CommonLine>
+    </div>
 
     <SessionAdvancedInfo :session-config="sessionConfig" />
 
@@ -61,11 +97,28 @@
         >
           <ZkButton
             class="w-full"
-            :loading="!appMeta || responseInProgress"
+            :ui="{ button: 'isolate relative overflow-hidden dark:bg-neutral-100 group' }"
+            :disabled="isButtonLoading"
+            :loading="isButtonLoading"
             data-testid="connect"
-            @click="confirmConnection()"
+            @click="mainButtonClick()"
           >
-            {{ isLoggedIn ? 'Connect' : 'Create' }}
+            <span
+              class="block -z-[1] absolute left-0 top-0 h-full w-0 dark:bg-white group-hover:dark:bg-gray-50"
+              :style="{ width: `${scrollProgressPercent}%` }"
+            />
+            <span class="inline-block w-0 h-full">&nbsp;</span>
+            <transition
+              :name="transitionName"
+              mode="out-in"
+            >
+              <span
+                :key="confirmButtonAvailable.toString()"
+                class="inline-block w-full text-center relative"
+              >
+                {{ confirmButtonAvailable ? mainButtonText : "Continue" }}
+              </span>
+            </transition>
           </ZkButton>
         </ZkHighlightWrapper>
       </div>
@@ -90,9 +143,9 @@ const props = defineProps({
 
 const { appMeta, appOrigin } = useAppMeta();
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const { createAccount } = useAccountCreate(computed(() => requestChain.value!.id));
+const { responseInProgress, requestChainId } = storeToRefs(useRequestsStore());
+const { createAccount } = useAccountCreate(requestChainId);
 const { respond, deny } = useRequestsStore();
-const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { getClient } = useClientStore();
 
 const defaults = {
@@ -107,7 +160,7 @@ const defaults = {
 const sessionConfig = computed(() => formatSessionPreferences(props.sessionPreferences, defaults));
 
 const domain = computed(() => new URL(appOrigin.value).host);
-const now = useNow({ interval: 5000 });
+const now = useNow({ interval: 1000 });
 const sessionExpiry = computed(() => {
   const expiresDate = bigintDateToDate(sessionConfig.value.expiresAt);
 
@@ -122,7 +175,100 @@ const sessionExpiry = computed(() => {
   return `Expires on ${formattedDate} at ${formattedTime}`;
 });
 
+const {
+  onchainActionsCount,
+  fetchTokensError,
+  tokensLoading,
+  spendLimitTokens,
+  hasUnlimitedSpend,
+  totalUsd,
+  dangerousActions,
+} = useSessionConfigInfo(
+  requestChainId,
+  sessionConfig,
+  now,
+);
+const dangerCheckboxConfirmed = ref(false);
+const hasDangerousActions = computed(() => dangerousActions.value.length > 0);
+const dangerCheckboxErrorHighlight = ref(false);
+const { start: startCheckboxErrorHighlightReset, stop: stopCheckboxErrorHighlightReset } = useTimeoutFn(() => {
+  dangerCheckboxErrorHighlight.value = false;
+}, 3000);
+watch(dangerCheckboxConfirmed, (newVal) => {
+  if (newVal) {
+    dangerCheckboxErrorHighlight.value = false;
+    stopCheckboxErrorHighlightReset();
+  }
+});
+const startCheckboxErrorHighlight = () => {
+  dangerCheckboxErrorHighlight.value = true;
+  startCheckboxErrorHighlightReset();
+};
+
 const sessionError = ref("");
+
+const sessionScrollableArea = ref<HTMLElement | undefined>();
+const scrollOffsetPx = 60;
+const sessionScrollY = ref(0);
+const scrollProgressPercent = ref(0);
+const arrivedAtBottom = ref(false);
+
+const handleScroll = () => {
+  const el = sessionScrollableArea.value;
+  if (!el) return;
+
+  const scrollTop = el.scrollTop;
+  const scrollHeight = el.scrollHeight;
+  const clientHeight = el.clientHeight;
+
+  sessionScrollY.value = scrollTop;
+
+  const scrollBottom = scrollHeight - scrollTop - clientHeight;
+  arrivedAtBottom.value = scrollBottom <= scrollOffsetPx;
+
+  // Adjust total scrollable height to treat offset as part of 100%
+  const effectiveScrollable = scrollHeight - clientHeight - scrollOffsetPx;
+
+  if (effectiveScrollable > 0) {
+    const adjustedProgress = (scrollTop / effectiveScrollable) * 100;
+    scrollProgressPercent.value = Math.min(100, adjustedProgress);
+  } else {
+    scrollProgressPercent.value = 100; // Edge case: no scrolling needed
+  }
+};
+
+onMounted(() => {
+  sessionScrollableArea.value = (document.querySelector("#sessionScrollableArea") as HTMLElement) || undefined;
+  if (sessionScrollableArea.value) {
+    sessionScrollableArea.value.addEventListener("scroll", handleScroll, { passive: true });
+    // Initial check in case it's already scrolled
+    handleScroll();
+  }
+});
+
+onUnmounted(() => {
+  if (sessionScrollableArea.value) {
+    sessionScrollableArea.value.removeEventListener("scroll", handleScroll);
+  }
+});
+const scrollDown = () => {
+  const el = sessionScrollableArea.value;
+  el?.scrollTo({
+    top: el.scrollTop + (el.clientHeight * 0.7),
+    behavior: "smooth",
+  });
+};
+const isButtonLoading = computed(() => !appMeta.value || responseInProgress.value || tokensLoading.value);
+const confirmButtonAvailable = computed(() => arrivedAtBottom.value);
+const transitionName = ref("slide-up");
+const previousConfirmAvailable = ref(confirmButtonAvailable.value);
+watch(confirmButtonAvailable, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    transitionName.value = newVal ? "slide-up" : "slide-down";
+    previousConfirmAvailable.value = newVal;
+  }
+});
+const mainButtonText = computed(() => isLoggedIn.value ? "Connect" : "Create");
 
 const confirmConnection = async () => {
   let response: RPCResponseMessage<ExtractReturnType<Method>>["content"];
@@ -145,8 +291,8 @@ const confirmConnection = async () => {
       };
     } else {
       // create a new session for the existing account
-      const client = getClient({ chainId: requestChain.value!.id });
-      const paymasterAddress = contractsByChain[requestChain.value!.id].accountPaymaster;
+      const client = getClient({ chainId: requestChainId.value });
+      const paymasterAddress = contractsByChain[requestChainId.value].accountPaymaster;
       const sessionKey = generatePrivateKey();
       const session = {
         sessionKey,
@@ -176,6 +322,7 @@ const confirmConnection = async () => {
     } else {
       sessionError.value = "Error during session creation. Please see console for more info.";
     }
+    // eslint-disable-next-line no-console
     console.error(error);
     return;
   }
@@ -184,4 +331,52 @@ const confirmConnection = async () => {
     respond(() => response);
   }
 };
+
+const mainButtonClick = () => {
+  if (!confirmButtonAvailable.value) {
+    scrollDown();
+  } else if (!dangerCheckboxConfirmed.value && hasDangerousActions.value) {
+    startCheckboxErrorHighlight();
+  } else {
+    confirmConnection();
+  }
+};
 </script>
+
+<style lang="scss" scoped>
+/* Common styles */
+.slide-up-enter-active,
+.slide-up-leave-active,
+.slide-down-enter-active,
+.slide-down-leave-active {
+  @apply transition-all duration-150 ease-in-out absolute inset-0 flex items-center justify-center will-change-[transform,opacity];
+}
+
+/* Slide UP (next step) */
+.slide-up-enter-from {
+  @apply translate-y-full opacity-0;
+}
+.slide-up-enter-to {
+  @apply translate-y-0 opacity-100;
+}
+.slide-up-leave-from {
+  @apply translate-y-0 opacity-100;
+}
+.slide-up-leave-to {
+  @apply -translate-y-full opacity-0;
+}
+
+/* Slide DOWN (previous step) */
+.slide-down-enter-from {
+  @apply -translate-y-full opacity-0;
+}
+.slide-down-enter-to {
+  @apply translate-y-0 opacity-100;
+}
+.slide-down-leave-from {
+  @apply translate-y-0 opacity-100;
+}
+.slide-down-leave-to {
+  @apply translate-y-full opacity-0;
+}
+</style>

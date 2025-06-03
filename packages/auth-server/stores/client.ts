@@ -25,8 +25,8 @@ type ChainContracts = PasskeyRequiredContracts & {
   accountPaymaster: Address;
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
-  [zksyncSepoliaTestnet.id]: eraSepoliaChainData,
-  [zksyncInMemoryNode.id]: localChainData,
+  [zksyncSepoliaTestnet.id]: eraSepoliaChainData as ChainContracts,
+  [zksyncInMemoryNode.id]: localChainData as ChainContracts,
 };
 
 export const chainParameters: Record<SupportedChainId, { blockTime: number }> = {

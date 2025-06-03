@@ -107,15 +107,11 @@ const isMobile = breakpoints.smaller("lg");
 const { address: accountAddress } = useAccountStore();
 const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
 
-const config = useRuntimeConfig();
-
-const appUrl = config.public.appUrl;
-
 const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
   method: "Guardian",
   address: x.addr,
   addedOn: new Date(),
-  ...(!x.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}` }),
+  ...(!x.isReady && { pendingUrl: new URL(`/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}`, window.location.origin).toString() }),
 })));
 
 const refreshGuardians = () => {
