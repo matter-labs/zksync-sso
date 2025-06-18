@@ -29,38 +29,38 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		D252DD0F2D099C9A006D9A43 /* MLSSOExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MLSSOExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D252DD1F2D099C9C006D9A43 /* MLSSOExample.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = MLSSOExample.xctest; path = MLSSOExampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		D252DD292D099C9C006D9A43 /* ExampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = ExampleUITests.xctest; path = MLSSOExampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D252DD0F2D099C9A006D9A43 /* SSOExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SSOExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D252DD1F2D099C9C006D9A43 /* SSOExampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SSOExampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D252DD292D099C9C006D9A43 /* SSOExampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SSOExampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		D201D7B52D4652E900CF8FE6 /* Exceptions for "MLSSOExample" folder in "MLSSOExample" target */ = {
+		D201D7B52D4652E900CF8FE6 /* Exceptions for "SSOExample" folder in "SSOExample" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = D252DD0E2D099C9A006D9A43 /* MLSSOExample */;
+			target = D252DD0E2D099C9A006D9A43 /* SSOExample */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		D252DD112D099C9A006D9A43 /* MLSSOExample */ = {
+		D252DD112D099C9A006D9A43 /* SSOExample */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				D201D7B52D4652E900CF8FE6 /* Exceptions for "MLSSOExample" folder in "MLSSOExample" target */,
+				D201D7B52D4652E900CF8FE6 /* Exceptions for "SSOExample" folder in "SSOExample" target */,
 			);
-			path = MLSSOExample;
+			path = SSOExample;
 			sourceTree = "<group>";
 		};
-		D252DD222D099C9C006D9A43 /* MLSSOExampleTests */ = {
+		D252DD222D099C9C006D9A43 /* SSOExampleTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MLSSOExampleTests;
+			path = SSOExampleTests;
 			sourceTree = "<group>";
 		};
-		D252DD2C2D099C9C006D9A43 /* MLSSOExampleUITests */ = {
+		D252DD2C2D099C9C006D9A43 /* SSOExampleUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MLSSOExampleUITests;
+			path = SSOExampleUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -95,9 +95,9 @@
 		D252DD062D099C9A006D9A43 = {
 			isa = PBXGroup;
 			children = (
-				D252DD112D099C9A006D9A43 /* MLSSOExample */,
-				D252DD222D099C9C006D9A43 /* MLSSOExampleTests */,
-				D252DD2C2D099C9C006D9A43 /* MLSSOExampleUITests */,
+				D252DD112D099C9A006D9A43 /* SSOExample */,
+				D252DD222D099C9C006D9A43 /* SSOExampleTests */,
+				D252DD2C2D099C9C006D9A43 /* SSOExampleUITests */,
 				D252DD102D099C9A006D9A43 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -105,9 +105,9 @@
 		D252DD102D099C9A006D9A43 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D252DD0F2D099C9A006D9A43 /* MLSSOExample.app */,
-				D252DD1F2D099C9C006D9A43 /* MLSSOExample.xctest */,
-				D252DD292D099C9C006D9A43 /* ExampleUITests.xctest */,
+				D252DD0F2D099C9A006D9A43 /* SSOExample.app */,
+				D252DD1F2D099C9C006D9A43 /* SSOExampleTests.xctest */,
+				D252DD292D099C9C006D9A43 /* SSOExampleUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -115,9 +115,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D252DD0E2D099C9A006D9A43 /* MLSSOExample */ = {
+		D252DD0E2D099C9A006D9A43 /* SSOExample */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D252DD332D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "MLSSOExample" */;
+			buildConfigurationList = D252DD332D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "SSOExample" */;
 			buildPhases = (
 				D252DD0B2D099C9A006D9A43 /* Sources */,
 				D252DD0C2D099C9A006D9A43 /* Frameworks */,
@@ -128,20 +128,20 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				D252DD112D099C9A006D9A43 /* MLSSOExample */,
+				D252DD112D099C9A006D9A43 /* SSOExample */,
 			);
-			name = MLSSOExample;
+			name = SSOExample;
 			packageProductDependencies = (
 				D252DD3D2D099CD4006D9A43 /* ZKsyncSSO */,
 				D220D7392D0DBB9D00CBE970 /* ExamplePackage */,
 			);
 			productName = MLSSOExample;
-			productReference = D252DD0F2D099C9A006D9A43 /* MLSSOExample.app */;
+			productReference = D252DD0F2D099C9A006D9A43 /* SSOExample.app */;
 			productType = "com.apple.product-type.application";
 		};
-		D252DD1E2D099C9C006D9A43 /* MLSSOExampleTests */ = {
+		D252DD1E2D099C9C006D9A43 /* SSOExampleTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D252DD362D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "MLSSOExampleTests" */;
+			buildConfigurationList = D252DD362D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "SSOExampleTests" */;
 			buildPhases = (
 				D252DD1B2D099C9C006D9A43 /* Sources */,
 				D252DD1C2D099C9C006D9A43 /* Frameworks */,
@@ -153,18 +153,18 @@
 				D252DD212D099C9C006D9A43 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				D252DD222D099C9C006D9A43 /* MLSSOExampleTests */,
+				D252DD222D099C9C006D9A43 /* SSOExampleTests */,
 			);
-			name = MLSSOExampleTests;
+			name = SSOExampleTests;
 			packageProductDependencies = (
 			);
 			productName = MLSSOExampleTests;
-			productReference = D252DD1F2D099C9C006D9A43 /* MLSSOExample.xctest */;
+			productReference = D252DD1F2D099C9C006D9A43 /* SSOExampleTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		D252DD282D099C9C006D9A43 /* MLSSOExampleUITests */ = {
+		D252DD282D099C9C006D9A43 /* SSOExampleUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D252DD392D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "MLSSOExampleUITests" */;
+			buildConfigurationList = D252DD392D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "SSOExampleUITests" */;
 			buildPhases = (
 				D252DD252D099C9C006D9A43 /* Sources */,
 				D252DD262D099C9C006D9A43 /* Frameworks */,
@@ -176,13 +176,13 @@
 				D252DD2B2D099C9C006D9A43 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				D252DD2C2D099C9C006D9A43 /* MLSSOExampleUITests */,
+				D252DD2C2D099C9C006D9A43 /* SSOExampleUITests */,
 			);
-			name = MLSSOExampleUITests;
+			name = SSOExampleUITests;
 			packageProductDependencies = (
 			);
 			productName = MLSSOExampleUITests;
-			productReference = D252DD292D099C9C006D9A43 /* ExampleUITests.xctest */;
+			productReference = D252DD292D099C9C006D9A43 /* SSOExampleUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -208,7 +208,7 @@
 					};
 				};
 			};
-			buildConfigurationList = D252DD0A2D099C9A006D9A43 /* Build configuration list for PBXProject "MLSSOExample" */;
+			buildConfigurationList = D252DD0A2D099C9A006D9A43 /* Build configuration list for PBXProject "SSOExample" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -225,9 +225,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				D252DD0E2D099C9A006D9A43 /* MLSSOExample */,
-				D252DD1E2D099C9C006D9A43 /* MLSSOExampleTests */,
-				D252DD282D099C9C006D9A43 /* MLSSOExampleUITests */,
+				D252DD0E2D099C9A006D9A43 /* SSOExample */,
+				D252DD1E2D099C9C006D9A43 /* SSOExampleTests */,
+				D252DD282D099C9C006D9A43 /* SSOExampleUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -283,12 +283,12 @@
 /* Begin PBXTargetDependency section */
 		D252DD212D099C9C006D9A43 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = D252DD0E2D099C9A006D9A43 /* MLSSOExample */;
+			target = D252DD0E2D099C9A006D9A43 /* SSOExample */;
 			targetProxy = D252DD202D099C9C006D9A43 /* PBXContainerItemProxy */;
 		};
 		D252DD2B2D099C9C006D9A43 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = D252DD0E2D099C9A006D9A43 /* MLSSOExample */;
+			target = D252DD0E2D099C9A006D9A43 /* SSOExample */;
 			targetProxy = D252DD2A2D099C9C006D9A43 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -418,14 +418,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = MLSSOExample/MLSSOExample.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SSOExample/SSOExample.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"MLSSOExample/Preview Content\"";
-				DEVELOPMENT_TEAM = VQFQV74W6L;
+				DEVELOPMENT_ASSET_PATHS = "\"SSOExample/Preview Content\"";
+				DEVELOPMENT_TEAM = 4SQ22U66PS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MLSSOExample/Info.plist;
+				INFOPLIST_FILE = SSOExample/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -436,8 +437,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.jackpooley.MLSSOExample;
+				PRODUCT_BUNDLE_IDENTIFIER = "dev.zksync.auth-test.SSOExample";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -449,14 +451,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = MLSSOExample/MLSSOExample.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SSOExample/SSOExample.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"MLSSOExample/Preview Content\"";
-				DEVELOPMENT_TEAM = VQFQV74W6L;
+				DEVELOPMENT_ASSET_PATHS = "\"SSOExample/Preview Content\"";
+				DEVELOPMENT_TEAM = 4SQ22U66PS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MLSSOExample/Info.plist;
+				INFOPLIST_FILE = SSOExample/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -467,8 +470,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.jackpooley.MLSSOExample;
+				PRODUCT_BUNDLE_IDENTIFIER = "dev.zksync.auth-test.SSOExample";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -481,6 +485,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4SQ22U66PS;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MARKETING_VERSION = 1.0;
@@ -489,7 +494,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MLSSOExample.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MLSSOExample";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SSOExample.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSOExample";
 			};
 			name = Debug;
 		};
@@ -507,7 +512,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MLSSOExample.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MLSSOExample";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SSOExample.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSOExample";
 			};
 			name = Release;
 		};
@@ -546,7 +551,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D252DD0A2D099C9A006D9A43 /* Build configuration list for PBXProject "MLSSOExample" */ = {
+		D252DD0A2D099C9A006D9A43 /* Build configuration list for PBXProject "SSOExample" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D252DD312D099C9C006D9A43 /* Debug */,
@@ -555,7 +560,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D252DD332D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "MLSSOExample" */ = {
+		D252DD332D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "SSOExample" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D252DD342D099C9C006D9A43 /* Debug */,
@@ -564,7 +569,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D252DD362D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "MLSSOExampleTests" */ = {
+		D252DD362D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "SSOExampleTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D252DD372D099C9C006D9A43 /* Debug */,
@@ -573,7 +578,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D252DD392D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "MLSSOExampleUITests" */ = {
+		D252DD392D099C9C006D9A43 /* Build configuration list for PBXNativeTarget "SSOExampleUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D252DD3A2D099C9C006D9A43 /* Debug */,
