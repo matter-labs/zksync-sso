@@ -29,6 +29,15 @@
     "@wagmi/core": "2.x"
   },
   "peerDependenciesMeta": {
+    "@simplewebauthn/browser": {
+      "optional": true
+    },
+    "@simplewebauthn/server": {
+      "optional": true
+    },
+    "@wagmi/core": {
+      "optional": true
+    },
     "typescript": {
       "optional": true
     }
