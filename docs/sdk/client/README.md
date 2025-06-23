@@ -4,6 +4,13 @@ The client SDK is the lowest level of our provided SDK which lets you take full
 control of how you manage ZK Accounts. It's built on top of `viem` with the same
 development principles in mind.
 
+## Dependencies
+
+Optional peer dependencies that you may need to install based on your usage:
+
+- `@simplewebauthn/browser` and `@simplewebauthn/server` (v13.x) - Required for
+  passkey operations
+
 ## Lifecycle
 
 1. Register a new passkey

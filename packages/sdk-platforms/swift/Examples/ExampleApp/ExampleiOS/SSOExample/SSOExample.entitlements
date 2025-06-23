@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>webcredentials:soo-sdk-example-pages.pages.dev</string>
+		<string>webcredentials:auth-test.zksync.dev</string>
 	</array>
 </dict>
 </plist>
