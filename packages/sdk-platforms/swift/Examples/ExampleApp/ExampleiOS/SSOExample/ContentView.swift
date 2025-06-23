@@ -4,8 +4,8 @@ import ExamplePackage
 struct ContentView: View {
     var body: some View {
         ExampleView(
-            relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev",
-            bundleIdentifier: "io.jackpooley.MLSSOExample"
+            relyingPartyIdentifier: "auth-test.zksync.dev",
+            bundleIdentifier: "dev.zksync.auth-test.SSOExample"
         )
     }
 }
