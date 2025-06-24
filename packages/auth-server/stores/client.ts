@@ -155,6 +155,7 @@ export const useClientStore = defineStore("client", () => {
       .extend(publicActions)
       .extend(walletActions)
       .extend(eip712WalletActions());
+    ;
   };
 
   return {
