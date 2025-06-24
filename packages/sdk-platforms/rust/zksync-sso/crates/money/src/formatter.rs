@@ -1,10 +1,12 @@
 use super::Money;
 use fixed_decimal::FixedDecimal;
-use icu::decimal::{
-    options::FixedDecimalFormatterOptions, provider::Baked,
-    FixedDecimalFormatter,
+use icu::{
+    decimal::{
+        FixedDecimalFormatter, options::FixedDecimalFormatterOptions,
+        provider::Baked,
+    },
+    locid::Locale,
 };
-use icu::locid::Locale;
 use std::str::FromStr;
 
 pub struct MoneyFormatter {
@@ -96,7 +98,9 @@ impl MoneyFormatter {
                 currency_decimals,
             );
         } else {
-            println!("XDB - format: no precision specified, converting to major units");
+            println!(
+                "XDB - format: no precision specified, converting to major units"
+            );
             decimal.multiply_pow10(-currency_decimals);
         }
         println!("XDB - format: final decimal before formatting={}", decimal);

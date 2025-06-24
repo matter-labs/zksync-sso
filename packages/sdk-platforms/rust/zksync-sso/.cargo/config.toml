@@ -1,0 +1,20 @@
+[target.'cfg(target_os = "android")']
+rustflags = ["-C", "link-arg=-Wl,--allow-multiple-definition"]
+
+[env]
+# These environment variables are only applied during Cargo build for Android targets
+OPENSSL_STATIC = { value = "1", force = true }
+OPENSSL_INCLUDE_DIR = { value = "openssl-sys/include", relative = true }
+
+# Build options specific to android targets
+[target.aarch64-linux-android]
+linker = "aarch64-linux-android-clang"
+
+[target.armv7-linux-androideabi]
+linker = "armv7a-linux-androideabi-clang"
+
+[target.i686-linux-android]
+linker = "i686-linux-android-clang"
+
+[target.x86_64-linux-android]
+linker = "x86_64-linux-android-clang"

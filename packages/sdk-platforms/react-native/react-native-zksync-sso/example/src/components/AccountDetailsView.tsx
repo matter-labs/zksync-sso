@@ -177,7 +177,11 @@ const AccountDetailsView: React.FC<AccountDetailsViewProps> = ({
                 >
                     <SendTransactionView
                         fromAccount={{
-                            info: account.info,
+                            info: {
+                                rpId: account.info.rpId,
+                                name: account.info.name,
+                                userID: account.info.userID
+                            },
                             address: account.address,
                             uniqueAccountId: account.uniqueAccountId,
                         }}

@@ -1,4 +1,4 @@
-use crate::utils::passkey::passkey::simplewebauthn::{
+use crate::utils::passkey::authenticators::simplewebauthn::{
     _start_authentication, _verify_authentication_response, AuthenticatorInfo,
     CloneablePublicKeyCredentialRequestOptions,
     VerifyAuthenticationResponseArgs,
@@ -139,6 +139,7 @@ pub struct GeneratePasskeyRegistrationOptionsArgs {
     pub rp_id: Option<String>,
 }
 
+#[allow(dead_code)]
 pub async fn generate_passkey_registration_options(
     args: GeneratePasskeyRegistrationOptionsArgs,
 ) -> eyre::Result<CredentialCreationOptions> {

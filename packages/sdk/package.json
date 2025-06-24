@@ -29,6 +29,15 @@
     "@wagmi/core": "2.x"
   },
   "peerDependenciesMeta": {
+    "@simplewebauthn/browser": {
+      "optional": true
+    },
+    "@simplewebauthn/server": {
+      "optional": true
+    },
+    "@wagmi/core": {
+      "optional": true
+    },
     "typescript": {
       "optional": true
     }
@@ -37,7 +46,7 @@
     "@types/ms": "^0.7.34",
     "@types/node": "^22.1.0",
     "eventemitter3": "^5.0.1",
-    "viem": "2.21.14",
+    "viem": "2.30.0",
     "vitest": "^2.1.8"
   },
   "files": [

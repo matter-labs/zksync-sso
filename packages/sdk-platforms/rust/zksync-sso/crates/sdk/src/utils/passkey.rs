@@ -1,14 +1,18 @@
-use crate::client::passkey::actions::passkey::AuthenticatorAssertionResponseJSON;
-use crate::config::contracts::PasskeyContracts;
+use crate::{
+    client::passkey::actions::passkey::AuthenticatorAssertionResponseJSON,
+    config::contracts::PasskeyContracts,
+};
 use base64::Engine;
 use eyre::Result;
+use log::debug;
 
+pub mod authenticators;
 pub mod normalize_s;
-pub mod passkey;
 pub mod passkey_signature_from_public_key;
 pub mod signature_encoding;
 pub mod unwrap_signature;
 
+#[allow(dead_code)]
 pub fn passkey_hash_signature_response_format(
     passkey_response: &AuthenticatorAssertionResponseJSON,
     contracts: &PasskeyContracts,
@@ -19,7 +23,7 @@ pub fn passkey_hash_signature_response_format(
     )?;
 
     let full_formatted_sig_hex = hex::encode(full_formatted_sig);
-    println!("XDB - full_formatted_sig_hex: {:?}", full_formatted_sig_hex);
+    debug!("XDB - full_formatted_sig_hex: {:?}", full_formatted_sig_hex);
 
     Ok(full_formatted_sig_hex)
 }
@@ -28,41 +32,41 @@ pub fn passkey_hash_signature_response_format_bytes(
     passkey_response: &AuthenticatorAssertionResponseJSON,
     contracts: &PasskeyContracts,
 ) -> Result<Vec<u8>> {
-    println!(
+    debug!(
         "XDB - utils::passkey::passkey_hash_signature_response_format - passkey_response: {:?}",
         passkey_response
     );
-    println!(
+    debug!(
         "XDB - utils::passkey::passkey_hash_signature_response_format - contracts: {:?}",
         contracts
     );
 
     let passkey_id = passkey_response.credential_id.clone();
 
-    println!(
+    debug!(
         "XDB - Decoding auth_data from: {}",
         passkey_response.authenticator_data
     );
     let auth_data = base64::engine::general_purpose::URL_SAFE_NO_PAD
         .decode(&passkey_response.authenticator_data)?;
-    println!("XDB - Decoded auth_data: {:?}", auth_data);
+    debug!("XDB - Decoded auth_data: {:?}", auth_data);
 
-    println!(
+    debug!(
         "XDB - Decoding client_data_json from: {}",
         passkey_response.client_data_json
     );
     let client_data_json = base64::engine::general_purpose::URL_SAFE_NO_PAD
         .decode(&passkey_response.client_data_json)?;
-    println!("XDB - Decoded client_data_json: {:?}", client_data_json);
+    debug!("XDB - Decoded client_data_json: {:?}", client_data_json);
 
-    println!("XDB - Decoding signature from: {}", passkey_response.signature);
+    debug!("XDB - Decoding signature from: {}", passkey_response.signature);
     let signature = base64::engine::general_purpose::URL_SAFE_NO_PAD
         .decode(&passkey_response.signature)?;
-    println!("XDB - Decoded signature: {:?}", signature);
+    debug!("XDB - Decoded signature: {:?}", signature);
 
-    println!("XDB - Unwrapping EC2 signature");
+    debug!("XDB - Unwrapping EC2 signature");
     let unwrapped_sig = unwrap_signature::unwrap_ec2_signature(&signature)?;
-    println!(
+    debug!(
         "XDB - Unwrapped signature: r={:?}, s={:?}",
         unwrapped_sig.r, unwrapped_sig.s
     );
@@ -73,13 +77,13 @@ pub fn passkey_hash_signature_response_format_bytes(
         unwrapped_sig,
         passkey_id,
     )?;
-    println!("XDB - encoded_fat_signature: {:?}", encoded_fat_signature);
+    debug!("XDB - encoded_fat_signature: {:?}", encoded_fat_signature);
 
     let full_formatted_sig = signature_encoding::encode_full_signature(
         encoded_fat_signature,
         contracts,
     )?;
-    println!("XDB - full_formatted_sig: {:?}", full_formatted_sig);
+    debug!("XDB - full_formatted_sig: {:?}", full_formatted_sig);
 
     Ok(full_formatted_sig)
 }

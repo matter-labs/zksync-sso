@@ -4,6 +4,7 @@ use crate::{
     utils::passkey::passkey_hash_signature_response_format_bytes,
 };
 use eyre::Result;
+use log::debug;
 
 pub mod apple_authorization_assertion;
 
@@ -11,7 +12,7 @@ pub(crate) fn hash_signature_response_format(
     signature_response: Vec<u8>,
     config: &Config,
 ) -> Result<Vec<u8>> {
-    println!(
+    debug!(
         "XDB - api::account::sign::hash_signature_response_format signature_response: {:?}",
         signature_response
     );
@@ -23,7 +24,7 @@ pub(crate) fn hash_signature_response_format(
         &config.contracts,
     )?;
 
-    println!(
+    debug!(
         "XDB - api::account::sign::hash_signature_response_format result: {:?}",
         result
     );
@@ -34,12 +35,12 @@ pub(crate) fn hash_signature_response_format(
 fn decode_signature_response(
     signature_response: &[u8],
 ) -> Result<AuthenticatorAssertionResponseJSON> {
-    println!(
+    debug!(
         "XDB - api::account::sign::decode_signature_response signature_response: {:?}",
         signature_response
     );
 
-    println!(
+    debug!(
         "XDB - api::account::sign::decode_signature_response signature_response: {:?}",
         String::from_utf8(signature_response.to_vec()).unwrap()
     );
@@ -47,17 +48,17 @@ fn decode_signature_response(
     let assertion: apple_authorization_assertion::AuthorizationPlatformPublicKeyCredentialAssertion =
         serde_json::from_slice(signature_response)?;
 
-    println!(
+    debug!(
         "XDB - api::account::sign::decode_signature_response assertion: {:?}",
         assertion
     );
 
-    println!(
+    debug!(
         "XDB - api::account::sign::decode_signature_response assertion.signature: {:?}",
         assertion.signature
     );
 
-    println!(
+    debug!(
         "XDB - api::account::sign::decode_signature_response assertion.credential_id: {:?}",
         assertion.credential_id
     );
@@ -76,7 +77,7 @@ fn decode_signature_response(
         user_handle: None,
     };
 
-    println!(
+    debug!(
         "XDB - api::account::sign::decode_signature_response response: {:?}",
         response
     );
