@@ -18,7 +18,7 @@
             <span
               v-if="tokenPrice"
               class="text-neutral-500 text-sm"
-            >&nbsp;(~{{ tokenPrice }})</span>
+            >&nbsp;({{ tokenPrice }})</span>
           </div>
         </template>
         <template
@@ -81,8 +81,9 @@ const formattedAmount = computed(() => {
   return formatAmount(BigInt(props.amount), props.decimals);
 });
 const tokenPrice = computed(() => {
-  if (!props.price || isUnlimitedAmount.value) return;
-  return formatTokenPrice(BigInt(props.amount), props.decimals, props.price);
+  if (!props.price) return;
+  if (isUnlimitedAmount.value) return "∞";
+  return `~${formatTokenPrice(BigInt(props.amount), props.decimals, props.price)}`;
 });
 </script>
 

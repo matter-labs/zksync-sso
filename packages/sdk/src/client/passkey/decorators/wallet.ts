@@ -1,5 +1,5 @@
 import { type Account, bytesToHex, type Chain, type ExactPartial, formatTransaction, type RpcTransaction, type Transport, type WalletActions } from "viem";
-import { deployContract, getAddresses, getChainId, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
+import { deployContract, getAddresses, getCallsStatus, getCapabilities, getChainId, prepareAuthorization, sendCalls, sendRawTransaction, showCallsStatus, signAuthorization, signMessage, signTypedData, waitForCallsStatus, writeContract } from "viem/actions";
 import { signTransaction, type TransactionRequestEIP712, type ZksyncEip712Meta } from "viem/zksync";
 
 import { getTransactionWithPaymasterData } from "../../../paymaster/index.js";
@@ -69,5 +69,12 @@ export function zksyncSsoPasskeyWalletActions<
     },
     signTypedData: (args) => signTypedData(client, args),
     writeContract: (args) => writeContract(client, args),
+    signAuthorization: (args) => signAuthorization(client, args),
+    getCallsStatus: (args) => getCallsStatus(client, args),
+    getCapabilities: (args) => getCapabilities(client, args),
+    prepareAuthorization: (args) => prepareAuthorization(client, args),
+    sendCalls: (args) => sendCalls(client, args),
+    showCallsStatus: (args) => showCallsStatus(client, args),
+    waitForCallsStatus: (args) => waitForCallsStatus(client, args),
   };
 }

@@ -35,3 +35,5 @@ packages/sdk-platforms/*
 
 **/*.ptau
 packages/contracts/test/**/*
+# contract JSON test files are not properly formatted
+packages/contracts/test/json-files/*

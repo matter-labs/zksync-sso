@@ -45,4 +45,4 @@ mod tests {
             Self { decimals: 3, symbol: "BHD".to_string() }
         }
     }
-} 
+}

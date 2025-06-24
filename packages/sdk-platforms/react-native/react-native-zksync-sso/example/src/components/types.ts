@@ -1,9 +1,9 @@
-import type { Config, Account } from '../../../src';
+import type { Config, Account, RpId } from '../../../src';
 
 export interface AccountInfo {
     name: string;
     userID: string;
-    domain: string;
+    rpId: RpId;
 }
 
 export interface DeployedAccount {

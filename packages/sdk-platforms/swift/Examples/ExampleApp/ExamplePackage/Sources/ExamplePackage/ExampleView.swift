@@ -1,4 +1,5 @@
 import SwiftUI
+import ZKsyncSSO
 
 public struct ExampleView: View {
     
@@ -6,8 +7,10 @@ public struct ExampleView: View {
     
     @State private var accountDetails: AccountDetails?
 
-    public init(relyingPartyIdentifier: String) {
+    public init(relyingPartyIdentifier: String, bundleIdentifier: String) {
         self.relyingPartyIdentifier = relyingPartyIdentifier
+        
+        ZKsyncSSO.initLogger(bundleIdentifier: bundleIdentifier, level: .trace)
     }
 
     public var body: some View {
@@ -39,5 +42,8 @@ public struct ExampleView: View {
 }
 
 #Preview {
-    ExampleView(relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev")
+    ExampleView(
+        relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev",
+        bundleIdentifier: "io.jackpooley.MLSSOExample"
+    )
 }

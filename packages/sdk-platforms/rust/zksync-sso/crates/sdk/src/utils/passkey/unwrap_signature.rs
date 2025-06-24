@@ -1,11 +1,12 @@
 use crate::utils::passkey::normalize_s;
 use alloy::primitives::FixedBytes;
 use der::{
-    asn1::UintRef, Decode, DecodeValue, Encode, EncodeValue, Header, Reader,
-    Sequence, Writer,
+    Decode, DecodeValue, Encode, EncodeValue, Header, Reader, Sequence, Writer,
+    asn1::UintRef,
 };
 use eyre::Result;
 use hex;
+use log::debug;
 
 pub struct UnwrappedSignature {
     pub r: FixedBytes<32>,
@@ -48,12 +49,12 @@ fn should_remove_leading_zero(bytes: &[u8]) -> bool {
 }
 
 pub fn unwrap_ec2_signature(signature: &[u8]) -> Result<UnwrappedSignature> {
-    println!("Input signature (hex): {}", hex::encode(signature));
+    debug!("Input signature (hex): {}", hex::encode(signature));
 
     let sig = ECDSASignature::from_der(signature)
         .map_err(|e| eyre::eyre!("Failed to parse DER signature: {}", e))?;
 
-    println!(
+    debug!(
         "Parsed ASN.1 signature: {{\"r\": \"{}\", \"s\": \"{}\"}}",
         hex::encode(sig.r.as_bytes()),
         hex::encode(sig.s.as_bytes())
@@ -62,23 +63,23 @@ pub fn unwrap_ec2_signature(signature: &[u8]) -> Result<UnwrappedSignature> {
     let mut r_bytes = sig.r.as_bytes();
     let mut s_bytes = sig.s.as_bytes();
 
-    println!(
+    debug!(
         "Initial r and s bytes: {{\"r\": \"{}\", \"s\": \"{}\"}}",
         hex::encode(r_bytes),
         hex::encode(s_bytes)
     );
 
     if should_remove_leading_zero(r_bytes) {
-        println!("Removing leading zero from r");
+        debug!("Removing leading zero from r");
         r_bytes = &r_bytes[1..];
     }
 
     if should_remove_leading_zero(s_bytes) {
-        println!("Removing leading zero from s");
+        debug!("Removing leading zero from s");
         s_bytes = &s_bytes[1..];
     }
 
-    println!(
+    debug!(
         "After removing leading zeros: {{\"r\": \"{}\", \"s\": \"{}\"}}",
         hex::encode(r_bytes),
         hex::encode(s_bytes)
@@ -92,7 +93,7 @@ pub fn unwrap_ec2_signature(signature: &[u8]) -> Result<UnwrappedSignature> {
         s_bytes.try_into().map_err(|_| eyre::eyre!("Invalid s length"))?;
     let s = normalize_s::normalize_s(FixedBytes::from_slice(&s_array))?;
 
-    println!(
+    debug!(
         "After normalizing s: {{\"r\": \"{}\", \"s\": \"{}\"}}",
         hex::encode(r.as_slice()),
         hex::encode(s.as_slice())
