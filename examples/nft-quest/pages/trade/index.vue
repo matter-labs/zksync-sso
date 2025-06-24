@@ -166,20 +166,15 @@
 </template>
 
 <script setup lang="ts">
+import { getAccount, signTypedData } from "@wagmi/core";
 import {
   type Address,
-  createWalletClient,
   type Hex,
-  http,
-  parseEther,
-  type TypedDataDefinition } from "viem";
-import { erc7739Actions } from "viem/experimental";
+  isAddress,
+  parseEther } from "viem";
 import { reactive, ref } from "vue";
 
-const { account } = storeToRefs(useConnectorStore());
-
 const runtimeConfig = useRuntimeConfig();
-const chain = runtimeConfig.public.chain;
 
 const config = reactive({
   marketplaceName: "SimpleMarketplace",
@@ -216,59 +211,39 @@ const listRequestTypes = {
   ],
 } as const;
 
+const { account } = storeToRefs(useConnectorStore());
+
 async function handleSignListRequest() {
-  isLoading.value = true;
   errorMsg.value = null;
   signature.value = null;
   signedDomain.value = null;
   signedTypes.value = null;
   signedMessage.value = null;
+  const connectedAccount = getAccount();
 
-  if (!config.marketplaceAddress) {
-    errorMsg.value = "Marketplace address is required.";
-    isLoading.value = false;
-    console.error("Marketplace address is required.", runtimeConfig.public.contracts.marketplace);
+  if (!connectedAccount.isConnected || !connectedAccount.address) {
+    errorMsg.value = "Please connect your wallet first.";
     return;
   }
-  if (!account.value.address) {
-    errorMsg.value = "Smart Account address is required.";
-    isLoading.value = false;
+
+  // --- Pre-flight Checks for Addresses and Critical Values ---
+  if (!config.marketplaceAddress || !isAddress(config.marketplaceAddress)) {
+    errorMsg.value = "Marketplace Contract Address (Verifying Contract) is missing or invalid.";
     return;
   }
-  if (!config.nftContractAddress) {
-    errorMsg.value = "nft address is required.";
-    isLoading.value = false;
+  const smartAccount = account.value;
+  if (!smartAccount.address || !isAddress(smartAccount.address)) {
+    errorMsg.value = "Seller Smart Account Address is missing or invalid.";
     return;
   }
-  if (!chain) {
-    errorMsg.value = "Chain not found in wagmiConfig.";
-    isLoading.value = false;
+  if (!config.nftContractAddress || !isAddress(config.nftContractAddress)) {
+    errorMsg.value = "NFT Contract Address is missing or invalid.";
     return;
   }
-  if (!chain.id) {
-    errorMsg.value = "Chain ID is required.";
-    isLoading.value = false;
-    return;
-  }
+  // --- End Pre-flight Checks ---
+  const chain = runtimeConfig.public.chain;
 
   try {
-    const accountValue = account.value;
-    if (!accountValue || !accountValue.address) {
-      errorMsg.value = "Smart Account address is required.";
-      isLoading.value = false;
-      return;
-    }
-    if (!config.marketplaceAddress || !config.nftContractAddress) {
-      errorMsg.value = "Marketplace and NFT contract addresses are required.";
-      isLoading.value = false;
-      return;
-    }
-    // this needs to be a wagmi account, not a private key
-    const client = createWalletClient({
-      account: accountValue,
-      chain: chain,
-      transport: http(),
-    }).extend(erc7739Actions());
     const domain = {
       name: config.marketplaceName,
       version: config.marketplaceVersion,
@@ -277,7 +252,7 @@ async function handleSignListRequest() {
     } as const;
 
     const message = {
-      seller: accountValue.address,
+      seller: smartAccount.address as Address, // The smart account is the seller
       nftContract: config.nftContractAddress as Address,
       tokenId: BigInt(config.tokenId),
       price: parseEther(config.priceInEth),
@@ -289,22 +264,19 @@ async function handleSignListRequest() {
     signedTypes.value = listRequestTypes;
     signedMessage.value = message;
 
-    const typedData: TypedDataDefinition<typeof listRequestTypes, "ListRequest"> = {
+    const typedDataArgs = {
       domain,
       types: listRequestTypes,
       primaryType: "ListRequest",
       message,
-    };
+    } as const;
 
-    const sig = await client.signTypedData(typedData);
+    // Use wagmi/core's signTypedData
+    const sig = await signTypedData(typedDataArgs);
     signature.value = sig;
   } catch (e) {
-    errorMsg.value = e.message || "An unknown error occurred during signing.";
-    if (e.shortMessage) { // Viem often has a shortMessage
-      errorMsg.value = e.shortMessage;
-    }
-  } finally {
-    isLoading.value = false;
+    console.error("Error in handleSignListRequest:", e);
+    errorMsg.value = e.message || "An unknown error occurred during the signing process preparation.";
   }
 }
 </script>
