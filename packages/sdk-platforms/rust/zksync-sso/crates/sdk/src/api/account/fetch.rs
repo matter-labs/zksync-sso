@@ -4,6 +4,7 @@ use crate::{
 };
 use alloy::primitives::{Address, Bytes, address};
 use alloy_zksync::provider::zksync_provider;
+use log::debug;
 
 #[derive(Debug, Clone)]
 pub struct FetchedAccount {
@@ -32,7 +33,7 @@ pub async fn fetch_account(
         Bytes::from(encoded)
     };
 
-    println!("XDB fetch_account - credential_id: {:?}", credential_id);
+    debug!("XDB fetch_account - credential_id: {:?}", credential_id);
 
     let validator = {
         let validator_address = config.contracts.passkey;
@@ -49,7 +50,7 @@ pub async fn fetch_account(
         account_address != address!("0000000000000000000000000000000000000000")
     );
 
-    println!("XDB fetch_account - account_address: {:?}", account_address);
+    debug!("XDB fetch_account - account_address: {:?}", account_address);
 
     let passkey_public_key = {
         let public_key = validator
@@ -83,7 +84,8 @@ pub async fn get_account_by_user_id(
     config: &Config,
 ) -> eyre::Result<super::Account> {
     crate::client::passkey::account_factory::get_smart_account_address_by_user_id(
-        &user_id, config,
+        user_id.clone(),
+        config,
     )
     .await
     .map_err(|e| eyre::eyre!(e))

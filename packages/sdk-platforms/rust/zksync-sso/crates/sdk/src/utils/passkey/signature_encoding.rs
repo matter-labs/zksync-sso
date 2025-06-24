@@ -5,6 +5,7 @@ use alloy::{dyn_abi::SolType, sol};
 use base64::Engine;
 use eyre::Result;
 use hex;
+use log::debug;
 
 type FatSignature = sol! { tuple(bytes, bytes, bytes32[2], bytes) };
 type FullSignature = sol! { tuple(bytes, address, bytes[]) };
@@ -79,27 +80,27 @@ fn encode_full_signature_with_validator_data(
         validator_data,
     ));
 
-    println!("\nEncoded ABI Parameters:");
-    println!("Result: 0x{}", hex::encode(&encoded));
+    debug!("\nEncoded ABI Parameters:");
+    debug!("Result: 0x{}", hex::encode(&encoded));
 
     // Print detailed structure for debugging
-    println!("\nEncoded Data Structure:");
-    println!(
+    debug!("\nEncoded Data Structure:");
+    debug!(
         "- First 32 bytes (offset to fat signature): 0x{}",
         hex::encode(&encoded[0..32])
     );
-    println!(
+    debug!(
         "- Next 32 bytes (validator address): {}",
         hex::encode(&encoded[32..64])
     );
-    println!(
+    debug!(
         "- Next 32 bytes (offset to validator data array): {}",
         hex::encode(&encoded[64..96])
     );
 
     if encoded.len() > 96 {
-        println!("- Fat signature length: {}", encoded_fat_signature.len());
-        println!(
+        debug!("- Fat signature length: {}", encoded_fat_signature.len());
+        debug!(
             "- Fat signature data starts at: {}",
             hex::encode(&encoded[96..128])
         );
@@ -157,7 +158,7 @@ mod tests {
             r: FixedBytes::from_slice(&r),
             s: FixedBytes::from_slice(&s),
         };
-        
+
         let result = encode_fat_signature(
             auth_data,
             client_data_json,
@@ -200,15 +201,8 @@ mod tests {
         let fat_signature_hex = "000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e01e6bd398700475910fb66389f177f6d4aec39230e20c29f019457c0867e307782912824281822d4781ea9a513fdaade816234a7960363c47a0c9d7e469b85ff20000000000000000000000000000000000000000000000000000000000000025d3cb458ee2ce86007abedee470a0539a43635fd62ee16766d0b2f2fcc523d2fd1d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000847b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a223832376e6f6e4159446d716737727648524555445638584667746f78784b65587174724c70446b6a6e336f222c226f726967696e223a2268747470733a2f2f736f6f2d73646b2d6578616d706c652d70616765732e70616765732e646576227d00000000000000000000000000000000000000000000000000000000";
         let fat_signature = hex::decode(fat_signature_hex)?;
         let contracts = PasskeyContracts {
-            account_factory: address!(
-                "0000000000000000000000000000000000000000"
-            ),
             passkey: address!("1234567890123456789012345678901234567890"),
-            session: address!("0000000000000000000000000000000000000000"),
-            account_paymaster: address!(
-                "0000000000000000000000000000000000000000"
-            ),
-            recovery: address!("0000000000000000000000000000000000000000"),
+            ..Default::default()
         };
 
         let result = encode_full_signature(fat_signature, &contracts)?;
@@ -232,15 +226,8 @@ mod tests {
         println!("Fat signature: 0x{}", hex::encode(&fat_signature));
 
         let contracts = PasskeyContracts {
-            account_factory: address!(
-                "0000000000000000000000000000000000000000"
-            ),
             passkey: address!("1234567890123456789012345678901234567890"),
-            session: address!("0000000000000000000000000000000000000000"),
-            account_paymaster: address!(
-                "0000000000000000000000000000000000000000"
-            ),
-            recovery: address!("0000000000000000000000000000000000000000"),
+            ..Default::default()
         };
         println!("Validator address: 0x{}", hex::encode(contracts.passkey));
 

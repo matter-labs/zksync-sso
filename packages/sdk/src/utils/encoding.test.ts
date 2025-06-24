@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { encodeModuleData, encodePasskeyModuleParameters } from "./encoding";
+import { encodeModuleData, encodePasskeyModuleParameters } from "./encoding.js";
 
 describe("encoding utils", () => {
   describe("encodePasskeyModuleParameters", () => {
@@ -12,7 +12,7 @@ describe("encoding utils", () => {
         passkeyPublicKey: [
           Buffer.from(passkey0, "hex"),
           Buffer.from(passkey1, "hex"),
-        ],
+        ] as [Buffer, Buffer],
         expectedOrigin: "https://example.com",
       };
 

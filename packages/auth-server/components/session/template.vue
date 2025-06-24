@@ -6,7 +6,10 @@
     >
       <slot name="header" />
     </div>
-    <div class="flex-grow p-4 overflow-y-auto">
+    <div
+      id="sessionScrollableArea"
+      class="flex-grow p-4 overflow-y-auto"
+    >
       <slot />
     </div>
     <div class=" border-t border-neutral-800 p-4">

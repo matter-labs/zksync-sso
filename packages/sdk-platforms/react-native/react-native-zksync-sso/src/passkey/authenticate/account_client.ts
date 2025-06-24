@@ -5,6 +5,7 @@ import {
     type PreparedTransaction,
     type Transaction,
     type SendTransactionResult,
+    type RpId,
     sendTransactionAsyncSigner,
     prepareSendTransaction,
 } from 'react-native-zksync-sso';
@@ -16,10 +17,10 @@ export { type PreparedTransaction };
  */
 export class AccountClient {
     private account: Account;
-    private rpId: string;
+    private rpId: RpId;
     private config: Config;
 
-    constructor(account: Account, rpId: string, config: Config) {
+    constructor(account: Account, rpId: RpId, config: Config) {
         this.account = account;
         this.rpId = rpId;
         this.config = config;
@@ -31,15 +32,14 @@ export class AccountClient {
      * @returns Prepared transaction with fee information
      */
     async prepareTransaction(transaction: Transaction): Promise<PreparedTransaction> {
-        const from = this.account.address;
-        const transaction: Transaction = {
-            to,
-            value,
-            from,
+        const tx: Transaction = {
+            to: transaction.to,
+            value: transaction.value,
+            from: this.account.address,
+            input: transaction.input ?? undefined,
         };
         const preparedTransaction = await prepareSendTransaction(
-            transaction,
-            from,
+            tx,
             this.config
         );
         return preparedTransaction;
@@ -50,14 +50,13 @@ export class AccountClient {
      * @param transaction The transaction to send
      * @returns Transaction hash
      */
-    async sendTransaction(to: Transaction): Promise<SendTransactionResult> {
+    async sendTransaction(transaction: Transaction): Promise<SendTransactionResult> {
         const authenticator = new Authenticator(this.rpId);
         const result = await sendTransactionAsyncSigner(
-            prepared,
+            transaction,
             authenticator,
             this.config
         );
-        console.log("result: ", result);
         return result;
     }
 }
