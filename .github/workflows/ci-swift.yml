@@ -23,7 +23,15 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.4
 
       - name: Install Rust
-        run: rustup update stable && rustup default stable
+        run: |
+          rustup update stable && rustup default stable
+          rustup toolchain install nightly
+
+      - name: Run rustfmt
+        run: |
+          rustup component add rustfmt --toolchain nightly
+          cargo +nightly fmt --all -- --check
+        working-directory: packages/sdk-platforms/rust/zksync-sso
 
       - name: Install Anvil ZKsync Manually
         run: |
@@ -52,6 +60,12 @@ jobs:
       - name: Build contracts
         run: pnpm build
         working-directory: packages/contracts
+
+      - name: Run clippy
+        run: |
+          rustup component add clippy --toolchain stable
+          cargo clippy --all-targets -- -D warnings
+        working-directory: packages/sdk-platforms/rust/zksync-sso
 
       - name: Run rust tests
         run: cargo test

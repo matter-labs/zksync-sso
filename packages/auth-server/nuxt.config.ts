@@ -76,7 +76,6 @@ export default defineNuxtConfig({
       [zksyncSepoliaTestnet.id]: {
         nftQuestAddress: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
       },
-      appUrl: process.env.NUXT_PUBLIC_APP_URL || "https://zksync-auth-server-staging--pr52-guardian-recovery-tu1nymjf.web.app",
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
       oidc: {

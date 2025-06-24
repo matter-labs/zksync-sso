@@ -1,6 +1,9 @@
-use crate::config;
-use crate::native_apis::{PasskeyAuthenticator, PasskeyAuthenticatorAsync};
+use crate::{
+    config,
+    native_apis::{PasskeyAuthenticator, PasskeyAuthenticatorAsync},
+};
 use futures::future::BoxFuture;
+use log::debug;
 use sdk::api::utils::parse_address;
 use std::sync::Arc;
 
@@ -70,23 +73,23 @@ pub async fn send_transaction(
     authenticator: Arc<dyn PasskeyAuthenticator + 'static>,
     config: config::Config,
 ) -> Result<SendTransactionResult, SendTransactionError> {
-    println!("XDB send_transaction - transaction: {:?}", transaction);
+    debug!("XDB send_transaction - transaction: {:?}", transaction);
     let tx: sdk::api::account::transaction::Transaction =
         transaction.try_into()?;
 
-    println!("XDB send_transaction - tx: {:?}", tx);
+    debug!("XDB send_transaction - tx: {:?}", tx);
 
     let authenticator = authenticator.clone();
     let sign_message: SignFn = Box::new(
         move |message: &[u8]| -> BoxFuture<'static, Result<Vec<u8>, String>> {
             let message_owned = message.to_vec();
             let auth = authenticator.clone();
-            println!(
+            debug!(
                 "XDB send_transaction - sign_message - message_owned: {:?}",
                 message_owned
             );
             Box::pin(async move {
-                println!(
+                debug!(
                     "XDB send_transaction - sign_message - sign_message closure"
                 );
                 auth.sign_message(message_owned).map_err(|e| e.to_string())
@@ -114,14 +117,14 @@ pub async fn send_transaction_async_signer(
     authenticator: Arc<dyn PasskeyAuthenticatorAsync + 'static>,
     config: config::Config,
 ) -> Result<SendTransactionResult, SendTransactionError> {
-    println!(
+    debug!(
         "XDB send_transaction_async_signer - transaction: {:?}",
         transaction
     );
     let tx: sdk::api::account::transaction::Transaction =
         transaction.try_into()?;
 
-    println!("XDB send_transaction_async_signer - tx: {:?}", tx);
+    debug!("XDB send_transaction_async_signer - tx: {:?}", tx);
 
     let authenticator = authenticator.clone();
     let sign_message: SignFn = Box::new(

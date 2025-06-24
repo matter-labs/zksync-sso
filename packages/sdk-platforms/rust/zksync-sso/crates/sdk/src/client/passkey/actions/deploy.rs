@@ -4,7 +4,12 @@ use crate::{
     utils::{
         alloy::extensions::ProviderExt,
         contract_deployed::{Contract, check_contract_deployed},
-        encoding::paymaster::generate_paymaster_input,
+        encoding::{
+            ModuleData, PasskeyModuleParams, encode_module_data,
+            encode_passkey_module_parameters,
+            paymaster::generate_paymaster_input,
+        },
+        passkey::passkey_signature_from_public_key::get_public_key_bytes_from_passkey_signature,
     },
 };
 use alloy::{
@@ -23,6 +28,7 @@ use alloy_zksync::{
     wallet::ZksyncWallet,
 };
 use eyre::{Result, eyre};
+use log::debug;
 use std::{fmt::Debug, str::FromStr};
 
 pub struct DeployedAccountDetails {
@@ -71,13 +77,7 @@ impl Default for DeployAccountArgs {
             expected_origin: None,
             unique_account_id: None,
             paymaster: None,
-            contracts: PasskeyContracts::new(
-                Address::default(),
-                Address::default(),
-                Address::default(),
-                Address::default(),
-                Address::default(),
-            ),
+            contracts: PasskeyContracts::default(),
             initial_k1_owners: None,
         }
     }
@@ -87,26 +87,30 @@ pub async fn deploy_account(
     args: DeployAccountArgs,
     config: &Config,
 ) -> Result<DeployedAccountDetails> {
+    debug!("args.unique_account_id: {:?}", args.unique_account_id.clone());
+
     let provider = {
-        fn zksync_wallet() -> eyre::Result<ZksyncWallet> {
-            let signer = PrivateKeySigner::random();
-            let zksync_wallet = ZksyncWallet::from(signer);
-            Ok(zksync_wallet)
-        }
         let node_url: url::Url = config.clone().node_url;
-        let wallet = zksync_wallet().unwrap();
+
+        let deploy_wallet = config.clone().deploy_wallet;
+
+        let wallet = ZksyncWallet::from(PrivateKeySigner::from_str(
+            &deploy_wallet.private_key_hex,
+        )?);
+
         let provider = zksync_provider()
             .with_recommended_fillers()
             .wallet(wallet.clone())
             .on_http(node_url.clone());
         let wallet_address = wallet.default_signer().address();
-        println!("XDB - Wallet address: {}", wallet_address);
+        debug!("XDB - Wallet address: {}", wallet_address);
+
         provider
     };
 
     {
         let account_factory = args.contracts.account_factory;
-        println!(
+        debug!(
             "XDB deploy_account - Using factory address: {}",
             account_factory
         );
@@ -114,96 +118,91 @@ pub async fn deploy_account(
         // Check if factory contract is deployed
         let code = provider.get_code_at(account_factory).await?;
         if code.is_empty() {
-            println!("XDB deploy_account - code.len(): {}", code.len());
+            debug!("XDB deploy_account - code.len(): {}", code.len());
             return Err(eyre!(
                 "Factory contract not deployed at address: {}",
                 account_factory
             ));
         }
-        println!(
+        debug!(
             "XDB deploy_account - Found contract at factory address with bytecode length: {}",
             code.len()
         );
     };
 
-    println!("XDB client::passkey::actions::deploy::deploy_account");
-    println!(
+    debug!("XDB client::passkey::actions::deploy::deploy_account");
+    debug!(
         "    XDB Public key (hex): 0x{}",
         hex::encode(&args.credential.public_key)
     );
-    println!(
+    debug!(
         "    XDB args.credential.public_key: {:?}",
         args.credential.public_key
     );
-    println!("    XDB args.credential.id: {:?}", args.credential.id);
-    println!("    XDB args.expected_origin: {:?}", args.expected_origin);
-    println!(
+    debug!("    XDB args.credential.id: {:?}", args.credential.id);
+    debug!("    XDB args.expected_origin: {:?}", args.expected_origin);
+    debug!(
         "XDB deploy_account - args.unique_account_id: {:?}",
         args.unique_account_id
     );
-    println!(
+    debug!(
         "XDB deploy_account - args.paymaster: {:?}",
         args.paymaster
             .as_ref()
             .map(|p| (p.paymaster, hex::encode(&p.paymaster_input)))
     );
-    println!("XDB deploy_account - args.contracts: {:?}", args.contracts);
+    debug!("XDB deploy_account - args.contracts: {:?}", args.contracts);
 
     let origin = args
         .expected_origin
         .ok_or_else(|| eyre!("Expected origin is required"))?;
 
-    println!("XDB deploy_account - origin: {:?}", origin);
+    debug!("XDB deploy_account - origin: {:?}", origin);
 
     let (public_key_x, public_key_y) =
-        crate::utils::passkey::passkey_signature_from_public_key::get_public_key_bytes_from_passkey_signature(
+        get_public_key_bytes_from_passkey_signature(
             &args.credential.public_key,
         )
         .map_err(|e| eyre!("Failed to get public key bytes: {}", e))?;
 
-    println!(
+    debug!(
         "XDB deploy_account - passkey public key: ({:?}, {:?})",
         &public_key_x[..4],
         &public_key_y[..4]
     );
 
     let encoded_passkey_parameters =
-        crate::utils::encoding::encode_passkey_module_parameters(
-            crate::utils::encoding::PasskeyModuleParams {
-                passkey_id: args.credential.id.clone(),
-                passkey_public_key: (public_key_x, public_key_y),
-                expected_origin: origin.clone(),
-            },
-        )
+        encode_passkey_module_parameters(PasskeyModuleParams {
+            passkey_id: args.credential.id.clone(),
+            passkey_public_key: (public_key_x, public_key_y),
+            expected_origin: origin.clone(),
+        })
         .map_err(|e| eyre!("Failed to encode passkey parameters: {}", e))?;
 
-    println!(
+    debug!(
         "XDB deploy_account - Encoded passkey parameters length: {}",
         encoded_passkey_parameters.len()
     );
 
-    let encoded_passkey_module_data =
-        crate::utils::encoding::encode_module_data(
-            crate::utils::encoding::ModuleData {
-                address: args.contracts.passkey,
-                parameters: encoded_passkey_parameters.clone(),
-            },
-        )
-        .map_err(|e| eyre!("Failed to encode module data: {}", e))?;
+    let encoded_passkey_module_data = encode_module_data(ModuleData {
+        address: args.contracts.passkey,
+        parameters: encoded_passkey_parameters.clone(),
+    })
+    .map_err(|e| eyre!("Failed to encode module data: {}", e))?;
 
-    println!(
+    debug!(
         "XDB deploy_account - Encoded module data length: {}",
         encoded_passkey_module_data.len()
     );
 
     let account_id = args
         .unique_account_id
+        .map(hex::encode)
         .unwrap_or_else(|| hex::encode(encoded_passkey_parameters));
-
-    println!("XDB deploy_account - Using account ID: {}", account_id);
+    debug!("XDB deploy_account - Using account ID: {}", account_id);
 
     let account_factory = args.contracts.account_factory;
-    println!("XDB deploy_account - Using factory address: {}", account_factory);
+    debug!("XDB deploy_account - Using factory address: {}", account_factory);
 
     check_contract_deployed(
         &config.node_url.clone(),
@@ -212,10 +211,10 @@ pub async fn deploy_account(
     .await?;
 
     let chain_id = provider.get_chain_id().await?;
-    println!("XDB deploy_account - chain_id: {}", chain_id);
+    debug!("XDB deploy_account - chain_id: {}", chain_id);
 
     let initial_validators: Vec<Bytes> = vec![encoded_passkey_module_data];
-    println!(
+    debug!(
         "XDB deploy_account - Initial validators length: {}",
         initial_validators.len()
     );
@@ -223,11 +222,10 @@ pub async fn deploy_account(
     let instance = AAFactory::new(account_factory, &provider);
 
     let initial_k1_owners = args.initial_k1_owners.unwrap_or_default();
-    println!("XDB deploy_account - Initial k1 owners: {:?}", initial_k1_owners);
+    debug!("XDB deploy_account - Initial k1 owners: {:?}", initial_k1_owners);
 
     let unique_id = hash_unique_account_id(account_id.clone())?;
-
-    println!("XDB deploy_account - unique_id: {}", unique_id);
+    debug!("XDB deploy_account - unique_id: {}", unique_id);
 
     let deploy_call = instance.deployProxySsoAccount(
         unique_id,
@@ -249,14 +247,11 @@ pub async fn deploy_account(
         deploy_tx
     };
 
-    println!("XDB deploy_account - Transaction parameters:");
-    println!("  Unique ID Hash: {}", unique_id);
-    println!("  Initial validators: {:?}", initial_validators);
-    println!("  Initial k1 owners: {:?}", initial_k1_owners);
-    println!(
-        "XDB deploy_account - Deploy transaction request: {:?}",
-        deploy_tx
-    );
+    debug!("XDB deploy_account - Transaction parameters:");
+    debug!("  Unique ID Hash: {}", unique_id);
+    debug!("  Initial validators: {:?}", initial_validators);
+    debug!("  Initial k1 owners: {:?}", initial_k1_owners);
+    debug!("XDB deploy_account - Deploy transaction request: {:?}", deploy_tx);
 
     let tx_hash = provider
         .clone()
@@ -266,12 +261,12 @@ pub async fn deploy_account(
         .tx_hash()
         .to_owned();
 
-    println!("XDB deploy_account - Transaction sent with hash: {}", tx_hash);
+    debug!("XDB deploy_account - Transaction sent with hash: {}", tx_hash);
 
     let transaction_receipt =
         provider.wait_for_transaction_receipt(tx_hash).await?;
 
-    println!(
+    debug!(
         "XDB deploy_account - Transaction receipt: {:?}",
         transaction_receipt
     );
@@ -281,7 +276,7 @@ pub async fn deploy_account(
     let address = account_created_event.accountAddress;
     let unique_account_id = account_created_event.uniqueAccountId;
 
-    println!("XDB deploy_account - Deployed to address: {}", address);
+    debug!("XDB deploy_account - Deployed to address: {}", address);
 
     Ok(DeployedAccountDetails {
         address,
@@ -306,22 +301,18 @@ fn get_account_created_event(
 fn hash_unique_account_id(
     account_id_hex: String,
 ) -> eyre::Result<FixedBytes<32>> {
-    let account_id_bytes = hex::decode(account_id_hex)?;
-    println!(
-        "XDB hash_unique_account_id - account_id_bytes: {:?}",
-        account_id_bytes
-    );
-    let hash = keccak256(account_id_bytes);
-    println!("XDB hash_unique_account_id - hash: {:?}", hash);
+    debug!("XDB hash_unique_account_id - account_id_hex: {:?}", account_id_hex);
+    let hash = keccak256(account_id_hex);
+    debug!("XDB hash_unique_account_id - hash: {:?}", hash);
     Ok(hash)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        utils::contract_deployed::{Contract, check_contract_deployed},
-        utils::test_utils::{
+    use crate::utils::{
+        contract_deployed::{Contract, check_contract_deployed},
+        test_utils::{
             spawn_node_and_deploy_contracts, zksync_wallet_from_anvil_zksync,
         },
     };
@@ -483,7 +474,6 @@ mod tests {
                 paymaster,
                 contracts: contracts.clone(),
                 initial_k1_owners: Some(vec![wallet_address]),
-                ..Default::default()
             }
         };
         let result = deploy_account(args, &config).await?;

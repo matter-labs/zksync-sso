@@ -1,6 +1,7 @@
 use crate::config::contracts::PasskeyContracts;
 use ::alloy::{primitives::Address, providers::Provider};
 use alloy_zksync::provider::zksync_provider;
+use log::debug;
 
 pub struct Contract {
     pub address: Address,
@@ -21,7 +22,7 @@ pub async fn check_contract_deployed(
             contract.address
         ));
     }
-    println!(
+    debug!(
         "Contract {} deployed at address: {}",
         contract.name, contract.address
     );

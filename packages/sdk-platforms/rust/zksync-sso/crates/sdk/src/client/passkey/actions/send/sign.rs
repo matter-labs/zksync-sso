@@ -3,6 +3,7 @@ use crate::{
 };
 use alloy_zksync::network::transaction_request::TransactionRequest;
 use async_trait::async_trait;
+use log::debug;
 use std::{fmt::Debug, future::Future};
 use tokio::sync::Mutex;
 
@@ -72,13 +73,13 @@ where
             })?;
         let hash = digest_hash.0.to_vec();
 
-        println!("XDB - sign_transaction hash: {:?}", hash);
+        debug!("XDB - sign_transaction hash: {:?}", hash);
 
         let signature_response = (self.sign_message)(hash.as_slice())
             .await
             .map_err(|e| eyre::eyre!("Signing failed: {:?}", e))?;
 
-        println!(
+        debug!(
             "XDB - sign_transaction signature_response: {:?}",
             signature_response
         );
@@ -106,11 +107,11 @@ where
         tx: &TransactionRequest,
         config: Config,
     ) -> eyre::Result<TransactionRequest> {
-        println!("XDB - sign_transaction");
+        debug!("XDB - sign_transaction");
 
         let mut tx = tx.clone();
 
-        println!("XDB - sign_transaction - tx: {:?}", tx);
+        debug!("XDB - sign_transaction - tx: {:?}", tx);
 
         let digest_hash =
             crate::client::passkey::account::transaction_digest::get_digest(
@@ -120,20 +121,20 @@ where
                 eyre::eyre!("Error getting transaction digest: {:?}", e)
             })?;
 
-        println!("XDB - sign_transaction - digest_hash: {:?}", digest_hash);
+        debug!("XDB - sign_transaction - digest_hash: {:?}", digest_hash);
 
         let hash = digest_hash.0.to_vec();
 
-        println!("XDB - sign_transaction hash: {:?}", hash);
+        debug!("XDB - sign_transaction hash: {:?}", hash);
 
         let sign_message = self.sign_message.lock().await.clone();
 
-        println!("XDB - sign_transaction fetching sign_message");
+        debug!("XDB - sign_transaction fetching sign_message");
 
         let signature_response = sign_message(hash.as_slice())
             .map_err(|e| eyre::eyre!("Signing failed: {:?}", e))?;
 
-        println!(
+        debug!(
             "XDB - sign_transaction signature_response: {:?}",
             signature_response
         );
@@ -144,14 +145,14 @@ where
                 &config,
             )?;
 
-        println!(
+        debug!(
             "XDB - sign_transaction signature_encoded: {:?}",
             signature_encoded
         );
 
         tx.set_custom_signature(signature_encoded.into());
 
-        println!("XDB - sign_transaction - tx: {:?}", tx);
+        debug!("XDB - sign_transaction - tx: {:?}", tx);
 
         Ok(tx.to_owned())
     }

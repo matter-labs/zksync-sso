@@ -1,0 +1,207 @@
+name: Deploy React Native NPM Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g., 1.0.0, 1.0.0-alpha.1)"
+        default: "1.0.0"
+        required: true
+      tag:
+        description: "NPM tag to publish under"
+        type: choice
+        options:
+          - latest
+          - alpha
+          - beta
+          - rc
+          - next
+          - canary
+          - dev
+        default: "latest"
+        required: true
+      access:
+        description: "NPM access level"
+        type: choice
+        options:
+          - public
+          - restricted
+        default: "public"
+        required: true
+
+jobs:
+  publish:
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.11.0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/Iron
+          cache: 'pnpm'
+
+      - name: Setup Yarn 3.6.1 for React Native package
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: |
+          # Clean any existing yarn state
+          rm -rf .yarn/cache .yarn/install-state.gz .pnp.* .yarn/unplugged .yarn/build-state.yml || true
+          # Modify .yarnrc.yml to remove yarnPath and plugin paths
+          echo "Modifying .yarnrc.yml..."
+          sed -i '' '/yarnPath:/d' .yarnrc.yml
+          sed -i '' '/- path: .yarn\/plugins/d' .yarnrc.yml
+          echo "Modified .yarnrc.yml:"
+          cat .yarnrc.yml
+          # Enable Corepack and prepare Yarn 3.6.1
+          corepack enable
+          corepack prepare yarn@3.6.1 --activate
+          # Make the Yarn binary executable
+          chmod +x ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js
+          # Verify Yarn version
+          echo "Yarn version:"
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js --version
+          # Import plugins
+          echo "Importing plugin interactive-tools..."
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js plugin import @yarnpkg/plugin-interactive-tools
+          echo "Importing plugin workspace-tools..."
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js plugin import @yarnpkg/plugin-workspace-tools
+          # Disable Plug'n'Play explicitly and force node-modules linker
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js config set nodeLinker node-modules
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js config set enableGlobalCache false
+          # Install dependencies with frozen lockfile
+          ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js install --immutable
+
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
+
+      # Core Rust SDK depends on contracts
+      - name: Install contract dependencies
+        run: pnpm install -r --frozen-lockfile
+        working-directory: packages/contracts
+
+      - name: Build contracts
+        run: pnpm build
+        working-directory: packages/contracts
+
+      - name: Install build tools
+        run: |
+          brew install cmake ninja clang-format
+
+      - name: Select Xcode 16.3
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 12266719
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android NDK
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;29.0.13113456"
+
+      - name: Set Android environment variables
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.13113456" >> $GITHUB_ENV
+          echo "ANDROID_API_LEVEL=36" >> $GITHUB_ENV
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Add Android and iOS Rust targets
+        run: |
+          rustup target add \
+            aarch64-linux-android \
+            armv7-linux-androideabi \
+            aarch64-apple-ios \
+            aarch64-apple-ios-sim \
+            x86_64-apple-ios
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Build the package
+        run: ~/.cache/node/corepack/v1/yarn/3.6.1/yarn.js ubrn:release
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+
+      - name: Validate version and tag combination
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          TAG="${{ github.event.inputs.tag }}"
+          ACCESS="${{ github.event.inputs.access }}"
+          
+          echo "Publishing version: $VERSION with tag: $TAG and access: $ACCESS"
+          
+          # Warn if version contains prerelease identifier but tag is 'latest'
+          if [[ "$VERSION" =~ -(alpha|beta|rc|dev|canary) ]] && [[ "$TAG" == "latest" ]]; then
+            echo "⚠️  Warning: Publishing prerelease version ($VERSION) with 'latest' tag"
+            echo "   Consider using a prerelease tag (alpha, beta, rc, etc.)"
+          fi
+          
+          # Warn if version is stable but tag is not 'latest'
+          if [[ ! "$VERSION" =~ -(alpha|beta|rc|dev|canary) ]] && [[ "$TAG" != "latest" ]]; then
+            echo "⚠️  Warning: Publishing stable version ($VERSION) with '$TAG' tag"
+            echo "   Consider using 'latest' tag for stable releases"
+          fi
+          
+          # Info about access levels
+          if [[ "$ACCESS" == "restricted" ]]; then
+            echo "📝 Note: Package will be published as RESTRICTED (private access)"
+            echo "   Only authorized users can install this package"
+          else
+            echo "📝 Note: Package will be published as PUBLIC"
+            echo "   Anyone can install this package"
+          fi
+
+      - name: Prepare package.json
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: node prepare-package.mjs
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          INPUT_ACCESS: ${{ github.event.inputs.access }}
+
+      - name: Dry run - Verify package build
+        if: github.event_name == 'push'
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: |
+          echo "Build completed successfully for push testing"
+          echo "Package contents:"
+          ls -la
+          echo ""
+          echo "Current package.json version:"
+          node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)"
+          echo ""
+          echo "This would be published with tag 'latest' by default"
+          
+      - name: Create .npmrc for NPM
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
+      
+      - name: Publish to NPM
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+        run: npm publish --access ${{ github.event.inputs.access }} --tag ${{ github.event.inputs.tag }}
+    
+    #   - name: Create .npmrc for GitHub Packages
+    #     run: echo "@OWNER:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+
+    #   - name: Publish to GitHub Packages
+    #     working-directory: packages/sdk-platforms/react-native/react-native-zksync-sso
+    #     run: npm publish --access public 

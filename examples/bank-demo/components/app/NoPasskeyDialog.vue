@@ -125,8 +125,9 @@ type="button"
 <script setup lang="ts">
 import { toHex, type HDAccount, type Hex } from "viem";
 import { english, generateMnemonic, mnemonicToAccount } from "viem/accounts";
-import { deployAccount, fetchAccount } from "zksync-sso/client/ecdsa";
+import { fetchAccount } from "zksync-sso/client/ecdsa";
 import { getDeployerClient } from "../common/CryptoDeployer";
+import { deployModularAccount } from "zksync-sso/client";
 
 const { appMeta, contracts, deployerKey } = useAppMeta();
 
@@ -245,10 +246,10 @@ async function deployAddress(accountAddress: HDAccount) {
     return fetchedAccount.address;
   } catch (err) {
     console.info("account does not exist, deploy!", err);
-    const deployedAccount = await deployAccount(deployerClient, {
+    const deployedAccount = await deployModularAccount(deployerClient, {
       contracts,
-      prefix: "bank-demo",
-      owner: accountAddress.address,
+      uniqueAccountId: "bank-demo",
+      owners: [accountAddress.address],
     });
     return deployedAccount.address;
   }

@@ -1,19 +1,20 @@
 // @ts-ignore
-import { type PasskeyAuthenticatorAsync } from 'react-native-zksync-sso';
+import { type PasskeyAuthenticatorAsync, type RpId } from 'react-native-zksync-sso';
 import { authenticateWithPasskey } from '../authenticate';
+import { arrayBufferToHexString } from '../utils';
 
 /**
  * Authenticator class that implements passkey-based authentication.
  * This class handles the signing of messages using platform-specific passkey authentication.
  */
 export class Authenticator implements PasskeyAuthenticatorAsync {
-    private rpId: string;
+    private rpId: RpId;
 
     /**
      * Creates a new Authenticator instance.
      * @param rpId - The relying party ID used for passkey authentication
      */
-    constructor(rpId: string) {
+    constructor(rpId: RpId) {
         this.rpId = rpId;
     }
 
@@ -25,9 +26,6 @@ export class Authenticator implements PasskeyAuthenticatorAsync {
     async signMessage(
         message: ArrayBuffer,
     ): Promise<ArrayBuffer> {
-        console.log("signMessage message:", message);
-        const result = await authenticateWithPasskey(message, this.rpId);
-        console.log("signMessage result:", result);
-        return result;
+        return await authenticateWithPasskey(message, this.rpId);
     }
 }

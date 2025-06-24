@@ -1,5 +1,5 @@
 import { type Account, bytesToHex, type Chain, formatTransaction, type Transport, type WalletActions } from "viem";
-import { deployContract, getAddresses, getChainId, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
+import { deployContract, getAddresses, getCallsStatus, getCapabilities, getChainId, prepareAuthorization, sendCalls, sendRawTransaction, showCallsStatus, signAuthorization, signMessage, signTypedData, waitForCallsStatus, writeContract } from "viem/actions";
 import { signTransaction, type ZksyncEip712Meta } from "viem/zksync";
 
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
@@ -48,5 +48,12 @@ export function zksyncSsoWalletActions<
     signTransaction: (args) => signTransaction(client, args as any) as any,
     signTypedData: (args) => signTypedData(client, args),
     writeContract: (args) => writeContract(client, args),
+    signAuthorization: (args) => signAuthorization(client, args),
+    getCallsStatus: (args) => getCallsStatus(client, args),
+    getCapabilities: (args) => getCapabilities(client, args),
+    prepareAuthorization: (args) => prepareAuthorization(client, args),
+    sendCalls: (args) => sendCalls(client, args),
+    showCallsStatus: (args) => showCallsStatus(client, args),
+    waitForCallsStatus: (args) => waitForCallsStatus(client, args),
   };
 }

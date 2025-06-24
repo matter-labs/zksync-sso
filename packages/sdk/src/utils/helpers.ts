@@ -41,3 +41,31 @@ export function noThrow<T>(fn: () => T): T | null {
     return null;
   }
 }
+
+export function findSmallestBigInt(arr: bigint[]): bigint {
+  if (arr.length === 0) throw new Error("Array must not be empty");
+  let smallest = arr[0];
+  for (const num of arr) {
+    if (num < smallest) smallest = num;
+  }
+  return smallest;
+}
+
+export function calculateMaxFee(fee: {
+  gas?: bigint;
+  gasPrice?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
+}): bigint {
+  if (!fee.gas) return 0n;
+
+  if (fee.gasPrice) {
+    return fee.gas * fee.gasPrice;
+  } else if (fee.maxFeePerGas) {
+    return fee.gas * fee.maxFeePerGas;
+  } else if (fee.maxPriorityFeePerGas) {
+    return fee.gas * fee.maxPriorityFeePerGas;
+  }
+
+  return 0n;
+}
