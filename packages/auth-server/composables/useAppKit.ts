@@ -8,8 +8,8 @@ export const useAppKit = () => {
   const metadata = {
     name: "ZKsync SSO Auth Server",
     description: "ZKsync SSO Auth Server",
-    url: runtimeConfig.public.appUrl,
-    icons: [`${runtimeConfig.public.appUrl}/icon-512.png`],
+    url: window.location.origin,
+    icons: [new URL("/icon-512.png", window.location.origin).toString()],
   };
 
   const wagmiAdapter = new WagmiAdapter({

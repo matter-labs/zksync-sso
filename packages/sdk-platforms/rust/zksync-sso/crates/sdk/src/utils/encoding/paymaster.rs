@@ -1,6 +1,4 @@
-use alloy::primitives::Bytes;
-use alloy::sol;
-use alloy::sol_types::SolCall;
+use alloy::{primitives::Bytes, sol, sol_types::SolCall};
 use eyre::Result;
 
 sol! {

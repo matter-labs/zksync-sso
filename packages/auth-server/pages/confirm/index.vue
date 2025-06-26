@@ -13,7 +13,11 @@
       v-else-if="requestMethod === 'eth_requestAccounts'"
       key="login"
     />
-    <ViewsConfirmation
+    <ViewsConfirmationProhibittedTransactionTarget
+      v-else-if="hasProhibitedCallTarget"
+      key="prohibited-target"
+    />
+    <ViewsConfirmationSend
       v-else
       key="confirmation"
     />
@@ -21,10 +25,25 @@
 </template>
 
 <script lang="ts" setup>
+import { getAddress } from "viem";
+import type { ExtractParams } from "zksync-sso/client-auth-server";
+
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const { hasRequests, requestMethod } = storeToRefs(useRequestsStore());
+const { hasRequests, requestParams, requestMethod, requestChainId } = storeToRefs(useRequestsStore());
 
 const loading = ref(true);
+
+const { checkTargetAddress } = useProhibitedCallsCheck(requestChainId);
+const hasProhibitedCallTarget = computed(() => {
+  if (requestMethod.value === "eth_sendTransaction") {
+    const [transaction] = requestParams.value as ExtractParams<"eth_sendTransaction">;
+    if (!transaction) return false;
+    const isTargetProhibited = transaction.to && checkTargetAddress(getAddress(transaction.to.toLowerCase()));
+    const isContractCall = transaction.data && transaction.data !== "0x";
+    return isTargetProhibited && isContractCall;
+  }
+  return false;
+});
 
 watch(requestMethod, () => {
   if (isLoggedIn.value && requestMethod.value === "eth_requestAccounts") {

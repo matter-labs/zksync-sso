@@ -1,9 +1,10 @@
+import type { Hex } from "viem";
 import { describe, expect, test } from "vitest";
 
 import {
   getPasskeySignatureFromPublicKeyBytes,
   getPublicKeyBytesFromPasskeySignature,
-} from "./passkey";
+} from "./passkey.js";
 
 describe("passkey utils", () => {
   describe("getPublicKeyBytesFromPasskeySignature", () => {
@@ -46,8 +47,8 @@ describe("passkey utils", () => {
 
     test("roundtrip conversion works", () => {
       // Create sample x,y coordinates as hex strings
-      const xHex = "0x" + "01".repeat(32);
-      const yHex = "0x" + "02".repeat(32);
+      const xHex = "0x" + "01".repeat(32) as Hex;
+      const yHex = "0x" + "02".repeat(32) as Hex;
 
       // Convert to COSE format
       const coseKey = getPasskeySignatureFromPublicKeyBytes([xHex, yHex]);

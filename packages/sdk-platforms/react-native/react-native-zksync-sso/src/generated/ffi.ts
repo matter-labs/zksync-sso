@@ -43,12 +43,15 @@ import {
   type UnsafeMutableRawPointer,
   AbstractFfiConverterByteArray,
   FfiConverterArrayBuffer,
+  FfiConverterBool,
   FfiConverterInt32,
   FfiConverterObject,
   FfiConverterObjectWithCallbacks,
+  FfiConverterOptional,
   FfiConverterUInt64,
   RustBuffer,
   UniffiAbstractObject,
+  UniffiEnum,
   UniffiError,
   UniffiInternalError,
   UniffiResult,
@@ -113,7 +116,6 @@ export async function deployAccount(
 export async function deployAccountWithUniqueId(
   passkeyParameters: PasskeyParameters,
   uniqueAccountId: string,
-  secretAccountSalt: string,
   config: Config,
   asyncOpts_?: { signal: AbortSignal }
 ): Promise<Account> /*throws*/ {
@@ -125,7 +127,6 @@ export async function deployAccountWithUniqueId(
         return nativeModule().ubrn_uniffi_ffi_fn_func_deploy_account_with_unique_id(
           FfiConverterTypePasskeyParameters.lower(passkeyParameters),
           FfiConverterString.lower(uniqueAccountId),
-          FfiConverterString.lower(secretAccountSalt),
           FfiConverterTypeConfig.lower(config)
         );
       },
@@ -233,7 +234,6 @@ export function generateRandomChallenge(): string {
 }
 export async function getAccountByUserId(
   uniqueAccountId: string,
-  secretAccountSalt: string,
   config: Config,
   asyncOpts_?: { signal: AbortSignal }
 ): Promise<Account> /*throws*/ {
@@ -244,7 +244,6 @@ export async function getAccountByUserId(
       /*rustFutureFunc:*/ () => {
         return nativeModule().ubrn_uniffi_ffi_fn_func_get_account_by_user_id(
           FfiConverterString.lower(uniqueAccountId),
-          FfiConverterString.lower(secretAccountSalt),
           FfiConverterTypeConfig.lower(config)
         );
       },
@@ -305,9 +304,40 @@ export async function getBalance(
     throw __error;
   }
 }
+/**
+ * Initialize the Android logger
+ */
+export function initAndroidLogger(level: LogLevel): void {
+  uniffiCaller.rustCall(
+    /*caller:*/ (callStatus) => {
+      nativeModule().ubrn_uniffi_ffi_fn_func_init_android_logger(
+        FfiConverterTypeLogLevel.lower(level),
+        callStatus
+      );
+    },
+    /*liftString:*/ FfiConverterString.lift
+  );
+}
+/**
+ * Initialize the Apple logger
+ */
+export function initAppleLogger(
+  bundleIdentifier: string,
+  level: LogLevel
+): void {
+  uniffiCaller.rustCall(
+    /*caller:*/ (callStatus) => {
+      nativeModule().ubrn_uniffi_ffi_fn_func_init_apple_logger(
+        FfiConverterString.lower(bundleIdentifier),
+        FfiConverterTypeLogLevel.lower(level),
+        callStatus
+      );
+    },
+    /*liftString:*/ FfiConverterString.lift
+  );
+}
 export async function prepareSendTransaction(
   transaction: Transaction,
-  from: string,
   config: Config,
   asyncOpts_?: { signal: AbortSignal }
 ): Promise<PreparedTransaction> /*throws*/ {
@@ -318,7 +348,6 @@ export async function prepareSendTransaction(
       /*rustFutureFunc:*/ () => {
         return nativeModule().ubrn_uniffi_ffi_fn_func_prepare_send_transaction(
           FfiConverterTypeTransaction.lower(transaction),
-          FfiConverterString.lower(from),
           FfiConverterTypeConfig.lower(config)
         );
       },
@@ -531,9 +560,68 @@ const FfiConverterTypeAccountBalance = (() => {
   return new FFIConverter();
 })();
 
+export type AndroidRpId = {
+  origin: string;
+  rpId: string;
+};
+
+/**
+ * Generated factory for {@link AndroidRpId} record objects.
+ */
+export const AndroidRpId = (() => {
+  const defaults = () => ({});
+  const create = (() => {
+    return uniffiCreateRecord<AndroidRpId, ReturnType<typeof defaults>>(
+      defaults
+    );
+  })();
+  return Object.freeze({
+    /**
+     * Create a frozen instance of {@link AndroidRpId}, with defaults specified
+     * in Rust, in the {@link ffi} crate.
+     */
+    create,
+
+    /**
+     * Create a frozen instance of {@link AndroidRpId}, with defaults specified
+     * in Rust, in the {@link ffi} crate.
+     */
+    new: create,
+
+    /**
+     * Defaults specified in the {@link ffi} crate.
+     */
+    defaults: () => Object.freeze(defaults()) as Partial<AndroidRpId>,
+  });
+})();
+
+const FfiConverterTypeAndroidRpId = (() => {
+  type TypeName = AndroidRpId;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      return {
+        origin: FfiConverterString.read(from),
+        rpId: FfiConverterString.read(from),
+      };
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      FfiConverterString.write(value.origin, into);
+      FfiConverterString.write(value.rpId, into);
+    }
+    allocationSize(value: TypeName): number {
+      return (
+        FfiConverterString.allocationSize(value.origin) +
+        FfiConverterString.allocationSize(value.rpId)
+      );
+    }
+  }
+  return new FFIConverter();
+})();
+
 export type Config = {
   contracts: PasskeyContracts;
   nodeUrl: string;
+  deployWallet: DeployWallet;
 };
 
 /**
@@ -571,17 +659,72 @@ const FfiConverterTypeConfig = (() => {
       return {
         contracts: FfiConverterTypePasskeyContracts.read(from),
         nodeUrl: FfiConverterString.read(from),
+        deployWallet: FfiConverterTypeDeployWallet.read(from),
       };
     }
     write(value: TypeName, into: RustBuffer): void {
       FfiConverterTypePasskeyContracts.write(value.contracts, into);
       FfiConverterString.write(value.nodeUrl, into);
+      FfiConverterTypeDeployWallet.write(value.deployWallet, into);
     }
     allocationSize(value: TypeName): number {
       return (
         FfiConverterTypePasskeyContracts.allocationSize(value.contracts) +
-        FfiConverterString.allocationSize(value.nodeUrl)
+        FfiConverterString.allocationSize(value.nodeUrl) +
+        FfiConverterTypeDeployWallet.allocationSize(value.deployWallet)
       );
+    }
+  }
+  return new FFIConverter();
+})();
+
+export type DeployWallet = {
+  privateKeyHex: string;
+};
+
+/**
+ * Generated factory for {@link DeployWallet} record objects.
+ */
+export const DeployWallet = (() => {
+  const defaults = () => ({});
+  const create = (() => {
+    return uniffiCreateRecord<DeployWallet, ReturnType<typeof defaults>>(
+      defaults
+    );
+  })();
+  return Object.freeze({
+    /**
+     * Create a frozen instance of {@link DeployWallet}, with defaults specified
+     * in Rust, in the {@link ffi} crate.
+     */
+    create,
+
+    /**
+     * Create a frozen instance of {@link DeployWallet}, with defaults specified
+     * in Rust, in the {@link ffi} crate.
+     */
+    new: create,
+
+    /**
+     * Defaults specified in the {@link ffi} crate.
+     */
+    defaults: () => Object.freeze(defaults()) as Partial<DeployWallet>,
+  });
+})();
+
+const FfiConverterTypeDeployWallet = (() => {
+  type TypeName = DeployWallet;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      return {
+        privateKeyHex: FfiConverterString.read(from),
+      };
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      FfiConverterString.write(value.privateKeyHex, into);
+    }
+    allocationSize(value: TypeName): number {
+      return FfiConverterString.allocationSize(value.privateKeyHex);
     }
   }
   return new FFIConverter();
@@ -592,6 +735,7 @@ export type PasskeyContracts = {
   passkey: string;
   session: string;
   accountPaymaster: string;
+  recovery: string;
 };
 
 /**
@@ -633,6 +777,7 @@ const FfiConverterTypePasskeyContracts = (() => {
         passkey: FfiConverterString.read(from),
         session: FfiConverterString.read(from),
         accountPaymaster: FfiConverterString.read(from),
+        recovery: FfiConverterString.read(from),
       };
     }
     write(value: TypeName, into: RustBuffer): void {
@@ -640,13 +785,15 @@ const FfiConverterTypePasskeyContracts = (() => {
       FfiConverterString.write(value.passkey, into);
       FfiConverterString.write(value.session, into);
       FfiConverterString.write(value.accountPaymaster, into);
+      FfiConverterString.write(value.recovery, into);
     }
     allocationSize(value: TypeName): number {
       return (
         FfiConverterString.allocationSize(value.accountFactory) +
         FfiConverterString.allocationSize(value.passkey) +
         FfiConverterString.allocationSize(value.session) +
-        FfiConverterString.allocationSize(value.accountPaymaster)
+        FfiConverterString.allocationSize(value.accountPaymaster) +
+        FfiConverterString.allocationSize(value.recovery)
       );
     }
   }
@@ -657,7 +804,7 @@ export type PasskeyParameters = {
   credentialRawAttestationObject: ArrayBuffer;
   credentialRawClientDataJson: ArrayBuffer;
   credentialId: ArrayBuffer;
-  rpId: string;
+  rpId: RpId;
 };
 
 /**
@@ -698,14 +845,14 @@ const FfiConverterTypePasskeyParameters = (() => {
         credentialRawAttestationObject: FfiConverterArrayBuffer.read(from),
         credentialRawClientDataJson: FfiConverterArrayBuffer.read(from),
         credentialId: FfiConverterArrayBuffer.read(from),
-        rpId: FfiConverterString.read(from),
+        rpId: FfiConverterTypeRpId.read(from),
       };
     }
     write(value: TypeName, into: RustBuffer): void {
       FfiConverterArrayBuffer.write(value.credentialRawAttestationObject, into);
       FfiConverterArrayBuffer.write(value.credentialRawClientDataJson, into);
       FfiConverterArrayBuffer.write(value.credentialId, into);
-      FfiConverterString.write(value.rpId, into);
+      FfiConverterTypeRpId.write(value.rpId, into);
     }
     allocationSize(value: TypeName): number {
       return (
@@ -716,7 +863,7 @@ const FfiConverterTypePasskeyParameters = (() => {
           value.credentialRawClientDataJson
         ) +
         FfiConverterArrayBuffer.allocationSize(value.credentialId) +
-        FfiConverterString.allocationSize(value.rpId)
+        FfiConverterTypeRpId.allocationSize(value.rpId)
       );
     }
   }
@@ -853,9 +1000,10 @@ const FfiConverterTypeSendTransactionResult = (() => {
 })();
 
 export type Transaction = {
-  to: string;
-  value: string;
   from: string;
+  to: string | undefined;
+  value: string | undefined;
+  input: string | undefined;
 };
 
 /**
@@ -893,21 +1041,24 @@ const FfiConverterTypeTransaction = (() => {
   class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
     read(from: RustBuffer): TypeName {
       return {
-        to: FfiConverterString.read(from),
-        value: FfiConverterString.read(from),
         from: FfiConverterString.read(from),
+        to: FfiConverterOptionalString.read(from),
+        value: FfiConverterOptionalString.read(from),
+        input: FfiConverterOptionalString.read(from),
       };
     }
     write(value: TypeName, into: RustBuffer): void {
-      FfiConverterString.write(value.to, into);
-      FfiConverterString.write(value.value, into);
       FfiConverterString.write(value.from, into);
+      FfiConverterOptionalString.write(value.to, into);
+      FfiConverterOptionalString.write(value.value, into);
+      FfiConverterOptionalString.write(value.input, into);
     }
     allocationSize(value: TypeName): number {
       return (
-        FfiConverterString.allocationSize(value.to) +
-        FfiConverterString.allocationSize(value.value) +
-        FfiConverterString.allocationSize(value.from)
+        FfiConverterString.allocationSize(value.from) +
+        FfiConverterOptionalString.allocationSize(value.to) +
+        FfiConverterOptionalString.allocationSize(value.value) +
+        FfiConverterOptionalString.allocationSize(value.input)
       );
     }
   }
@@ -944,6 +1095,7 @@ const FfiConverterString = uniffiCreateFfiConverterString(stringConverter);
 // Enum: ConfigError
 export enum ConfigError_Tags {
   InvalidContractAddress = 'InvalidContractAddress',
+  InvalidDeployWallet = 'InvalidDeployWallet',
   InvalidNodeUrl = 'InvalidNodeUrl',
   WriteError = 'WriteError',
 }
@@ -982,6 +1134,44 @@ export const ConfigError = (() => {
     }
 
     static getInner(obj: InvalidContractAddress_): Readonly<[string]> {
+      return obj.inner;
+    }
+  }
+
+  type InvalidDeployWallet__interface = {
+    tag: ConfigError_Tags.InvalidDeployWallet;
+    inner: Readonly<[string]>;
+  };
+
+  class InvalidDeployWallet_
+    extends UniffiError
+    implements InvalidDeployWallet__interface
+  {
+    /**
+     * @private
+     * This field is private and should not be used, use `tag` instead.
+     */
+    readonly [uniffiTypeNameSymbol] = 'ConfigError';
+    readonly tag = ConfigError_Tags.InvalidDeployWallet;
+    readonly inner: Readonly<[string]>;
+    constructor(v0: string) {
+      super('ConfigError', 'InvalidDeployWallet');
+      this.inner = Object.freeze([v0]);
+    }
+
+    static new(v0: string): InvalidDeployWallet_ {
+      return new InvalidDeployWallet_(v0);
+    }
+
+    static instanceOf(obj: any): obj is InvalidDeployWallet_ {
+      return obj.tag === ConfigError_Tags.InvalidDeployWallet;
+    }
+
+    static hasInner(obj: any): obj is InvalidDeployWallet_ {
+      return InvalidDeployWallet_.instanceOf(obj);
+    }
+
+    static getInner(obj: InvalidDeployWallet_): Readonly<[string]> {
       return obj.inner;
     }
   }
@@ -1066,6 +1256,7 @@ export const ConfigError = (() => {
   return Object.freeze({
     instanceOf,
     InvalidContractAddress: InvalidContractAddress_,
+    InvalidDeployWallet: InvalidDeployWallet_,
     InvalidNodeUrl: InvalidNodeUrl_,
     WriteError: WriteError_,
   });
@@ -1087,8 +1278,12 @@ const FfiConverterTypeConfigError = (() => {
             FfiConverterString.read(from)
           );
         case 2:
-          return new ConfigError.InvalidNodeUrl(FfiConverterString.read(from));
+          return new ConfigError.InvalidDeployWallet(
+            FfiConverterString.read(from)
+          );
         case 3:
+          return new ConfigError.InvalidNodeUrl(FfiConverterString.read(from));
+        case 4:
           return new ConfigError.WriteError(FfiConverterString.read(from));
         default:
           throw new UniffiInternalError.UnexpectedEnumCase();
@@ -1102,14 +1297,20 @@ const FfiConverterTypeConfigError = (() => {
           FfiConverterString.write(inner[0], into);
           return;
         }
-        case ConfigError_Tags.InvalidNodeUrl: {
+        case ConfigError_Tags.InvalidDeployWallet: {
           ordinalConverter.write(2, into);
           const inner = value.inner;
           FfiConverterString.write(inner[0], into);
           return;
         }
-        case ConfigError_Tags.WriteError: {
+        case ConfigError_Tags.InvalidNodeUrl: {
           ordinalConverter.write(3, into);
+          const inner = value.inner;
+          FfiConverterString.write(inner[0], into);
+          return;
+        }
+        case ConfigError_Tags.WriteError: {
+          ordinalConverter.write(4, into);
           const inner = value.inner;
           FfiConverterString.write(inner[0], into);
           return;
@@ -1127,15 +1328,21 @@ const FfiConverterTypeConfigError = (() => {
           size += FfiConverterString.allocationSize(inner[0]);
           return size;
         }
-        case ConfigError_Tags.InvalidNodeUrl: {
+        case ConfigError_Tags.InvalidDeployWallet: {
           const inner = value.inner;
           let size = ordinalConverter.allocationSize(2);
           size += FfiConverterString.allocationSize(inner[0]);
           return size;
         }
-        case ConfigError_Tags.WriteError: {
+        case ConfigError_Tags.InvalidNodeUrl: {
           const inner = value.inner;
           let size = ordinalConverter.allocationSize(3);
+          size += FfiConverterString.allocationSize(inner[0]);
+          return size;
+        }
+        case ConfigError_Tags.WriteError: {
+          const inner = value.inner;
+          let size = ordinalConverter.allocationSize(4);
           size += FfiConverterString.allocationSize(inner[0]);
           return size;
         }
@@ -1593,6 +1800,73 @@ const FfiConverterTypeGetAccountBalanceError = (() => {
   return new FFIConverter();
 })();
 
+/**
+ * An enum representing the available verbosity level filters of the logger.
+ */
+export enum LogLevel {
+  /**
+   * Corresponds to the `Error` log level.
+   */
+  Error,
+  /**
+   * Corresponds to the `Warn` log level.
+   */
+  Warn,
+  /**
+   * Corresponds to the `Info` log level.
+   */
+  Info,
+  /**
+   * Corresponds to the `Debug` log level.
+   */
+  Debug,
+  /**
+   * Corresponds to the `Trace` log level.
+   */
+  Trace,
+}
+
+const FfiConverterTypeLogLevel = (() => {
+  const ordinalConverter = FfiConverterInt32;
+  type TypeName = LogLevel;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      switch (ordinalConverter.read(from)) {
+        case 1:
+          return LogLevel.Error;
+        case 2:
+          return LogLevel.Warn;
+        case 3:
+          return LogLevel.Info;
+        case 4:
+          return LogLevel.Debug;
+        case 5:
+          return LogLevel.Trace;
+        default:
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      switch (value) {
+        case LogLevel.Error:
+          return ordinalConverter.write(1, into);
+        case LogLevel.Warn:
+          return ordinalConverter.write(2, into);
+        case LogLevel.Info:
+          return ordinalConverter.write(3, into);
+        case LogLevel.Debug:
+          return ordinalConverter.write(4, into);
+        case LogLevel.Trace:
+          return ordinalConverter.write(5, into);
+      }
+    }
+    allocationSize(value: TypeName): number {
+      return ordinalConverter.allocationSize(0);
+    }
+  }
+  return new FFIConverter();
+})();
+
 // Error type: PasskeyAuthenticatorError
 
 // Enum: PasskeyAuthenticatorError
@@ -1848,6 +2122,137 @@ const FfiConverterTypePrepareTransactionError = (() => {
           const inner = value.inner;
           let size = ordinalConverter.allocationSize(2);
           size += FfiConverterString.allocationSize(inner[0]);
+          return size;
+        }
+        default:
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+  }
+  return new FFIConverter();
+})();
+
+// Enum: RpId
+export enum RpId_Tags {
+  Apple = 'Apple',
+  Android = 'Android',
+}
+export const RpId = (() => {
+  type Apple__interface = {
+    tag: RpId_Tags.Apple;
+    inner: Readonly<[string]>;
+  };
+
+  class Apple_ extends UniffiEnum implements Apple__interface {
+    /**
+     * @private
+     * This field is private and should not be used, use `tag` instead.
+     */
+    readonly [uniffiTypeNameSymbol] = 'RpId';
+    readonly tag = RpId_Tags.Apple;
+    readonly inner: Readonly<[string]>;
+    constructor(v0: string) {
+      super('RpId', 'Apple');
+      this.inner = Object.freeze([v0]);
+    }
+
+    static new(v0: string): Apple_ {
+      return new Apple_(v0);
+    }
+
+    static instanceOf(obj: any): obj is Apple_ {
+      return obj.tag === RpId_Tags.Apple;
+    }
+  }
+
+  type Android__interface = {
+    tag: RpId_Tags.Android;
+    inner: Readonly<[AndroidRpId]>;
+  };
+
+  class Android_ extends UniffiEnum implements Android__interface {
+    /**
+     * @private
+     * This field is private and should not be used, use `tag` instead.
+     */
+    readonly [uniffiTypeNameSymbol] = 'RpId';
+    readonly tag = RpId_Tags.Android;
+    readonly inner: Readonly<[AndroidRpId]>;
+    constructor(v0: AndroidRpId) {
+      super('RpId', 'Android');
+      this.inner = Object.freeze([v0]);
+    }
+
+    static new(v0: AndroidRpId): Android_ {
+      return new Android_(v0);
+    }
+
+    static instanceOf(obj: any): obj is Android_ {
+      return obj.tag === RpId_Tags.Android;
+    }
+  }
+
+  function instanceOf(obj: any): obj is RpId {
+    return obj[uniffiTypeNameSymbol] === 'RpId';
+  }
+
+  return Object.freeze({
+    instanceOf,
+    Apple: Apple_,
+    Android: Android_,
+  });
+})();
+
+export type RpId = InstanceType<
+  (typeof RpId)[keyof Omit<typeof RpId, 'instanceOf'>]
+>;
+
+// FfiConverter for enum RpId
+const FfiConverterTypeRpId = (() => {
+  const ordinalConverter = FfiConverterInt32;
+  type TypeName = RpId;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      switch (ordinalConverter.read(from)) {
+        case 1:
+          return new RpId.Apple(FfiConverterString.read(from));
+        case 2:
+          return new RpId.Android(FfiConverterTypeAndroidRpId.read(from));
+        default:
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      switch (value.tag) {
+        case RpId_Tags.Apple: {
+          ordinalConverter.write(1, into);
+          const inner = value.inner;
+          FfiConverterString.write(inner[0], into);
+          return;
+        }
+        case RpId_Tags.Android: {
+          ordinalConverter.write(2, into);
+          const inner = value.inner;
+          FfiConverterTypeAndroidRpId.write(inner[0], into);
+          return;
+        }
+        default:
+          // Throwing from here means that RpId_Tags hasn't matched an ordinal.
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+    allocationSize(value: TypeName): number {
+      switch (value.tag) {
+        case RpId_Tags.Apple: {
+          const inner = value.inner;
+          let size = ordinalConverter.allocationSize(1);
+          size += FfiConverterString.allocationSize(inner[0]);
+          return size;
+        }
+        case RpId_Tags.Android: {
+          const inner = value.inner;
+          let size = ordinalConverter.allocationSize(2);
+          size += FfiConverterTypeAndroidRpId.allocationSize(inner[0]);
           return size;
         }
         default:
@@ -2413,6 +2818,9 @@ const uniffiCallbackInterfacePasskeyAuthenticatorAsync: {
   },
 };
 
+// FfiConverter for string | undefined
+const FfiConverterOptionalString = new FfiConverterOptional(FfiConverterString);
+
 /**
  * This should be called before anything else.
  *
@@ -2442,7 +2850,7 @@ function uniffiEnsureInitialized() {
   }
   if (
     nativeModule().ubrn_uniffi_ffi_checksum_func_deploy_account_with_unique_id() !==
-    62711
+    10501
   ) {
     throw new UniffiInternalError.ApiChecksumMismatch(
       'uniffi_ffi_checksum_func_deploy_account_with_unique_id'
@@ -2468,7 +2876,7 @@ function uniffiEnsureInitialized() {
   }
   if (
     nativeModule().ubrn_uniffi_ffi_checksum_func_get_account_by_user_id() !==
-    26909
+    19460
   ) {
     throw new UniffiInternalError.ApiChecksumMismatch(
       'uniffi_ffi_checksum_func_get_account_by_user_id'
@@ -2480,8 +2888,22 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
+    nativeModule().ubrn_uniffi_ffi_checksum_func_init_android_logger() !== 11407
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_ffi_checksum_func_init_android_logger'
+    );
+  }
+  if (
+    nativeModule().ubrn_uniffi_ffi_checksum_func_init_apple_logger() !== 51227
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_ffi_checksum_func_init_apple_logger'
+    );
+  }
+  if (
     nativeModule().ubrn_uniffi_ffi_checksum_func_prepare_send_transaction() !==
-    43366
+    13974
   ) {
     throw new UniffiInternalError.ApiChecksumMismatch(
       'uniffi_ffi_checksum_func_prepare_send_transaction'
@@ -2528,12 +2950,16 @@ export default Object.freeze({
   converters: {
     FfiConverterTypeAccount,
     FfiConverterTypeAccountBalance,
+    FfiConverterTypeAndroidRpId,
     FfiConverterTypeConfig,
+    FfiConverterTypeDeployWallet,
+    FfiConverterTypeLogLevel,
     FfiConverterTypePasskeyAuthenticator,
     FfiConverterTypePasskeyAuthenticatorAsync,
     FfiConverterTypePasskeyContracts,
     FfiConverterTypePasskeyParameters,
     FfiConverterTypePreparedTransaction,
+    FfiConverterTypeRpId,
     FfiConverterTypeSendTransactionResult,
     FfiConverterTypeTransaction,
   },

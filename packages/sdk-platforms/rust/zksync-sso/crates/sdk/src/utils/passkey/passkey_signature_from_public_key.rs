@@ -1,5 +1,5 @@
 use alloy::{primitives::FixedBytes, sol};
-use ciborium::{de::from_reader, Value};
+use ciborium::{Value, de::from_reader};
 use coset::{AsCborValue, CoseKey};
 use eyre::Result;
 
@@ -19,6 +19,7 @@ sol! {
     }
 }
 
+#[allow(dead_code)]
 pub struct UnwrappedSignature {
     pub r: FixedBytes<32>,
     pub s: FixedBytes<32>,

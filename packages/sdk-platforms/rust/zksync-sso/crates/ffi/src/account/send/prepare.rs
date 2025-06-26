@@ -1,4 +1,13 @@
-use crate::config;
+use super::SendTransactionError::{
+    InvalidAddress as SendInvalidAddress,
+    SendTransaction as SendSendTransaction,
+};
+use crate::{
+    account::send::prepare::PrepareTransactionError::{
+        InvalidAddress, PrepareTransaction,
+    },
+    config,
+};
 
 #[derive(Debug, uniffi::Record)]
 pub struct PreparedTransaction {
@@ -49,12 +58,10 @@ pub async fn prepare_send_transaction(
     config: config::Config,
 ) -> Result<PreparedTransaction, PrepareTransactionError> {
     let transaction: sdk::api::account::transaction::Transaction =
-        transaction.try_into().map_err(|e| match e {
-            super::SendTransactionError::InvalidAddress(e) => {
-                PrepareTransactionError::InvalidAddress(e)
-            }
-            super::SendTransactionError::SendTransaction(e) => {
-                PrepareTransactionError::PrepareTransaction(e)
+        transaction.try_into().map_err(|e| -> PrepareTransactionError {
+            match e {
+                SendInvalidAddress(e) => InvalidAddress(e),
+                SendSendTransaction(e) => PrepareTransaction(e),
             }
         })?;
 
@@ -62,8 +69,8 @@ pub async fn prepare_send_transaction(
         transaction,
         &(config.try_into()
             as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                PrepareTransactionError::PrepareTransaction(e.to_string())
+            .map_err(|e: config::ConfigError| -> PrepareTransactionError {
+                PrepareTransaction(e.to_string())
             })?,
     )
     .await

@@ -15,7 +15,10 @@
             {{ formatPricePretty(totalUsd) }}
           </span>
         </div>
-        <div v-else>
+        <div
+          v-else
+          class="text-error-500"
+        >
           Unlimited
         </div>
       </div>
@@ -49,7 +52,30 @@
             :price="item.token.price"
             :icon-url="item.token.iconUrl"
             :amount="item.amount.toString()"
-          />
+          >
+            <template
+              v-if="item.amount === 'unlimited'"
+              #right
+            >
+              <ZkTooltip :label="`Unlimited ${item.token.symbol} spend limit requested`">
+                <div class="flex items-center gap-2 text-error-500">
+                  <span class="text-sm underline underline-offset-2 decoration-dotted">Attention</span>
+                  <ExclamationCircleIcon class="w-6 h-6 inline-block flex-shrink-0" />
+                </div>
+              </ZkTooltip>
+            </template>
+            <template
+              v-else-if="formatTokenPriceToNumber(item.amount, item.token.decimals, item.token.price || 0) > 1000"
+              #right
+            >
+              <ZkTooltip :label="`High ${item.token.symbol} spend limit requested`">
+                <div class="flex items-center gap-2 text-error-500">
+                  <span class="text-sm underline underline-offset-2 decoration-dotted">Attention</span>
+                  <ExclamationCircleIcon class="w-6 h-6 inline-block flex-shrink-0" />
+                </div>
+              </ZkTooltip>
+            </template>
+          </TokenAmount>
         </template>
         <div
           v-if="onchainActionsCount"
@@ -64,26 +90,14 @@
 </template>
 
 <script setup lang="ts">
-import { useNow } from "@vueuse/core";
-import type { SessionConfig } from "zksync-sso/utils";
+import { ExclamationCircleIcon } from "@heroicons/vue/24/outline";
 
-const props = defineProps<{
-  session: Omit<SessionConfig, "signer">;
+defineProps<{
+  onchainActionsCount: UseSessionConfigInfoReturn["onchainActionsCount"];
+  fetchTokensError: UseSessionConfigInfoReturn["fetchTokensError"];
+  tokensLoading: UseSessionConfigInfoReturn["tokensLoading"];
+  spendLimitTokens: UseSessionConfigInfoReturn["spendLimitTokens"];
+  hasUnlimitedSpend: UseSessionConfigInfoReturn["hasUnlimitedSpend"];
+  totalUsd: UseSessionConfigInfoReturn["totalUsd"];
 }>();
-
-const { requestChain } = storeToRefs(useRequestsStore());
-
-const now = useNow({ interval: 1000 });
-const {
-  onchainActionsCount,
-  fetchTokensError,
-  tokensLoading,
-  spendLimitTokens,
-  hasUnlimitedSpend,
-  totalUsd,
-} = useSessionConfigInfo(
-  computed(() => requestChain.value!.id),
-  props.session,
-  now,
-);
 </script>

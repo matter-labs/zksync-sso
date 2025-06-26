@@ -30,14 +30,15 @@ public func deployAccountWith(
         credentialRawAttestationObject: params.credentialRawAttestationObject,
         credentialRawClientDataJson: params.credentialRawClientDataJson,
         credentialId: params.credentialId,
-        rpId: params.rpId
+        rpId: .apple(params.rpId),
     )
     
     let uniqueAccountId = params.uniqueAccountId
     
-    let account = try await ZKsyncSSOFFI.deployAccount(
-        passkeyParameters: passkeyParameters,
-        config: Config.default.inner
+    let account = try await ZKsyncSSOFFI.deployAccountWithUniqueId(
+      passkeyParameters: passkeyParameters,
+      uniqueAccountId: params.uniqueAccountId,
+      config: Config.default.inner
     )
     
     print("account: \(account)")
@@ -56,7 +57,7 @@ public func deployAccountWithUniqueId(
         credentialRawAttestationObject: params.credentialRawAttestationObject,
         credentialRawClientDataJson: params.credentialRawClientDataJson,
         credentialId: params.credentialId,
-        rpId: params.rpId
+        rpId: .apple(params.rpId),
     )
     
     let uniqueAccountId = params.uniqueAccountId

@@ -4,8 +4,9 @@ import { zksyncInMemoryNode } from "viem/chains";
 
 import type { CustomPaymasterHandler } from "../../paymaster/index.js";
 import { encodeSessionTx } from "../../utils/encoding.js";
-import type { SessionConfig } from "../../utils/session.js";
+import type { SessionConfig, SessionStateEventCallback } from "../../utils/session.js";
 import { toSessionAccount } from "./account.js";
+import { getSessionState, sessionStateNotify } from "./actions/session.js";
 import { publicActionsRewrite } from "./decorators/publicActionsRewrite.js";
 import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "./decorators/wallet.js";
 
@@ -90,10 +91,31 @@ export function createZksyncSessionClient<
       sessionConfig: parameters.sessionConfig,
       contracts: parameters.contracts,
       paymasterHandler: parameters.paymasterHandler,
+      onSessionStateChange: parameters.onSessionStateChange,
+      _sessionNotifyTimeout: undefined as NodeJS.Timeout | undefined,
     }))
     .extend(publicActions)
     .extend(publicActionsRewrite)
     .extend(zksyncSsoWalletActions);
+
+  // Check session state on initialization if callback is provided
+  if (client.onSessionStateChange) {
+    getSessionState(client, {
+      account: client.account.address,
+      sessionConfig: client.sessionConfig,
+      contracts: client.contracts,
+    }).then(({ sessionState }) => {
+      sessionStateNotify({
+        sessionConfig: client.sessionConfig,
+        sessionState,
+        onSessionStateChange: client.onSessionStateChange!,
+        sessionNotifyTimeout: client._sessionNotifyTimeout,
+      });
+    }).catch((error) => {
+      console.error("Failed to get session state on initialization:", error);
+    });
+  }
+
   return client;
 }
 
@@ -105,6 +127,9 @@ type ZksyncSsoSessionData = {
   sessionConfig: SessionConfig;
   contracts: SessionRequiredContracts;
   paymasterHandler?: CustomPaymasterHandler;
+  onSessionStateChange?: SessionStateEventCallback;
+  skipPreTransactionStateValidation?: boolean;
+  _sessionNotifyTimeout?: NodeJS.Timeout;
 };
 
 export type ClientWithZksyncSsoSessionData<
@@ -143,4 +168,6 @@ export interface ZksyncSsoSessionClientConfig<
   key?: string;
   name?: string;
   paymasterHandler?: CustomPaymasterHandler;
+  onSessionStateChange?: SessionStateEventCallback;
+  skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
 }

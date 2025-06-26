@@ -2,6 +2,7 @@ uniffi::setup_scaffolding!();
 
 mod account;
 mod config;
+mod logging;
 mod native_apis;
 
 use base64::Engine;

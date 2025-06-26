@@ -21,23 +21,34 @@ OUT_PATH="out"
 MIN_IOS_VERSION="17.0"
 WRAPPER_PATH="../../../../swift/ZKsyncSSO/Sources/ZKsyncSSOFFI"
 TARGET_PATH="../../target"
-BUILD_TYPE="debug" # use debug during development
+BUILD_TYPE="release" # Options: "debug" or "release" - use release for CI builds
 
 AARCH64_APPLE_IOS_SIM_PATH="$TARGET_PATH/aarch64-apple-ios-sim/$BUILD_TYPE"
 
 # Build only for aarch64-apple-ios-sim (Simulator on Apple Silicon)
-echo "Building for aarch64-apple-ios-sim..."
+echo "Building for aarch64-apple-ios-sim in $BUILD_TYPE mode..."
 rustup target add aarch64-apple-ios-sim
-cargo build --target aarch64-apple-ios-sim
+if [ "$BUILD_TYPE" = "release" ]; then
+    cargo build --target aarch64-apple-ios-sim --release
+else
+    cargo build --target aarch64-apple-ios-sim
+fi
 
 # Generate swift wrapper
 echo "Generating swift wrapper..."
 mkdir -p $OUT_PATH
 mkdir -p $WRAPPER_PATH
-cargo run --features=uniffi/cli --bin uniffi-bindgen generate \
-    --library $AARCH64_APPLE_IOS_SIM_PATH/$LIBRARY_NAME \
-    --language swift \
-    --out-dir $OUT_PATH
+if [ "$BUILD_TYPE" = "release" ]; then
+    cargo run --release --features=uniffi/cli --bin uniffi-bindgen generate \
+        --library $AARCH64_APPLE_IOS_SIM_PATH/$LIBRARY_NAME \
+        --language swift \
+        --out-dir $OUT_PATH
+else
+    cargo run --features=uniffi/cli --bin uniffi-bindgen generate \
+        --library $AARCH64_APPLE_IOS_SIM_PATH/$LIBRARY_NAME \
+        --language swift \
+        --out-dir $OUT_PATH
+fi
 
 # Rename the generated header file to match our framework name
 mv $OUT_PATH/$GENERATED_HEADER $OUT_PATH/$HEADER_NAME

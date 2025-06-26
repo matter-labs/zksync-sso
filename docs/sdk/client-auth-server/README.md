@@ -4,6 +4,12 @@ The client-auth-server SDK provides you with an easy way to use ZK Accounts in
 your application. It's built on top of [client SDK](../client/README.md) and
 [@wagmi/core](https://wagmi.sh/core/getting-started).
 
+## Dependencies
+
+Optional peer dependencies that you may need to install based on your usage:
+
+- `@wagmi/core` (v2.x) - Required for using the SSO connector
+
 ## Basic usage
 
 ```ts

@@ -1,11 +1,12 @@
 import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, type Prettify, type TransactionReceipt, type Transport } from "viem";
-import { waitForTransactionReceipt } from "viem/actions";
+import { readContract, waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
 import { SessionKeyValidatorAbi } from "../../../abi/SessionKeyValidator.js";
 import { type CustomPaymasterHandler, getTransactionWithPaymasterData } from "../../../paymaster/index.js";
 import { noThrow } from "../../../utils/helpers.js";
-import type { SessionConfig } from "../../../utils/session.js";
+import type { SessionConfig, SessionState, SessionStateEventCallback } from "../../../utils/session.js";
+import { SessionEventType, SessionStatus } from "../../../utils/session.js";
 
 export type CreateSessionArgs = {
   sessionConfig: SessionConfig;
@@ -118,4 +119,86 @@ export const revokeSession = async <
   return {
     transactionReceipt,
   };
+};
+
+export type GetSessionStateArgs = {
+  account: Address;
+  sessionConfig: SessionConfig;
+  contracts: {
+    session: Address; // session module
+  };
+};
+export type GetSessionStateReturnType = {
+  sessionState: SessionState;
+};
+export const getSessionState = async <
+  transport extends Transport,
+  chain extends Chain,
+>(client: Client<transport, chain>, args: Prettify<GetSessionStateArgs>): Promise<Prettify<GetSessionStateReturnType>> => {
+  const sessionState = await readContract(client, {
+    address: args.contracts.session,
+    abi: SessionKeyValidatorAbi,
+    functionName: "sessionState",
+    args: [args.account, args.sessionConfig],
+  });
+
+  return {
+    sessionState: sessionState as SessionState,
+  };
+};
+
+export type CheckSessionStateArgs = {
+  sessionConfig: SessionConfig;
+  sessionState: SessionState;
+  onSessionStateChange: SessionStateEventCallback;
+  sessionNotifyTimeout?: NodeJS.Timeout;
+};
+export type CheckSessionStateReturnType = {
+  newTimeout?: NodeJS.Timeout;
+};
+
+/**
+ * Checks the current session state and sets up expiry notification.
+ * This function will trigger the callback with the session state.
+ */
+export const sessionStateNotify = (args: Prettify<CheckSessionStateArgs>): CheckSessionStateReturnType => {
+  // Generate a session ID for tracking timeouts
+  const { sessionState } = args;
+  const now = BigInt(Math.floor(Date.now() / 1000));
+
+  // Check session status
+  if (sessionState.status === SessionStatus.NotInitialized) { // Not initialized
+    args.onSessionStateChange({
+      type: SessionEventType.Inactive,
+      message: "Session is not initialized",
+    });
+  } else if (sessionState.status === SessionStatus.Closed) { // Closed/Revoked
+    args.onSessionStateChange({
+      type: SessionEventType.Revoked,
+      message: "Session has been revoked",
+    });
+  } else if (args.sessionConfig.expiresAt <= now) {
+    // Session has expired
+    args.onSessionStateChange({
+      type: SessionEventType.Expired,
+      message: "Session has expired",
+    });
+  } else {
+    // Session is active, set up expiry notification
+    const timeToExpiry = Number(args.sessionConfig.expiresAt - now) * 1000;
+    if (args.sessionNotifyTimeout) {
+      clearTimeout(args.sessionNotifyTimeout);
+    }
+    const newTimeout = setTimeout(() => {
+      args.onSessionStateChange({
+        type: SessionEventType.Expired,
+        message: "Session has expired",
+      });
+    }, timeToExpiry);
+    return {
+      newTimeout,
+    };
+  }
+
+  return {};
 };

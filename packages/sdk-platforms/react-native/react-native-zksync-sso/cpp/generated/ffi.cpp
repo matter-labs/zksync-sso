@@ -191,7 +191,6 @@ extern "C" {
     /*handle*/ uint64_t uniffi_ffi_fn_func_deploy_account_with_unique_id(
         RustBuffer passkey_parameters, 
         RustBuffer unique_account_id, 
-        RustBuffer secret_account_salt, 
         RustBuffer config
     );
     /*handle*/ uint64_t uniffi_ffi_fn_func_fetch_account(
@@ -207,16 +206,23 @@ extern "C" {
     );
     /*handle*/ uint64_t uniffi_ffi_fn_func_get_account_by_user_id(
         RustBuffer unique_account_id, 
-        RustBuffer secret_account_salt, 
         RustBuffer config
     );
     /*handle*/ uint64_t uniffi_ffi_fn_func_get_balance(
         RustBuffer address, 
         RustBuffer config
     );
+    void uniffi_ffi_fn_func_init_android_logger(
+        RustBuffer level, 
+        RustCallStatus *uniffi_out_err
+    );
+    void uniffi_ffi_fn_func_init_apple_logger(
+        RustBuffer bundle_identifier, 
+        RustBuffer level, 
+        RustCallStatus *uniffi_out_err
+    );
     /*handle*/ uint64_t uniffi_ffi_fn_func_prepare_send_transaction(
         RustBuffer transaction, 
-        RustBuffer from, 
         RustBuffer config
     );
     /*handle*/ uint64_t uniffi_ffi_fn_func_send_transaction(
@@ -454,6 +460,10 @@ extern "C" {
     uint16_t uniffi_ffi_checksum_func_get_account_by_user_id(
     );
     uint16_t uniffi_ffi_checksum_func_get_balance(
+    );
+    uint16_t uniffi_ffi_checksum_func_init_android_logger(
+    );
+    uint16_t uniffi_ffi_checksum_func_init_apple_logger(
     );
     uint16_t uniffi_ffi_checksum_func_prepare_send_transaction(
     );
@@ -2638,7 +2648,7 @@ NativeFfi::NativeFfi(
     props["ubrn_uniffi_ffi_fn_func_deploy_account_with_unique_id"] = jsi::Function::createFromHostFunction(
         rt,
         jsi::PropNameID::forAscii(rt, "ubrn_uniffi_ffi_fn_func_deploy_account_with_unique_id"),
-        4,
+        3,
         [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
             return this->cpp_uniffi_ffi_fn_func_deploy_account_with_unique_id(rt, thisVal, args, count);
         }
@@ -2670,7 +2680,7 @@ NativeFfi::NativeFfi(
     props["ubrn_uniffi_ffi_fn_func_get_account_by_user_id"] = jsi::Function::createFromHostFunction(
         rt,
         jsi::PropNameID::forAscii(rt, "ubrn_uniffi_ffi_fn_func_get_account_by_user_id"),
-        3,
+        2,
         [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
             return this->cpp_uniffi_ffi_fn_func_get_account_by_user_id(rt, thisVal, args, count);
         }
@@ -2683,10 +2693,26 @@ NativeFfi::NativeFfi(
             return this->cpp_uniffi_ffi_fn_func_get_balance(rt, thisVal, args, count);
         }
     );
+    props["ubrn_uniffi_ffi_fn_func_init_android_logger"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_ffi_fn_func_init_android_logger"),
+        1,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_ffi_fn_func_init_android_logger(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_uniffi_ffi_fn_func_init_apple_logger"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_ffi_fn_func_init_apple_logger"),
+        2,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_ffi_fn_func_init_apple_logger(rt, thisVal, args, count);
+        }
+    );
     props["ubrn_uniffi_ffi_fn_func_prepare_send_transaction"] = jsi::Function::createFromHostFunction(
         rt,
         jsi::PropNameID::forAscii(rt, "ubrn_uniffi_ffi_fn_func_prepare_send_transaction"),
-        3,
+        2,
         [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
             return this->cpp_uniffi_ffi_fn_func_prepare_send_transaction(rt, thisVal, args, count);
         }
@@ -3179,6 +3205,22 @@ NativeFfi::NativeFfi(
             return this->cpp_uniffi_ffi_checksum_func_get_balance(rt, thisVal, args, count);
         }
     );
+    props["ubrn_uniffi_ffi_checksum_func_init_android_logger"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_ffi_checksum_func_init_android_logger"),
+        0,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_ffi_checksum_func_init_android_logger(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_uniffi_ffi_checksum_func_init_apple_logger"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_ffi_checksum_func_init_apple_logger"),
+        0,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_ffi_checksum_func_init_apple_logger(rt, thisVal, args, count);
+        }
+    );
     props["ubrn_uniffi_ffi_checksum_func_prepare_send_transaction"] = jsi::Function::createFromHostFunction(
         rt,
         jsi::PropNameID::forAscii(rt, "ubrn_uniffi_ffi_checksum_func_prepare_send_transaction"),
@@ -3403,7 +3445,7 @@ jsi::Value NativeFfi::cpp_uniffi_ffi_fn_func_deploy_account(jsi::Runtime& rt, co
         return uniffi_jsi::Bridging</*handle*/ uint64_t>::toJs(rt, callInvoker, value);
 }
 jsi::Value NativeFfi::cpp_uniffi_ffi_fn_func_deploy_account_with_unique_id(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
-        auto value = uniffi_ffi_fn_func_deploy_account_with_unique_id(uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[2]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[3])
+        auto value = uniffi_ffi_fn_func_deploy_account_with_unique_id(uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[2])
         );
 
         
@@ -3433,7 +3475,7 @@ jsi::Value NativeFfi::cpp_uniffi_ffi_fn_func_generate_random_challenge(jsi::Runt
         return uniffi::ffi::Bridging<RustBuffer>::toJs(rt, callInvoker, value);
 }
 jsi::Value NativeFfi::cpp_uniffi_ffi_fn_func_get_account_by_user_id(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
-        auto value = uniffi_ffi_fn_func_get_account_by_user_id(uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[2])
+        auto value = uniffi_ffi_fn_func_get_account_by_user_id(uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1])
         );
 
         
@@ -3446,8 +3488,28 @@ jsi::Value NativeFfi::cpp_uniffi_ffi_fn_func_get_balance(jsi::Runtime& rt, const
         
         return uniffi_jsi::Bridging</*handle*/ uint64_t>::toJs(rt, callInvoker, value);
 }
+jsi::Value NativeFfi::cpp_uniffi_ffi_fn_func_init_android_logger(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::ffi::Bridging<RustCallStatus>::rustSuccess(rt);
+        uniffi_ffi_fn_func_init_android_logger(uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), 
+            &status
+        );
+        uniffi::ffi::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return jsi::Value::undefined();
+}
+jsi::Value NativeFfi::cpp_uniffi_ffi_fn_func_init_apple_logger(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        RustCallStatus status = uniffi::ffi::Bridging<RustCallStatus>::rustSuccess(rt);
+        uniffi_ffi_fn_func_init_apple_logger(uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), 
+            &status
+        );
+        uniffi::ffi::Bridging<RustCallStatus>::copyIntoJs(rt, callInvoker, status, args[count - 1]);
+
+        
+        return jsi::Value::undefined();
+}
 jsi::Value NativeFfi::cpp_uniffi_ffi_fn_func_prepare_send_transaction(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
-        auto value = uniffi_ffi_fn_func_prepare_send_transaction(uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[2])
+        auto value = uniffi_ffi_fn_func_prepare_send_transaction(uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[0]), uniffi::ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1])
         );
 
         
@@ -3914,6 +3976,20 @@ jsi::Value NativeFfi::cpp_uniffi_ffi_checksum_func_get_account_by_user_id(jsi::R
 }
 jsi::Value NativeFfi::cpp_uniffi_ffi_checksum_func_get_balance(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
         auto value = uniffi_ffi_checksum_func_get_balance(
+        );
+
+        
+        return uniffi_jsi::Bridging<uint16_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeFfi::cpp_uniffi_ffi_checksum_func_init_android_logger(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        auto value = uniffi_ffi_checksum_func_init_android_logger(
+        );
+
+        
+        return uniffi_jsi::Bridging<uint16_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeFfi::cpp_uniffi_ffi_checksum_func_init_apple_logger(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        auto value = uniffi_ffi_checksum_func_init_apple_logger(
         );
 
         

@@ -40,7 +40,8 @@ impl Money {
     pub fn decimals(&self) -> u8 {
         let total =
             self.currency.decimals() + self.extra_precision.unwrap_or(0);
-        println!("XDB - Money::decimals - Calculation: currency={} + extra={:?} = {}",
+        println!(
+            "XDB - Money::decimals - Calculation: currency={} + extra={:?} = {}",
             self.currency.decimals(),
             self.extra_precision,
             total

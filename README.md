@@ -17,9 +17,9 @@ simplifying user authentication, session management, and transaction processing.
 - 🧩 Modular smart accounts based on
   [ERC-7579](https://eips.ethereum.org/EIPS/eip-7579#modules)
 - 🔑 Passkey authentication (no seed phrases)
-- ⏰ Sessions w/ easy configuration and management
+- ⏰ Sessions with easy configuration and management
 - 💰 Integrated paymaster support
-- ❤️‍🩹 Account recovery _(Coming Soon)_
+- ❤️‍🩹 Account recovery
 - 💻 Simple SDKs : JavaScript, iOS/Android _(Coming Soon)_
 - 🤝 Open-source authentication server
 - 🎓 Examples to get started quickly
@@ -30,7 +30,15 @@ Install the ZKsync SSO SDK package:
 
 ```sh
 npm i zksync-sso
+# optional peer dependencies
+npm i @simplewebauthn/browser @simplewebauthn/server @wagmi/core
 ```
+
+Optional peer dependencies that you may need to install based on your usage:
+
+- `@simplewebauthn/browser` and `@simplewebauthn/server` (v13.x) - Required for
+  passkey operations
+- `@wagmi/core` (v2.x) - Required for using the SSO connector
 
 Add ZKsync SSO connector to your app (using `wagmi`):
 
@@ -82,6 +90,15 @@ const ssoConnector = zksyncSsoConnector({
          }),
       ],
    },
+
+   // Optional: Receive notifications about session state changes
+   onSessionStateChange: ({ state, address, chainId }) => {
+      console.log(`Session state for address ${address} changed: ${state.type} - ${state.message}`);
+
+      // Use this to notify users and restart the session if needed
+      // - Session expired: state.type === 'session_expired'
+      // - Session inactive (e.g. was revoked): state.type === 'session_inactive'
+   },
 });
 
 const wagmiConfig = createConfig({
@@ -108,7 +125,8 @@ This monorepo is comprised of the following packages, products, and examples:
   session key management
 - `packages/contracts` are the on-chain smart contracts behind ZKsync SSO
   accounts
-- `examples/nft-quest` is an app demonstrating the use of ZKsync SSO w/ sessions
+- `examples/nft-quest` is an app demonstrating the use of ZKsync SSO with
+  sessions
 - `examples/nft-quest-contracts` are the smart contracts for `nft-quest`
 - `examples/demo-app` is a test app mostly used for CI testing
 - `examples/bank-demo` is an app demonstrating the fully embedded experience

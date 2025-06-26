@@ -3,10 +3,17 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
 rust-version = "1.86"
 license = "Apache-2.0"
+
+[profile.release]
+opt-level = "s"   # Optimize for size instead of speed
+lto = true        # Link Time Optimization - removes dead code
+codegen-units = 1 # Single codegen unit for better optimization
+panic = "abort"   # Smaller panic handling
+strip = true      # Remove debug symbols
 
 [workspace.dependencies]
 
@@ -21,6 +28,23 @@ alloy = { version = "0.12.5", default-features = false, features = [
     "eip712",
 ] }
 alloy-zksync = { version = "0.12.5" }
+
+# Alloy OpenSSL dependencies for android
+openssl = "0.10.71"
+openssl-sys = "0.9.106"
+
+# Passkey support
+passkey-types = { git = "https://github.com/jackpooleyml/passkey-rs", branch = "validate-credential", features = [
+    "testable",
+] }
+passkey-client = { git = "https://github.com/jackpooleyml/passkey-rs", branch = "validate-credential", features = [
+    "testable",
+] }
+passkey = { git = "https://github.com/jackpooleyml/passkey-rs", branch = "validate-credential" }
+passkey-authenticator = { git = "https://github.com/jackpooleyml/passkey-rs", branch = "validate-credential", features = [
+    "testable",
+] }
+public-suffix = { git = "https://github.com/jackpooleyml/passkey-rs", branch = "validate-credential" }
 
 # Http
 url = "2.5.4"
@@ -57,3 +81,11 @@ icu = { version = "1.5.0", features = ["default", "serde", "std"] }
 icu_decimal = { version = "1.5.0", features = ["default"] }
 fixed_decimal = "0.5.6"
 fixed = "1.28.0"
+
+# Logging
+log = "0.4"
+
+# Logging for Android
+android_logger = { version = "0.15" }
+# Logging for Apple platforms
+oslog = "0.2"

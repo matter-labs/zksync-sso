@@ -62,6 +62,10 @@ export const formatPricePretty = (price: number): string => {
   return "$" + price.toFixed(2);
 };
 
+export const formatTokenPriceToNumber = (amount: bigint, decimals: number, price: number): number => {
+  const formattedTokenAmount = formatUnits(amount, decimals);
+  return parseFloat(formattedTokenAmount) * price;
+};
 export const formatTokenPrice = (amount: bigint, decimals: number, price: number): string => {
   const formattedTokenAmount = formatUnits(amount, decimals);
   return formatPricePretty(parseFloat(formattedTokenAmount) * price);

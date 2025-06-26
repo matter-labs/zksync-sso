@@ -2,7 +2,7 @@
 pub mod tests {
     use crate::{
         api::account::deployment::{
-            deploy_account, DeployedAccountDetails, PasskeyParameters,
+            DeployedAccountDetails, PasskeyParameters, RpId, deploy_account,
         },
         config::Config,
         utils::test_utils::spawn_node_and_deploy_contracts,
@@ -15,6 +15,7 @@ pub mod tests {
         },
         client::{Client, DefaultClientData, WebauthnError},
         types::{
+            Bytes, Passkey,
             ctap2::*,
             webauthn::{
                 self, AttestationConveyancePreference,
@@ -25,7 +26,6 @@ pub mod tests {
                 PublicKeyCredentialType, PublicKeyCredentialUserEntity,
                 ResidentKeyRequirement, UserVerificationRequirement,
             },
-            Bytes, Passkey,
         },
     };
     use sha2::{Digest, Sha256};
@@ -149,7 +149,10 @@ pub mod tests {
             .client
             .authenticate(&origin, options, DefaultClientData)
             .await?;
-        println!("XDB - authenticate_apple_passkey - Auth response credential ID: {:?}", auth_response.id);
+        println!(
+            "XDB - authenticate_apple_passkey - Auth response credential ID: {:?}",
+            auth_response.id
+        );
         Ok(auth_response)
     }
 
@@ -227,6 +230,9 @@ pub mod tests {
             challenge,
         )
         .await?;
+
+        let rp_id = RpId::Apple(rp_id.to_string());
+
         Ok(PasskeyParameters {
             credential_raw_attestation_object: credential
                 .response
@@ -237,7 +243,7 @@ pub mod tests {
                 .client_data_json
                 .into(),
             credential_id: credential.id.into(),
-            rp_id: rp_id.to_string(),
+            rp_id,
         })
     }
 

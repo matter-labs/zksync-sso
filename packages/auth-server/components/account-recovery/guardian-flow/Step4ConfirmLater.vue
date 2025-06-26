@@ -29,12 +29,10 @@
 </template>
 
 <script setup lang="ts">
-import { useRuntimeConfig } from "nuxt/app";
 import { computed } from "vue";
 
 import { useAccountStore } from "~/stores/account";
 
-const config = useRuntimeConfig();
 const { address } = useAccountStore();
 
 const props = defineProps<{
@@ -46,6 +44,6 @@ const emit = defineEmits<{
 }>();
 
 const recoveryUrl = computed(() => {
-  return `${config.public.appUrl}/recovery/guardian/confirm-guardian?accountAddress=${address}&guardianAddress=${props.guardianAddress}`;
+  return new URL(`/recovery/guardian/confirm-guardian?accountAddress=${address}&guardianAddress=${props.guardianAddress}`, window.location.origin).toString();
 });
 </script>

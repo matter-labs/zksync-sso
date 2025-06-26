@@ -36,8 +36,6 @@
 import type { Address } from "viem";
 import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
 
-const runtimeConfig = useRuntimeConfig();
-
 const props = defineProps<{
   accountAddress: Address;
   newPasskey: RegisterNewPasskeyReturnType;
@@ -61,6 +59,6 @@ const recoveryUrl = computedAsync(async () => {
 
   queryParams.set("checksum", checksum);
 
-  return `${runtimeConfig.public.appUrl}/recovery/guardian/confirm-recovery?${queryParams.toString()}`;
+  return new URL(`/recovery/guardian/confirm-recovery?${queryParams.toString()}`, window.location.origin).toString();
 });
 </script>

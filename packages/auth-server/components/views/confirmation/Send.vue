@@ -165,11 +165,12 @@ import type { ExtractParams } from "zksync-sso/client-auth-server";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { responseInProgress, responseError, request, requestChain } = storeToRefs(useRequestsStore());
+const { responseInProgress, responseError, requestParams, requestChain } = storeToRefs(useRequestsStore());
 const { getClient } = useClientStore();
 
 const transactionParams = computed(() => {
-  const params = request.value!.content.action.params as ExtractParams<"eth_sendTransaction">;
+  const params = requestParams.value as ExtractParams<"eth_sendTransaction">;
+  if (!params) return null;
   // Convert RPC formatted data to actual values (e.g. convert hex to BigInt)
   const formatted = chainConfig.formatters.transaction.format(params[0] as ZksyncRpcTransaction);
   if (!formatted.gas) {
@@ -182,7 +183,7 @@ const transactionParams = computed(() => {
 const advancedInfoOpened = ref(false);
 
 const { result: preparedTransaction, inProgress: preparingTransaction, error: preparingFailed, execute: prepareTransaction } = useAsync(async () => {
-  if (!request.value) return null;
+  if (!transactionParams.value) return null;
   const client = getClient({ chainId: requestChain.value!.id });
   return await client.prepareTransactionRequest(transactionParams.value);
 });
@@ -211,7 +212,7 @@ const chainBaseToken = computed(() => {
 });
 
 const to = computed<Address | null>(() => {
-  return preparedTransaction.value?.to || transactionParams.value.to || null;
+  return preparedTransaction.value?.to || transactionParams.value?.to || null;
 });
 
 const totalFee = computed<bigint>(() => {
@@ -227,6 +228,9 @@ const totalFee = computed<bigint>(() => {
 
 const confirmTransaction = async () => {
   respond(async () => {
+    if (!transactionParams.value) {
+      throw new Error("Transaction parameters are not available");
+    }
     const client = getClient({ chainId: requestChain.value!.id });
     const transactionHash = await client.sendTransaction(transactionParams.value);
     return {

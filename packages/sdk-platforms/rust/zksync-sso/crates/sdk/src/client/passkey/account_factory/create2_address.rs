@@ -1,4 +1,4 @@
-use alloy::primitives::{keccak256, Address, Bytes, FixedBytes};
+use alloy::primitives::{Address, Bytes, FixedBytes, keccak256};
 
 // TODO: consider uptreaming this to the `alloy-zksync` crate
 pub fn create2_address(

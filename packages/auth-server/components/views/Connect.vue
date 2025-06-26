@@ -1,15 +1,19 @@
 <template>
   <ViewsConfirmationRequestAccounts v-if="!sessionPreferences" />
-  <ViewsConfirmationRequestSession
-    v-else
-    :session-preferences="sessionPreferences"
-  />
+  <template v-else>
+    <ViewsConfirmationProhibittedSession v-if="hasProhibitedCallTarget" />
+    <ViewsConfirmationRequestSession
+      v-else
+      :session-preferences="sessionPreferences"
+    />
+  </template>
 </template>
 
 <script lang="ts" setup>
+import { getAddress } from "viem";
 import type { SessionPreferences } from "zksync-sso";
 
-const { request } = storeToRefs(useRequestsStore());
+const { requestParams, requestMethod, requestChainId } = storeToRefs(useRequestsStore());
 
 // TODO: if user is logged in and has an active session,
 // display the request account view
@@ -17,10 +21,18 @@ const { request } = storeToRefs(useRequestsStore());
 // display the request session view
 
 const sessionPreferences = computed<SessionPreferences | undefined>(() => {
-  if (request.value?.content.action.method !== "eth_requestAccounts") return undefined;
-  if ("sessionPreferences" in (request.value.content.action.params!)) {
-    return request.value.content.action.params.sessionPreferences;
+  if (requestMethod.value !== "eth_requestAccounts") return undefined;
+  if ("sessionPreferences" in requestParams.value!) {
+    return requestParams.value!.sessionPreferences;
   }
   return undefined;
+});
+
+const { checkTargetAddress } = useProhibitedCallsCheck(requestChainId);
+const hasProhibitedCallTarget = computed(() => {
+  if (!sessionPreferences.value) return false;
+  return (sessionPreferences.value.contractCalls || []).some(
+    (policy) => checkTargetAddress(getAddress(policy.address.toLowerCase())),
+  );
 });
 </script>

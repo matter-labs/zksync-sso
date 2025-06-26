@@ -9,6 +9,35 @@ import { noThrow } from "../../../utils/helpers.js";
 import { base64UrlToUint8Array, getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
 import type { SessionConfig } from "../../../utils/session.js";
 
+export type DeployAccountPasskeyArgs = {
+  location: Address; // module address
+  credentialId: string; // Unique id of the passkey public key (base64)
+  credentialPublicKey: Uint8Array; // Public key of the previously registered
+  expectedOrigin?: string; // Expected origin of the passkey
+};
+export const encodePasskeyModuleData = async (
+  args: DeployAccountPasskeyArgs,
+): Promise<Hash> => {
+  let origin: string | undefined = args.expectedOrigin;
+  if (!origin) {
+    try {
+      origin = window.location.origin;
+    } catch {
+      throw new Error("Can't identify expectedOrigin, please provide it manually");
+    }
+  }
+  const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
+  const encodedPasskeyParameters = encodePasskeyModuleParameters({
+    credentialId: args.credentialId,
+    passkeyPublicKey,
+    expectedOrigin: origin,
+  });
+  return encodeModuleData({
+    address: args.location,
+    parameters: encodedPasskeyParameters,
+  });
+};
+
 /* TODO: try to get rid of most of the contract params like passkey, session */
 /* it should come from factory, not passed manually each time */
 export type DeployAccountArgs = {

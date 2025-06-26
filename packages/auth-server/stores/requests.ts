@@ -10,8 +10,9 @@ export const useRequestsStore = defineStore("requests", () => {
     const chainId = request.value?.content.chainId;
     return supportedChains.find((chain) => chain.id === chainId);
   });
+  const requestChainId = computed(() => request.value?.content.chainId as unknown as SupportedChainId);
   const requestMethod = computed(() => request.value?.content.action.method);
-  const requestParams = computed(() => request.value?.content.action.method);
+  const requestParams = computed(() => request.value?.content.action.params);
 
   onMessage<RPCRequestMessage<Method>>((message: RPCRequestMessage<Method>) => "content" in message)
     .then(async (message: RPCRequestMessage<Method>) => {
@@ -62,6 +63,7 @@ export const useRequestsStore = defineStore("requests", () => {
     responseInProgress,
     responseError,
     requestChain,
+    requestChainId,
     requestMethod,
     requestParams,
     respond,
