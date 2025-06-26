@@ -19,13 +19,5 @@ ENV SALT_SERVICE_PORT=3003
 EXPOSE 3003
 CMD [ "node", "dist/salt-service.js" ]
 
-FROM base AS oidc-server
-COPY --from=build /prod/oidc-server /prod/oidc-server
-WORKDIR /prod/oidc-server
-COPY --from=build /usr/src/app/packages/oidc-server/dist ./dist
-ENV SALT_SERVICE_PORT=3003
-EXPOSE 3003
-CMD [ "node", "dist/salt-service.js" ]
-
 FROM oidc-server AS key-registry
-CMD [ "node", "dist/key-registry-service.js" ]
+CMD [ "node", "dist/update-keys-service.js" ]
