@@ -1,0 +1,57 @@
+name: Build and Push OIDC Containers
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/oidc-server/**'
+      - 'Dockerfile'
+  workflow_dispatch:
+
+env:
+  REGISTRY: us-docker.pkg.dev
+  PROJECT_ID: matterlabs-infra
+  REPOSITORY: matterlabs-docker
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker to use gcloud as credential helper
+        run: |
+          gcloud auth configure-docker us-docker.pkg.dev
+
+      - name: Build and push sso-key-registry container
+        run: |
+          docker build . --target key-registry --tag sso-key-registry
+          docker tag sso-key-registry ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:${{ github.sha }}
+          docker tag sso-key-registry ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:latest
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:latest
+
+      - name: Build and push sso-oidc-salt container
+        run: |
+          docker build . --target oidc-server --tag sso-salt-service
+          docker tag sso-salt-service ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:${{ github.sha }}
+          docker tag sso-salt-service ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:latest
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:latest
+
+      - name: Output image URIs
+        run: |
+          echo "sso-key-registry: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:${{ github.sha }}"
+          echo "sso-oidc-salt: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:${{ github.sha }}"
