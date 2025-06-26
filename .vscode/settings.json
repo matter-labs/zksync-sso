@@ -14,9 +14,7 @@
     "rewrap.autoWrap.enabled": true,
     "editor.wordWrap": "on",
     "editor.wordWrapColumn": 80,
-    "editor.rulers": [
-      80
-    ],
+    "editor.rulers": [80],
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
     "editor.formatOnSave": true,
     "editor.suggest.showWords": false,
@@ -34,15 +32,11 @@
       "source.fixAll.eslint": "explicit"
     }
   },
-  "prettier.documentSelectors": [
-    "**/*.sol"
-  ],
+  "prettier.documentSelectors": ["**/*.sol"],
   "[solidity]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "css.customData": [
-    ".vscode/tailwind.json"
-  ],
+  "css.customData": [".vscode/tailwind.json"],
   "[typescript]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
@@ -52,5 +46,8 @@
   },
   "[jsonc]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[dockerfile]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-containers"
   }
 }
