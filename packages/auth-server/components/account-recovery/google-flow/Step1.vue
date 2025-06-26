@@ -6,7 +6,9 @@
     v-if="askForPopups"
     class="w-full bg-red-200 rounded-md border border-red-600 p-2 text-left"
   >
-    <h3 class="font-semibold">Popups are blocked</h3>
+    <h3 class="font-semibold">
+      Popups are blocked
+    </h3>
     <p>Please allow popups for this site in order to continue</p>
   </div>
   <ZkButton
