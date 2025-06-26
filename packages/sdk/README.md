@@ -47,7 +47,8 @@ import { createConfig, connect } from "@wagmi/core";
 import { erc20Abi } from "viem";
 
 const ssoConnector = zksyncSsoConnector({
-  // Optional session configuration, if omitted user will have to sign every transaction via Auth Server
+  // Optional session configuration,
+  // if omitted user will have to sign every transaction via Auth Server
   session: {
     expiry: "1 day",
 

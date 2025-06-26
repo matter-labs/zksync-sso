@@ -41,6 +41,11 @@ const app = express();
 app.use(cors({ origin: env.AUTH_SERVER_URL }));
 app.use(limiter);
 
+// Health check endpoint for Kubernetes
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
+});
+
 app.get("/salt", async (req, res): Promise<void> => {
   const authHeader = req.headers.authorization;
 
