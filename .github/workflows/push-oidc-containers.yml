@@ -1,57 +1,76 @@
-name: Build and Push OIDC Containers
-
+name: Build and push Docker image
 on:
   push:
     branches:
       - main
-    paths:
-      - 'packages/oidc-server/**'
-      - 'Dockerfile'
-  workflow_dispatch:
+    tags:
+      - "*"
 
-env:
-  REGISTRY: us-docker.pkg.dev
-  PROJECT_ID: matterlabs-infra
-  REPOSITORY: matterlabs-docker
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
+  build-push-image:
+    name: Build and push Docker image
+    runs-on: [matterlabs-ci-runner]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Set git SHA
+        id: git_sha
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Set Docker tag
+        id: docker_tag
+        run: |
+          ts=$(date +%s%N | cut -b1-13)
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "tag=${{ steps.git_sha.outputs.sha_short }}-${ts}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "tag=none" >> $GITHUB_OUTPUT
+          else
+            echo "Unsupported event ${GITHUB_EVENT_NAME} or ref ${GITHUB_REF}, only refs/heads/, refs/tags/ and pull_request are supported."
+            exit 1
+          fi
+
+      - name: Login to GAR
+        run: |
+          gcloud auth configure-docker us-docker.pkg.dev -q
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push oidc-server image
+        id: docker_build_oidc
+        uses: docker/build-push-action@v6
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          context: .
+          file: Dockerfile
+          target: oidc-server
+          push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+          tags: |
+            us-docker.pkg.dev/matterlabs-infra/matterlabs-docker/sso-oidc-salt:${{ steps.docker_tag.outputs.tag }}
+            us-docker.pkg.dev/matterlabs-infra/matterlabs-docker/sso-oidc-salt:latest
 
-      - name: Configure Docker to use gcloud as credential helper
-        run: |
-          gcloud auth configure-docker us-docker.pkg.dev
+      - name: Build and push key-registry image
+        id: docker_build_key_registry
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: key-registry
+          push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+          tags: |
+            us-docker.pkg.dev/matterlabs-infra/matterlabs-docker/sso-oidc-key-updater:${{ steps.docker_tag.outputs.tag }}
+            us-docker.pkg.dev/matterlabs-infra/matterlabs-docker/sso-oidc-key-updater:latest
 
-      - name: Build and push sso-key-registry container
+      - name: Print image digest to summary
         run: |
-          docker build . --target key-registry --tag sso-key-registry
-          docker tag sso-key-registry ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:${{ github.sha }}
-          docker tag sso-key-registry ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:latest
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:latest
-
-      - name: Build and push sso-oidc-salt container
-        run: |
-          docker build . --target oidc-server --tag sso-salt-service
-          docker tag sso-salt-service ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:${{ github.sha }}
-          docker tag sso-salt-service ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:latest
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:latest
-
-      - name: Output image URIs
-        run: |
-          echo "sso-key-registry: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-key-registry:${{ github.sha }}"
-          echo "sso-oidc-salt: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/sso-oidc-salt:${{ github.sha }}"
+          echo "OIDC Server Image tag: ${{ steps.docker_tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "Key Registry Image tag: ${{ steps.docker_tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
