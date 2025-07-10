@@ -70,3 +70,39 @@ jobs:
       - name: Publish to GitHub Packages
         working-directory: packages/sdk
         run: npm publish --access public
+
+      # Build and publish wagmi connector package
+      - name: Backup original package.json and README
+        working-directory: packages/sdk
+        run: |
+          cp package.json package.json.backup
+          cp README.md README.md.backup
+
+      - name: Build wagmi connector package
+        run: pnpm nx build sdk
+
+      - name: Prepare wagmi connector package.json
+        working-directory: packages/sdk
+        run: node prepare-wagmi-connector.mjs
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+
+      - name: Create .npmrc for NPM (wagmi connector)
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
+      
+      - name: Publish wagmi connector to NPM
+        working-directory: packages/sdk
+        run: npm publish --access public
+    
+      - name: Create .npmrc for GitHub Packages (wagmi connector)
+        run: echo "@OWNER:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+
+      - name: Publish wagmi connector to GitHub Packages
+        working-directory: packages/sdk
+        run: npm publish --access public
+
+      - name: Restore original package.json and README
+        working-directory: packages/sdk
+        run: |
+          mv package.json.backup package.json
+          mv README.md.backup README.md

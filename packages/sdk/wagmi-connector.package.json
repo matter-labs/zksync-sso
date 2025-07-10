@@ -1,0 +1,57 @@
+{
+  "name": "zksync-sso-wagmi-connector",
+  "description": "ZKsync SSO Wagmi Connector - Lightweight connector for wagmi integration",
+  "keywords": ["zksync", "wagmi", "connector", "web3", "ethereum", "wallet"],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/_cjs/connector/index.js",
+  "module": "./dist/_esm/connector/index.js",
+  "types": "./dist/_types/connector/index.d.ts",
+  "typings": "./dist/_types/connector/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/_types/connector/index.d.ts",
+      "import": "./dist/_esm/connector/index.js",
+      "require": "./dist/_cjs/connector/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/_cjs/connector/",
+    "dist/_esm/connector/",
+    "dist/_types/connector/",
+    "dist/_cjs/client-auth-server/",
+    "dist/_esm/client-auth-server/",
+    "dist/_types/client-auth-server/",
+    "dist/_cjs/client/",
+    "dist/_esm/client/",
+    "dist/_types/client/",
+    "dist/_cjs/errors/",
+    "dist/_esm/errors/",
+    "dist/_types/errors/",
+    "dist/_cjs/paymaster/",
+    "dist/_esm/paymaster/",
+    "dist/_types/paymaster/",
+    "dist/_cjs/communicator/",
+    "dist/_esm/communicator/",
+    "dist/_types/communicator/",
+    "dist/_cjs/utils/",
+    "dist/_esm/utils/",
+    "dist/_types/utils/",
+    "dist/_cjs/abi/",
+    "dist/_esm/abi/",
+    "dist/_types/abi/",
+    "dist/_cjs/types/",
+    "dist/_esm/types/",
+    "dist/_types/types/",
+    "dist/_cjs/index.js",
+    "dist/_esm/index.js",
+    "dist/_types/index.d.ts",
+    "!**/*.test.ts",
+    "!**/*.test-d.ts",
+    "!**/*.tsbuildinfo"
+  ],
+  "peerDependencies": {
+    "@wagmi/core": "2.x"
+  }
+}
