@@ -53,15 +53,7 @@ export function zksyncSsoPasskeyWalletActions<
 
       return await sendEip712Transaction(client, tx);
     },
-    signMessage: (args) => erc7739SignMessage(client, {
-      verifierDomain: {
-        name: "ZKsync SSO Account",
-        version: "1",
-        chainId: client.chain.id,
-        verifyingContract: client.account.address,
-      },
-      ...args,
-    } as any),
+    signMessage: (args) => erc7739SignMessage(client, args),
 
     signTransaction: async (args) => {
       /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -76,16 +68,7 @@ export function zksyncSsoPasskeyWalletActions<
         unformattedTxWithPaymaster,
       } as any) as any;
     },
-    signTypedData: (args) => erc7739SignTypedData(client, {
-      verifierDomain: {
-        name: "ZKsync SSO Account",
-        version: "1",
-        chainId: client.chain.id,
-        verifyingContract: client.account.address,
-        salt: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      },
-      ...args,
-    } as any),
+    signTypedData: (args) => erc7739SignTypedData(client, args as any),
     writeContract: (args) => writeContract(client, args),
     signAuthorization: (args) => signAuthorization(client, args),
     getCallsStatus: (args) => getCallsStatus(client, args),
