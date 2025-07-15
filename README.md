@@ -10,9 +10,9 @@ simplifying user authentication, session management, and transaction processing.
 
 <!-- prettier-ignore -->
 > [!CAUTION]
-> ZKsync SSO is under active development and is not yet feature
-> complete. Use it to improve your development applications and tooling. Please
-> do not use it in production environments.
+ZKsync SSO is under active development and not yet feature complete. While it's
+suitable for improving your development workflows and tooling,
+use caution and stay up to date with the latest updates and changes as they are released.
 
 - 🧩 Modular smart accounts based on
   [ERC-7579](https://eips.ethereum.org/EIPS/eip-7579#modules)
@@ -20,7 +20,13 @@ simplifying user authentication, session management, and transaction processing.
 - ⏰ Sessions with easy configuration and management
 - 💰 Integrated paymaster support
 - ❤️‍🩹 Account recovery
-- 💻 Simple SDKs : JavaScript, iOS/Android _(Coming Soon)_
+  - Setup EOA or other SSO Guardian accounts to create new passkey
+  - Use Google Auth (OIDC) recovery flow to create new passkey
+- 💻 Simple SDKs :
+  - JavaScript
+  - React Native
+  - Swift
+  - Kotlin _(Coming Soon)_
 - 🤝 Open-source authentication server
 - 🎓 Examples to get started quickly
 
