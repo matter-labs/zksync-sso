@@ -8,7 +8,7 @@
         "cwd": "examples/demo-app",
         "commands": [
           {
-            "command": "pnpm nx dev auth-server",
+            "command": "NUXT_PUBLIC_DEFAULT_CHAIN_ID=260 pnpm nx dev auth-server",
             "prefix": "Auth-Server:"
           },
 
