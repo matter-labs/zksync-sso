@@ -46,6 +46,102 @@
     </button>
 
     <div
+      v-if="address"
+      class="mt-8 border-t pt-4"
+    >
+      <h2 class="text-xl font-bold mb-4">
+        Message Signature Verification
+      </h2>
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2">
+          Message to Sign:
+        </label>
+        <input
+          v-model="messageToSign"
+          type="text"
+          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline max-w-md"
+        >
+      </div>
+      <button
+        class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:bg-slate-300"
+        :disabled="isSigningMessage"
+        @click="signMessageHandler"
+      >
+        {{ isSigningMessage ? 'Signing...' : 'Sign Message' }}
+      </button>
+      <div
+        v-if="messageSignature"
+        class="mt-4"
+      >
+        <p class="break-all">
+          <strong>Signature:</strong> {{ messageSignature }}
+        </p>
+      </div>
+      <div
+        v-if="isVerifyingSignature"
+        class="mt-4"
+      >
+        <p class="text-gray-600">
+          Verifying signature...
+        </p>
+      </div>
+      <div
+        v-else-if="isValidSignature !== null"
+        class="mt-4"
+      >
+        <p :class="isValidSignature ? 'text-green-600' : 'text-red-600'">
+          <strong>Verification Result:</strong> {{ isValidSignature ? 'Valid ✓' : 'Invalid ✗' }}
+        </p>
+      </div>
+    </div>
+
+    <div
+      v-if="address"
+      class="mt-8 border-t pt-4"
+    >
+      <h2 class="text-xl font-bold mb-4">
+        Typed Data Signature Verification
+      </h2>
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2">
+          Typed Data (EIP-712):
+        </label>
+        <pre class="bg-gray-100 p-3 rounded text-sm overflow-x-auto max-w-2xl">{{ JSON.stringify(typedData, null, 2) }}</pre>
+      </div>
+      <button
+        class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded disabled:bg-slate-300"
+        :disabled="isSigningTypedData"
+        @click="signTypedDataHandler"
+      >
+        {{ isSigningTypedData ? 'Signing...' : 'Sign Typed Data' }}
+      </button>
+      <div
+        v-if="typedDataSignature"
+        class="mt-4"
+      >
+        <p class="break-all">
+          <strong>Typed Data Signature:</strong> {{ typedDataSignature }}
+        </p>
+      </div>
+      <div
+        v-if="isVerifyingTypedDataSignature"
+        class="mt-4"
+      >
+        <p class="text-gray-600">
+          Verifying typed data signature...
+        </p>
+      </div>
+      <div
+        v-else-if="isValidTypedDataSignature !== null"
+        class="mt-4"
+      >
+        <p :class="isValidTypedDataSignature ? 'text-green-600' : 'text-red-600'">
+          <strong>Typed Data Verification Result:</strong> {{ isValidTypedDataSignature ? 'Valid ✓' : 'Invalid ✗' }}
+        </p>
+      </div>
+    </div>
+
+    <div
       v-if="errorMessage"
       class="p-4 mt-4 mb-4 max-w-96 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400"
     >
@@ -55,10 +151,10 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType } from "@wagmi/core";
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, signMessage, signTypedData, type GetBalanceReturnType } from "@wagmi/core";
 import { zksyncSsoConnector } from "zksync-sso/connector";
 import { zksyncInMemoryNode } from "@wagmi/core/chains";
-import { createWalletClient, http, parseEther, type Address } from "viem";
+import { createWalletClient, http, parseEther, type Address, createPublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { getGeneralPaymasterInput } from "viem/zksync";
 import PaymasterContract from "../forge-output.json";
@@ -90,10 +186,57 @@ const wagmiConfig = createConfig({
 });
 reconnect(wagmiConfig);
 
+const publicClient = createPublicClient({
+  chain: chain,
+  transport: http(),
+});
+
 const address = ref<Address | null>(null);
 const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
 const isSendingEth = ref<boolean>(false);
+const messageToSign = ref<string>("hello world");
+const messageSignature = ref<string | null>(null);
+const isValidSignature = ref<boolean | null>(null);
+const isSigningMessage = ref<boolean>(false);
+const isVerifyingSignature = ref<boolean>(false);
+
+const typedDataSignature = ref<string | null>(null);
+const isValidTypedDataSignature = ref<boolean | null>(null);
+const isSigningTypedData = ref<boolean>(false);
+const isVerifyingTypedDataSignature = ref<boolean>(false);
+
+const typedData = {
+  domain: {
+    name: "ZKsync SSO Demo",
+    version: "1",
+    chainId: chain.id,
+    verifyingContract: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+  },
+  types: {
+    Person: [
+      { name: "name", type: "string" },
+      { name: "wallet", type: "address" },
+    ],
+    Mail: [
+      { name: "from", type: "Person" },
+      { name: "to", type: "Person" },
+      { name: "contents", type: "string" },
+    ],
+  },
+  primaryType: "Mail" as const,
+  message: {
+    from: {
+      name: "Alice",
+      wallet: "0xa1cf087DB965Ab02Fb3CFaCe1f5c63935815f044",
+    },
+    to: {
+      name: "Bob",
+      wallet: "0x6cC8cf7f6b488C58AA909B77E6e65c631c204784",
+    },
+    contents: "Hello, ZKsync!",
+  },
+} as const;
 
 const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
@@ -179,7 +322,7 @@ const sendTokens = async (usePaymaster: boolean) => {
       transactionHash = await sendTransaction(wagmiConfig, {
         to: testTransferTarget,
         value: parseEther("0.1"),
-        paymaster: PaymasterContract.deployedTo as `0x${string}`,
+        paymaster: PaymasterContract.deployedTo as Address,
         paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
       });
     } else {
@@ -226,4 +369,99 @@ const sendTokens = async (usePaymaster: boolean) => {
     isSendingEth.value = false;
   }
 };
+
+const signMessageHandler = async () => {
+  if (!address.value) return;
+
+  errorMessage.value = "";
+  isSigningMessage.value = true;
+  isValidSignature.value = null;
+  try {
+    const signature = await signMessage(wagmiConfig, {
+      message: messageToSign.value,
+    });
+    messageSignature.value = signature;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Message signing failed:", error);
+    errorMessage.value = "Message signing failed, see console for more info.";
+  } finally {
+    isSigningMessage.value = false;
+  }
+};
+
+const verifySignatureAutomatically = async () => {
+  if (!address.value || !messageSignature.value) {
+    isValidSignature.value = null;
+    return;
+  }
+
+  isVerifyingSignature.value = true;
+  try {
+    console.log({
+      address: address.value,
+      message: messageToSign.value,
+      signature: messageSignature.value as `0x${string}`,
+    });
+    const isValid = await publicClient.verifyMessage({
+      address: address.value,
+      message: messageToSign.value,
+      signature: messageSignature.value as `0x${string}`,
+    });
+    isValidSignature.value = isValid;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Signature verification failed:", error);
+    isValidSignature.value = false;
+  } finally {
+    isVerifyingSignature.value = false;
+  }
+};
+
+const signTypedDataHandler = async () => {
+  if (!address.value) return;
+
+  errorMessage.value = "";
+  isSigningTypedData.value = true;
+  isValidTypedDataSignature.value = null;
+  try {
+    const signature = await signTypedData(wagmiConfig, typedData);
+    typedDataSignature.value = signature;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Typed data signing failed:", error);
+    errorMessage.value = "Typed data signing failed, see console for more info.";
+  } finally {
+    isSigningTypedData.value = false;
+  }
+};
+
+const verifyTypedDataSignatureAutomatically = async () => {
+  if (!address.value || !typedDataSignature.value) {
+    isValidTypedDataSignature.value = null;
+    return;
+  }
+
+  isVerifyingTypedDataSignature.value = true;
+  try {
+    const isValid = await publicClient.verifyTypedData({
+      address: address.value,
+      domain: typedData.domain,
+      types: typedData.types,
+      primaryType: typedData.primaryType,
+      message: typedData.message,
+      signature: typedDataSignature.value as `0x${string}`,
+    });
+    isValidTypedDataSignature.value = isValid;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Typed data signature verification failed:", error);
+    isValidTypedDataSignature.value = false;
+  } finally {
+    isVerifyingTypedDataSignature.value = false;
+  }
+};
+
+watch([messageSignature, messageToSign, address], verifySignatureAutomatically);
+watch([typedDataSignature, address], verifyTypedDataSignatureAutomatically);
 </script>

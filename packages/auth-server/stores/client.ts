@@ -43,6 +43,7 @@ export const useClientStore = defineStore("client", () => {
   const { address, username, passkey } = storeToRefs(useAccountStore());
 
   const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
+  console.log("Default chain ID:", defaultChainId);
   const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
   if (!defaultChain)
     throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);

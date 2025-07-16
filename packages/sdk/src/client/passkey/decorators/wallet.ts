@@ -1,6 +1,6 @@
 import { type Account, bytesToHex, type Chain, type ExactPartial, formatTransaction, type RpcTransaction, type Transport, type WalletActions } from "viem";
-import { deployContract, getAddresses, getCallsStatus, getCapabilities, getChainId, prepareAuthorization, sendCalls, sendRawTransaction, showCallsStatus, signAuthorization, waitForCallsStatus, writeContract } from "viem/actions";
-import { signMessage as erc7739SignMessage, signTypedData as erc7739SignTypedData } from "viem/experimental/erc7739";
+import { deployContract, getAddresses, getCallsStatus, getCapabilities, getChainId, prepareAuthorization, sendCalls, sendRawTransaction, showCallsStatus, signAuthorization, signMessage, signTypedData, waitForCallsStatus, writeContract } from "viem/actions";
+// import { signMessage as erc7739SignMessage, signTypedData as erc7739SignTypedData } from "viem/experimental/erc7739";
 import { signTransaction, type TransactionRequestEIP712, type ZksyncEip712Meta } from "viem/zksync";
 
 import { getTransactionWithPaymasterData } from "../../../paymaster/index.js";
@@ -53,15 +53,41 @@ export function zksyncSsoPasskeyWalletActions<
 
       return await sendEip712Transaction(client, tx);
     },
-    signMessage: (args) => erc7739SignMessage(client, {
-      verifierDomain: {
-        name: "ZKsync SSO Account",
-        version: "1",
-        chainId: client.chain.id,
-        verifyingContract: client.account.address,
-      },
-      ...args,
-    } as any),
+    // signTypedData: (args) => {
+    //   console.log("signTypedData", args);
+    //   console.log("client", client);
+    //   return erc7739SignTypedData(client, {
+    //     verifier: client.account.address,
+    //     ...args,
+    //   } as any);
+    // },
+    signTypedData: (args) => signTypedData(client, args),
+    signMessage: (args) => signMessage(client, args),
+    /* signMessage: async (args) => {
+      console.log("signMessage", args);
+      console.log("client address", client.account.address);
+      // const { salt, ...domain } = await (async () => {
+      //   const { domain } = await getAction(client, getEip712Domain, "getEip712Domain")({
+      //     address: client.account.address,
+      //   });
+      //   return domain;
+      // })();
+      // return await erc7739SignTypedData(client, {
+      //   verifier: client.account.address,
+      //   domain,
+      //   types: {
+      //     PersonalSign: [{ name: "prefixed", type: "bytes" }],
+      //   },
+      //   primaryType: "PersonalSign",
+      //   message: {
+      //     prefixed: toPrefixedMessage(args.message),
+      //   },
+      // } as any);
+      return erc7739SignMessage(client, {
+        verifier: client.account.address,
+        ...args,
+      } as any);
+    }, */
 
     signTransaction: async (args) => {
       /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -76,16 +102,6 @@ export function zksyncSsoPasskeyWalletActions<
         unformattedTxWithPaymaster,
       } as any) as any;
     },
-    signTypedData: (args) => erc7739SignTypedData(client, {
-      verifierDomain: {
-        name: "ZKsync SSO Account",
-        version: "1",
-        chainId: client.chain.id,
-        verifyingContract: client.account.address,
-        salt: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      },
-      ...args,
-    } as any),
     writeContract: (args) => writeContract(client, args),
     signAuthorization: (args) => signAuthorization(client, args),
     getCallsStatus: (args) => getCallsStatus(client, args),
