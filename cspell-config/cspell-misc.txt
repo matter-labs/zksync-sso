@@ -37,3 +37,11 @@ EVMLA
 
 // paymasters
 zyfi
+
+// auth-server
+okta
+Okta
+prividium
+Prividium
+PRIVIDIUM
+pkce
