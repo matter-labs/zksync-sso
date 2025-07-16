@@ -11,6 +11,7 @@ testid
 vueuse
 dockerized
 ethereum
+sepolia
 foundryup
 
 // examples/bank-demo
@@ -29,6 +30,19 @@ usdc
 Fren
 fren
 nfts
+
+// auth-server
+oidc
+Oidc
+jwks
+merkle
+
+// zk and circom
+Groth
+groth
+zkey
+snark
+snarkjs
 
 // examples/demo-app
 zkout
