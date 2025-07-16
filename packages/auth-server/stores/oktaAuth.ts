@@ -1,11 +1,20 @@
 import type { AuthState } from "@okta/okta-auth-js";
 import { StorageSerializers, useStorage } from "@vueuse/core";
 
+interface OktaUser {
+  email?: string;
+  preferred_username?: string;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  [key: string]: unknown;
+}
+
 interface OktaAuthData {
   isAuthenticated: boolean;
   idToken: string | null;
   accessToken: string | null;
-  user: unknown | null;
+  user: OktaUser | null;
   tokenExpiry: number | null;
 }
 
@@ -27,6 +36,13 @@ export const useOktaAuthStore = defineStore("oktaAuth", () => {
   const accessToken = computed(() => authData.value?.accessToken || null);
   const user = computed(() => authData.value?.user || null);
   const tokenExpiry = computed(() => authData.value?.tokenExpiry || null);
+
+  // Computed email from user data
+  const userEmail = computed(() => {
+    const userData = authData.value?.user;
+    if (!userData) return null;
+    return userData.email || userData.preferred_username || null;
+  });
 
   // Check if tokens are expired
   const isTokenExpired = computed(() => {
@@ -98,6 +114,7 @@ export const useOktaAuthStore = defineStore("oktaAuth", () => {
     idToken,
     accessToken,
     user,
+    userEmail,
     tokenExpiry,
     isTokenExpired,
     needsAuthentication,
