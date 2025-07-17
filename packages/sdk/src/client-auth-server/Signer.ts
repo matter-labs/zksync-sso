@@ -5,7 +5,7 @@ import { createZksyncSessionClient, type ZksyncSsoSessionClient } from "../clien
 import type { Communicator } from "../communicator/index.js";
 import { type CustomPaymasterHandler, getTransactionWithPaymasterData } from "../paymaster/index.js";
 import type { SessionStateEvent } from "../utils/session.js";
-import { StorageItem } from "../utils/storage.js";
+import { StorageItem, type StorageLike } from "../utils/storage.js";
 import type { AppMetadata, RequestArguments } from "./interface.js";
 import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
 import type { SessionPreferences } from "./session/index.js";
@@ -44,6 +44,7 @@ type SignerConstructorParams = {
   paymasterHandler?: CustomPaymasterHandler;
   onSessionStateChange?: (event: { address: Address; chainId: number; state: SessionStateEvent }) => void;
   skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
+  storage?: StorageLike;
 };
 
 type ChainsInfo = ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema>["chainsInfo"];
@@ -60,10 +61,10 @@ export class Signer implements SignerInterface {
   private readonly skipPreTransactionStateValidation?: boolean;
 
   private _account: StorageItem<Account | null>;
-  private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
+  private _chainsInfo: StorageItem<ChainsInfo>;
   private client: { instance: ZksyncSsoSessionClient; type: "session" } | { instance: WalletClient; type: "auth-server" } | undefined;
 
-  constructor({ metadata, communicator, updateListener, session, chains, transports, paymasterHandler, onSessionStateChange, skipPreTransactionStateValidation }: SignerConstructorParams) {
+  constructor({ metadata, communicator, updateListener, session, chains, transports, paymasterHandler, onSessionStateChange, skipPreTransactionStateValidation, storage }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
 
     this.getMetadata = metadata;
@@ -76,6 +77,7 @@ export class Signer implements SignerInterface {
     this.onSessionStateChange = onSessionStateChange;
     this.skipPreTransactionStateValidation = skipPreTransactionStateValidation;
 
+    this._chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), [], { storage });
     this._account = new StorageItem<Account | null>(StorageItem.scopedStorageKey("account"), null, {
       onChange: (newValue) => {
         if (newValue) {
@@ -86,6 +88,7 @@ export class Signer implements SignerInterface {
           this.updateListener.onAccountsUpdate([]);
         }
       },
+      storage,
     });
     try {
       if (this.account) this.createWalletClient();
