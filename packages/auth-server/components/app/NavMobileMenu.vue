@@ -40,11 +40,10 @@
             /> {{ link.name }}
           </ZkLink>
           <ZkLink
-            as="button"
+            href="/logout"
             class="w-full"
             type="secondary"
             ui="justify-start dark:border-neutral-800 border-neutral-300 mt-4"
-            @click="logout()"
           >
             <zk-icon
               icon="Logout"
@@ -61,13 +60,7 @@
 import { Dialog } from "radix-vue/namespaced";
 
 const { mainNav } = useNav();
-const { logout: _logout } = useAccountStore();
 const open = ref(false);
-
-const logout = () => {
-  _logout();
-  navigateTo("/");
-};
 </script>
 
 <style lang="scss" scoped>

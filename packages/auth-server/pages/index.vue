@@ -1,53 +1,59 @@
 <template>
   <main class="h-full flex flex-col justify-center px-4">
-    <AppAccountLogo
-      class="dark:text-neutral-100 h-16 md:h-20 mb-8"
-    />
+    <!-- Show OktaAuth component when in Prividium mode -->
+    <okta-auth v-if="isPrividiumMode" />
 
-    <div class="flex flex-col gap-5 mt-8 py-8">
-      <ZkHighlightWrapper>
-        <ZkButton
-          class="w-full"
-          :loading="registerInProgress"
-          data-testid="signup"
-          @click="signUp"
-        >
-          Sign Up
-        </ZkButton>
-      </ZkHighlightWrapper>
+    <!-- Only show normal auth flow if not in Prividium mode OR if authenticated -->
+    <template v-if="!isPrividiumMode || isAuthenticated">
+      <AppAccountLogo
+        class="dark:text-neutral-100 h-16 md:h-20 mb-8"
+      />
 
-      <ZkButton
-        type="secondary"
-        class="!text-slate-400"
-        :loading="loginInProgress"
-        data-testid="login"
-        @click="logIn"
-      >
-        Log In
-      </ZkButton>
-
-      <ZkLink
-        class="w-fit mx-auto mt-2"
-        href="/recovery"
-      >
-        Recover your account
-      </ZkLink>
-    </div>
-
-    <CommonHeightTransition :opened="!!accountLoginError">
-      <p class="pt-3 text-sm text-error-300 text-center">
-        <span>
-          Account not found.
-          <button
-            type="button"
-            class="underline underline-offset-4"
+      <div class="flex flex-col gap-5 mt-8 py-8">
+        <ZkHighlightWrapper>
+          <ZkButton
+            class="w-full"
+            :loading="registerInProgress"
+            data-testid="signup"
             @click="signUp"
           >
-            Sign up?
-          </button>
-        </span>
-      </p>
-    </CommonHeightTransition>
+            Sign Up
+          </ZkButton>
+        </ZkHighlightWrapper>
+
+        <ZkButton
+          type="secondary"
+          class="!text-slate-400"
+          :loading="loginInProgress"
+          data-testid="login"
+          @click="logIn"
+        >
+          Log In
+        </ZkButton>
+
+        <ZkLink
+          class="w-fit mx-auto mt-2"
+          href="/recovery"
+        >
+          Recover your account
+        </ZkLink>
+      </div>
+
+      <CommonHeightTransition :opened="!!accountLoginError">
+        <p class="pt-3 text-sm text-error-300 text-center">
+          <span>
+            Account not found.
+            <button
+              type="button"
+              class="underline underline-offset-4"
+              @click="signUp"
+            >
+              Sign up?
+            </button>
+          </span>
+        </p>
+      </CommonHeightTransition>
+    </template>
   </main>
 </template>
 
@@ -57,8 +63,13 @@ definePageMeta({
 });
 
 const runtimeConfig = useRuntimeConfig();
+const { $config } = useNuxtApp();
+const oktaAuthStore = useOktaAuthStore();
 
 const chainId = runtimeConfig.public.chainId as SupportedChainId;
+
+const isPrividiumMode = computed(() => $config.public.prividiumMode);
+const isAuthenticated = computed(() => oktaAuthStore.isAuthenticated);
 
 const { registerInProgress, createAccount } = useAccountCreate(chainId);
 const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(chainId);

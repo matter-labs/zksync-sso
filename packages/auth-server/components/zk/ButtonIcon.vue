@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { twMerge } from "tailwind-merge";
 
-import type { ButtonTypes, ButtonUI } from "./Button.vue";
+import type { ButtonTypes, ButtonUI } from "./button.vue";
 
 const {
   type = "ghost",

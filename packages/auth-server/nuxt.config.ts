@@ -73,6 +73,13 @@ export default defineNuxtConfig({
       },
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
+      prividiumMode: process.env.PRIVIDIUM_MODE === "true",
+      okta: {
+        issuer: process.env.NUXT_PUBLIC_OKTA_ISSUER || "",
+        clientId: process.env.NUXT_PUBLIC_OKTA_CLIENT_ID || "",
+        redirectUri: process.env.NUXT_PUBLIC_OKTA_REDIRECT_URI || "",
+        proxyUrl: process.env.NUXT_PUBLIC_PROXY_URL || "",
+      },
     },
   },
 });

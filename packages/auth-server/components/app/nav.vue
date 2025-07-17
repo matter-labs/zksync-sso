@@ -41,7 +41,7 @@
       <ZkButtonIcon
         icon="Logout"
         class="mr-1 -ml-1 scale-[-1]"
-        @click="logoutAndRedirect"
+        @click="navigateTo('/logout')"
       />
     </div>
     <div
@@ -85,13 +85,6 @@ onBeforeUnmount(() => {
 });
 
 watch(windowWidth, checkWidths);
-
-const { logout } = useAccountStore();
-
-const logoutAndRedirect = () => {
-  logout();
-  navigateTo("/");
-};
 </script>
 
 <style lang="scss" scoped>
