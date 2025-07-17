@@ -102,13 +102,6 @@ export const useOktaAuthStore = defineStore("oktaAuth", () => {
     return idToken.value;
   };
 
-  // Observable for authentication state changes
-  const { subscribe: subscribeOnAuthChange, notify: notifyOnAuthChange } = useObservable<boolean>();
-
-  watch(isAuthenticated, (newIsAuthenticated) => {
-    notifyOnAuthChange(newIsAuthenticated);
-  });
-
   return {
     isAuthenticated,
     idToken,
@@ -122,6 +115,5 @@ export const useOktaAuthStore = defineStore("oktaAuth", () => {
     setTokens,
     clearAuthState,
     getBearerToken,
-    subscribeOnAuthChange,
   };
 });

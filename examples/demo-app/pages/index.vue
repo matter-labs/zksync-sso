@@ -63,11 +63,18 @@ import { privateKeyToAccount } from "viem/accounts";
 import { getGeneralPaymasterInput } from "viem/zksync";
 import PaymasterContract from "../forge-output.json";
 
-const chain = zksyncInMemoryNode;
+const chain = {
+  ...zksyncInMemoryNode,
+  rpcUrls: {
+    default: {
+      http: ["http://localhost:8545"],
+    },
+  },
+};
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const zksyncConnectorWithSession = zksyncSsoConnector({
-  authServerUrl: "http://localhost:3002/confirm",
+  authServerUrl: "http://localhost:5173/confirm",
   session: {
     feeLimit: parseEther("0.1"),
     transfers: [
@@ -79,7 +86,7 @@ const zksyncConnectorWithSession = zksyncSsoConnector({
   },
 });
 const zksyncConnector = zksyncSsoConnector({
-  authServerUrl: "http://localhost:3002/confirm",
+  authServerUrl: "http://localhost:5173/confirm",
 });
 const wagmiConfig = createConfig({
   chains: [chain],

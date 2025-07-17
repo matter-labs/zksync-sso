@@ -1,21 +1,12 @@
 <template>
   <div class="h-full flex flex-col justify-center px-4">
-    <div class="text-center mb-8">
-      <h2 class="text-2xl font-semibold mb-2">
-        Authorize RPC Connection
-      </h2>
-      <p class="text-slate-400">
-        To continue, you need to authorize the RPC connection with your Okta account.
-      </p>
-    </div>
-
+    <AppAccountLogo class="dark:text-neutral-100 h-16 md:h-20 mb-14" />
     <CommonHeightTransition :opened="!!error">
-      <p class="pt-3 text-sm text-error-300 text-center">
+      <p class="pb-3 text-sm text-error-300 text-center">
         {{ error }}
       </p>
     </CommonHeightTransition>
-
-    <div class="flex flex-col gap-5 mt-8 py-8">
+    <div class="flex flex-col gap-5">
       <ZkHighlightWrapper>
         <ZkButton
           class="w-full"
@@ -37,7 +28,7 @@
       </ZkHighlightWrapper>
 
       <p class="text-xs text-slate-500 text-center">
-        This will redirect you to your Okta login page to authenticate and authorize RPC access.
+        This will redirect you to your Okta login page to authenticate and authorize chain access.
       </p>
     </div>
   </div>

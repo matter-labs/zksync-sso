@@ -10,11 +10,10 @@
         ZKsync SSO - Prividium Mode
       </h2>
       <button
-        :disabled="loading"
         class="bg-[#007fdb] hover:bg-[#0066b3] disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200"
-        @click="login"
+        @click="signInWithRedirect"
       >
-        {{ loading ? 'Authenticating...' : 'Authenticate with Okta' }}
+        Authenticate with Okta
       </button>
 
       <div
@@ -45,7 +44,7 @@
         </div>
         <button
           class="text-xs text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 underline underline-offset-2 transition-colors duration-200"
-          @click="logout"
+          @click="signOut"
         >
           Logout
         </button>
@@ -55,52 +54,6 @@
 </template>
 
 <script setup lang="ts">
-const oktaAuthStore = useOktaAuthStore();
-const { signInWithRedirect, signOut } = useOktaAuth();
-
-const isAuthenticated = computed(() => oktaAuthStore.isAuthenticated);
-const loading = ref(false);
-const error = ref<string | null>(null);
-const userEmail = ref<string | null>(null);
-
-const login = async () => {
-  try {
-    loading.value = true;
-    error.value = null;
-    await signInWithRedirect();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : "Authentication failed";
-  } finally {
-    loading.value = false;
-  }
-};
-
-const logout = async () => {
-  try {
-    await signOut();
-    oktaAuthStore.clearAuthState();
-    await navigateTo("/");
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : "Logout failed";
-  }
-};
-
-const fetchUserInfo = () => {
-  if (!isAuthenticated.value) return;
-
-  try {
-    const user = oktaAuthStore.user as { email?: string; preferred_username?: string } | null;
-    userEmail.value = user?.email || user?.preferred_username || null;
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : "Failed to fetch user info";
-  }
-};
-
-watch(isAuthenticated, (authenticated) => {
-  if (authenticated) {
-    fetchUserInfo();
-  } else {
-    userEmail.value = null;
-  }
-}, { immediate: true });
+const { isAuthenticated, userEmail } = storeToRefs(useOktaAuthStore());
+const { signInWithRedirect, signOut, error } = useOktaAuth();
 </script>
