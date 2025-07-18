@@ -1,0 +1,26 @@
+{
+  "name": "connector-lite",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/connector-lite/src",
+  "root": "packages/connector-lite",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}", "{options.outputPath}/index.d.ts"],
+      "options": {
+        "outputPath": "packages/connector-lite/dist",
+        "main": "packages/connector-lite/src/index.ts",
+        "tsConfig": "packages/connector-lite/tsconfig.json",
+        "assets": []
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["packages/connector-lite/src/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

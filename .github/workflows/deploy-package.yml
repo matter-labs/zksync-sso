@@ -71,9 +71,9 @@ jobs:
         working-directory: packages/sdk
         run: npm publish --access public
 
-  publish-wagmi-connector:
+  publish-connector-lite:
     runs-on: ubuntu-latest
-    needs: publish-sdk
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -93,11 +93,42 @@ jobs:
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
-      - name: Build the package
-        run: pnpm nx build sdk
+      # SDK depends on contracts
+      - name: Install contract dependencies
+        run: pnpm install -r --frozen-lockfile
+        working-directory: packages/contracts
 
-      - name: Publish wagmi connector to NPM
-        run: node packages/sdk/publish-connector.mjs
+      - name: Build contracts
+        run: pnpm build
+        working-directory: packages/contracts
+
+      # Local node to have target for deploy
+      - name: Era Test Node Action
+        uses: dutterbutter/anvil-zksync-action@v1.1.0
+
+      - name: Deploy contracts
+        run: pnpm run deploy --file ../auth-server/stores/local-node.json
+        working-directory: packages/contracts
+
+      - name: Build the package
+        run: pnpm nx build connector-lite
+
+      - name: Prepare package.json
+        working-directory: packages/connector-lite
+        run: node prepare-package.mjs
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
-          NPM_TOKEN: ${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}
+
+      - name: Create .npmrc for NPM
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
+      
+      - name: Publish to NPM
+        working-directory: packages/connector-lite
+        run: npm publish --access public
+    
+      - name: Create .npmrc for GitHub Packages
+        run: echo "@OWNER:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+
+      - name: Publish to GitHub Packages
+        working-directory: packages/connector-lite
+        run: npm publish --access public
