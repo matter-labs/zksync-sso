@@ -165,6 +165,9 @@ importers:
       '@web3modal/wagmi':
         specifier: ^5.1.11
         version: 5.1.11(tzt3swj46qncfisvzgityjb2qi)
+      '@zksync-sso/connector-lite':
+        specifier: workspace:*
+        version: link:../../packages/connector-lite
       ethers:
         specifier: ^6.13.2
         version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
@@ -244,6 +247,9 @@ importers:
       '@web3modal/wagmi':
         specifier: ^5.1.11
         version: 5.1.11(zbkl6mwfe4n7x3jljel2bshyba)
+      '@zksync-sso/connector-lite':
+        specifier: workspace:*
+        version: link:../../packages/connector-lite
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -18229,6 +18235,14 @@ snapshots:
       chai: 5.1.2
       tinyrainbow: 1.2.0
 
+  '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@20.16.10)(sass@1.80.4)(terser@5.36.0))':
+    dependencies:
+      '@vitest/spy': 2.1.8
+      estree-walker: 3.0.3
+      magic-string: 0.30.17
+    optionalDependencies:
+      vite: 5.4.10(@types/node@20.16.10)(sass@1.80.4)(terser@5.36.0)
+
   '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@22.16.4)(sass@1.80.4)(terser@5.36.0))':
     dependencies:
       '@vitest/spy': 2.1.8
@@ -18236,14 +18250,6 @@ snapshots:
       magic-string: 0.30.17
     optionalDependencies:
       vite: 5.4.10(@types/node@22.16.4)(sass@1.80.4)(terser@5.36.0)
-
-  '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))':
-    dependencies:
-      '@vitest/spy': 2.1.8
-      estree-walker: 3.0.3
-      magic-string: 0.30.17
-    optionalDependencies:
-      vite: 5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)
 
   '@vitest/pretty-format@2.1.8':
     dependencies:
@@ -28174,7 +28180,7 @@ snapshots:
   vitest@2.1.8(@types/node@20.16.10)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       '@vitest/expect': 2.1.8
-      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@22.16.4)(sass@1.80.4)(terser@5.36.0))
+      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@20.16.10)(sass@1.80.4)(terser@5.36.0))
       '@vitest/pretty-format': 2.1.8
       '@vitest/runner': 2.1.8
       '@vitest/snapshot': 2.1.8
@@ -28244,7 +28250,7 @@ snapshots:
   vitest@2.1.8(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       '@vitest/expect': 2.1.8
-      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
+      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@22.16.4)(sass@1.80.4)(terser@5.36.0))
       '@vitest/pretty-format': 2.1.8
       '@vitest/runner': 2.1.8
       '@vitest/snapshot': 2.1.8
