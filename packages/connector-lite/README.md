@@ -7,11 +7,11 @@ SSO into their wagmi-based applications without the full SDK.
 ## Installation
 
 ```bash
-npm install zksync-sso-wagmi-connector
+npm install @zksync-sso/connector-lite
 # or
-yarn add zksync-sso-wagmi-connector
+yarn add @zksync-sso/connector-lite
 # or
-pnpm add zksync-sso-wagmi-connector
+pnpm add @zksync-sso/connector-lite
 ```
 
 ## Usage

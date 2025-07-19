@@ -36,7 +36,8 @@
     "vue-load-image": "^1.1.0",
     "vue-router": "latest",
     "zksync-ethers": "^6.15.0",
-    "zksync-sso": "workspace:*"
+    "zksync-sso": "workspace:*",
+    "@zksync-sso/connector-lite": "workspace:*"
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.12.0",
