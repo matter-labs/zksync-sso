@@ -97,7 +97,7 @@ export const removeOidcAccount = async <
   const transactionHash = await sendTransaction(client, sendTransactionArgs);
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  if (transactionReceipt.status !== "success") throw new Error("addOidcAccount transaction reverted");
+  if (transactionReceipt.status !== "success") throw new Error("removeOidcAccount transaction reverted");
 
   return transactionReceipt;
 };
