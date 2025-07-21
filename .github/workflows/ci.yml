@@ -55,6 +55,9 @@ jobs:
     - name: Build SDK
       run: pnpm nx build sdk
 
+    - name: Build Connector lite
+      run: pnpm nx build connector-lite
+
     - name: Install zksync-foundry
       run: |
         wget -qc https://github.com/matter-labs/foundry-zksync/releases/download/nightly/foundry_nightly_linux_amd64.tar.gz -O - | tar -xz

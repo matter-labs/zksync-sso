@@ -20,6 +20,15 @@ typechain-types
 .output
 deployments-zk
 
+# Ignore symlinked config files in all packages
+packages/*/tsconfig.base.json
+packages/*/tsconfig.json
+packages/*/tsconfig.build.json
+packages/*/jsconfig.json
+
+# Ignore all files in connector-lite
+packages/connector-lite/**
+
 # Disable prettier for files if VSCode settings are ignored
 **/*.vue
 **/*.js

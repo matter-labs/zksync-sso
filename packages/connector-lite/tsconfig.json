@@ -1,10 +1,1 @@
-{
-  "extends": "./tsconfig.build.json",
-  "include": ["src"],
-  "exclude": [],
-  "compilerOptions": {
-    "baseUrl": ".",
-    "composite": true,
-    "module": "NodeNext"
-  }
-}
+../sdk/tsconfig.json
