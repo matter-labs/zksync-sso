@@ -23,6 +23,7 @@
   "dependencies": {
     "@peculiar/asn1-ecc": "^2.1.9",
     "@peculiar/asn1-schema": "^2.1.9",
+    "@simplewebauthn/browser": "^13.1.2",
     "@simplewebauthn/server": "^13.1.2",
     "@zksync-sso/connector-lite": "link:",
     "abitype": "^0.9.4",
