@@ -53,10 +53,9 @@ jobs:
       working-directory: packages/contracts
 
     - name: Build SDK
-      run: pnpm nx build sdk
-
-    - name: Build Connector lite
-      run: pnpm nx build connector-lite
+      run: |
+        pnpm nx build sdk
+        pnpm nx build connector-lite
 
     - name: Install zksync-foundry
       run: |
