@@ -47,7 +47,8 @@
     "typescript": "5.6.2",
     "typescript-eslint": "8.7.0",
     "viem": "^2.30.0",
-    "zksync-sso": "workspace:*"
+    "zksync-sso": "workspace:*",
+    "@zksync-sso/connector-export": "workspace:*"
   },
   "nx": {
     "includedScripts": []

@@ -1,0 +1,29 @@
+{
+  "name": "@zksync-sso/connector-export",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Exports only the connector from the zksync-sso SDK.",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "peerDependencies": {
+    "zksync-sso": "workspace:*"
+  },
+  "author": "Matter Labs",
+  "license": "MIT"
+}
