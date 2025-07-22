@@ -7,15 +7,48 @@
   "types": "dist/_types/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/_types/index.d.ts",
       "import": "./dist/_esm/index.js",
-      "require": "./dist/_cjs/index.js",
-      "types": "./dist/_types/index.d.ts"
+      "require": "./dist/_cjs/index.js"
+    },
+    "./connector": {
+      "types": "./dist/_types/connector/index.d.ts",
+      "import": "./dist/_esm/connector/index.js",
+      "require": "./dist/_cjs/connector/index.js"
+    },
+    "./client-auth-server": {
+      "types": "./dist/_types/client-auth-server/index.d.ts",
+      "import": "./dist/_esm/client-auth-server/index.js",
+      "require": "./dist/_cjs/client-auth-server/index.js"
+    },
+    "./communicator": {
+      "types": "./dist/_types/communicator/index.d.ts",
+      "import": "./dist/_esm/communicator/index.js",
+      "require": "./dist/_cjs/communicator/index.js"
+    },
+    "./errors": {
+      "types": "./dist/_types/errors/index.d.ts",
+      "import": "./dist/_esm/errors/index.js",
+      "require": "./dist/_cjs/errors/index.js"
+    },
+    "./utils": {
+      "types": "./dist/_types/utils/index.d.ts",
+      "import": "./dist/_esm/utils/index.js",
+      "require": "./dist/_cjs/utils/index.js"
+    },
+    "./paymaster": {
+      "types": "./dist/_types/paymaster/index.d.ts",
+      "import": "./dist/_esm/paymaster/index.js",
+      "require": "./dist/_cjs/paymaster/index.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
-    "dist",
-    "src"
+    "*",
+    "!**/*.test.ts",
+    "!**/*.test-d.ts",
+    "!**/*.tsbuildinfo",
+    "!tsconfig.build.json"
   ],
   "scripts": {
     "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:types",
@@ -35,6 +68,7 @@
     "@simplewebauthn/browser": "^13.1.2",
     "@simplewebauthn/server": "^13.1.2",
     "@types/ms": "^0.7.34",
+    "@zksync-sso/connector-lite": "link:",
     "abitype": "^0.9.4",
     "bigint-conversion": "^2.3.5",
     "buffer": "^6.0.3",
