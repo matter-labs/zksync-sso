@@ -55,7 +55,9 @@ jobs:
     - name: Build SDK
       run: |
         pnpm nx build sdk
-        pnpm nx build connector-lite
+        pushd packages/connector-lite
+        pnpm run build
+        popd
 
     - name: Install zksync-foundry
       run: |
