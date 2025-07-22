@@ -25,6 +25,7 @@
     "@peculiar/asn1-schema": "^2.1.9",
     "@simplewebauthn/browser": "^13.1.2",
     "@simplewebauthn/server": "^13.1.2",
+    "@types/ms": "^0.7.34",
     "@zksync-sso/connector-lite": "link:",
     "abitype": "^0.9.4",
     "bigint-conversion": "^2.3.5",

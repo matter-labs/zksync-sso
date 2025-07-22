@@ -532,6 +532,9 @@ importers:
       '@simplewebauthn/server':
         specifier: ^13.1.2
         version: 13.1.2
+      '@types/ms':
+        specifier: ^0.7.34
+        version: 0.7.34
       '@zksync-sso/connector-lite':
         specifier: 'link:'
         version: 'link:'
