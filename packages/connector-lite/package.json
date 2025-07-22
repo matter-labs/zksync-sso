@@ -68,6 +68,7 @@
     "@simplewebauthn/browser": "^13.1.2",
     "@simplewebauthn/server": "^13.1.2",
     "@types/ms": "^0.7.34",
+    "@wagmi/core": "^2.18.0",
     "@zksync-sso/connector-lite": "link:",
     "abitype": "^0.9.4",
     "bigint-conversion": "^2.3.5",
