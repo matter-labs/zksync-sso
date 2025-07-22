@@ -2,8 +2,17 @@
   "name": "@zksync-sso/connector-lite",
   "version": "0.1.0",
   "description": "Minimal ZKsync SSO wagmi connector package (lite version)",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/_cjs/index.js",
+  "module": "dist/_esm/index.js",
+  "types": "dist/_types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/_esm/index.js",
+      "require": "./dist/_cjs/index.js",
+      "types": "./dist/_types/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist",
     "src"
@@ -26,7 +35,6 @@
     "@simplewebauthn/browser": "^13.1.2",
     "@simplewebauthn/server": "^13.1.2",
     "@types/ms": "^0.7.34",
-    "@zksync-sso/connector-lite": "link:",
     "abitype": "^0.9.4",
     "bigint-conversion": "^2.3.5",
     "buffer": "^6.0.3",
