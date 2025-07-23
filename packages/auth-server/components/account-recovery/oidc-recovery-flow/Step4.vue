@@ -39,6 +39,8 @@ import { type Address, bytesToBigInt, type Hex, pad, toHex } from "viem";
 import { sendTransaction } from "viem/zksync";
 import { createNonceV2 } from "zksync-sso-circuits";
 
+import { GOOGLE_CERTS_URL } from "./constants";
+
 const { getWalletClient, defaultChain, getOidcClient } = useClientStore();
 const { startGoogleOauth } = useGoogleOauth();
 const accountData = useAppKitAccount();
@@ -60,7 +62,6 @@ const salt = defineModel<Hex>("salt", { required: true });
 const sub = defineModel<string>("sub", { required: true });
 const passkey = defineModel<PasskeyData>("passkey", { required: true });
 const userAddress = defineModel<Address>("userAddress", { required: true });
-// const disabledSteps = defineModel<number[]>("disabledSteps", { required: true });
 
 type KeysType = {
   keys: {
@@ -122,7 +123,7 @@ async function go() {
     throw new Error("Failed to start GoogleOauth");
   }
 
-  const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/certs").then((r) => r.json()) as KeysType;
+  const googleResponse = await fetch(GOOGLE_CERTS_URL).then((r) => r.json()) as KeysType;
   const key = googleResponse.keys.find((key) => key.kid === jwt.kid);
 
   if (key === undefined) {

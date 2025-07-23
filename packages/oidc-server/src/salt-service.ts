@@ -8,6 +8,8 @@ import * as jose from "jose";
 import { bytesToHex } from "viem";
 import { z } from "zod";
 
+import { GOOGLE_CERTS_URL } from "./constants.js";
+
 config();
 
 const env = createEnv({
@@ -20,7 +22,7 @@ const env = createEnv({
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
 });
-const GOOGLE_JWKS_URL = new URL("https://www.googleapis.com/oauth2/v3/certs");
+const GOOGLE_JWKS_URL = new URL(GOOGLE_CERTS_URL);
 const GOOGLE_ISSUER = "https://accounts.google.com";
 
 const JwtPayloadSchema = z.object({

@@ -14,7 +14,6 @@ export class ContractUpdater {
   private network: typeof zksyncInMemoryNode | typeof zksync | typeof zksyncSepoliaTestnet;
 
   constructor(contractAddress: Hex, rpcUrl: string, privKey: Hex, networkName: ValidNetworks) {
-    // this.wallet = new Wallet(env.ADMIN_PRIVATE_KEY, this.provider);
     this.rpcUrl = rpcUrl;
     this.privKey = privKey;
     this.contractAddress = contractAddress;
