@@ -1,5 +1,5 @@
 use crate::{
-    config::contracts::PasskeyContracts,
+    config::contracts::SSOContracts,
     utils::contract_deployed::check_contracts_deployed,
 };
 use rand::RngCore;
@@ -7,11 +7,11 @@ use std::{env, fs, path::PathBuf, process::Command};
 
 pub async fn deploy_contracts(
     node_url: url::Url,
-) -> eyre::Result<PasskeyContracts> {
-    println!("Node URL: {}", node_url);
+) -> eyre::Result<SSOContracts> {
+    println!("Node URL: {node_url}");
 
     let manifest_dir = env::var("CARGO_MANIFEST_DIR")?;
-    println!("Manifest directory: {:?}", manifest_dir);
+    println!("Manifest directory: {manifest_dir:?}");
 
     let contracts_dir = PathBuf::from(&manifest_dir)
         .parent()
@@ -27,7 +27,7 @@ pub async fn deploy_contracts(
         .parent()
         .unwrap()
         .join("packages/contracts");
-    println!("Contracts directory: {:?}", contracts_dir);
+    println!("Contracts directory: {contracts_dir:?}");
     println!("Contracts directory exists: {}", contracts_dir.exists());
     println!(
         "Contracts directory is absolute: {}",
@@ -36,16 +36,17 @@ pub async fn deploy_contracts(
 
     let mut random_bytes = [0u8; 16];
     rand::rng().fill_bytes(&mut random_bytes);
-    let random_suffix = hex::encode(random_bytes);
-    let config_filename = format!("hardhat.config.{}.ts", random_suffix);
+    let random_suffix = alloy::hex::encode(random_bytes);
+    let config_filename = format!("hardhat.config.{random_suffix}.ts");
     let config_path = contracts_dir.join(&config_filename);
-    println!("Config path: {:?}", config_path);
+    println!("Config path: {config_path:?}");
 
     let config_content = format!(
         r#"import "@typechain/hardhat";
 import "@matterlabs/hardhat-zksync";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "./scripts/deploy";
+import "./scripts/publish";
 import "./scripts/upgrade";
 
 import {{ HardhatUserConfig }} from "hardhat/config";
@@ -58,7 +59,7 @@ const config: HardhatUserConfig = {{
   defaultNetwork: "inMemoryNode",
   networks: {{
     inMemoryNode: {{
-      url: "{}",
+      url: "{node_url}",
       ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
       zksync: true,
     }},
@@ -78,16 +79,15 @@ const config: HardhatUserConfig = {{
   }},
 }};
 
-export default config;"#,
-        node_url
+export default config;"#
     );
 
-    println!("Writing config to {:?}", config_path);
+    println!("Writing config to {config_path:?}");
     fs::write(&config_path, &config_content)?;
     println!("Config file exists: {}", config_path.exists());
     println!("Config file contents: {}", fs::read_to_string(&config_path)?);
 
-    println!("Running pnpm deploy from {:?}", contracts_dir);
+    println!("Running pnpm deploy from {contracts_dir:?}");
     let output = Command::new("pnpm")
         .current_dir(&contracts_dir)
         .arg("run")
@@ -99,10 +99,10 @@ export default config;"#,
         .output()?;
 
     let cleanup_result = fs::remove_file(&config_path);
-    println!("Config file cleanup result: {:?}", cleanup_result);
+    println!("Config file cleanup result: {cleanup_result:?}");
     println!("Config file still exists: {}", config_path.exists());
 
-    println!("Command output: {:?}", output);
+    println!("Command output: {output:?}");
     println!("Command stdout: {}", String::from_utf8_lossy(&output.stdout));
     println!("Command stderr: {}", String::from_utf8_lossy(&output.stderr));
 
@@ -124,7 +124,7 @@ export default config;"#,
     let recovery =
         extract_contract_address(&lines, "GuardianRecoveryValidator")?;
 
-    let contracts = PasskeyContracts::with_address_strs(
+    let contracts = SSOContracts::with_address_strs(
         account_factory,
         passkey,
         session,
@@ -134,7 +134,7 @@ export default config;"#,
 
     check_contracts_deployed(&node_url, &contracts).await?;
 
-    println!("Contracts deployed: {:?}", contracts);
+    println!("Contracts deployed: {contracts:?}");
 
     Ok(contracts)
 }
@@ -147,10 +147,9 @@ fn extract_contract_address<'a>(
         .iter()
         .find(|line| {
             line.contains(&format!(
-                "{} proxy contract deployed at:",
-                contract_name
+                "{contract_name} proxy contract deployed at:"
             )) || line
-                .contains(&format!("{} contract deployed at:", contract_name))
+                .contains(&format!("{contract_name} contract deployed at:"))
         })
         .and_then(|line| line.split(": ").nth(1))
         .map(|addr| addr.trim())

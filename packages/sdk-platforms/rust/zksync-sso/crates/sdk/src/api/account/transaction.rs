@@ -3,7 +3,6 @@ use alloy::{
     primitives::{Address, U256},
 };
 use alloy_zksync::network::transaction_request::TransactionRequest;
-use hex;
 use std::fmt::Debug;
 
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
@@ -28,7 +27,7 @@ impl TryFrom<Transaction> for TransactionRequest {
                 transaction_request.with_value(value.parse::<U256>()?);
         }
         if let Some(input) = transaction.input {
-            let input_bytes = hex::decode(input)?;
+            let input_bytes = alloy::hex::decode(input)?;
             transaction_request = transaction_request.with_input(input_bytes);
         }
         Ok(transaction_request)

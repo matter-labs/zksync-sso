@@ -1,8 +1,8 @@
 import Foundation
 import ZKsyncSSOFFI
 
-public struct PasskeyContracts {
-    let inner: ZKsyncSSOFFI.PasskeyContracts
+public struct SsoContracts {
+    let inner: ZKsyncSSOFFI.SsoContracts
     
     public init(
         accountFactory: String,
@@ -20,7 +20,7 @@ public struct PasskeyContracts {
         )
     }
     
-    init(inner: ZKsyncSSOFFI.PasskeyContracts) {
+    init(inner: ZKsyncSSOFFI.SsoContracts) {
         self.inner = inner
     }
 }

@@ -1,6 +1,6 @@
+use alloy::primitives::hex;
 use ciborium::Value;
 use eyre::Result;
-use hex;
 use log::debug;
 
 pub mod verify;
@@ -65,7 +65,7 @@ fn parse_attestation_object(
     let value: Value = ciborium::de::from_reader(raw_attestation)
         .map_err(|e| eyre::eyre!("Failed to parse CBOR: {}", e))?;
 
-    debug!("Parsed CBOR value: {:?}", value);
+    debug!("Parsed CBOR value: {value:?}");
 
     let map = value
         .as_map()
@@ -106,8 +106,8 @@ fn parse_authenticator_data(data: &[u8]) -> Result<AuthenticatorData> {
     let counter = u32::from_be_bytes(data[33..37].try_into()?);
 
     debug!("RP ID Hash: {}", hex::encode(rp_id_hash));
-    debug!("Flags: {:08b}", flags);
-    debug!("Counter: {}", counter);
+    debug!("Flags: {flags:08b}");
+    debug!("Counter: {counter}");
 
     let attested_data = if (flags & 0b01000000) != 0 {
         debug!("AT flag set, parsing attested credential data...");

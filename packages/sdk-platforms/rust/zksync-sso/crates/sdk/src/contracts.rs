@@ -23,3 +23,11 @@ sol!(
     AAFactory,
     "../../../../../contracts/artifacts-zk/src/AAFactory.sol/AAFactory.json"
 );
+
+sol!(
+    #[derive(Debug, Default)]
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    SessionKeyValidator,
+    "../../../../../contracts/artifacts-zk/src/validators/SessionKeyValidator.sol/SessionKeyValidator.json"
+);

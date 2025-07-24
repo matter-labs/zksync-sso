@@ -1,4 +1,4 @@
-use crate::config::contracts::PasskeyContracts;
+use crate::config::contracts::SSOContracts;
 use ::alloy::{primitives::Address, providers::Provider};
 use alloy_zksync::provider::zksync_provider;
 use log::debug;
@@ -31,7 +31,7 @@ pub async fn check_contract_deployed(
 
 pub async fn check_contracts_deployed(
     node_url: &url::Url,
-    contracts: &PasskeyContracts,
+    contracts: &SSOContracts,
 ) -> eyre::Result<()> {
     check_contract_deployed(
         node_url,

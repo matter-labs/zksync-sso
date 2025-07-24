@@ -1,10 +1,9 @@
-use super::SendTransactionError::{
-    InvalidAddress as SendInvalidAddress,
-    SendTransaction as SendSendTransaction,
-};
 use crate::{
-    account::send::prepare::PrepareTransactionError::{
-        InvalidAddress, PrepareTransaction,
+    account::{
+        send::prepare::PrepareTransactionError::{
+            InvalidAddress, PrepareTransaction,
+        },
+        transaction::Transaction,
     },
     config,
 };
@@ -54,14 +53,13 @@ pub enum PrepareTransactionError {
 
 #[uniffi::export(async_runtime = "tokio")]
 pub async fn prepare_send_transaction(
-    transaction: super::Transaction,
+    transaction: Transaction,
     config: config::Config,
 ) -> Result<PreparedTransaction, PrepareTransactionError> {
     let transaction: sdk::api::account::transaction::Transaction =
-        transaction.try_into().map_err(|e| -> PrepareTransactionError {
+        transaction.try_into().map_err(|e: crate::account::transaction::TransactionConversionError| -> PrepareTransactionError {
             match e {
-                SendInvalidAddress(e) => InvalidAddress(e),
-                SendSendTransaction(e) => PrepareTransaction(e),
+                crate::account::transaction::TransactionConversionError::InvalidAddress(e) => InvalidAddress(e),
             }
         })?;
 

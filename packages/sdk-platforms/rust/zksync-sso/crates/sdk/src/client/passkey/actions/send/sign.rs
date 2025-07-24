@@ -1,5 +1,10 @@
 use crate::{
-    config::Config, utils::alloy::passkey_raw_signer::PasskeySigningRawBackend,
+    client::passkey::actions::send::sign::hash_signature_response::hash_signature_response_format,
+    config::Config,
+    utils::{
+        alloy::passkey_raw_signer::PasskeySigningRawBackend,
+        transaction::transaction_digest::get_digest,
+    },
 };
 use alloy_zksync::network::transaction_request::TransactionRequest;
 use async_trait::async_trait;
@@ -64,13 +69,9 @@ where
     ) -> eyre::Result<TransactionRequest> {
         let mut tx = tx.clone();
 
-        let digest_hash =
-            crate::client::passkey::account::transaction_digest::get_digest(
-                tx.to_owned(),
-            )
-            .map_err(|e| {
-                eyre::eyre!("Error getting transaction digest: {:?}", e)
-            })?;
+        let digest_hash = get_digest(tx.to_owned()).map_err(|e| {
+            eyre::eyre!("Error getting transaction digest: {:?}", e)
+        })?;
         let hash = digest_hash.0.to_vec();
 
         debug!("XDB - sign_transaction hash: {:?}", hash);
@@ -85,10 +86,7 @@ where
         );
 
         let signature_encoded =
-            hash_signature_response::hash_signature_response_format(
-                signature_response,
-                &config,
-            )?;
+            hash_signature_response_format(signature_response, &config)?;
 
         tx.set_custom_signature(signature_encoded.into());
 
@@ -113,13 +111,9 @@ where
 
         debug!("XDB - sign_transaction - tx: {:?}", tx);
 
-        let digest_hash =
-            crate::client::passkey::account::transaction_digest::get_digest(
-                tx.to_owned(),
-            )
-            .map_err(|e| {
-                eyre::eyre!("Error getting transaction digest: {:?}", e)
-            })?;
+        let digest_hash = get_digest(tx.to_owned()).map_err(|e| {
+            eyre::eyre!("Error getting transaction digest: {:?}", e)
+        })?;
 
         debug!("XDB - sign_transaction - digest_hash: {:?}", digest_hash);
 
@@ -140,10 +134,7 @@ where
         );
 
         let signature_encoded =
-            hash_signature_response::hash_signature_response_format(
-                signature_response,
-                &config,
-            )?;
+            hash_signature_response_format(signature_response, &config)?;
 
         debug!(
             "XDB - sign_transaction signature_encoded: {:?}",

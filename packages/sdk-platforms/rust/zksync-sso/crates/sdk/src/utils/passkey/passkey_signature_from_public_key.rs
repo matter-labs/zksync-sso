@@ -1,4 +1,4 @@
-use alloy::{primitives::FixedBytes, sol};
+use alloy::sol;
 use ciborium::{Value, de::from_reader};
 use coset::{AsCborValue, CoseKey};
 use eyre::Result;
@@ -17,12 +17,6 @@ sol! {
         address validator;
         bytes[] validator_data;
     }
-}
-
-#[allow(dead_code)]
-pub struct UnwrappedSignature {
-    pub r: FixedBytes<32>,
-    pub s: FixedBytes<32>,
 }
 
 pub fn get_public_key_bytes_from_passkey_signature(

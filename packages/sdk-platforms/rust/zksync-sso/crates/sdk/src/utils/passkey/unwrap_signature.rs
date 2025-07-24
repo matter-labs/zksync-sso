@@ -1,11 +1,10 @@
 use crate::utils::passkey::normalize_s;
-use alloy::primitives::FixedBytes;
+use alloy::primitives::{FixedBytes, hex};
 use der::{
     Decode, DecodeValue, Encode, EncodeValue, Header, Reader, Sequence, Writer,
     asn1::UintRef,
 };
 use eyre::Result;
-use hex;
 use log::debug;
 
 pub struct UnwrappedSignature {
@@ -106,7 +105,6 @@ pub fn unwrap_ec2_signature(signature: &[u8]) -> Result<UnwrappedSignature> {
 mod tests {
     use super::*;
     use eyre::Result;
-    use hex;
 
     #[test]
     fn test_should_remove_leading_zero() {
