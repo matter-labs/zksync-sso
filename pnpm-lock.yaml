@@ -42,6 +42,9 @@ importers:
       '@swc/core':
         specifier: 1.7.26
         version: 1.7.26(@swc/helpers@0.5.13)
+      '@zksync-sso/connector-export':
+        specifier: workspace:*
+        version: link:packages/connector-export
       cspell:
         specifier: 8.14.4
         version: 8.14.4
@@ -165,6 +168,9 @@ importers:
       '@web3modal/wagmi':
         specifier: ^5.1.11
         version: 5.1.11(tzt3swj46qncfisvzgityjb2qi)
+      '@zksync-sso/connector-export':
+        specifier: workspace:*
+        version: link:../../packages/connector-export
       ethers:
         specifier: ^6.13.2
         version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
@@ -514,6 +520,12 @@ importers:
       yargs:
         specifier: ^17.7.2
         version: 17.7.2
+
+  packages/connector-export:
+    dependencies:
+      zksync-sso:
+        specifier: workspace:*
+        version: link:../sdk
 
   packages/contracts:
     dependencies:
