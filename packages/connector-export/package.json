@@ -26,11 +26,15 @@
     "clean": "rm -rf *.tsbuildinfo dist",
     "typecheck": "tsc --noEmit",
     "publish:local": "pnpm publish --no-git-checks --force",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "peerDependencies": {
+    "viem": "^2.30.0",
     "zksync-sso": "workspace:*"
   },
   "author": "Matter Labs",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
 }
