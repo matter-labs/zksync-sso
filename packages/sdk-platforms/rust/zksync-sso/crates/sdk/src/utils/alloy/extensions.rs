@@ -72,7 +72,7 @@ mod tests {
                 panic!("Unexpected success: receipt found for dummy tx")
             }
             Err(e) => {
-                debug!("Error: {}", e);
+                debug!("Error: {e}");
                 assert!(
                     e.to_string()
                         .contains("Transaction receipt not found after")

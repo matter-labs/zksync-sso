@@ -17,7 +17,7 @@ impl DeployWallet {
 
     pub fn random() -> Self {
         let signer = PrivateKeySigner::random();
-        let private_key_hex = hex::encode(signer.to_bytes());
+        let private_key_hex = alloy::hex::encode(signer.to_bytes());
         Self { private_key_hex }
     }
 
@@ -51,7 +51,7 @@ mod tests {
     #[test]
     fn test_random() -> eyre::Result<()> {
         let deploy_wallet = DeployWallet::random();
-        println!("Deploy wallet: {:?}", deploy_wallet);
+        println!("Deploy wallet: {deploy_wallet:?}");
 
         let signer =
             PrivateKeySigner::from_str(&deploy_wallet.private_key_hex)?;

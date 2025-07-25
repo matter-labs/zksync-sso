@@ -8,7 +8,15 @@
         "cwd": "packages/auth-server",
         "command": "PORT=3002 nuxt dev"
       },
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "zksync-sso-contracts:deploy", "nft-quest-contracts:deploy:local"]
+    },
+    "dev:all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "commands": ["pnpm nx run auth-server:dev ", "pnpm nx run zksync-sso-oidc-server:dev:all"],
+        "parallel": true
+      }
     },
     "build": {
       "executor": "nx:run-commands",

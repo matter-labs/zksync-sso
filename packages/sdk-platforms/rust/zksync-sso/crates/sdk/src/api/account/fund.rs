@@ -15,7 +15,7 @@ pub async fn fund_account(
     amount: U256,
     config: &Config,
 ) -> eyre::Result<()> {
-    debug!("XDB fund_account - address: {:?}", address);
+    debug!("XDB fund_account - address: {address:?}");
 
     let provider = {
         use alloy::signers::local::PrivateKeySigner;
@@ -64,8 +64,7 @@ pub fn generate_random_eth() -> Money {
         .unwrap();
 
     debug!(
-        "XDB - generate_random_eth - Generated {}.{:018} ETH ({} wei)",
-        whole_eth, decimals, wei
+        "XDB - generate_random_eth - Generated {whole_eth}.{decimals:018} ETH ({wei} wei)"
     );
 
     Money::eth(wei)

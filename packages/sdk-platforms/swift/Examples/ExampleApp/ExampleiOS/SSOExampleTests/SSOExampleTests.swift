@@ -1,5 +1,5 @@
 import Testing
-@testable import MLSSOExample
+@testable import SSOExample
 
 struct SSOExampleTests {
 

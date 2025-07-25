@@ -1,28 +1,28 @@
-use alloy::primitives::{FixedBytes, U256};
+use alloy::primitives::{FixedBytes, U256, hex};
 use eyre::Result;
-use hex;
+use log::debug;
 
 pub fn normalize_s(s: FixedBytes<32>) -> Result<FixedBytes<32>> {
-    println!("Input s value (hex): {}", hex::encode(s.as_slice()));
+    debug!("Input s value (hex): {}", hex::encode(s.as_slice()));
 
     let n = U256::from_str_radix(
         "FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551",
         16,
     )?;
-    println!("Curve order n: {:x}", n);
+    debug!("Curve order n: {n:x}");
 
     let half_n: U256 = n >> 1;
-    println!("Half of curve order (n/2): {:x}", half_n);
+    debug!("Half of curve order (n/2): {half_n:x}");
 
     let s_num = U256::from_be_bytes(s.0);
-    println!("s as bigint: {:x}", s_num);
+    debug!("s as bigint: {s_num:x}");
 
     let needs_normalization = s_num > half_n;
-    println!("Needs normalization: {}", needs_normalization);
+    debug!("Needs normalization: {needs_normalization}");
 
     if needs_normalization {
         let normalized = n - s_num;
-        println!("Normalized s value: {:x}", normalized);
+        println!("Normalized s value: {normalized:x}");
         Ok(FixedBytes::from(normalized.to_be_bytes::<32>()))
     } else {
         println!("S value already normalized");
@@ -35,7 +35,6 @@ mod tests {
     use super::*;
     use alloy::primitives::{FixedBytes, U256};
     use eyre::Result;
-    use hex;
 
     #[test]
     fn test_normalize_s_matches_typescript() -> Result<()> {

@@ -1,10 +1,9 @@
 use crate::{
-    config::contracts::PasskeyContracts, utils::passkey::unwrap_signature,
+    config::contracts::SSOContracts, utils::passkey::unwrap_signature,
 };
-use alloy::{dyn_abi::SolType, sol};
+use alloy::{dyn_abi::SolType, primitives::hex, sol};
 use base64::Engine;
 use eyre::Result;
-use hex;
 use log::debug;
 
 type FatSignature = sol! { tuple(bytes, bytes, bytes32[2], bytes) };
@@ -31,7 +30,7 @@ pub fn encode_fat_signature(
 
 pub fn encode_full_signature(
     encoded_fat_signature: Vec<u8>,
-    contracts: &PasskeyContracts,
+    contracts: &SSOContracts,
 ) -> Result<Vec<u8>> {
     encode_full_signature_with_validator_data(
         encoded_fat_signature,
@@ -55,7 +54,7 @@ pub(crate) fn base64_url_to_uint8_array(
 
 fn encode_full_signature_with_validator_data(
     encoded_fat_signature: Vec<u8>,
-    contracts: &PasskeyContracts,
+    contracts: &SSOContracts,
     validator_data: Option<Vec<Vec<u8>>>,
 ) -> Result<Vec<u8>> {
     println!("\n=== encode_full_signature_with_validator_data Function ===\n");
@@ -113,12 +112,11 @@ fn encode_full_signature_with_validator_data(
 mod tests {
     use super::*;
     use crate::{
-        config::contracts::PasskeyContracts, utils::passkey::unwrap_signature,
+        config::contracts::SSOContracts, utils::passkey::unwrap_signature,
     };
     use alloy::primitives::{FixedBytes, address};
     use base64::Engine;
     use eyre::Result;
-    use hex;
 
     #[test]
     fn test_encode_fat_signature() -> Result<()> {
@@ -129,13 +127,13 @@ mod tests {
         let auth_data_b64 =
             "08tFjuLOhgB6vt7kcKBTmkNjX9Yu4Wdm0LLy_MUj0v0dAAAAAA";
         println!("\nInput Parameters:");
-        println!("authenticatorData: {}", auth_data_b64);
+        println!("authenticatorData: {auth_data_b64}");
         let auth_data = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .decode(auth_data_b64)?;
         println!("authenticatorData (decoded): {}", hex::encode(&auth_data));
 
         let client_data_json_b64 = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiODI3bm9uQVlEbXFnN3J2SFJFVURWOFhGZ3RveHhLZVhxdHJMcERram4zbyIsIm9yaWdpbiI6Imh0dHBzOi8vc29vLXNkay1leGFtcGxlLXBhZ2VzLnBhZ2VzLmRldiJ9";
-        println!("\nclientDataJSON: {}", client_data_json_b64);
+        println!("\nclientDataJSON: {client_data_json_b64}");
         let client_data_json = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .decode(client_data_json_b64)?;
         println!(
@@ -148,8 +146,8 @@ mod tests {
         let s_hex =
             "2912824281822d4781ea9a513fdaade816234a7960363c47a0c9d7e469b85ff2";
         println!("\nSignature components:");
-        println!("r: {}", r_hex);
-        println!("s: {}", s_hex);
+        println!("r: {r_hex}");
+        println!("s: {s_hex}");
 
         let r = hex::decode(r_hex)?;
         let s = hex::decode(s_hex)?;
@@ -166,10 +164,10 @@ mod tests {
             passkey_id,
         )?;
         let result_hex = format!("0x{}", hex::encode(&result));
-        println!("\nFat signature result: {}", result_hex);
+        println!("\nFat signature result: {result_hex}");
 
         let expected = "0x00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001001e6bd398700475910fb66389f177f6d4aec39230e20c29f019457c0867e307782912824281822d4781ea9a513fdaade816234a7960363c47a0c9d7e469b85ff200000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000025d3cb458ee2ce86007abedee470a0539a43635fd62ee16766d0b2f2fcc523d2fd1d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000847b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a223832376e6f6e4159446d716737727648524555445638584667746f78784b65587174724c70446b6a6e336f222c226f726967696e223a2268747470733a2f2f736f6f2d73646b2d6578616d706c652d70616765732e70616765732e646576227d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000402846d634273b3606989d4cab35e1465fdff763ef282772b0ce39da883d5dd4b553c51eefdc268a7c2cf6572fe0fcc1d287bc89f322f43f183a8e8fe8d216227b";
-        println!("\nExpected hex: {}", expected);
+        println!("\nExpected hex: {expected}");
 
         println!("\nLength comparison:");
         println!("Result length: {}", result_hex.len());
@@ -184,9 +182,9 @@ mod tests {
             let expected_chunk =
                 &expected[i..std::cmp::min(i + chunk_size, expected.len())];
             if result_chunk != expected_chunk {
-                println!("\nDifference at position {}:", i);
-                println!("Result:   {}", result_chunk);
-                println!("Expected: {}", expected_chunk);
+                println!("\nDifference at position {i}:");
+                println!("Result:   {result_chunk}");
+                println!("Expected: {expected_chunk}");
             }
         }
 
@@ -200,7 +198,7 @@ mod tests {
 
         let fat_signature_hex = "000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e01e6bd398700475910fb66389f177f6d4aec39230e20c29f019457c0867e307782912824281822d4781ea9a513fdaade816234a7960363c47a0c9d7e469b85ff20000000000000000000000000000000000000000000000000000000000000025d3cb458ee2ce86007abedee470a0539a43635fd62ee16766d0b2f2fcc523d2fd1d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000847b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a223832376e6f6e4159446d716737727648524555445638584667746f78784b65587174724c70446b6a6e336f222c226f726967696e223a2268747470733a2f2f736f6f2d73646b2d6578616d706c652d70616765732e70616765732e646576227d00000000000000000000000000000000000000000000000000000000";
         let fat_signature = hex::decode(fat_signature_hex)?;
-        let contracts = PasskeyContracts {
+        let contracts = SSOContracts {
             passkey: address!("1234567890123456789012345678901234567890"),
             ..Default::default()
         };
@@ -225,7 +223,7 @@ mod tests {
         println!("\nInput Parameters:");
         println!("Fat signature: 0x{}", hex::encode(&fat_signature));
 
-        let contracts = PasskeyContracts {
+        let contracts = SSOContracts {
             passkey: address!("1234567890123456789012345678901234567890"),
             ..Default::default()
         };
@@ -247,8 +245,7 @@ mod tests {
         )?;
         let result_hex = format!("0x{}", hex::encode(&result));
         println!(
-            "\nFull formatted signature with custom validator data: {}",
-            result_hex
+            "\nFull formatted signature with custom validator data: {result_hex}"
         );
 
         // Verify the result contains the custom validator data

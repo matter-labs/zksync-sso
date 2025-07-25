@@ -34,11 +34,10 @@ pub async fn prepare_send_transaction(
     transaction: super::Transaction,
     config: &Config,
 ) -> eyre::Result<PreparedTransaction> {
-    debug!("XDB prepare_send_transaction - transaction: {:?}", transaction);
+    debug!("XDB prepare_send_transaction - transaction: {transaction:?}");
     let transaction_request = transaction.try_into()?;
     debug!(
-        "XDB prepare_send_transaction - transaction_request: {:?}",
-        transaction_request
+        "XDB prepare_send_transaction - transaction_request: {transaction_request:?}"
     );
     prepare_transaction(transaction_request, config).await.map(Into::into)
 }

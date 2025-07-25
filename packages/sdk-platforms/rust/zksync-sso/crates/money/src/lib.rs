@@ -25,7 +25,7 @@ impl Money {
     }
 
     pub fn eth(minor_value: U256) -> Self {
-        println!("XDB - Money::eth - Creating with value={}", minor_value);
+        println!("XDB - Money::eth - Creating with value={minor_value}");
         Self::new(minor_value, Currency::eth(), None)
     }
 

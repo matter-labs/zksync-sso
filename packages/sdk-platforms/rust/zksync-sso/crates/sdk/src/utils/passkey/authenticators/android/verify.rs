@@ -21,45 +21,40 @@ pub async fn verify_registration(
     expected_origin: &str,
 ) -> eyre::Result<ValidatedPasskey> {
     debug!(
-        "android::verify_registration - raw_attestation_object: {:?}",
-        raw_attestation_object
+        "android::verify_registration - raw_attestation_object: {raw_attestation_object:?}"
     );
     debug!(
-        "android::verify_registration - raw_client_data_json: {:?}",
-        raw_client_data_json
+        "android::verify_registration - raw_client_data_json: {raw_client_data_json:?}"
     );
-    debug!("android::verify_registration - credential_id: {:?}", credential_id);
-    debug!(
-        "android::verify_registration - expected_origin: {}",
-        expected_origin
-    );
+    debug!("android::verify_registration - credential_id: {credential_id:?}");
+    debug!("android::verify_registration - expected_origin: {expected_origin}");
 
     let registration = AndroidPasskeyRegistration {
         raw_attestation_object: raw_attestation_object.to_vec(),
         raw_client_data_json: raw_client_data_json.to_vec(),
         credential_id: credential_id.to_vec(),
     };
-    debug!("android::verify_registration - registration: {:?}", registration);
+    debug!("android::verify_registration - registration: {registration:?}");
 
     let client_data: serde_json::Value =
         serde_json::from_slice(raw_client_data_json)?;
-    debug!("android::verify_registration - client_data: {:?}", client_data);
+    debug!("android::verify_registration - client_data: {client_data:?}");
 
     let challenge = base64_url::decode(
         client_data["challenge"]
             .as_str()
             .ok_or_else(|| eyre::eyre!("Missing challenge"))?,
     )?;
-    debug!("android::verify_registration - challenge: {:?}", challenge);
+    debug!("android::verify_registration - challenge: {challenge:?}");
 
     let validated = registration
         .validate(&challenge, expected_origin)
         .map_err(|e| {
-            error!("android::verify_registration - Validation failed: {:?}", e);
+            error!("android::verify_registration - Validation failed: {e:?}");
             eyre::eyre!("Passkey validation failed: {:?}", e)
         })
         .map(Into::into)?;
-    debug!("android::verify_registration - validated: {:?}", validated);
+    debug!("android::verify_registration - validated: {validated:?}");
 
     Ok(validated)
 }
