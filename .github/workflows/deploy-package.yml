@@ -51,8 +51,17 @@ jobs:
       - name: Build the package
         run: pnpm nx build sdk
 
+      - name: Build the connector-export package
+        run: pnpm nx build connector-export
+
       - name: Prepare package.json
         working-directory: packages/sdk
+        run: node prepare-package.mjs
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+
+      - name: Prepare connector-export package.json
+        working-directory: packages/connector-export
         run: node prepare-package.mjs
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
@@ -60,13 +69,30 @@ jobs:
       - name: Create .npmrc for NPM
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
       
-      - name: Publish to NPM
+      - name: Publish SDK to NPM
         working-directory: packages/sdk
+        run: npm publish --access public
+
+      - name: Publish connector-export to NPM
+        working-directory: packages/connector-export
         run: npm publish --access public
     
       - name: Create .npmrc for GitHub Packages
-        run: echo "@OWNER:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+        run: |
+          echo "@matter-labs:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "@zksync-sso:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
-      - name: Publish to GitHub Packages
+      - name: Publish SDK to GitHub Packages
         working-directory: packages/sdk
-        run: npm publish --access public
+        run: |
+          # Update package name for GitHub Packages to be scoped to the organization
+          npm pkg set name="@matter-labs/zksync-sso"
+          npm publish --registry=https://npm.pkg.github.com
+
+      - name: Publish connector-export to GitHub Packages
+        working-directory: packages/connector-export
+        run: |
+          # Update package name for GitHub Packages to be scoped to the organization
+          npm pkg set name="@matter-labs/zksync-sso-connector-export"
+          npm publish --registry=https://npm.pkg.github.com
