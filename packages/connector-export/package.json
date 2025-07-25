@@ -17,8 +17,16 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc --project tsconfig.build.json",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "build:ts": "tsc --project tsconfig.build.json",
+    "tsclean": "rm -rf dist *.tsbuildinfo",
+    "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:types && npm run build:ts",
+    "build:esm": "tsc --project tsconfig.build.json --outDir ./dist/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/_esm/package.json",
+    "build:cjs": "tsc --project ./tsconfig.build.json --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
+    "build:types": "tsc --project ./tsconfig.build.json --declarationDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
+    "clean": "rm -rf *.tsbuildinfo dist",
+    "typecheck": "tsc --noEmit",
+    "publish:local": "pnpm publish --no-git-checks --force",
+    "test": "vitest"
   },
   "peerDependencies": {
     "zksync-sso": "workspace:*"
