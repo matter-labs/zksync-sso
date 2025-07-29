@@ -4,12 +4,12 @@ permissions:
 on:
   push:
     branches:
-      - test-oidc
+      - main
     tags:
       - "*"
   pull_request:
     branches:
-      - test-oidc
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
