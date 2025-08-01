@@ -7,6 +7,38 @@ export const GuardianRecoveryValidatorAbi = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+    ],
+    name: "ACCOUNT_ALREADY_GUARDED",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "guardian",
+        type: "address",
+      },
+    ],
+    name: "ACCOUNT_NOT_GUARDED_BY_ADDRESS",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
         internalType: "uint256",
         name: "value",
         type: "uint256",
@@ -16,45 +48,28 @@ export const GuardianRecoveryValidatorAbi = [
     type: "error",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "guardian",
-        type: "address",
-      },
-    ],
-    name: "AccountAlreadyGuardedByGuardian",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "guardian",
-        type: "address",
-      },
-    ],
-    name: "AccountNotGuardedByAddress",
+    inputs: [],
+    name: "GUARDIAN_CANNOT_BE_SELF",
     type: "error",
   },
   {
     inputs: [],
-    name: "AccountRecoveryInProgress",
+    name: "GUARDIAN_INVALID_ACCOUNT",
     type: "error",
   },
   {
     inputs: [],
-    name: "GuardianCannotBeSelf",
+    name: "GUARDIAN_INVALID_ADDRESS",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "GUARDIAN_INVALID_RECOVERY_CALL",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "GUARDIAN_INVALID_WEBAUTH_VALIDATOR",
     type: "error",
   },
   {
@@ -65,7 +80,7 @@ export const GuardianRecoveryValidatorAbi = [
         type: "address",
       },
     ],
-    name: "GuardianNotFound",
+    name: "GUARDIAN_NOT_FOUND",
     type: "error",
   },
   {
@@ -76,27 +91,23 @@ export const GuardianRecoveryValidatorAbi = [
         type: "address",
       },
     ],
-    name: "GuardianNotProposed",
+    name: "GUARDIAN_NOT_PROPOSED",
     type: "error",
   },
   {
     inputs: [],
-    name: "InvalidAccountToGuardAddress",
+    name: "GUARDIAN_RECOVERY_IN_PROGRESS",
     type: "error",
   },
   {
-    inputs: [],
-    name: "InvalidAccountToRecoverAddress",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "InvalidGuardianAddress",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "InvalidWebAuthValidatorAddress",
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "hashedOriginDomain",
+        type: "bytes32",
+      },
+    ],
+    name: "GUARDIAN_UNKNOWN_DOMAIN",
     type: "error",
   },
   {
@@ -112,23 +123,7 @@ export const GuardianRecoveryValidatorAbi = [
   },
   {
     inputs: [],
-    name: "NonFunctionCallTransaction",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "hashedOriginDomain",
-        type: "bytes32",
-      },
-    ],
-    name: "UnknownHashedOriginDomain",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "WebAuthValidatorNotEnabled",
+    name: "WEBAUTH_VALIDATOR_NOT_INSTALLED",
     type: "error",
   },
   {
@@ -597,7 +592,7 @@ export const GuardianRecoveryValidatorAbi = [
     ],
     name: "onInstall",
     outputs: [],
-    stateMutability: "nonpayable",
+    stateMutability: "view",
     type: "function",
   },
   {
