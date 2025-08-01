@@ -21,7 +21,7 @@ export type ZksyncSsoConnectorWithEraOptions = ZksyncSsoConnectorOptions;
  * Example usage:
  * ```typescript
  * import { createConfig } from '@wagmi/core'
- * import { zksyncSsoConnector, eraSepolia, eraMainnet } from '@zksync-sso/connector-export'
+ * import { zksyncSsoConnector, eraSepolia, eraMainnet } from 'zksync-sso-wagmi-connector'
  *
  * const config = createConfig({
  *   chains: [eraSepolia, eraMainnet],

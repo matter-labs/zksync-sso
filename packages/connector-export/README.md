@@ -1,4 +1,4 @@
-# @zksync-sso/connector-export
+# zksync-sso-wagmi-connector
 
 This package exports the ZKsync SSO connector with embedded Era Test Node
 support, eliminating the need to manually import and configure the era-test-node
@@ -7,11 +7,11 @@ chain.
 ## Installation
 
 ```bash
-npm install @zksync-sso/connector-export
+npm install zksync-sso-wagmi-connector
 # or
-pnpm add @zksync-sso/connector-export
+pnpm add zksync-sso-wagmi-connector
 # or
-yarn add @zksync-sso/connector-export
+yarn add zksync-sso-wagmi-connector
 ```
 
 ## Usage
@@ -23,7 +23,7 @@ configuration:
 
 ```typescript
 import { createConfig, http } from "@wagmi/core";
-import { zksyncSsoConnector, eraTestNode } from "@zksync-sso/connector-export";
+import { zksyncSsoConnector, eraTestNode } from "zksync-sso-wagmi-connector";
 
 const wagmiConfig = createConfig({
   chains: [eraTestNode], // Era test node is now exported directly
@@ -53,7 +53,7 @@ You can disable the automatic Era Test Node inclusion if you want to configure
 chains manually:
 
 ```typescript
-import { zksyncSsoConnector } from "@zksync-sso/connector-export";
+import { zksyncSsoConnector } from "zksync-sso-wagmi-connector";
 import { zksyncSepoliaTestnet } from "@wagmi/core/chains";
 
 const connector = zksyncSsoConnector({
@@ -129,7 +129,7 @@ const wagmiConfig = createConfig({
 **After:**
 
 ```typescript
-import { zksyncSsoConnector, eraTestNode } from "@zksync-sso/connector-export";
+import { zksyncSsoConnector, eraTestNode } from "zksync-sso-wagmi-connector";
 
 const wagmiConfig = createConfig({
   chains: [eraTestNode], // Now exported directly from the connector package

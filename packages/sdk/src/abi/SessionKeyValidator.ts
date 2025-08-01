@@ -88,6 +88,22 @@ export const SessionKeyValidatorAbi = [
         type: "bytes4",
       },
     ],
+    name: "SESSION_CALL_POLICY_BANNED",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "target",
+        type: "address",
+      },
+      {
+        internalType: "bytes4",
+        name: "selector",
+        type: "bytes4",
+      },
+    ],
     name: "SESSION_CALL_POLICY_VIOLATED",
     type: "error",
   },
@@ -196,6 +212,17 @@ export const SessionKeyValidatorAbi = [
     inputs: [
       {
         internalType: "address",
+        name: "signer",
+        type: "address",
+      },
+    ],
+    name: "SESSION_SIGNER_USED",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
         name: "target",
         type: "address",
       },
@@ -211,17 +238,6 @@ export const SessionKeyValidatorAbi = [
   {
     inputs: [],
     name: "SESSION_ZERO_SIGNER",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "openSessions",
-        type: "uint256",
-      },
-    ],
-    name: "UNINSTALL_WITH_OPEN_SESSIONS",
     type: "error",
   },
   {
@@ -672,6 +688,25 @@ export const SessionKeyValidatorAbi = [
     name: "revokeKeys",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "signer",
+        type: "address",
+      },
+    ],
+    name: "sessionSigner",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "sessionHash",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {

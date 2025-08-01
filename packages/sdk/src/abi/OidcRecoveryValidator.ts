@@ -18,12 +18,49 @@ export const OidcRecoveryValidatorAbi = [
   {
     inputs: [
       {
+        internalType: "uint256",
+        name: "chainId",
+        type: "uint256",
+      },
+    ],
+    name: "NO_TIMESTAMP_ASSERTER",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
         internalType: "bytes32",
         name: "digest",
         type: "bytes32",
       },
     ],
-    name: "AddressNotFoundForDigest",
+    name: "OIDC_ADDRESS_NOT_FOUND",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "currentAccount",
+        type: "address",
+      },
+    ],
+    name: "OIDC_DIGEST_TAKEN",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "OIDC_EMPTY_DIGEST",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "OIDC_EMPTY_ISSUER",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "OIDC_ISSUER_TOO_LONG",
     type: "error",
   },
   {
@@ -34,33 +71,42 @@ export const OidcRecoveryValidatorAbi = [
         type: "address",
       },
     ],
-    name: "NoOidcDataForGivenAddress",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "digest",
-        type: "bytes32",
-      },
-    ],
-    name: "OidcDigestAlreadyRegisteredInAnotherAccount",
+    name: "OIDC_NO_DATA_FOR_ACCOUNT",
     type: "error",
   },
   {
     inputs: [],
-    name: "TimeLimitExpired",
+    name: "OIDC_NO_RECOVERY_STARTED",
     type: "error",
   },
   {
     inputs: [],
-    name: "ValidateSignatureNotImplemented",
+    name: "OIDC_TIME_LIMIT_EXPIRED",
     type: "error",
   },
   {
     inputs: [],
-    name: "ZkProofVerificationFailed",
+    name: "OIDC_ZERO_KEY_REGISTRY",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "OIDC_ZERO_VERIFIER",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "OIDC_ZERO_WEBAUTH_VALIDATOR",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "OIDC_ZKP_VERIFICATION_FAILED",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "WEBAUTH_VALIDATOR_NOT_INSTALLED",
     type: "error",
   },
   {
@@ -127,6 +173,76 @@ export const OidcRecoveryValidatorAbi = [
     type: "event",
   },
   {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "targetAccount",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "pendingPasskeyHash",
+        type: "bytes32",
+      },
+    ],
+    name: "RecoveryCancelled",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "initiator",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "targetAccount",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "pendingPasskeyHash",
+        type: "bytes32",
+      },
+    ],
+    name: "RecoveryStarted",
+    type: "event",
+  },
+  {
+    inputs: [],
+    name: "MAX_ISS_LENGTH",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "PUB_SIGNALS_LENGTH",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "bytes32",
@@ -140,13 +256,7 @@ export const OidcRecoveryValidatorAbi = [
       },
     ],
     name: "addOidcAccount",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
+    outputs: [],
     stateMutability: "nonpayable",
     type: "function",
   },
@@ -167,6 +277,13 @@ export const OidcRecoveryValidatorAbi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "cancelRecovery",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -204,7 +321,7 @@ export const OidcRecoveryValidatorAbi = [
     name: "keyRegistry",
     outputs: [
       {
-        internalType: "address",
+        internalType: "contract IOidcKeyRegistry",
         name: "",
         type: "address",
       },
@@ -246,6 +363,11 @@ export const OidcRecoveryValidatorAbi = [
           },
           {
             internalType: "uint256",
+            name: "recoveryStartedAt",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
             name: "recoverNonce",
             type: "uint256",
           },
@@ -255,7 +377,7 @@ export const OidcRecoveryValidatorAbi = [
             type: "uint256",
           },
         ],
-        internalType: "struct OidcRecoveryValidator.OidcData",
+        internalType: "struct IOidcRecoveryValidator.OidcData",
         name: "",
         type: "tuple",
       },
@@ -311,7 +433,7 @@ export const OidcRecoveryValidatorAbi = [
                 type: "uint256[2]",
               },
             ],
-            internalType: "struct OidcRecoveryValidator.ZkProof",
+            internalType: "struct IOidcRecoveryValidator.ZkProof",
             name: "zkProof",
             type: "tuple",
           },
@@ -331,7 +453,7 @@ export const OidcRecoveryValidatorAbi = [
             type: "uint256",
           },
         ],
-        internalType: "struct OidcRecoveryValidator.StartRecoveryData",
+        internalType: "struct IOidcRecoveryValidator.StartRecoveryData",
         name: "data",
         type: "tuple",
       },
@@ -500,7 +622,7 @@ export const OidcRecoveryValidatorAbi = [
     name: "verifier",
     outputs: [
       {
-        internalType: "address",
+        internalType: "contract IZkVerifier",
         name: "",
         type: "address",
       },

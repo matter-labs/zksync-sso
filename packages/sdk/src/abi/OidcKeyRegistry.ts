@@ -12,23 +12,23 @@ export const OidcKeyRegistryAbi = [
         type: "bytes32",
       },
     ],
-    name: "EvenRsaModulus",
+    name: "OIDC_EVEN_RSA_MODULUS",
     type: "error",
   },
   {
     inputs: [
       {
         internalType: "bytes32",
-        name: "expectedIssHash",
+        name: "expectedIssuerHash",
         type: "bytes32",
       },
       {
         internalType: "bytes32",
-        name: "actualIssHash",
+        name: "actualIssuerHash",
         type: "bytes32",
       },
     ],
-    name: "IssuerHashMismatch",
+    name: "OIDC_ISSUER_HASH_MISMATCH",
     type: "error",
   },
   {
@@ -39,34 +39,7 @@ export const OidcKeyRegistryAbi = [
         type: "uint256",
       },
     ],
-    name: "KeyCountLimitExceeded",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "index",
-        type: "uint256",
-      },
-    ],
-    name: "KeyIdCannotBeZero",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "issHash",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes32",
-        name: "kid",
-        type: "bytes32",
-      },
-    ],
-    name: "KeyNotFound",
+    name: "OIDC_KEY_COUNT_LIMIT_EXCEEDED",
     type: "error",
   },
   {
@@ -78,22 +51,27 @@ export const OidcKeyRegistryAbi = [
       },
       {
         internalType: "bytes32",
-        name: "issHash",
+        name: "issuerHash",
         type: "bytes32",
       },
     ],
-    name: "KidAlreadyRegistered",
+    name: "OIDC_KEY_ID_ALREADY_EXISTS",
     type: "error",
   },
   {
     inputs: [
       {
         internalType: "bytes32",
+        name: "issuerHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
         name: "kid",
         type: "bytes32",
       },
     ],
-    name: "ModulusCannotBeZero",
+    name: "OIDC_KEY_NOT_FOUND",
     type: "error",
   },
   {
@@ -114,7 +92,29 @@ export const OidcKeyRegistryAbi = [
         type: "uint256",
       },
     ],
-    name: "ModulusChunkTooLarge",
+    name: "OIDC_MODULUS_CHUNK_TOO_LARGE",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "index",
+        type: "uint256",
+      },
+    ],
+    name: "OIDC_ZERO_KEY_ID",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "kid",
+        type: "bytes32",
+      },
+    ],
+    name: "OIDC_ZERO_MODULUS",
     type: "error",
   },
   {

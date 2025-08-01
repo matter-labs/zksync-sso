@@ -1,27 +1,27 @@
 export const WebAuthValidatorAbi = [
   {
     inputs: [],
-    name: "ACCOUNT_EXISTS",
+    name: "WEBAUTHN_ACCOUNT_EXISTS",
     type: "error",
   },
   {
     inputs: [],
-    name: "BAD_CREDENTIAL_ID_LENGTH",
+    name: "WEBAUTHN_BAD_CREDENTIAL_ID_LENGTH",
     type: "error",
   },
   {
     inputs: [],
-    name: "BAD_DOMAIN_LENGTH",
+    name: "WEBAUTHN_BAD_DOMAIN_LENGTH",
     type: "error",
   },
   {
     inputs: [],
-    name: "EMPTY_KEY",
+    name: "WEBAUTHN_EMPTY_KEY",
     type: "error",
   },
   {
     inputs: [],
-    name: "KEY_EXISTS",
+    name: "WEBAUTHN_KEY_EXISTS",
     type: "error",
   },
   {
@@ -32,7 +32,7 @@ export const WebAuthValidatorAbi = [
         type: "address",
       },
     ],
-    name: "NOT_KEY_OWNER",
+    name: "WEBAUTHN_NOT_KEY_OWNER",
     type: "error",
   },
   {
