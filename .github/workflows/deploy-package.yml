@@ -78,6 +78,7 @@ jobs:
           else
             TAG="latest"
           fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
       
       - name: Publish SDK to NPM
         working-directory: packages/sdk
