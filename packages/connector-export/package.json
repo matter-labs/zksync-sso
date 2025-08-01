@@ -1,5 +1,5 @@
 {
-  "name": "@zksync-sso/connector-export",
+  "name": "zksync-sso-wagmi-connector",
   "type": "module",
   "version": "0.1.0",
   "description": "Exports only the connector from the zksync-sso SDK.",

@@ -56,7 +56,7 @@
 
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType } from "@wagmi/core";
-import { zksyncSsoConnector, eraTestNode } from "@zksync-sso/connector-export";
+import { zksyncSsoConnector, eraTestNode } from "zksync-sso-wagmi-connector";
 import { createWalletClient, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { getGeneralPaymasterInput } from "viem/zksync";
