@@ -68,14 +68,24 @@ jobs:
 
       - name: Create .npmrc for NPM
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
+        
+      - name: Determine npm publish tag
+        id: npm_tag
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ "$VERSION" =~ -([a-zA-Z0-9]+) ]]; then
+            TAG="${BASH_REMATCH[1]}"
+          else
+            TAG="latest"
+          fi
       
       - name: Publish SDK to NPM
         working-directory: packages/sdk
-        run: npm publish --access public
+        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
 
       - name: Publish connector-export to NPM
         working-directory: packages/connector-export
-        run: npm publish --access public
+        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
     
       - name: Create .npmrc for GitHub Packages
         run: |
@@ -88,11 +98,11 @@ jobs:
         run: |
           # Update package name for GitHub Packages to be scoped to the organization
           npm pkg set name="@matter-labs/zksync-sso"
-          npm publish --registry=https://npm.pkg.github.com
+          npm publish --registry=https://npm.pkg.github.com --tag ${{ steps.npm_tag.outputs.tag }}
 
       - name: Publish connector-export to GitHub Packages
         working-directory: packages/connector-export
         run: |
           # Update package name for GitHub Packages to be scoped to the organization
           npm pkg set name="@matter-labs/zksync-sso-connector-export"
-          npm publish --registry=https://npm.pkg.github.com
+          npm publish --registry=https://npm.pkg.github.com --tag ${{ steps.npm_tag.outputs.tag }}
