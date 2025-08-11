@@ -14,12 +14,6 @@ use tokio::sync::Mutex;
 
 pub mod hash_signature_response;
 
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
-pub struct SendTransactionResult {
-    pub tx_hash: String,
-    pub receipt: String,
-}
-
 pub struct SignerWithMessage<F> {
     sign_message: F,
 }

@@ -6,6 +6,7 @@ use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct UsageLimit {
     pub limit_type: LimitType,
     pub limit: U256,

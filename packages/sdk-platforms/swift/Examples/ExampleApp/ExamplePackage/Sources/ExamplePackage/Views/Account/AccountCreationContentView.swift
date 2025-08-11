@@ -4,13 +4,13 @@ import SwiftUI
 import ZKsyncSSO
 
 struct AccountCreationContentView: View {
-
-    typealias OnDeployed = (DeployedAccount) -> Void
     typealias OnSuccess = () -> Void
 
     @Environment(\.dismiss) private var dismiss
 
     @Environment(\.authorizationController) private var authorizationController
+
+    @EnvironmentObject private var sessionsStore: SessionsStore
 
     @State private var isLoading = false
     @State private var error: Error?
@@ -18,6 +18,7 @@ struct AccountCreationContentView: View {
 
     private let accountInfo: AccountInfo
     private let challenge: Data
+    private let signers: AccountSigners
 
     let onSuccess: OnSuccess
     let onDeployed: OnDeployed
@@ -25,11 +26,13 @@ struct AccountCreationContentView: View {
     init(
         challenge: Data,
         accountInfo: AccountInfo,
+        signers: AccountSigners = .default,
         onSuccess: @escaping () -> Void,
-        onDeployed: @escaping (DeployedAccount) -> Void
+        onDeployed: @escaping OnDeployed
     ) {
         self.challenge = challenge
         self.accountInfo = accountInfo
+        self.signers = signers
         self.onSuccess = onSuccess
         self.onDeployed = onDeployed
     }
@@ -79,11 +82,19 @@ struct AccountCreationContentView: View {
 
         Task { @MainActor in
             do {
+                let initialK1Owners: [String]? = [ signers.accountOwner.address ]
+                let initialSessionConfig = SessionSpec.initialSession(
+                    sessionOwner: signers.sessionOwner
+                )
+                let initialSessionConfigJson = try initialSessionConfig.toJsonString()
+
                 let account = try await createAccount(
                     userName: accountInfo.name,
                     userID: accountInfo.userID,
                     challenge: challenge,
                     relyingPartyIdentifier: accountInfo.domain,
+                    initialK1Owners: initialK1Owners,
+                    initialSessionConfigJson: initialSessionConfigJson,
                     controller: authorizationController
                 )
                 let address = account.address
@@ -96,14 +107,19 @@ struct AccountCreationContentView: View {
                     uniqueAccountId: uniqueAccountId
                 )
 
-                print("XXX deployed account: \(deployedAccount)")
-              
+                print("Deployed account: \(deployedAccount)")
+
+                let initialSession = Session(
+                    createdAt: Date(),
+                    sessionSpec: initialSessionConfig
+                )
+                sessionsStore.addSession(initialSession, for: address)
+
                 // Signal success to parent view
                 onSuccess()
-                
-                // Provide deployed account to callback
-                onDeployed(deployedAccount)
 
+                // Provide deployed account and signer to callback
+                onDeployed(deployedAccount, signers)
             } catch let error as ASAuthorizationError where error.code == .canceled {
                 print("User cancelled passkey creation")
             } catch {
@@ -121,9 +137,9 @@ struct AccountCreationContentView: View {
         accountInfo: .init(
             name: "Jane Doe",
             userID: "jdoe",
-            domain: "soo-sdk-example-pages.pages.dev"
+            domain: "auth-test.zksync.dev"
         ),
         onSuccess: {},
-        onDeployed: { _ in }
+        onDeployed: { _, _ in }
     )
 }

@@ -3,21 +3,20 @@ import SwiftUI
 import ZKsyncSSO
 
 struct SendTransactionView: View {
-    
     let fromAccount: DeployedAccount
-    
+
     @Environment(\.dismiss) private var dismiss
-  
+
     @Environment(\.authorizationController) private var authorizationController
 
     @State private var toAddress: String = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
     @State private var amount: String = "1.0"
     @State private var isConfirming = false
-    @State private var error: String?
+    @State private var error: UIError?
     @State private var showingSuccess = false
     @State private var preparedTransaction: PreparedTransaction?
     @State private var isPreparing = false
-    
+
     private let onTransactionSent: () -> Void
 
     init(
@@ -48,14 +47,14 @@ struct SendTransactionView: View {
                 if let error = error {
                     Section {
                         Button {
-                            UIPasteboard.general.string = error
+                            UIPasteboard.general.string = error.message
                         } label: {
                             HStack {
-                                Text(error)
+                                Text(error.message)
                                     .foregroundStyle(.red)
-                                
+
                                 Spacer()
-                                
+
                                 Image(systemName: "doc.on.doc")
                                     .foregroundStyle(.secondary)
                                     .font(.system(size: 14))
@@ -124,16 +123,16 @@ struct SendTransactionView: View {
             return
         }
         print("prepareTransaction amountInEth: \(amountInEth)")
-      
+
         let amountInWei = String(Int(amountInEth * 1_000_000_000_000_000_000.0))
-      
+
         print("prepareTransaction amountInWei: \(amountInWei)")
-        
+
         let authenticator = PasskeyAuthenticatorHelper(
             controllerProvider: { self.authorizationController },
-            relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
+            relyingPartyIdentifier: "auth-test.zksync.dev"
         )
-        
+
         let accountClient = AccountClient(
             account: .init(
                 address: fromAccount.address,
@@ -153,22 +152,22 @@ struct SendTransactionView: View {
                     to: toAddress,
                     value: amountInWei
                 )
-              
+
                 print("prepareTransaction transaction: \(transaction)")
-                
+
                 let prepared = try await accountClient.prepare(
                     transaction: transaction
                 )
-              
+
                 print("prepareTransaction prepared: \(prepared)")
-                
+
                 print(
                     "Prepared transaction JSON: \(prepared.transactionRequestJson)"
                 )
                 preparedTransaction = prepared
                 error = nil
             } catch {
-                self.error = error.localizedDescription
+                self.error = UIError(from: error)
                 preparedTransaction = nil
                 print("Error preparing transaction: \(error)")
             }
@@ -178,17 +177,17 @@ struct SendTransactionView: View {
     private func confirmTransaction() {
         print("confirmTransaction")
         guard let amountInEth = Double(amount) else { return }
-        
+
         let amountInWei = String(Int(amountInEth * 1_000_000_000_000_000_000.0))
 
         isConfirming = true
         error = nil
-        
+
         let authenticator = PasskeyAuthenticatorHelper(
             controllerProvider: { self.authorizationController },
-            relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
+            relyingPartyIdentifier: "auth-test.zksync.dev"
         )
-        
+
         let accountClient = AccountClient(
             account: .init(
                 address: fromAccount.address,
@@ -208,7 +207,7 @@ struct SendTransactionView: View {
                         value: amountInWei
                     )
                 )
-                
+
                 withAnimation {
                     showingSuccess = true
                 }
@@ -219,7 +218,7 @@ struct SendTransactionView: View {
 
                 dismiss()
             } catch {
-                self.error = error.localizedDescription
+                self.error = UIError(from: error)
                 print(error)
                 isConfirming = false
                 print("Error preparing transaction: \(error)")

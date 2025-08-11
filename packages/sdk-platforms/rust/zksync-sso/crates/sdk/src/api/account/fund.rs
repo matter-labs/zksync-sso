@@ -1,10 +1,17 @@
-use crate::{config::Config, utils::alloy::extensions::ProviderExt};
+use crate::{
+    config::Config,
+    utils::{
+        alloy::extensions::ProviderExt, anvil_zksync::rich_wallet::RichWallet,
+    },
+};
 use alloy::{
     network::TransactionBuilder,
     primitives::{Address, U256},
     providers::Provider,
 };
-use alloy_zksync::network::transaction_request::TransactionRequest;
+use alloy_zksync::{
+    network::transaction_request::TransactionRequest, provider::zksync_provider,
+};
 use log::debug;
 use money::Money;
 use rand::Rng;
@@ -18,19 +25,7 @@ pub async fn fund_account(
     debug!("XDB fund_account - address: {address:?}");
 
     let provider = {
-        use alloy::signers::local::PrivateKeySigner;
-        use alloy_zksync::{provider::zksync_provider, wallet::ZksyncWallet};
-        pub const RICH_WALLET_PRIVATE_KEY_2: &str = "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
-
-        fn zksync_wallet_3() -> eyre::Result<ZksyncWallet> {
-            let signer =
-                RICH_WALLET_PRIVATE_KEY_2.parse::<PrivateKeySigner>()?;
-            let zksync_wallet = ZksyncWallet::from(signer);
-            Ok(zksync_wallet)
-        }
-
-        let wallet = zksync_wallet_3()?;
-
+        let wallet = RichWallet::two().to_zksync_wallet()?;
         zksync_provider()
             .with_recommended_fillers()
             .wallet(wallet)

@@ -1,5 +1,5 @@
-import Foundation
 import AuthenticationServices
+import Foundation
 
 public enum AuthorizationCredentialType {
     case appleID(ASAuthorizationAppleIDCredential)

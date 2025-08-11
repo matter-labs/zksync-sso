@@ -1,8 +1,9 @@
 #[cfg(test)]
 pub mod tests {
     use crate::{
-        api::account::deployment::{
-            DeployedAccountDetails, PasskeyParameters, RpId, deploy_account,
+        api::account::{
+            deployment::{DeployedAccountDetails, deploy_account},
+            passkey::{passkey_parameters::PasskeyParameters, rp_id::RpId},
         },
         config::Config,
         utils::test_utils::spawn_node_and_deploy_contracts,
@@ -278,7 +279,7 @@ pub mod tests {
         .await
         .map_err(|e| eyre::eyre!("Error registering Apple passkey: {:?}", e))?;
 
-        let result = deploy_account(deploy_args, config).await?;
+        let result = deploy_account(deploy_args, None, None, config).await?;
         Ok((result, credential))
     }
 

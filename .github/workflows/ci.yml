@@ -4,9 +4,17 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'packages/sdk-platforms/**'
+      - '.github/workflows/ci-swift.yml'
+      - '.github/workflows/ci-rust.yml'
+      - '.github/workflows/ci-rn.yml'
   pull_request:
     paths-ignore:
       - 'packages/sdk-platforms/**'
+      - '.github/workflows/ci-swift.yml'
+      - '.github/workflows/ci-rust.yml'
+      - '.github/workflows/ci-rn.yml'
   workflow_dispatch:
 
 jobs:

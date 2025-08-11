@@ -41,8 +41,10 @@ pub enum CreateSessionError {
     InvalidAddress(String),
     #[error("Invalid session config: {0}")]
     InvalidSessionConfig(String),
-    #[error("Invalid session key: {0}")]
-    InvalidSessionKey(String),
+    #[error("Invalid config: {0}")]
+    InvalidConfig(String),
+    #[error("Invalid private key: {0}")]
+    InvalidPrivateKey(String),
     #[error("Invalid paymaster: {0}")]
     InvalidPaymaster(String),
 }
@@ -68,7 +70,7 @@ pub async fn create_session(
     let args = SdkCreateSessionArgs { account, session_config, paymaster };
 
     let sign_fn = sign_fn_from_private_key_hex(owner_private_key)
-        .map_err(|e| CreateSessionError::CreateSession(e.to_string()))?;
+        .map_err(|e| CreateSessionError::InvalidPrivateKey(e.to_string()))?;
 
     let result = sdk::api::account::session::create::create_session(
         args,
@@ -76,7 +78,7 @@ pub async fn create_session(
         &(config.try_into()
             as Result<sdk::config::Config, config::ConfigError>)
             .map_err(|e: config::ConfigError| {
-                CreateSessionError::CreateSession(e.to_string())
+                CreateSessionError::InvalidConfig(e.to_string())
             })?,
     )
     .await

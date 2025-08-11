@@ -8,6 +8,7 @@ use alloy::primitives::{Address, FixedBytes, U256};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct CallSpec {
     pub target: Address,
     pub selector: FixedBytes<4>,

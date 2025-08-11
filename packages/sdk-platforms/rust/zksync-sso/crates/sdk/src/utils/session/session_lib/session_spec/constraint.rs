@@ -8,6 +8,7 @@ use alloy::primitives::FixedBytes;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct Constraint {
     pub condition: Condition,
     pub index: u64,

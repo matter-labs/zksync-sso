@@ -8,13 +8,13 @@ public struct LoginView: View {
     @State private var accountInfo: AccountInfo
     @FocusState private var isFocused: Bool
     @State private var isSigningIn = false
-    @State private var error: String?
+    @State private var error: UIError?
 
-    let onSignedIn: ((AccountDetails) -> Void)?
+    let onSignedIn: ((AccountSession) -> Void)?
 
     init(
         accountInfo: AccountInfo,
-        onSignedIn: ((AccountDetails) -> Void)? = nil
+        onSignedIn: ((AccountSession) -> Void)? = nil
     ) {
         self.accountInfo = accountInfo
         self.onSignedIn = onSignedIn
@@ -40,11 +40,11 @@ public struct LoginView: View {
                             TextField("Enter your user ID", text: $accountInfo.userID)
                                 .focused($isFocused)
                                 .padding()
-                                .background(Color(.systemGray6))
+                                .background(Color(uiColor: .systemGray6))
                                 .cornerRadius(10)
                                 .font(.system(.body, design: .monospaced))
                                 .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
+                                .autocapitalization(.none)
 
                             if isFocused && !accountInfo.userID.isEmpty {
                                 Button {
@@ -61,11 +61,12 @@ public struct LoginView: View {
                         }
                         .animation(
                             .easeInOut(duration: 0.2),
-                            value: isFocused && !accountInfo.userID.isEmpty)
+                            value: isFocused && !accountInfo.userID.isEmpty
+                        )
                     }
 
                     if let error = error {
-                        Text(error)
+                        Text(error.message)
                             .foregroundStyle(.red)
                             .font(.footnote)
                             .padding(.top, 4)
@@ -105,7 +106,7 @@ public struct LoginView: View {
 
     private func signIn() {
         guard !accountInfo.userID.isEmpty else {
-            error = "Please enter your user ID"
+            error = UIError(message: "Please enter your user ID")
             return
         }
 
@@ -118,7 +119,7 @@ public struct LoginView: View {
             do {
                 let uniqueAccountId = accountInfo.userID
                 let relyingPartyIdentifier = accountInfo.domain
-                
+
                 let account = try await getAccountByUserId(
                     uniqueAccountId: uniqueAccountId,
                     relyingPartyIdentifier: relyingPartyIdentifier,
@@ -132,10 +133,14 @@ public struct LoginView: View {
                     )
                 )
 
-                onSignedIn?(accountDetails)
+                onSignedIn?(
+                    AccountSession(
+                        accountDetails: accountDetails,
+                        signers: .default
+                    ))
                 dismiss()
             } catch {
-                self.error = error.localizedDescription
+                self.error = UIError(from: error)
                 print("Sign in error: \(error)")
             }
         }

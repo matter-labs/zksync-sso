@@ -50,25 +50,25 @@ public struct ActionButton: View {
         Section {
             style.applyStyle(
                 to:
-                    Button(action: action) {
-                        HStack(spacing: 8) {
-                            Spacer()
-                            if isLoading {
-                                ProgressView()
-                                    .padding(.trailing, 4)
-                            }
-
-                            if let icon = icon {
-                                Image(systemName: icon)
-                            }
-
-                            Text(isLoading ? (progressTitle ?? title) : title)
-                                .font(.headline)
-                            Spacer()
+                Button(action: action) {
+                    HStack(spacing: 8) {
+                        Spacer()
+                        if isLoading {
+                            ProgressView()
+                                .padding(.trailing, 4)
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
+
+                        if let icon = icon {
+                            Image(systemName: icon)
+                        }
+
+                        Text(isLoading ? (progressTitle ?? title) : title)
+                            .font(.headline)
+                        Spacer()
                     }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                }
             )
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)

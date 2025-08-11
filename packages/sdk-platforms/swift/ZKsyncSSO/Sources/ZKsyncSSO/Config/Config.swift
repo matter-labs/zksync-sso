@@ -9,7 +9,7 @@ public struct Config {
         nodeUrl: String,
         deployWallet: DeployWallet?
     ) {
-        self.inner = .init(
+        inner = .init(
             contracts: contracts.inner,
             nodeUrl: nodeUrl,
             deployWallet: deployWallet
@@ -22,10 +22,10 @@ public struct Config {
             contracts: SsoContracts(inner: innerDefault.contracts),
             nodeUrl: innerDefault.nodeUrl,
             deployWallet: {
-              guard let privateKeyHex = innerDefault.deployWallet?.privateKeyHex else {
-                return nil
-              }
-              return DeployWallet(privateKeyHex: privateKeyHex)
+                guard let privateKeyHex = innerDefault.deployWallet?.privateKeyHex else {
+                    return nil
+                }
+                return DeployWallet(privateKeyHex: privateKeyHex)
             }()
         )
     }

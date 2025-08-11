@@ -1,7 +1,7 @@
 use crate::{
     client::passkey::actions::deploy::CredentialDetails,
     config::Config,
-    contracts::AAFactory,
+    contracts::{AAFactory, SsoAccount},
     utils::{
         alloy::extensions::ProviderExt,
         contract_deployed::{Contract, check_contract_deployed},
@@ -346,6 +346,35 @@ pub fn hash_unique_account_id(
     let hash = keccak256(account_id_hex);
     debug!("XDB hash_unique_account_id - hash: {hash:?}");
     Ok(hash)
+}
+
+pub async fn is_module_validator(
+    account_address: Address,
+    module_address: Address,
+    config: &Config,
+) -> eyre::Result<bool> {
+    let public_provider = {
+        let node_url: url::Url = config.clone().node_url;
+        zksync_provider().with_recommended_fillers().on_http(node_url)
+    };
+    let account_contract = SsoAccount::new(account_address, &public_provider);
+    let is_module_validator =
+        account_contract.isModuleValidator(module_address).call().await?._0;
+    Ok(is_module_validator)
+}
+
+pub async fn is_k1_owner(
+    account_address: Address,
+    owner_address: Address,
+    config: &Config,
+) -> eyre::Result<bool> {
+    let public_provider = {
+        let node_url: url::Url = config.clone().node_url;
+        zksync_provider().with_recommended_fillers().on_http(node_url)
+    };
+    let account_contract = SsoAccount::new(account_address, &public_provider);
+    let is_owner = account_contract.isK1Owner(owner_address).call().await?._0;
+    Ok(is_owner)
 }
 
 #[cfg(test)]

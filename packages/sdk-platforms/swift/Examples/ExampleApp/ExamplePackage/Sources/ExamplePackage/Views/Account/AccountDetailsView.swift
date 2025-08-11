@@ -2,6 +2,10 @@ import ExamplePackageUIComponents
 import SwiftUI
 import ZKsyncSSO
 
+#if canImport(UIKit)
+    import UIKit
+#endif
+
 struct AccountDetailsView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -12,15 +16,19 @@ struct AccountDetailsView: View {
     @State private var isFunding = false
     @State private var showingCopiedFeedback = false
     @State private var showingSendTransaction = false
+    @State private var showingSessions = false
     @State private var showingLogoutConfirmation = false
 
+    let signers: AccountSigners
     var onLogout: (() -> Void)?
 
     init(
         account: AccountDetails,
+        signers: AccountSigners = .default,
         onLogout: (() -> Void)? = nil
     ) {
         self.account = account
+        self.signers = signers
         self.onLogout = onLogout
     }
 
@@ -40,7 +48,9 @@ struct AccountDetailsView: View {
                                 .fill(.secondary.opacity(0.1))
                         }
                         .onTapGesture {
-                            UIPasteboard.general.string = account.address
+                            #if canImport(UIKit)
+                                UIPasteboard.general.string = account.address
+                            #endif
                             withAnimation {
                                 showingCopiedFeedback = true
                             }
@@ -70,7 +80,9 @@ struct AccountDetailsView: View {
                         icon: "safari.fill",
                         style: .plain,
                         action: {
-                            UIApplication.shared.open(account.explorerURL)
+                            #if canImport(UIKit)
+                                UIApplication.shared.open(account.explorerURL)
+                            #endif
                         }
                     )
                 }
@@ -88,7 +100,9 @@ struct AccountDetailsView: View {
                                 .fill(.secondary.opacity(0.1))
                         }
                         .onTapGesture {
-                            UIPasteboard.general.string = account.uniqueAccountId
+                            #if canImport(UIKit)
+                                UIPasteboard.general.string = account.uniqueAccountId
+                            #endif
                             withAnimation {
                                 showingCopiedFeedback = true
                             }
@@ -149,6 +163,18 @@ struct AccountDetailsView: View {
                     style: .prominent,
                     action: { showingSendTransaction = true }
                 )
+
+                VStack(spacing: 12) {
+                    Text("Sessions")
+                        .font(.headline)
+
+                    ActionButton(
+                        title: "Sessions",
+                        icon: "list.bullet.rectangle.portrait",
+                        style: .plain,
+                        action: { showingSessions = true }
+                    )
+                }
             }
             .padding()
         }
@@ -159,16 +185,20 @@ struct AccountDetailsView: View {
             await loadBalance()
         }
         .navigationTitle("Account Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showingLogoutConfirmation = true
-                } label: {
-                    Text("Logout")
+        #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+        #endif
+        #if os(iOS)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingLogoutConfirmation = true
+                    } label: {
+                        Text("Logout")
+                    }
                 }
             }
-        }
+        #endif
         .confirmationDialog(
             "Are you sure you want to log out?",
             isPresented: $showingLogoutConfirmation,
@@ -191,6 +221,10 @@ struct AccountDetailsView: View {
                 }
             )
         }
+        .sheet(isPresented: $showingSessions) {
+            SessionsView(account: account.account, signers: signers)
+                .environmentObject(SessionsStore.shared)
+        }
         .id("AccountDetailsView")
         .onAppear { print("AccountDetailsView appeared") }
     }
@@ -202,9 +236,9 @@ struct AccountDetailsView: View {
         do {
             let authenticator = PasskeyAuthenticatorHelper(
                 controllerProvider: { self.authorizationController },
-                relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
+                relyingPartyIdentifier: "auth-test.zksync.dev"
             )
-            
+
             let accountClient = AccountClient(
                 account: .init(
                     address: account.address,
@@ -214,11 +248,11 @@ struct AccountDetailsView: View {
                     authenticator: authenticator
                 )
             )
-            
+
             let balance = try await accountClient.getAccountBalance()
-            self.account.balance = balance
+            account.balance = balance
         } catch {
-            self.account.balance = "Error loading balance"
+            account.balance = "Error loading balance"
         }
     }
 
@@ -231,7 +265,7 @@ struct AccountDetailsView: View {
         do {
             let authenticator = PasskeyAuthenticatorHelper(
                 controllerProvider: { self.authorizationController },
-                relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
+                relyingPartyIdentifier: "auth-test.zksync.dev"
             )
             let accountClient = AccountClient(
                 account: .init(
@@ -242,7 +276,7 @@ struct AccountDetailsView: View {
                     authenticator: authenticator
                 )
             )
-            
+
             try await accountClient.fundAccount()
             await loadBalance()
         } catch {
@@ -259,7 +293,7 @@ struct AccountDetailsView: View {
                     info: .init(
                         name: "Jane Doe",
                         userID: "jdoe@example.com",
-                        domain: "soo-sdk-example-pages.pages.dev"
+                        domain: "auth-test.zksync.dev"
                     ),
                     address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
                     uniqueAccountId: "jdoe@example.com"
@@ -277,7 +311,7 @@ struct AccountDetailsView: View {
                     info: .init(
                         name: "Jane Doe",
                         userID: "jdoe@example.com",
-                        domain: "soo-sdk-example-pages.pages.dev"
+                        domain: "auth-test.zksync.dev"
                     ),
                     address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
                     uniqueAccountId: "jdoe@example.com"
@@ -297,7 +331,7 @@ struct AccountDetailsView: View {
                         info: .init(
                             name: "Jane Doe",
                             userID: "jdoe@example.com",
-                            domain: "soo-sdk-example-pages.pages.dev"
+                            domain: "auth-test.zksync.dev"
                         ),
                         address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
                         uniqueAccountId: "jdoe@example.com"
@@ -312,7 +346,7 @@ struct AccountDetailsView: View {
                         info: .init(
                             name: "Jane Doe",
                             userID: "jdoe@example.com",
-                            domain: "soo-sdk-example-pages.pages.dev"
+                            domain: "auth-test.zksync.dev"
                         ),
                         address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
                         uniqueAccountId: "jdoe@example.com"

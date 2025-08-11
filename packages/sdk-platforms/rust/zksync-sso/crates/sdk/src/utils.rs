@@ -1,4 +1,5 @@
 pub(crate) mod alloy;
+pub(crate) mod anvil_zksync;
 pub(crate) mod contract_deployed;
 pub(crate) mod deployment_utils;
 pub(crate) mod encoding;

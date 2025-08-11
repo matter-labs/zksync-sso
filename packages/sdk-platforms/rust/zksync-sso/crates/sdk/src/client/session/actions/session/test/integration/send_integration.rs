@@ -201,7 +201,7 @@ mod tests {
         );
 
         eyre::ensure!(
-            initial_session_state.session_state.status.is_active(),
+            initial_session_state.session_state.is_active(),
             "Initial session should be active"
         );
         eyre::ensure!(

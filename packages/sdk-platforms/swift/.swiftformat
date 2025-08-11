@@ -1,0 +1,13 @@
+# SwiftFormat configuration
+--indent 4
+--indentcase false
+--trimwhitespace always
+--emptybraces no-space
+--stripunusedargs closure-only
+--self remove
+--header ignore
+--allman false
+--wrapconditions preserve
+--wraparguments preserve
+--wrapparameters preserve
+--wrapcollections preserve

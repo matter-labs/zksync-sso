@@ -20,6 +20,7 @@ pub mod transfer_spec;
 pub mod usage_limit;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionSpec {
     pub signer: Address,
     pub expires_at: U256,
@@ -216,5 +217,127 @@ mod tests {
             let round_trip_limit: UsageLimit = session_lib_limit.into();
             assert_eq!(original_limit, round_trip_limit);
         }
+    }
+
+    #[test]
+    fn test_session_spec_json_serialization() {
+        // Create a comprehensive SessionSpec to test camelCase serialization
+        let session_spec = SessionSpec {
+            signer: address!("0x9BbC92a33F193174bf6Cc09c4b4055500d972479"),
+            expires_at: U256::from(1749040108u64),
+            fee_limit: UsageLimit {
+                limit_type: LimitType::Allowance,
+                limit: U256::from(100000000000000000u64),
+                period: U256::from(3600u64),
+            },
+            call_policies: vec![CallSpec {
+                target: address!("0x1111111111111111111111111111111111111111"),
+                selector: fixed_bytes!("a9059cbb"),
+                max_value_per_use: U256::from(1000000000000000u64),
+                value_limit: UsageLimit {
+                    limit_type: LimitType::Lifetime,
+                    limit: U256::from(10000000000000000u64),
+                    period: U256::ZERO,
+                },
+                constraints: vec![Constraint {
+                    condition: Condition::Equal,
+                    index: 4,
+                    ref_value: FixedBytes::ZERO,
+                    limit: UsageLimit {
+                        limit_type: LimitType::Unlimited,
+                        limit: U256::ZERO,
+                        period: U256::ZERO,
+                    },
+                }],
+            }],
+            transfer_policies: vec![TransferSpec {
+                target: address!("0x2222222222222222222222222222222222222222"),
+                max_value_per_use: U256::from(20000000000000000u64),
+                value_limit: UsageLimit {
+                    limit_type: LimitType::Unlimited,
+                    limit: U256::ZERO,
+                    period: U256::ZERO,
+                },
+            }],
+        };
+
+        // Expected JSON string with camelCase formatting (identical to session_spec but as JSON string)
+        let session_spec_json = r#"{
+  "signer": "0x9bbc92a33f193174bf6cc09c4b4055500d972479",
+  "expiresAt": "0x68403bec",
+  "feeLimit": {
+    "limitType": "Allowance",
+    "limit": "0x16345785d8a0000",
+    "period": "0xe10"
+  },
+  "callPolicies": [
+    {
+      "target": "0x1111111111111111111111111111111111111111",
+      "selector": "0xa9059cbb",
+      "maxValuePerUse": "0x38d7ea4c68000",
+      "valueLimit": {
+        "limitType": "Lifetime",
+        "limit": "0x2386f26fc10000",
+        "period": "0x0"
+      },
+      "constraints": [
+        {
+          "condition": "Equal",
+          "index": 4,
+          "refValue": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "limit": {
+            "limitType": "Unlimited",
+            "limit": "0x0",
+            "period": "0x0"
+          }
+        }
+      ]
+    }
+  ],
+  "transferPolicies": [
+    {
+      "target": "0x2222222222222222222222222222222222222222",
+      "maxValuePerUse": "0x470de4df820000",
+      "valueLimit": {
+        "limitType": "Unlimited",
+        "limit": "0x0",
+        "period": "0x0"
+      }
+    }
+  ]
+}"#;
+
+        // Serialize to JSON
+        let actual_json = serde_json::to_string_pretty(&session_spec)
+            .expect("Failed to serialize to JSON");
+
+        // Print the JSON to see the camelCase formatting
+        println!("SessionSpec JSON representation:");
+        println!("{actual_json}");
+
+        // Parse both JSON strings to serde_json::Value for comparison (ignoring whitespace differences)
+        let expected_value: serde_json::Value =
+            serde_json::from_str(session_spec_json)
+                .expect("Failed to parse expected JSON");
+        let actual_value: serde_json::Value =
+            serde_json::from_str(&actual_json)
+                .expect("Failed to parse actual JSON");
+
+        // Assert that the JSON structures are identical
+        assert_eq!(
+            expected_value, actual_value,
+            "JSON serialization doesn't match expected format.\nExpected:\n{session_spec_json}\nActual:\n{actual_json}"
+        );
+
+        // Also test that we can deserialize it back
+        let deserialized: SessionSpec = serde_json::from_str(&actual_json)
+            .expect("Failed to deserialize from JSON");
+        assert_eq!(session_spec, deserialized);
+
+        // Test that we can also deserialize from the expected JSON
+        let deserialized_from_expected: SessionSpec =
+            serde_json::from_str(session_spec_json)
+                .expect("Failed to deserialize from expected JSON");
+        assert_eq!(session_spec, deserialized_from_expected);
     }
 }

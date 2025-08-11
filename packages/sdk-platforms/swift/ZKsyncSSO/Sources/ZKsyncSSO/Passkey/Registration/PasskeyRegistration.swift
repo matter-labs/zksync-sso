@@ -1,5 +1,5 @@
-import Foundation
 import AuthenticationServices
+import Foundation
 import SwiftUI
 
 public func createAccount(
@@ -7,6 +7,8 @@ public func createAccount(
     userID: String,
     challenge: Data,
     relyingPartyIdentifier: String,
+    initialK1Owners: [String]?,
+    initialSessionConfigJson: String?,
     controller: AuthorizationController
 ) async throws -> Account {
     let authorization = try await performCredentialRegistrationRequest(
@@ -40,7 +42,9 @@ public func createAccount(
             credentialRawClientDataJson: rawClientDataJSON,
             credentialId: credentialId,
             rpId: relyingPartyIdentifier,
-            uniqueAccountId: userID
+            uniqueAccountId: userID,
+            initialK1Owners: initialK1Owners,
+            initialSessionConfigJson: initialSessionConfigJson
         )
     )
 }

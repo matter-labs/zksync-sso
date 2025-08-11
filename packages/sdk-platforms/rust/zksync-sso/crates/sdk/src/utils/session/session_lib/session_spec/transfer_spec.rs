@@ -6,6 +6,7 @@ use alloy::primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct TransferSpec {
     pub target: Address,
     pub max_value_per_use: U256,

@@ -11,13 +11,13 @@ struct LoggedOutView: View {
     @State private var showingCreateAccount = false
     @State private var showingLoginView = false
 
-    var onAccountCreated: ((AccountDetails) -> Void)?
-    var onSignedIn: ((AccountDetails) -> Void)?
+    var onAccountCreated: ((AccountSession) -> Void)?
+    var onSignedIn: ((AccountSession) -> Void)?
 
     init(
         accountInfo: AccountInfo,
-        onAccountCreated: ((AccountDetails) -> Void)? = nil,
-        onSignedIn: ((AccountDetails) -> Void)? = nil
+        onAccountCreated: ((AccountSession) -> Void)? = nil,
+        onSignedIn: ((AccountSession) -> Void)? = nil
     ) {
         self.accountInfo = accountInfo
         self.onAccountCreated = onAccountCreated
@@ -53,12 +53,15 @@ struct LoggedOutView: View {
                 .sheet(isPresented: $showingCreateAccount) {
                     AccountCreationView(
                         accountInfo: accountInfo,
-                        onDeployed: { deployedAccount in
+                        onDeployed: { deployedAccount, signers in
                             if let onAccountCreated = onAccountCreated {
                                 onAccountCreated(
-                                    AccountDetails(
-                                        account: deployedAccount,
-                                        balance: nil
+                                    AccountSession(
+                                        accountDetails: AccountDetails(
+                                            account: deployedAccount,
+                                            balance: nil
+                                        ),
+                                        signers: signers
                                     )
                                 )
                             }
@@ -90,7 +93,7 @@ struct LoggedOutView: View {
         accountInfo: AccountInfo(
             name: "Jane Doe",
             userID: "jdoe@example.com",
-            domain: "soo-sdk-example-pages.pages.dev"
+            domain: "auth-test.zksync.dev"
         )
     )
 }

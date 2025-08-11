@@ -1,8 +1,18 @@
-use super::PasskeyParameters;
-use crate::utils::passkey::authenticators::{
-    apple::extract_public_key, verify::verify_registration,
+use crate::{
+    api::account::passkey::rp_id::RpId,
+    utils::passkey::authenticators::{
+        apple::extract_public_key, verify::verify_registration,
+    },
 };
 use log::debug;
+
+#[derive(Debug, Clone)]
+pub struct PasskeyParameters {
+    pub credential_raw_attestation_object: Vec<u8>,
+    pub credential_raw_client_data_json: Vec<u8>,
+    pub credential_id: Vec<u8>,
+    pub rp_id: RpId,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedPasskeyParametersCredential {
@@ -94,7 +104,7 @@ pub(crate) async fn parse_passkey_parameters(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::account::deployment::{AndroidRpId, RpId};
+    use crate::api::account::passkey::rp_id::{AndroidRpId, RpId};
     use base64::Engine;
     use eyre::Ok;
 

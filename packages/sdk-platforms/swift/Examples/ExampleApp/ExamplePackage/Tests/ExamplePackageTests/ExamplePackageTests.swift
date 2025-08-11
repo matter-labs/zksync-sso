@@ -1,6 +1,4 @@
-import Testing
 @testable import ExamplePackage
+import Testing
 
-@Test func example() async throws {
-    
-}
+@Test func example() async throws {}

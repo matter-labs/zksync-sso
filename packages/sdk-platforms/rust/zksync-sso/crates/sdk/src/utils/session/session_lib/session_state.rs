@@ -19,6 +19,16 @@ pub struct SessionState {
     pub call_params: Vec<LimitState>,
 }
 
+impl SessionState {
+    pub fn is_active(&self) -> bool {
+        self.status.is_active()
+    }
+
+    pub fn is_closed(&self) -> bool {
+        self.status.is_closed()
+    }
+}
+
 impl From<SessionLibSessionState> for SessionState {
     fn from(value: SessionLibSessionState) -> Self {
         SessionState {

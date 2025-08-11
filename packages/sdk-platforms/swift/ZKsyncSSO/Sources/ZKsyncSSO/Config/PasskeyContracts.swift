@@ -3,7 +3,7 @@ import ZKsyncSSOFFI
 
 public struct SsoContracts {
     let inner: ZKsyncSSOFFI.SsoContracts
-    
+
     public init(
         accountFactory: String,
         passkey: String,
@@ -11,7 +11,7 @@ public struct SsoContracts {
         accountPaymaster: String,
         recovery: String
     ) {
-        self.inner = .init(
+        inner = .init(
             accountFactory: accountFactory,
             passkey: passkey,
             session: session,
@@ -19,7 +19,7 @@ public struct SsoContracts {
             recovery: recovery
         )
     }
-    
+
     init(inner: ZKsyncSSOFFI.SsoContracts) {
         self.inner = inner
     }

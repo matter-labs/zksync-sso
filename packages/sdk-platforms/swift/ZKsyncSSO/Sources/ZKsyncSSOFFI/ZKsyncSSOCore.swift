@@ -410,6 +410,30 @@ private let UNIFFI_CALLBACK_UNEXPECTED_ERROR: Int32 = 2
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterBool : FfiConverter {
+    typealias FfiType = Int8
+    typealias SwiftType = Bool
+
+    public static func lift(_ value: Int8) throws -> Bool {
+        return value != 0
+    }
+
+    public static func lower(_ value: Bool) -> Int8 {
+        return value ? 1 : 0
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Bool {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Bool, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterString: FfiConverter {
     typealias SwiftType = String
     typealias FfiType = RustBuffer
@@ -1334,6 +1358,278 @@ public func FfiConverterTypeDeployWallet_lower(_ value: DeployWallet) -> RustBuf
 }
 
 
+public struct GetSessionStateArgs {
+    public var account: String
+    public var sessionConfig: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(account: String, sessionConfig: String) {
+        self.account = account
+        self.sessionConfig = sessionConfig
+    }
+}
+
+#if compiler(>=6)
+extension GetSessionStateArgs: Sendable {}
+#endif
+
+
+extension GetSessionStateArgs: Equatable, Hashable {
+    public static func ==(lhs: GetSessionStateArgs, rhs: GetSessionStateArgs) -> Bool {
+        if lhs.account != rhs.account {
+            return false
+        }
+        if lhs.sessionConfig != rhs.sessionConfig {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(account)
+        hasher.combine(sessionConfig)
+    }
+}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeGetSessionStateArgs: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> GetSessionStateArgs {
+        return
+            try GetSessionStateArgs(
+                account: FfiConverterString.read(from: &buf), 
+                sessionConfig: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: GetSessionStateArgs, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.account, into: &buf)
+        FfiConverterString.write(value.sessionConfig, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGetSessionStateArgs_lift(_ buf: RustBuffer) throws -> GetSessionStateArgs {
+    return try FfiConverterTypeGetSessionStateArgs.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGetSessionStateArgs_lower(_ value: GetSessionStateArgs) -> RustBuffer {
+    return FfiConverterTypeGetSessionStateArgs.lower(value)
+}
+
+
+public struct GetSessionStateReturnType {
+    public var sessionStateJson: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(sessionStateJson: String) {
+        self.sessionStateJson = sessionStateJson
+    }
+}
+
+#if compiler(>=6)
+extension GetSessionStateReturnType: Sendable {}
+#endif
+
+
+extension GetSessionStateReturnType: Equatable, Hashable {
+    public static func ==(lhs: GetSessionStateReturnType, rhs: GetSessionStateReturnType) -> Bool {
+        if lhs.sessionStateJson != rhs.sessionStateJson {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(sessionStateJson)
+    }
+}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeGetSessionStateReturnType: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> GetSessionStateReturnType {
+        return
+            try GetSessionStateReturnType(
+                sessionStateJson: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: GetSessionStateReturnType, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.sessionStateJson, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGetSessionStateReturnType_lift(_ buf: RustBuffer) throws -> GetSessionStateReturnType {
+    return try FfiConverterTypeGetSessionStateReturnType.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGetSessionStateReturnType_lower(_ value: GetSessionStateReturnType) -> RustBuffer {
+    return FfiConverterTypeGetSessionStateReturnType.lower(value)
+}
+
+
+public struct IsK1OwnerArgs {
+    public var account: String
+    public var ownerAddress: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(account: String, ownerAddress: String) {
+        self.account = account
+        self.ownerAddress = ownerAddress
+    }
+}
+
+#if compiler(>=6)
+extension IsK1OwnerArgs: Sendable {}
+#endif
+
+
+extension IsK1OwnerArgs: Equatable, Hashable {
+    public static func ==(lhs: IsK1OwnerArgs, rhs: IsK1OwnerArgs) -> Bool {
+        if lhs.account != rhs.account {
+            return false
+        }
+        if lhs.ownerAddress != rhs.ownerAddress {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(account)
+        hasher.combine(ownerAddress)
+    }
+}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeIsK1OwnerArgs: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> IsK1OwnerArgs {
+        return
+            try IsK1OwnerArgs(
+                account: FfiConverterString.read(from: &buf), 
+                ownerAddress: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: IsK1OwnerArgs, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.account, into: &buf)
+        FfiConverterString.write(value.ownerAddress, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIsK1OwnerArgs_lift(_ buf: RustBuffer) throws -> IsK1OwnerArgs {
+    return try FfiConverterTypeIsK1OwnerArgs.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIsK1OwnerArgs_lower(_ value: IsK1OwnerArgs) -> RustBuffer {
+    return FfiConverterTypeIsK1OwnerArgs.lower(value)
+}
+
+
+public struct IsModuleValidatorArgs {
+    public var account: String
+    public var moduleAddress: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(account: String, moduleAddress: String) {
+        self.account = account
+        self.moduleAddress = moduleAddress
+    }
+}
+
+#if compiler(>=6)
+extension IsModuleValidatorArgs: Sendable {}
+#endif
+
+
+extension IsModuleValidatorArgs: Equatable, Hashable {
+    public static func ==(lhs: IsModuleValidatorArgs, rhs: IsModuleValidatorArgs) -> Bool {
+        if lhs.account != rhs.account {
+            return false
+        }
+        if lhs.moduleAddress != rhs.moduleAddress {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(account)
+        hasher.combine(moduleAddress)
+    }
+}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeIsModuleValidatorArgs: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> IsModuleValidatorArgs {
+        return
+            try IsModuleValidatorArgs(
+                account: FfiConverterString.read(from: &buf), 
+                moduleAddress: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: IsModuleValidatorArgs, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.account, into: &buf)
+        FfiConverterString.write(value.moduleAddress, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIsModuleValidatorArgs_lift(_ buf: RustBuffer) throws -> IsModuleValidatorArgs {
+    return try FfiConverterTypeIsModuleValidatorArgs.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIsModuleValidatorArgs_lower(_ value: IsModuleValidatorArgs) -> RustBuffer {
+    return FfiConverterTypeIsModuleValidatorArgs.lower(value)
+}
+
+
 public struct PasskeyParameters {
     public var credentialRawAttestationObject: Data
     public var credentialRawClientDataJson: Data
@@ -1511,6 +1807,146 @@ public func FfiConverterTypePreparedTransaction_lift(_ buf: RustBuffer) throws -
 #endif
 public func FfiConverterTypePreparedTransaction_lower(_ value: PreparedTransaction) -> RustBuffer {
     return FfiConverterTypePreparedTransaction.lower(value)
+}
+
+
+public struct RevokeSessionArgs {
+    public var account: String
+    public var sessionId: String
+    public var ownerPrivateKey: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(account: String, sessionId: String, ownerPrivateKey: String) {
+        self.account = account
+        self.sessionId = sessionId
+        self.ownerPrivateKey = ownerPrivateKey
+    }
+}
+
+#if compiler(>=6)
+extension RevokeSessionArgs: Sendable {}
+#endif
+
+
+extension RevokeSessionArgs: Equatable, Hashable {
+    public static func ==(lhs: RevokeSessionArgs, rhs: RevokeSessionArgs) -> Bool {
+        if lhs.account != rhs.account {
+            return false
+        }
+        if lhs.sessionId != rhs.sessionId {
+            return false
+        }
+        if lhs.ownerPrivateKey != rhs.ownerPrivateKey {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(account)
+        hasher.combine(sessionId)
+        hasher.combine(ownerPrivateKey)
+    }
+}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRevokeSessionArgs: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RevokeSessionArgs {
+        return
+            try RevokeSessionArgs(
+                account: FfiConverterString.read(from: &buf), 
+                sessionId: FfiConverterString.read(from: &buf), 
+                ownerPrivateKey: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: RevokeSessionArgs, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.account, into: &buf)
+        FfiConverterString.write(value.sessionId, into: &buf)
+        FfiConverterString.write(value.ownerPrivateKey, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRevokeSessionArgs_lift(_ buf: RustBuffer) throws -> RevokeSessionArgs {
+    return try FfiConverterTypeRevokeSessionArgs.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRevokeSessionArgs_lower(_ value: RevokeSessionArgs) -> RustBuffer {
+    return FfiConverterTypeRevokeSessionArgs.lower(value)
+}
+
+
+public struct RevokeSessionReturnType {
+    public var transactionReceiptJson: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(transactionReceiptJson: String) {
+        self.transactionReceiptJson = transactionReceiptJson
+    }
+}
+
+#if compiler(>=6)
+extension RevokeSessionReturnType: Sendable {}
+#endif
+
+
+extension RevokeSessionReturnType: Equatable, Hashable {
+    public static func ==(lhs: RevokeSessionReturnType, rhs: RevokeSessionReturnType) -> Bool {
+        if lhs.transactionReceiptJson != rhs.transactionReceiptJson {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(transactionReceiptJson)
+    }
+}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRevokeSessionReturnType: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RevokeSessionReturnType {
+        return
+            try RevokeSessionReturnType(
+                transactionReceiptJson: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: RevokeSessionReturnType, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.transactionReceiptJson, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRevokeSessionReturnType_lift(_ buf: RustBuffer) throws -> RevokeSessionReturnType {
+    return try FfiConverterTypeRevokeSessionReturnType.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRevokeSessionReturnType_lower(_ value: RevokeSessionReturnType) -> RustBuffer {
+    return FfiConverterTypeRevokeSessionReturnType.lower(value)
 }
 
 
@@ -1880,7 +2316,9 @@ public enum CreateSessionError: Swift.Error {
     )
     case InvalidSessionConfig(String
     )
-    case InvalidSessionKey(String
+    case InvalidConfig(String
+    )
+    case InvalidPrivateKey(String
     )
     case InvalidPaymaster(String
     )
@@ -1909,10 +2347,13 @@ public struct FfiConverterTypeCreateSessionError: FfiConverterRustBuffer {
         case 3: return .InvalidSessionConfig(
             try FfiConverterString.read(from: &buf)
             )
-        case 4: return .InvalidSessionKey(
+        case 4: return .InvalidConfig(
             try FfiConverterString.read(from: &buf)
             )
-        case 5: return .InvalidPaymaster(
+        case 5: return .InvalidPrivateKey(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 6: return .InvalidPaymaster(
             try FfiConverterString.read(from: &buf)
             )
 
@@ -1942,13 +2383,18 @@ public struct FfiConverterTypeCreateSessionError: FfiConverterRustBuffer {
             FfiConverterString.write(v1, into: &buf)
             
         
-        case let .InvalidSessionKey(v1):
+        case let .InvalidConfig(v1):
             writeInt(&buf, Int32(4))
             FfiConverterString.write(v1, into: &buf)
             
         
-        case let .InvalidPaymaster(v1):
+        case let .InvalidPrivateKey(v1):
             writeInt(&buf, Int32(5))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidPaymaster(v1):
+            writeInt(&buf, Int32(6))
             FfiConverterString.write(v1, into: &buf)
             
         }
@@ -1993,6 +2439,10 @@ public enum DeployAccountError: Swift.Error {
     case Deploy(String
     )
     case AccountAlreadyDeployed
+    case InvalidSessionConfig(String
+    )
+    case InvalidK1Owners(String
+    )
 }
 
 
@@ -2013,6 +2463,12 @@ public struct FfiConverterTypeDeployAccountError: FfiConverterRustBuffer {
             try FfiConverterString.read(from: &buf)
             )
         case 2: return .AccountAlreadyDeployed
+        case 3: return .InvalidSessionConfig(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 4: return .InvalidK1Owners(
+            try FfiConverterString.read(from: &buf)
+            )
 
          default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -2033,6 +2489,16 @@ public struct FfiConverterTypeDeployAccountError: FfiConverterRustBuffer {
         case .AccountAlreadyDeployed:
             writeInt(&buf, Int32(2))
         
+        
+        case let .InvalidSessionConfig(v1):
+            writeInt(&buf, Int32(3))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidK1Owners(v1):
+            writeInt(&buf, Int32(4))
+            FfiConverterString.write(v1, into: &buf)
+            
         }
     }
 }
@@ -2287,6 +2753,400 @@ extension GetAccountBalanceError: Equatable, Hashable {}
 
 
 extension GetAccountBalanceError: Foundation.LocalizedError {
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+}
+
+
+
+
+
+public enum GetSessionHashError: Swift.Error {
+
+    
+    
+    case GetSessionHash(String
+    )
+    case InvalidSessionConfig(String
+    )
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeGetSessionHashError: FfiConverterRustBuffer {
+    typealias SwiftType = GetSessionHashError
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> GetSessionHashError {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+        
+
+        
+        case 1: return .GetSessionHash(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 2: return .InvalidSessionConfig(
+            try FfiConverterString.read(from: &buf)
+            )
+
+         default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: GetSessionHashError, into buf: inout [UInt8]) {
+        switch value {
+
+        
+
+        
+        
+        case let .GetSessionHash(v1):
+            writeInt(&buf, Int32(1))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidSessionConfig(v1):
+            writeInt(&buf, Int32(2))
+            FfiConverterString.write(v1, into: &buf)
+            
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGetSessionHashError_lift(_ buf: RustBuffer) throws -> GetSessionHashError {
+    return try FfiConverterTypeGetSessionHashError.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGetSessionHashError_lower(_ value: GetSessionHashError) -> RustBuffer {
+    return FfiConverterTypeGetSessionHashError.lower(value)
+}
+
+
+extension GetSessionHashError: Equatable, Hashable {}
+
+
+
+
+extension GetSessionHashError: Foundation.LocalizedError {
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+}
+
+
+
+
+
+public enum GetSessionStateError: Swift.Error {
+
+    
+    
+    case GetSessionState(String
+    )
+    case InvalidAddress(String
+    )
+    case InvalidSessionConfig(String
+    )
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeGetSessionStateError: FfiConverterRustBuffer {
+    typealias SwiftType = GetSessionStateError
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> GetSessionStateError {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+        
+
+        
+        case 1: return .GetSessionState(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 2: return .InvalidAddress(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 3: return .InvalidSessionConfig(
+            try FfiConverterString.read(from: &buf)
+            )
+
+         default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: GetSessionStateError, into buf: inout [UInt8]) {
+        switch value {
+
+        
+
+        
+        
+        case let .GetSessionState(v1):
+            writeInt(&buf, Int32(1))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidAddress(v1):
+            writeInt(&buf, Int32(2))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidSessionConfig(v1):
+            writeInt(&buf, Int32(3))
+            FfiConverterString.write(v1, into: &buf)
+            
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGetSessionStateError_lift(_ buf: RustBuffer) throws -> GetSessionStateError {
+    return try FfiConverterTypeGetSessionStateError.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeGetSessionStateError_lower(_ value: GetSessionStateError) -> RustBuffer {
+    return FfiConverterTypeGetSessionStateError.lower(value)
+}
+
+
+extension GetSessionStateError: Equatable, Hashable {}
+
+
+
+
+extension GetSessionStateError: Foundation.LocalizedError {
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+}
+
+
+
+
+
+public enum IsK1OwnerError: Swift.Error {
+
+    
+    
+    case IsK1Owner(String
+    )
+    case InvalidAccountAddress(String
+    )
+    case InvalidOwnerAddress(String
+    )
+    case InvalidConfig(String
+    )
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeIsK1OwnerError: FfiConverterRustBuffer {
+    typealias SwiftType = IsK1OwnerError
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> IsK1OwnerError {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+        
+
+        
+        case 1: return .IsK1Owner(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 2: return .InvalidAccountAddress(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 3: return .InvalidOwnerAddress(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 4: return .InvalidConfig(
+            try FfiConverterString.read(from: &buf)
+            )
+
+         default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: IsK1OwnerError, into buf: inout [UInt8]) {
+        switch value {
+
+        
+
+        
+        
+        case let .IsK1Owner(v1):
+            writeInt(&buf, Int32(1))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidAccountAddress(v1):
+            writeInt(&buf, Int32(2))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidOwnerAddress(v1):
+            writeInt(&buf, Int32(3))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidConfig(v1):
+            writeInt(&buf, Int32(4))
+            FfiConverterString.write(v1, into: &buf)
+            
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIsK1OwnerError_lift(_ buf: RustBuffer) throws -> IsK1OwnerError {
+    return try FfiConverterTypeIsK1OwnerError.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIsK1OwnerError_lower(_ value: IsK1OwnerError) -> RustBuffer {
+    return FfiConverterTypeIsK1OwnerError.lower(value)
+}
+
+
+extension IsK1OwnerError: Equatable, Hashable {}
+
+
+
+
+extension IsK1OwnerError: Foundation.LocalizedError {
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+}
+
+
+
+
+
+public enum IsModuleValidatorError: Swift.Error {
+
+    
+    
+    case IsModuleValidator(String
+    )
+    case InvalidAccountAddress(String
+    )
+    case InvalidModuleAddress(String
+    )
+    case InvalidConfig(String
+    )
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeIsModuleValidatorError: FfiConverterRustBuffer {
+    typealias SwiftType = IsModuleValidatorError
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> IsModuleValidatorError {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+        
+
+        
+        case 1: return .IsModuleValidator(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 2: return .InvalidAccountAddress(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 3: return .InvalidModuleAddress(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 4: return .InvalidConfig(
+            try FfiConverterString.read(from: &buf)
+            )
+
+         default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: IsModuleValidatorError, into buf: inout [UInt8]) {
+        switch value {
+
+        
+
+        
+        
+        case let .IsModuleValidator(v1):
+            writeInt(&buf, Int32(1))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidAccountAddress(v1):
+            writeInt(&buf, Int32(2))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidModuleAddress(v1):
+            writeInt(&buf, Int32(3))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidConfig(v1):
+            writeInt(&buf, Int32(4))
+            FfiConverterString.write(v1, into: &buf)
+            
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIsModuleValidatorError_lift(_ buf: RustBuffer) throws -> IsModuleValidatorError {
+    return try FfiConverterTypeIsModuleValidatorError.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeIsModuleValidatorError_lower(_ value: IsModuleValidatorError) -> RustBuffer {
+    return FfiConverterTypeIsModuleValidatorError.lower(value)
+}
+
+
+extension IsModuleValidatorError: Equatable, Hashable {}
+
+
+
+
+extension IsModuleValidatorError: Foundation.LocalizedError {
     public var errorDescription: String? {
         String(reflecting: self)
     }
@@ -2558,6 +3418,92 @@ extension PrepareTransactionError: Equatable, Hashable {}
 
 
 extension PrepareTransactionError: Foundation.LocalizedError {
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+}
+
+
+
+
+
+public enum RevokeSessionError: Swift.Error {
+
+    
+    
+    case RevokeSession(String
+    )
+    case InvalidAddress(String
+    )
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeRevokeSessionError: FfiConverterRustBuffer {
+    typealias SwiftType = RevokeSessionError
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RevokeSessionError {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+        
+
+        
+        case 1: return .RevokeSession(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 2: return .InvalidAddress(
+            try FfiConverterString.read(from: &buf)
+            )
+
+         default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: RevokeSessionError, into buf: inout [UInt8]) {
+        switch value {
+
+        
+
+        
+        
+        case let .RevokeSession(v1):
+            writeInt(&buf, Int32(1))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .InvalidAddress(v1):
+            writeInt(&buf, Int32(2))
+            FfiConverterString.write(v1, into: &buf)
+            
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRevokeSessionError_lift(_ buf: RustBuffer) throws -> RevokeSessionError {
+    return try FfiConverterTypeRevokeSessionError.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeRevokeSessionError_lower(_ value: RevokeSessionError) -> RustBuffer {
+    return FfiConverterTypeRevokeSessionError.lower(value)
+}
+
+
+extension RevokeSessionError: Equatable, Hashable {}
+
+
+
+
+extension RevokeSessionError: Foundation.LocalizedError {
     public var errorDescription: String? {
         String(reflecting: self)
     }
@@ -2987,6 +3933,55 @@ fileprivate struct FfiConverterOptionTypeDeployWallet: FfiConverterRustBuffer {
         }
     }
 }
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionSequenceString: FfiConverterRustBuffer {
+    typealias SwiftType = [String]?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterSequenceString.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterSequenceString.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceString: FfiConverterRustBuffer {
+    typealias SwiftType = [String]
+
+    public static func write(_ value: [String], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterString.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [String] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [String]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterString.read(from: &buf))
+        }
+        return seq
+    }
+}
 private let UNIFFI_RUST_FUTURE_POLL_READY: Int8 = 0
 private let UNIFFI_RUST_FUTURE_POLL_MAYBE_READY: Int8 = 1
 
@@ -3113,11 +4108,11 @@ public func createSession(args: CreateSessionArgs, config: Config)async throws  
             errorHandler: FfiConverterTypeCreateSessionError_lift
         )
 }
-public func deployAccount(passkeyParameters: PasskeyParameters, config: Config)async throws  -> Account  {
+public func deployAccount(passkeyParameters: PasskeyParameters, initialK1Owners: [String]?, initialSessionConfigJson: String?, config: Config)async throws  -> Account  {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_ffi_fn_func_deploy_account(FfiConverterTypePasskeyParameters_lower(passkeyParameters),FfiConverterTypeConfig_lower(config)
+                uniffi_ffi_fn_func_deploy_account(FfiConverterTypePasskeyParameters_lower(passkeyParameters),FfiConverterOptionSequenceString.lower(initialK1Owners),FfiConverterOptionString.lower(initialSessionConfigJson),FfiConverterTypeConfig_lower(config)
                 )
             },
             pollFunc: ffi_ffi_rust_future_poll_rust_buffer,
@@ -3127,11 +4122,11 @@ public func deployAccount(passkeyParameters: PasskeyParameters, config: Config)a
             errorHandler: FfiConverterTypeDeployAccountError_lift
         )
 }
-public func deployAccountWithUniqueId(passkeyParameters: PasskeyParameters, uniqueAccountId: String, config: Config)async throws  -> Account  {
+public func deployAccountWithUniqueId(passkeyParameters: PasskeyParameters, uniqueAccountId: String, initialK1Owners: [String]?, initialSessionConfigJson: String?, config: Config)async throws  -> Account  {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_ffi_fn_func_deploy_account_with_unique_id(FfiConverterTypePasskeyParameters_lower(passkeyParameters),FfiConverterString.lower(uniqueAccountId),FfiConverterTypeConfig_lower(config)
+                uniffi_ffi_fn_func_deploy_account_with_unique_id(FfiConverterTypePasskeyParameters_lower(passkeyParameters),FfiConverterString.lower(uniqueAccountId),FfiConverterOptionSequenceString.lower(initialK1Owners),FfiConverterOptionString.lower(initialSessionConfigJson),FfiConverterTypeConfig_lower(config)
                 )
             },
             pollFunc: ffi_ffi_rust_future_poll_rust_buffer,
@@ -3203,6 +4198,27 @@ public func getBalance(address: String, config: Config)async throws  -> AccountB
             errorHandler: FfiConverterTypeGetAccountBalanceError_lift
         )
 }
+public func getSessionHash(sessionConfigJson: String)throws  -> String  {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeGetSessionHashError_lift) {
+    uniffi_ffi_fn_func_get_session_hash(
+        FfiConverterString.lower(sessionConfigJson),$0
+    )
+})
+}
+public func getSessionState(args: GetSessionStateArgs, config: Config)async throws  -> GetSessionStateReturnType  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ffi_fn_func_get_session_state(FfiConverterTypeGetSessionStateArgs_lower(args),FfiConverterTypeConfig_lower(config)
+                )
+            },
+            pollFunc: ffi_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeGetSessionStateReturnType_lift,
+            errorHandler: FfiConverterTypeGetSessionStateError_lift
+        )
+}
 /**
  * Initialize the Android logger
  */
@@ -3222,6 +4238,34 @@ public func initAppleLogger(bundleIdentifier: String, level: LogLevel)  {try! ru
     )
 }
 }
+public func isK1Owner(args: IsK1OwnerArgs, config: Config)async throws  -> Bool  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ffi_fn_func_is_k1_owner(FfiConverterTypeIsK1OwnerArgs_lower(args),FfiConverterTypeConfig_lower(config)
+                )
+            },
+            pollFunc: ffi_ffi_rust_future_poll_i8,
+            completeFunc: ffi_ffi_rust_future_complete_i8,
+            freeFunc: ffi_ffi_rust_future_free_i8,
+            liftFunc: FfiConverterBool.lift,
+            errorHandler: FfiConverterTypeIsK1OwnerError_lift
+        )
+}
+public func isModuleValidator(args: IsModuleValidatorArgs, config: Config)async throws  -> Bool  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ffi_fn_func_is_module_validator(FfiConverterTypeIsModuleValidatorArgs_lower(args),FfiConverterTypeConfig_lower(config)
+                )
+            },
+            pollFunc: ffi_ffi_rust_future_poll_i8,
+            completeFunc: ffi_ffi_rust_future_complete_i8,
+            freeFunc: ffi_ffi_rust_future_free_i8,
+            liftFunc: FfiConverterBool.lift,
+            errorHandler: FfiConverterTypeIsModuleValidatorError_lift
+        )
+}
 public func prepareSendTransaction(transaction: Transaction, config: Config)async throws  -> PreparedTransaction  {
     return
         try  await uniffiRustCallAsync(
@@ -3234,6 +4278,20 @@ public func prepareSendTransaction(transaction: Transaction, config: Config)asyn
             freeFunc: ffi_ffi_rust_future_free_rust_buffer,
             liftFunc: FfiConverterTypePreparedTransaction_lift,
             errorHandler: FfiConverterTypePrepareTransactionError_lift
+        )
+}
+public func revokeSession(args: RevokeSessionArgs, config: Config)async throws  -> RevokeSessionReturnType  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_ffi_fn_func_revoke_session(FfiConverterTypeRevokeSessionArgs_lower(args),FfiConverterTypeConfig_lower(config)
+                )
+            },
+            pollFunc: ffi_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeRevokeSessionReturnType_lift,
+            errorHandler: FfiConverterTypeRevokeSessionError_lift
         )
 }
 public func sendSessionTransaction(accountAddress: String, sessionKeyHex: String, sessionConfigJson: String, config: Config, transaction: Transaction)async throws  -> String  {
@@ -3297,10 +4355,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ffi_checksum_func_create_session() != 34501) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ffi_checksum_func_deploy_account() != 40553) {
+    if (uniffi_ffi_checksum_func_deploy_account() != 65329) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_ffi_checksum_func_deploy_account_with_unique_id() != 10501) {
+    if (uniffi_ffi_checksum_func_deploy_account_with_unique_id() != 55552) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ffi_checksum_func_fetch_account() != 42263) {
@@ -3318,13 +4376,28 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ffi_checksum_func_get_balance() != 46562) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ffi_checksum_func_get_session_hash() != 65156) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ffi_checksum_func_get_session_state() != 4047) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ffi_checksum_func_init_android_logger() != 11407) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ffi_checksum_func_init_apple_logger() != 51227) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ffi_checksum_func_is_k1_owner() != 54082) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ffi_checksum_func_is_module_validator() != 12607) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ffi_checksum_func_prepare_send_transaction() != 13974) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ffi_checksum_func_revoke_session() != 28098) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_ffi_checksum_func_send_session_transaction() != 1510) {

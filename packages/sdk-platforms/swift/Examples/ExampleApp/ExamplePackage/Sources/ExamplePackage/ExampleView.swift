@@ -2,24 +2,24 @@ import SwiftUI
 import ZKsyncSSO
 
 public struct ExampleView: View {
-    
     let relyingPartyIdentifier: String
-    
-    @State private var accountDetails: AccountDetails?
+
+    @State private var accountSession: AccountSession?
 
     public init(relyingPartyIdentifier: String, bundleIdentifier: String) {
         self.relyingPartyIdentifier = relyingPartyIdentifier
-        
+
         ZKsyncSSO.initLogger(bundleIdentifier: bundleIdentifier, level: .trace)
     }
 
     public var body: some View {
         NavigationStack {
-            if let account = accountDetails {
+            if let session = accountSession {
                 AccountDetailsView(
-                    account: account,
+                    account: session.accountDetails,
+                    signers: session.signers,
                     onLogout: {
-                        accountDetails = nil
+                        accountSession = nil
                     }
                 )
             } else {
@@ -29,11 +29,11 @@ public struct ExampleView: View {
                         userID: "jdoe@example.com",
                         domain: relyingPartyIdentifier
                     ),
-                    onAccountCreated: { account in
-                        self.accountDetails = account
+                    onAccountCreated: { session in
+                        self.accountSession = session
                     },
-                    onSignedIn: { account in
-                        self.accountDetails = account
+                    onSignedIn: { session in
+                        self.accountSession = session
                     }
                 )
             }
@@ -43,7 +43,7 @@ public struct ExampleView: View {
 
 #Preview {
     ExampleView(
-        relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev",
+        relyingPartyIdentifier: "auth-test.zksync.dev",
         bundleIdentifier: "io.jackpooley.MLSSOExample"
     )
 }

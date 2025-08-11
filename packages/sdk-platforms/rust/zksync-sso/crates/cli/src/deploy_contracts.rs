@@ -20,7 +20,7 @@ pub async fn deploy_contracts_and_update_example_configs(
     println!("  ExampleAuthServerPaymaster: {}", contracts.account_paymaster);
     println!("  Recovery: {}", contracts.recovery);
 
-    let deploy_wallet = Some(DeployWallet::random());
+    let deploy_wallet = Some(DeployWallet::rich_wallet());
     let config = Config::new(contracts, node_url.clone(), deploy_wallet);
 
     for path in config_paths {

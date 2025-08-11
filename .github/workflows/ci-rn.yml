@@ -6,11 +6,13 @@ on:
       - main
     paths:
       - 'packages/sdk-platforms/react-native/react-native-zksync-sso/**'
+      - '.github/workflows/ci-rn.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'packages/sdk-platforms/react-native/react-native-zksync-sso/**'
+      - '.github/workflows/ci-rn.yml'
 
 jobs:
   build:
@@ -97,7 +99,7 @@ jobs:
             x86_64-apple-ios
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk
+        run: cargo install cargo-ndk --version 3.5.4
 
       - name: Select Xcode 16.3
         run: sudo xcode-select -s /Applications/Xcode_16.3.app

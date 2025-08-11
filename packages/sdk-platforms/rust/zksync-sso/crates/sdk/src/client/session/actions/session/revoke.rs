@@ -77,10 +77,11 @@ pub async fn revoke_session_with_send_fn(
 mod tests {
     use super::*;
     use crate::{
+        api::account::fund::fund_account,
         client::{
             modular_account::{
                 DeployModularAccountArgs, SessionModuleArgs,
-                deploy_modular_account,
+                deploy_modular_account, is_module_validator,
             },
             session::actions::session::{
                 hash::get_session_hash,
@@ -88,9 +89,8 @@ mod tests {
             },
         },
         config::deploy_wallet::DeployWallet,
-        contracts::SsoAccount,
         utils::{
-            alloy::extensions::ProviderExt,
+            anvil_zksync::rich_wallet::RichWallet,
             session::session_lib::{
                 session_spec::{
                     SessionSpec, limit_type::LimitType,
@@ -105,20 +105,20 @@ mod tests {
         },
     };
     use alloy::{
-        network::{ReceiptResponse, TransactionBuilder},
+        network::ReceiptResponse,
         primitives::{FixedBytes, U256, address, hex},
         providers::Provider,
         signers::local::PrivateKeySigner,
     };
-    use alloy_zksync::{
-        network::transaction_request::TransactionRequest,
-        provider::zksync_provider, wallet::ZksyncWallet,
-    };
+    use alloy_zksync::{provider::zksync_provider, wallet::ZksyncWallet};
     use std::str::FromStr;
     use url;
 
     #[tokio::test]
     async fn test_create_and_revoke_session() -> eyre::Result<()> {
+        // Add delay to avoid test run timing out
+        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
+
         // Arrange
         let (anvil_zksync, config, _) =
             spawn_node_and_deploy_contracts().await?;
@@ -137,14 +137,9 @@ mod tests {
             "\n=== RUST SDK REPLICATION OF 'should deploy proxy account via factory' TEST ==="
         );
 
-        // Hardcoded deterministic configuration (no dynamic node/contract deployment)
-        let expected_funding_signer_address =
-            address!("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"); // Account: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 (Rich Wallet 4)
+        let private_key = RichWallet::four().private_key_hex();
 
-        // Account: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 (Rich Wallet 4: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65)
-        let private_key = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a";
-
-        // Owner private key for ECDSA smart account client (using rich wallet 3: 0x90F79bf6EB2c4f870365E785982E1f101E93b906)
+        // Owner private key for ECDSA smart account client
         let owner_private_key = "0x5de4111afa1a4b94908f83103c3a57e0c3c9e9da2dd5a02a84e9fde30d7e96c3";
 
         config.deploy_wallet =
@@ -184,9 +179,9 @@ mod tests {
             address!("0xdeBbD4CE2Bd6BD869D3ac93666A0D5F4fc06FC72");
         let session_owner_address =
             address!("0x9BbC92a33F193174bf6Cc09c4b4055500d972479");
-        let random_salt = alloy::primitives::keccak256(
-            "sdk-test-factory-replication-010".as_bytes(),
-        ); // Unique ID for deterministic salt
+        let random_salt_str = "sdk-test-factory-replication-010";
+        let random_salt =
+            alloy::primitives::keccak256(random_salt_str.as_bytes()); // Unique ID for deterministic salt
         let expires_at = 1749040108u64;
 
         println!("=== REPLICATION DATA VERIFICATION ===");
@@ -290,9 +285,7 @@ mod tests {
                 }),
                 paymaster: None,
                 passkey_module: None,
-                unique_account_id: Some(
-                    "sdk-test-factory-replication-010".to_string(),
-                ),
+                unique_account_id: Some(random_salt_str.to_string()),
             },
             &config,
         )
@@ -315,13 +308,12 @@ mod tests {
         // Step 2: Verify session module is a validator
         println!("\n--- Step 2: Verifying session module is a validator ---");
 
-        let account_contract =
-            SsoAccount::new(deployed_account_address, &public_provider);
-        let is_module_validator = account_contract
-            .isModuleValidator(config.contracts.session)
-            .call()
-            .await?
-            ._0;
+        let is_module_validator = is_module_validator(
+            deployed_account_address,
+            config.contracts.session,
+            &config,
+        )
+        .await?;
 
         println!("Session module is validator: {is_module_validator}");
         eyre::ensure!(
@@ -364,7 +356,7 @@ mod tests {
 
         // Verify the session is active
         eyre::ensure!(
-            initial_session_state.session_state.status == Status::Active,
+            initial_session_state.session_state.is_active(),
             "Initial session should be active (status=1)"
         );
 
@@ -443,46 +435,7 @@ mod tests {
         // Fund the smart account for transaction fees (1 ETH)
         println!("Funding smart account for transaction fees...");
         let funding_amount = U256::from(1000000000000000000u64); // 1 ETH
-
-        let funding_provider = {
-            let node_url: url::Url = config.clone().node_url;
-            let signer = PrivateKeySigner::from_str(private_key)?;
-            let signer_address = signer.address();
-            println!("signer_address: {signer_address:?}");
-
-            eyre::ensure!(
-                signer_address == expected_funding_signer_address,
-                "signer address does not match owner address, expected: {:?}, received: {:?}",
-                expected_funding_signer_address,
-                signer_address
-            );
-
-            let wallet = ZksyncWallet::from(signer.clone());
-
-            zksync_provider()
-                .with_recommended_fillers()
-                .wallet(wallet)
-                .on_http(node_url)
-        };
-
-        // Send funding transaction to the smart account
-        let funding_tx = {
-            let tx_request = TransactionRequest::default()
-                .with_to(deployed_account_address)
-                .with_value(funding_amount);
-
-            funding_provider.send_transaction(tx_request).await?
-        };
-        println!("Funding transaction sent: {}", funding_tx.tx_hash());
-
-        // Wait for funding transaction to be confirmed
-        let funding_receipt = funding_provider
-            .wait_for_transaction_receipt(funding_tx.tx_hash().to_owned())
-            .await?;
-        println!(
-            "Funding transaction confirmed: {:?}",
-            funding_receipt.status()
-        );
+        fund_account(deployed_account_address, funding_amount, &config).await?;
 
         // Check smart account balance
         let account_balance =

@@ -4,7 +4,7 @@ public struct ToastView: View {
     let icon: String
     let iconColor: Color
     let message: String
-    
+
     public init(icon: String, iconColor: Color, message: String) {
         self.icon = icon
         self.iconColor = iconColor

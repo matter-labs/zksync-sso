@@ -1,5 +1,5 @@
-import SwiftUI
 import ExamplePackageUIComponents
+import SwiftUI
 
 struct TransactionFormFields: View {
     let fromAddress: String

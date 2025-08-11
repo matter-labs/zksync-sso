@@ -4,7 +4,10 @@ use crate::{
     },
     config::Config,
     contracts::AAFactory,
-    utils::contract_deployed::{Contract, check_contract_deployed},
+    utils::{
+        contract_deployed::{Contract, check_contract_deployed},
+        session::session_lib::session_spec::SessionSpec,
+    },
 };
 use alloy::{
     primitives::{Address, Bytes, FixedBytes, keccak256},
@@ -173,6 +176,8 @@ async fn deploy_smart_account(
     user_id: String,
     credential: &CredentialDetails,
     account_params: &AccountParams,
+    initial_k1_owners: Option<Vec<Address>>,
+    initial_session: Option<SessionSpec>,
     paymaster: Option<PaymasterParams>,
     config: &Config,
 ) -> eyre::Result<Address> {
@@ -187,8 +192,8 @@ async fn deploy_smart_account(
         unique_account_id: Some(user_id.clone()),
         paymaster,
         contracts,
-        initial_k1_owners: None,
-        initial_session: None,
+        initial_k1_owners,
+        initial_session,
     };
 
     let result = deploy_account(args, config).await?;
@@ -213,6 +218,8 @@ pub async fn create_account(
     user_id: String,
     credential: CredentialDetails,
     account_params: &AccountParams,
+    initial_k1_owners: Option<Vec<Address>>,
+    initial_session: Option<SessionSpec>,
     paymaster: Option<PaymasterParams>,
     config: &Config,
 ) -> eyre::Result<Address> {
@@ -239,6 +246,8 @@ pub async fn create_account(
         user_id.clone(),
         &credential,
         account_params,
+        initial_k1_owners,
+        initial_session,
         paymaster,
         config,
     )
@@ -304,6 +313,8 @@ mod tests {
             user_id.clone(),
             credential.clone(),
             &account_params,
+            None,
+            None,
             paymaster,
             &config,
         )
@@ -319,6 +330,8 @@ mod tests {
             user_id.clone(),
             credential.clone(),
             &account_params,
+            None,
+            None,
             None,
             &config,
         )

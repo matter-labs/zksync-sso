@@ -1,5 +1,5 @@
-import Foundation
 import AuthenticationServices
+import Foundation
 import SwiftUI
 
 @Sendable func performPasskeyAuthorizationRequest(
@@ -46,4 +46,3 @@ private func performASPasskeyAuthorizationRequest(
     print("performASPasskeyAuthorizationRequest passkeyAssertion: \(passkeyAssertion)")
     return passkeyAssertion
 }
-
