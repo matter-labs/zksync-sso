@@ -793,9 +793,6 @@ importers:
       ms:
         specifier: ^2.1.3
         version: 2.1.3
-      zksync-sso-circuits:
-        specifier: workspace:*
-        version: link:../circuits
     devDependencies:
       '@types/ms':
         specifier: ^0.7.34
@@ -21694,10 +21691,6 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  debug@4.3.7:
-    dependencies:
-      ms: 2.1.3
-
   debug@4.3.7(supports-color@8.1.1):
     dependencies:
       ms: 2.1.3
@@ -28121,7 +28114,7 @@ snapshots:
   vite-node@2.1.8(@types/node@22.15.33)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       cac: 6.7.14
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
       es-module-lexer: 1.5.4
       pathe: 1.1.2
       vite: 5.4.10(@types/node@22.15.33)(sass@1.80.4)(terser@5.36.0)
@@ -28325,7 +28318,7 @@ snapshots:
       '@vitest/spy': 2.1.8
       '@vitest/utils': 2.1.8
       chai: 5.1.2
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
       expect-type: 1.1.0
       magic-string: 0.30.17
       pathe: 1.1.2
