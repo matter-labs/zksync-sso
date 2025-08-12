@@ -39,6 +39,7 @@ export function toPasskeyAccount<
       });
     },
     async signTypedData(typedData) {
+      console.log("signTypedData", typedData);
       return sign({
         hash: hashTypedData(typedData),
       });

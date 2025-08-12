@@ -43,11 +43,7 @@
     </button>
     <CommonHeightTransition :opened="advancedInfoOpened">
       <CommonLine>
-        <div class="p-3 text-xs space-y-2">
-          <div>
-            <strong>Original message:</strong>
-          </div>
-          <pre class="overflow-auto bg-neutral-900 p-2 rounded">{{ originalMessage }}</pre>
+        <div class="p-4 text-xs space-y-2">
           <div>
             <strong>Hex representation:</strong>
           </div>
@@ -81,7 +77,7 @@
 <script lang="ts" setup>
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { hexToString, isHex } from "viem";
-import { signMessage } from "viem/experimental/erc7739";
+// import { signMessage } from "viem/experimental/erc7739";
 import type { ExtractParams } from "zksync-sso/client-auth-server";
 
 const { appMeta } = useAppMeta();
@@ -126,8 +122,8 @@ const confirmSign = async () => {
       throw new Error("Message parameters are not available");
     }
     const client = getClient({ chainId: requestChain.value!.id });
-    const signature = await signMessage(client, {
-      verifier: client.account.address,
+    const signature = await client.signMessage({
+      // verifier: client.account.address,
       message: messageParams.value[0],
     });
     return {
@@ -135,4 +131,40 @@ const confirmSign = async () => {
     };
   });
 };
+/* const confirmSign = async () => {
+  respond(async () => {
+    if (!messageParams.value) {
+      throw new Error("Message parameters are not available");
+    }
+    const client = getClient({ chainId: requestChain.value!.id });
+    const verifier = client.account.address;
+    const message = messageParams.value[0];
+
+    const { salt, ...domain } = (await client.getEip712Domain({
+      address: verifier!,
+      // factory,
+      // factoryData,
+    })).domain;
+
+    console.log({
+      salt, domain,
+    });
+
+    const signature = await client.signTypedData({
+      account: client.account,
+      domain,
+      types: {
+        PersonalSign: [{ name: "prefixed", type: "bytes" }],
+      },
+      primaryType: "PersonalSign",
+      message: {
+        prefixed: toPrefixedMessage(message),
+      },
+    });
+
+    return {
+      result: signature,
+    };
+  });
+}; */
 </script>

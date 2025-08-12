@@ -74,7 +74,7 @@
         class="mt-4"
       >
         <p class="break-all">
-          <strong>Signature:</strong> {{ messageSignature }}
+          <strong>Signature:</strong> <span class="text-xs line-clamp-3">{{ messageSignature }}</span>
         </p>
       </div>
       <div
@@ -154,7 +154,7 @@
 import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, signMessage, signTypedData, type GetBalanceReturnType } from "@wagmi/core";
 import { zksyncSsoConnector } from "zksync-sso/connector";
 import { zksyncInMemoryNode } from "@wagmi/core/chains";
-import { createWalletClient, http, parseEther, type Address, createPublicClient } from "viem";
+import { createWalletClient, http, parseEther, type Address, createPublicClient, type Hash } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { getGeneralPaymasterInput } from "viem/zksync";
 import PaymasterContract from "../forge-output.json";
@@ -196,12 +196,12 @@ const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
 const isSendingEth = ref<boolean>(false);
 const messageToSign = ref<string>("hello world");
-const messageSignature = ref<string | null>(null);
+const messageSignature = ref<Hash | null>(null);
 const isValidSignature = ref<boolean | null>(null);
 const isSigningMessage = ref<boolean>(false);
 const isVerifyingSignature = ref<boolean>(false);
 
-const typedDataSignature = ref<string | null>(null);
+const typedDataSignature = ref<Hash | null>(null);
 const isValidTypedDataSignature = ref<boolean | null>(null);
 const isSigningTypedData = ref<boolean>(false);
 const isVerifyingTypedDataSignature = ref<boolean>(false);
@@ -211,7 +211,7 @@ const typedData = {
     name: "ZKsync SSO Demo",
     version: "1",
     chainId: chain.id,
-    verifyingContract: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+    verifyingContract: "0x0000000000000000000000000000000000000000",
   },
   types: {
     Person: [
@@ -392,21 +392,35 @@ const signMessageHandler = async () => {
 
 const verifySignatureAutomatically = async () => {
   if (!address.value || !messageSignature.value) {
+    isVerifyingSignature.value = false;
     isValidSignature.value = null;
     return;
   }
 
   isVerifyingSignature.value = true;
   try {
-    console.log({
-      address: address.value,
-      message: messageToSign.value,
-      signature: messageSignature.value as `0x${string}`,
-    });
+    // const { salt, ...domain } = (await publicClient.getEip712Domain({
+    //   address: address.value,
+    // })).domain;
+    // const struct = {
+    //   domain,
+    //   types: {
+    //     PersonalSign: [{ name: "prefixed", type: "bytes" }],
+    //   },
+    //   primaryType: "PersonalSign",
+    //   message: {
+    //     prefixed: toPrefixedMessage(message),
+    //   },
+    // } as const;
+    // const isValid = await erc1271Caller.validateStruct(
+    //   struct,
+    //   address.value,
+    //   messageSignature.value,
+    // );
     const isValid = await publicClient.verifyMessage({
       address: address.value,
       message: messageToSign.value,
-      signature: messageSignature.value as `0x${string}`,
+      signature: messageSignature.value,
     });
     isValidSignature.value = isValid;
   } catch (error) {
@@ -450,7 +464,7 @@ const verifyTypedDataSignatureAutomatically = async () => {
       types: typedData.types,
       primaryType: typedData.primaryType,
       message: typedData.message,
-      signature: typedDataSignature.value as `0x${string}`,
+      signature: typedDataSignature.value,
     });
     isValidTypedDataSignature.value = isValid;
   } catch (error) {
@@ -462,6 +476,7 @@ const verifyTypedDataSignatureAutomatically = async () => {
   }
 };
 
-watch([messageSignature, messageToSign, address], verifySignatureAutomatically);
-watch([typedDataSignature, address], verifyTypedDataSignatureAutomatically);
+watch([messageToSign, address], () => messageSignature.value = null);
+watch(messageSignature, verifySignatureAutomatically);
+watch(typedDataSignature, verifyTypedDataSignatureAutomatically);
 </script>
