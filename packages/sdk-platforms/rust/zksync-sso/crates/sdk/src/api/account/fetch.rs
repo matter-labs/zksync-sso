@@ -1,5 +1,5 @@
 use crate::{
-    api::account::Account, client::contracts::WebAuthValidator, config::Config,
+    api::account::Account, config::Config, contracts::WebAuthValidator,
     utils::passkey::passkey_signature_from_public_key::get_passkey_signature_from_public_key_bytes,
 };
 use alloy::primitives::{Address, Bytes, address};
@@ -33,7 +33,7 @@ pub async fn fetch_account(
         Bytes::from(encoded)
     };
 
-    debug!("XDB fetch_account - credential_id: {:?}", credential_id);
+    debug!("XDB fetch_account - credential_id: {credential_id:?}");
 
     let validator = {
         let validator_address = config.contracts.passkey;
@@ -50,7 +50,7 @@ pub async fn fetch_account(
         account_address != address!("0000000000000000000000000000000000000000")
     );
 
-    debug!("XDB fetch_account - account_address: {:?}", account_address);
+    debug!("XDB fetch_account - account_address: {account_address:?}");
 
     let passkey_public_key = {
         let public_key = validator

@@ -29,14 +29,13 @@ where
     S: PasskeySigningRawBackend,
 {
     debug!("XDB client::passkey::actions::send::send_transaction");
-    debug!("    XDB transaction: {:?}", transaction_request);
+    debug!("    XDB transaction: {transaction_request:?}");
     debug!("    XDB from: {:?}", transaction_request.from());
     debug!("    XDB to: {:?}", transaction_request.to());
     debug!("    XDB value: {:?}", transaction_request.value());
 
     debug!(
-        "XDB client::passkey::actions::send::send_transaction - tx: {:?}",
-        transaction_request
+        "XDB client::passkey::actions::send::send_transaction - tx: {transaction_request:?}"
     );
 
     let filled_tx = populate_tx_request(transaction_request, config).await?;
@@ -52,8 +51,7 @@ where
     let pending_tx = provider.send_raw_transaction(&raw_tx).await?;
 
     debug!(
-        "XDB client::passkey::actions::send::send_transaction - pending_tx: {:?}",
-        pending_tx
+        "XDB client::passkey::actions::send::send_transaction - pending_tx: {pending_tx:?}"
     );
 
     let receipt = pending_tx.get_receipt().await?;

@@ -4,14 +4,29 @@ import type { Communicator, Message } from "./index.js";
 export interface PopupConfigMessage extends Message {
   event: "PopupLoaded" | "PopupUnload";
 }
+type PositionCalculator = (width: number, height: number) => { left: number; top: number };
 
 export class PopupCommunicator implements Communicator {
   private readonly url: URL;
   private popup: Window | null = null;
   private listeners = new Map<(_: MessageEvent) => void, { reject: (_: Error) => void }>();
 
-  constructor(url: string) {
+  private readonly width: number;
+  private readonly height: number;
+  private readonly calculatePosition?: PositionCalculator;
+
+  constructor(
+    url: string,
+    options?: {
+      width?: number;
+      height?: number;
+      calculatePosition?: PositionCalculator;
+    },
+  ) {
     this.url = new URL(url);
+    this.width = options?.width ?? 420;
+    this.height = options?.height ?? 600;
+    this.calculatePosition = options?.calculatePosition;
   }
 
   postMessage = async (message: Message) => {
@@ -64,14 +79,18 @@ export class PopupCommunicator implements Communicator {
   };
 
   openPopup = () => {
-    const width = 420;
-    const height = 600;
+    const width = this.width;
+    const height = this.height;
 
     const url = new URL(this.url.toString());
     url.searchParams.set("origin", window.location.origin);
 
-    const left = (window.innerWidth - width) / 2 + window.screenX;
-    const top = (window.innerHeight - height) / 2 + window.screenY;
+    const { left, top } = this.calculatePosition
+      ? this.calculatePosition(width, height)
+      : {
+          left: (window.innerWidth - width) / 2 + window.screenX,
+          top: (window.innerHeight - height) / 2 + window.screenY,
+        };
 
     const popup = window.open(
       url,

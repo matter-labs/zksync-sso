@@ -20,15 +20,12 @@
       </ZkLink>
       <div class="flex flex-col gap-2">
         <ZkLink
+          v-if="oidcEnabled"
           type="primary"
-          as="button"
-          disabled
+          href="/recovery/google"
         >
-          Recover with Email
+          Recover with Google Account
         </ZkLink>
-        <p class="text-sm text-gray-500 text-center">
-          Coming soon...
-        </p>
       </div>
     </div>
 
@@ -47,3 +44,7 @@
     </div>
   </main>
 </template>
+
+<script setup lang="ts">
+const { enabled: oidcEnabled } = useOidcConfig();
+</script>

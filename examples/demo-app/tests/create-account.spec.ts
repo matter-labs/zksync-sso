@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 async function waitForServicesToLoad(page: Page): Promise<void> {
   const maxRetryAttempts = 10;

@@ -40,7 +40,7 @@ pub mod tests {
     }
 
     pub fn get_origin(rp_id: &str) -> Url {
-        Url::parse(&format!("https://{}", rp_id)).unwrap()
+        Url::parse(&format!("https://{rp_id}")).unwrap()
     }
 
     pub fn create_auth_stack() -> AuthStack {
@@ -79,8 +79,7 @@ pub mod tests {
             .find_credentials(Some(&ids), rp_id)
             .await?;
         println!(
-            "XDB - find_credentials - Found credentials for ID {:?}: {:?}",
-            credential_raw_id, credentials
+            "XDB - find_credentials - Found credentials for ID {credential_raw_id:?}: {credentials:?}"
         );
 
         if credentials.is_empty() {
@@ -115,8 +114,7 @@ pub mod tests {
             .find_credentials(Some(&ids), rp_id)
             .await?;
         println!(
-            "XDB - authenticate_apple_passkey - Available passkeys: {:?}",
-            passkeys
+            "XDB - authenticate_apple_passkey - Available passkeys: {passkeys:?}"
         );
 
         let saved_ids: Vec<Vec<u8>> =
@@ -321,8 +319,7 @@ pub mod tests {
             .await
             .map_err(|e| eyre::eyre!("Error finding credentials: {:?}", e))?;
         println!(
-            "XDB - test - All credentials after registration: {:?}",
-            all_credentials
+            "XDB - test - All credentials after registration: {all_credentials:?}"
         );
 
         let passkey = find_credentials(
@@ -332,7 +329,7 @@ pub mod tests {
         )
         .await
         .map_err(|e| eyre::eyre!("Error finding credentials: {:?}", e))?;
-        println!("Found passkey: {:?}", passkey);
+        println!("Found passkey: {passkey:?}");
 
         drop(anvil_zksync);
 

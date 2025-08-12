@@ -1,21 +1,13 @@
 use crate::{
+    account::transaction::Transaction,
     config,
     native_apis::{PasskeyAuthenticator, PasskeyAuthenticatorAsync},
 };
 use futures::future::BoxFuture;
 use log::debug;
-use sdk::api::utils::parse_address;
 use std::sync::Arc;
 
 pub mod prepare;
-
-#[derive(Debug, uniffi::Record)]
-pub struct Transaction {
-    pub from: String,
-    pub to: Option<String>,
-    pub value: Option<String>,
-    pub input: Option<String>,
-}
 
 #[derive(Debug, uniffi::Record)]
 pub struct SendTransactionResult {
@@ -29,27 +21,6 @@ pub enum SendTransactionError {
     SendTransaction(String),
     #[error("Invalid address: {0}")]
     InvalidAddress(String),
-}
-
-impl TryFrom<Transaction> for sdk::api::account::transaction::Transaction {
-    type Error = SendTransactionError;
-
-    fn try_from(tx: Transaction) -> Result<Self, Self::Error> {
-        Ok(Self {
-            from: parse_address(&tx.from).map_err(|e| {
-                SendTransactionError::InvalidAddress(e.to_string())
-            })?,
-            to: tx.to.and_then(|to| {
-                parse_address(&to)
-                    .map_err(|e| {
-                        SendTransactionError::InvalidAddress(e.to_string())
-                    })
-                    .ok()
-            }),
-            value: tx.value,
-            input: tx.input,
-        })
-    }
 }
 
 impl From<sdk::api::account::send::SendTransactionResult>
@@ -73,11 +44,15 @@ pub async fn send_transaction(
     authenticator: Arc<dyn PasskeyAuthenticator + 'static>,
     config: config::Config,
 ) -> Result<SendTransactionResult, SendTransactionError> {
-    debug!("XDB send_transaction - transaction: {:?}", transaction);
+    debug!("XDB send_transaction - transaction: {transaction:?}");
     let tx: sdk::api::account::transaction::Transaction =
-        transaction.try_into()?;
+        transaction.try_into().map_err(
+            |e: crate::account::transaction::TransactionConversionError| {
+                SendTransactionError::SendTransaction(e.to_string())
+            },
+        )?;
 
-    debug!("XDB send_transaction - tx: {:?}", tx);
+    debug!("XDB send_transaction - tx: {tx:?}");
 
     let authenticator = authenticator.clone();
     let sign_message: SignFn = Box::new(
@@ -85,8 +60,7 @@ pub async fn send_transaction(
             let message_owned = message.to_vec();
             let auth = authenticator.clone();
             debug!(
-                "XDB send_transaction - sign_message - message_owned: {:?}",
-                message_owned
+                "XDB send_transaction - sign_message - message_owned: {message_owned:?}"
             );
             Box::pin(async move {
                 debug!(
@@ -117,14 +91,15 @@ pub async fn send_transaction_async_signer(
     authenticator: Arc<dyn PasskeyAuthenticatorAsync + 'static>,
     config: config::Config,
 ) -> Result<SendTransactionResult, SendTransactionError> {
-    debug!(
-        "XDB send_transaction_async_signer - transaction: {:?}",
-        transaction
-    );
+    debug!("XDB send_transaction_async_signer - transaction: {transaction:?}");
     let tx: sdk::api::account::transaction::Transaction =
-        transaction.try_into()?;
+        transaction.try_into().map_err(
+            |e: crate::account::transaction::TransactionConversionError| {
+                SendTransactionError::SendTransaction(e.to_string())
+            },
+        )?;
 
-    debug!("XDB send_transaction_async_signer - tx: {:?}", tx);
+    debug!("XDB send_transaction_async_signer - tx: {tx:?}");
 
     let authenticator = authenticator.clone();
     let sign_message: SignFn = Box::new(

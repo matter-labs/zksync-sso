@@ -27,16 +27,14 @@ where
     Fut: Future<Output = Result<Vec<u8>, String>> + Send,
 {
     debug!(
-        "XDB api::account::send::send_transaction - transaction: {:?}",
-        transaction
+        "XDB api::account::send::send_transaction - transaction: {transaction:?}"
     );
     let backend: SignerWithMessage<F> = SignerWithMessage::new(sign_message);
 
     let transaction_request = transaction.try_into()?;
 
     debug!(
-        "XDB api::account::send::send_transaction - transaction_request: {:?}",
-        transaction_request
+        "XDB api::account::send::send_transaction - transaction_request: {transaction_request:?}"
     );
 
     let receipt = crate::client::passkey::actions::send::send_transaction(
@@ -51,7 +49,7 @@ where
 
     let result = SendTransactionResult { tx_hash, receipt_json };
 
-    debug!("XDB api::account::send::send_transaction - result: {:?}", result);
+    debug!("XDB api::account::send::send_transaction - result: {result:?}");
 
     Ok(result)
 }
@@ -65,8 +63,7 @@ where
     F: FnOnce(&[u8]) -> Result<Vec<u8>, String> + Clone + Send + Sync + 'static,
 {
     debug!(
-        "XDB api::account::send::send_transaction - transaction: {:?}",
-        transaction
+        "XDB api::account::send::send_transaction - transaction: {transaction:?}"
     );
 
     let backend = SignerWithMessageOnce::new(sign_message);
@@ -74,8 +71,7 @@ where
     let transaction_request = transaction.try_into()?;
 
     debug!(
-        "XDB api::account::send::send_transaction - transaction_request: {:?}",
-        transaction_request
+        "XDB api::account::send::send_transaction - transaction_request: {transaction_request:?}"
     );
 
     let receipt = crate::client::passkey::actions::send::send_transaction(
@@ -90,7 +86,7 @@ where
 
     let result = SendTransactionResult { tx_hash, receipt_json };
 
-    debug!("XDB api::account::send::send_transaction - result: {:?}", result);
+    debug!("XDB api::account::send::send_transaction - result: {result:?}");
 
     Ok(result)
 }

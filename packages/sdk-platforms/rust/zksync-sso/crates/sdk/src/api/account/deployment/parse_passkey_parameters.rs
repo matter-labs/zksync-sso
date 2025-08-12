@@ -29,12 +29,10 @@ pub(crate) async fn parse_passkey_parameters(
             })?;
 
     debug!(
-        "XDB deploy_account - Old method - Passkey public key x: {:?}",
-        old_public_key_x
+        "XDB deploy_account - Old method - Passkey public key x: {old_public_key_x:?}"
     );
     debug!(
-        "XDB deploy_account - Old method - Passkey public key y: {:?}",
-        old_public_key_y
+        "XDB deploy_account - Old method - Passkey public key y: {old_public_key_y:?}"
     );
 
     let validated = verify_registration(
@@ -47,8 +45,7 @@ pub(crate) async fn parse_passkey_parameters(
 
     let public_key = validated.public_key;
     debug!(
-        "XDB deploy_account - New method - Passkey public key: {:?}",
-        public_key
+        "XDB deploy_account - New method - Passkey public key: {public_key:?}"
     );
 
     let (public_key_x, public_key_y) = {
@@ -63,12 +60,10 @@ pub(crate) async fn parse_passkey_parameters(
         (x_bytes, y_bytes)
     };
     debug!(
-        "XDB deploy_account - New method - Passkey public key x: {:?}",
-        public_key_x
+        "XDB deploy_account - New method - Passkey public key x: {public_key_x:?}"
     );
     debug!(
-        "XDB deploy_account - New method - Passkey public key y: {:?}",
-        public_key_y
+        "XDB deploy_account - New method - Passkey public key y: {public_key_y:?}"
     );
 
     debug!(
@@ -81,7 +76,7 @@ pub(crate) async fn parse_passkey_parameters(
     );
 
     let expected_origin = params.rp_id.origin();
-    debug!("XDB deploy_account - Expected origin: {}", expected_origin);
+    debug!("XDB deploy_account - Expected origin: {expected_origin}");
 
     use base64::Engine;
     let id_base64 = base64::engine::general_purpose::URL_SAFE_NO_PAD

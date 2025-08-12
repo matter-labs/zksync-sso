@@ -50,3 +50,6 @@ timeline.xctimeline
 playground.xcworkspace
 .build/
 out/
+
+# IDEs
+.idea

@@ -2,9 +2,11 @@ use alloy::primitives::Address;
 use eyre::Result;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default,
+)]
 #[serde(rename_all = "camelCase")]
-pub struct PasskeyContracts {
+pub struct SSOContracts {
     pub account_factory: Address,
     pub passkey: Address,
     pub session: Address,
@@ -12,7 +14,7 @@ pub struct PasskeyContracts {
     pub recovery: Address,
 }
 
-impl PasskeyContracts {
+impl SSOContracts {
     pub fn new(
         account_factory: Address,
         passkey: Address,

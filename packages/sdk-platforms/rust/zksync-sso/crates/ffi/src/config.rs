@@ -15,7 +15,7 @@ pub enum ConfigError {
 }
 
 #[derive(Debug, uniffi::Record)]
-pub struct PasskeyContracts {
+pub struct SSOContracts {
     pub account_factory: String,
     pub passkey: String,
     pub session: String,
@@ -30,9 +30,9 @@ pub struct DeployWallet {
 
 #[derive(Debug, uniffi::Record)]
 pub struct Config {
-    pub contracts: PasskeyContracts,
+    pub contracts: SSOContracts,
     pub node_url: String,
-    pub deploy_wallet: DeployWallet,
+    pub deploy_wallet: Option<DeployWallet>,
 }
 
 impl TryFrom<Config> for SdkConfig {
@@ -40,7 +40,7 @@ impl TryFrom<Config> for SdkConfig {
 
     fn try_from(config: Config) -> Result<Self, ConfigError> {
         SdkConfig::with_url_str(
-            config::contracts::PasskeyContracts::with_address_strs(
+            config::contracts::SSOContracts::with_address_strs(
                 &config.contracts.account_factory,
                 &config.contracts.passkey,
                 &config.contracts.session,
@@ -49,10 +49,15 @@ impl TryFrom<Config> for SdkConfig {
             )
             .map_err(|e| ConfigError::InvalidContractAddress(e.to_string()))?,
             &config.node_url,
-            SdkDeployWallet::try_from(
-                config.deploy_wallet.private_key_hex.clone(),
-            )
-            .map_err(|e| ConfigError::InvalidDeployWallet(e.to_string()))?,
+            config
+                .deploy_wallet
+                .map(|deploy_wallet| {
+                    SdkDeployWallet::try_from(deploy_wallet.private_key_hex)
+                        .map_err(|e| {
+                            ConfigError::InvalidDeployWallet(e.to_string())
+                        })
+                })
+                .transpose()?,
         )
         .map_err(|e| ConfigError::InvalidNodeUrl(e.to_string()))
     }
@@ -61,7 +66,7 @@ impl TryFrom<Config> for SdkConfig {
 impl From<SdkConfig> for Config {
     fn from(sdk_config: SdkConfig) -> Self {
         Self {
-            contracts: PasskeyContracts {
+            contracts: SSOContracts {
                 account_factory: sdk_config
                     .contracts
                     .account_factory
@@ -75,12 +80,9 @@ impl From<SdkConfig> for Config {
                 recovery: sdk_config.contracts.recovery.to_string(),
             },
             node_url: sdk_config.node_url.to_string(),
-            deploy_wallet: DeployWallet {
-                private_key_hex: sdk_config
-                    .deploy_wallet
-                    .private_key_hex
-                    .to_string(),
-            },
+            deploy_wallet: sdk_config.deploy_wallet.map(|dw| DeployWallet {
+                private_key_hex: dw.private_key_hex.to_string(),
+            }),
         }
     }
 }

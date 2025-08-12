@@ -27,7 +27,7 @@ pub enum RpId {
 impl RpId {
     pub fn origin(&self) -> String {
         match self {
-            RpId::Apple(rp_id) => format!("https://{}", rp_id),
+            RpId::Apple(rp_id) => format!("https://{rp_id}"),
             RpId::Android(android_rp_id) => android_rp_id.origin.to_string(),
         }
     }
@@ -58,11 +58,11 @@ pub async fn deploy_account(
     passkey_parameters: PasskeyParameters,
     config: &Config,
 ) -> eyre::Result<DeployedAccountDetails> {
-    debug!("XDB deploy_account - passkey_parameters: {:?}", passkey_parameters);
+    debug!("XDB deploy_account - passkey_parameters: {passkey_parameters:?}");
 
     let parsed_params = parse_passkey_parameters(&passkey_parameters).await?;
 
-    debug!("XDB deploy_account - parsed_params: {:?}", parsed_params);
+    debug!("XDB deploy_account - parsed_params: {parsed_params:?}");
 
     let paymaster = Some(PaymasterParams {
         paymaster: config.contracts.account_paymaster,
@@ -76,7 +76,7 @@ pub async fn deploy_account(
                 public_key: parsed_params.credential.public_key,
             },
             expected_origin: Some(parsed_params.expected_origin),
-            contracts: config.contracts.clone(),
+            contracts: config.contracts,
             paymaster,
             ..Default::default()
         };
@@ -90,7 +90,7 @@ pub async fn deploy_account(
 
     let address = deployed_account_details.address;
     let unique_account_id =
-        hex::encode(deployed_account_details.unique_account_id);
+        alloy::hex::encode(deployed_account_details.unique_account_id);
     let transaction_receipt_json =
         serde_json::to_string(&deployed_account_details.transaction_receipt)
             .map_err(|e| {

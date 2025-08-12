@@ -28,9 +28,12 @@ deployments-zk
 **/*.tsx
 **/*.mjs
 **/*.cjs
+**/*.final.zkey
 
 # Ignore Swift/Rust files
 packages/sdk-platforms/*
 
+**/*.ptau
+packages/contracts/test/**/*
 # contract JSON test files are not properly formatted
 packages/contracts/test/json-files/*

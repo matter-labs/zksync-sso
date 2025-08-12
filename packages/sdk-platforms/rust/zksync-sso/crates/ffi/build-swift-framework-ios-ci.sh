@@ -130,6 +130,6 @@ sed -i '' 's/filenonisolated(unsafe) private let uniffiContinuationHandleMap = U
 cat <<EOT >> "$WRAPPER_PATH/$FRAMEWORK_LIBRARY_NAME.swift"
 
 extension Config: Codable {}
-extension PasskeyContracts: Codable {}
+extension SsoContracts: Codable {}
 extension DeployWallet: Codable {}
 EOT

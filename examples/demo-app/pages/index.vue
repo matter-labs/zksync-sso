@@ -151,15 +151,14 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, signMessage, signTypedData, type GetBalanceReturnType } from "@wagmi/core";
-import { zksyncSsoConnector } from "zksync-sso/connector";
-import { zksyncInMemoryNode } from "@wagmi/core/chains";
-import { createWalletClient, http, parseEther, type Address, createPublicClient, type Hash } from "viem";
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType } from "@wagmi/core";
+import { zksyncSsoConnector, eraTestNode } from "@zksync-sso/connector-export";
+import { createWalletClient, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { getGeneralPaymasterInput } from "viem/zksync";
 import PaymasterContract from "../forge-output.json";
 
-const chain = zksyncInMemoryNode;
+const chain = eraTestNode; // Now using the exported eraTestNode instead of zksyncInMemoryNode
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const zksyncConnectorWithSession = zksyncSsoConnector({

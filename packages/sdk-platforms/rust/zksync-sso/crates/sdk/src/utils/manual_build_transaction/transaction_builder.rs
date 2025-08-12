@@ -43,6 +43,35 @@ use url::Url;
 #[derive(Clone, Debug)]
 pub struct TransactionRequestWrapper(pub TransactionRequest);
 
+impl PartialEq for TransactionRequestWrapper {
+    fn eq(&self, other: &Self) -> bool {
+        // Base fields
+        self.0.chain_id() == other.0.chain_id() &&
+        self.0.nonce() == other.0.nonce() &&
+        self.0.input() == other.0.input() &&
+        self.0.from() == other.0.from() &&
+        self.0.kind() == other.0.kind() &&
+        self.0.to() == other.0.to() &&
+        self.0.value() == other.0.value() &&
+        self.0.gas_price() == other.0.gas_price() &&
+        self.0.max_fee_per_gas() == other.0.max_fee_per_gas() &&
+        self.0.max_priority_fee_per_gas() == other.0.max_priority_fee_per_gas() &&
+        self.0.gas_limit() == other.0.gas_limit() &&
+        self.0.access_list() == other.0.access_list() &&
+        self.0.can_submit() == other.0.can_submit() &&
+        self.0.can_build() == other.0.can_build() &&
+        self.0.output_tx_type() == other.0.output_tx_type() &&
+
+        // EIP-712 meta fields
+        self.0.gas_per_pubdata() == other.0.gas_per_pubdata() &&
+        self.0.factory_deps() == other.0.factory_deps() &&
+        self.0.custom_signature() == other.0.custom_signature() &&
+        self.0.paymaster_params() == other.0.paymaster_params()
+    }
+}
+
+impl Eq for TransactionRequestWrapper {}
+
 impl From<TransactionRequestWrapper> for TxEip712 {
     fn from(tx: TransactionRequestWrapper) -> Self {
         let tx = tx.clone().0;
@@ -109,31 +138,26 @@ pub(crate) async fn populate_tx_request(
     tx_request.set_gas_per_pubdata(U256::from(50000));
 
     debug!(
-        "XDB - populate_tx_request - going to fill transaction: {:?}",
-        tx_request
+        "XDB - populate_tx_request - going to fill transaction: {tx_request:?}"
     );
     let sendable_tx: alloy::providers::SendableTx<Zksync> =
         provider.fill(tx_request.clone()).await?;
     debug!(
-        "XDB - populate_tx_request - transaction filled, sendable_tx: {:?}",
-        sendable_tx
+        "XDB - populate_tx_request - transaction filled, sendable_tx: {sendable_tx:?}"
     );
 
     let mut tx: TransactionRequest = SendableTxWrapper(sendable_tx).into();
 
-    debug!("XDB - populate_tx_request - transaction filled, tx: {:?}", tx);
+    debug!("XDB - populate_tx_request - transaction filled, tx: {tx:?}");
 
     let max_priority_fee_per_gas = tx.max_fee_per_gas().unwrap_or_default();
     tx.set_max_priority_fee_per_gas(max_priority_fee_per_gas);
 
-    tx.set_gas_limit(100000000);
+    tx.set_gas_limit(100_000_000);
 
     assert!(tx.gas_per_pubdata().unwrap() == U256::from(50000));
 
-    debug!(
-        "XDB - populate_tx_request - Built TransactionRequest tx: \n{:?}",
-        tx
-    );
+    debug!("XDB - populate_tx_request - Built TransactionRequest tx: \n{tx:?}");
 
     Ok(tx)
 }
@@ -151,8 +175,8 @@ pub(crate) fn build_raw_tx(tx: TransactionRequest) -> eyre::Result<Vec<u8>> {
         out
     };
     debug!(
-        "Encoded transaction with custom signature: 0x{}",
-        hex::encode(&out)
+        "build_raw_tx - Encoded transaction with custom signature: 0x{}",
+        alloy::hex::encode(&out)
     );
     Ok(out)
 }
@@ -221,7 +245,7 @@ async fn find_credentials(
 
 #[allow(dead_code)]
 fn get_origin(rp_id: &str) -> Url {
-    Url::parse(&format!("https://{}", rp_id)).unwrap()
+    Url::parse(&format!("https://{rp_id}")).unwrap()
 }
 
 #[allow(dead_code)]
@@ -251,8 +275,7 @@ async fn authenticate_apple_passkey(
         .find_credentials(Some(&ids), rp_id)
         .await?;
     debug!(
-        "XDB - authenticate_apple_passkey - Available passkeys: {:?}",
-        passkeys
+        "XDB - authenticate_apple_passkey - Available passkeys: {passkeys:?}"
     );
 
     let saved_ids: Vec<Vec<u8>> =
@@ -320,7 +343,7 @@ mod tests {
         std::io::stdout().flush().unwrap();
 
         let challenge = hash.to_vec();
-        println!("XDB - sign - Challenge: {:?}", challenge);
+        println!("XDB - sign - Challenge: {challenge:?}");
         std::io::stdout().flush().unwrap();
 
         println!("XDB - sign - About to call authenticate_apple_passkey");
@@ -336,17 +359,17 @@ mod tests {
         )
         .await
         .map_err(|e| {
-            println!("XDB - sign - Error authenticating passkey: {:?}", e);
+            println!("XDB - sign - Error authenticating passkey: {e:?}");
             std::io::stdout().flush().unwrap();
             eyre::eyre!("Error authenticating passkey: {:?}", e)
         })
         .map_err(|e| e.to_string())?;
 
-        println!("XDB - sign - Got credential: {:?}", credential);
+        println!("XDB - sign - Got credential: {credential:?}");
         std::io::stdout().flush().unwrap();
 
         let response = credential.response;
-        println!("XDB - sign - Got response: {:?}", response);
+        println!("XDB - sign - Got response: {response:?}");
         std::io::stdout().flush().unwrap();
 
         let engine = base64::engine::general_purpose::STANDARD;
@@ -369,7 +392,7 @@ mod tests {
         let json_response = serde_json::to_string(&assertion).unwrap();
         let bytes: Bytes = json_response.into();
 
-        println!("XDB - sign - Returning bytes: {:?}", bytes);
+        println!("XDB - sign - Returning bytes: {bytes:?}");
         std::io::stdout().flush().unwrap();
 
         Ok(bytes)
@@ -404,25 +427,23 @@ mod tests {
                 .await?;
                 let account_address = deploy_result.address;
                 println!(
-                    "XDB - test_build_tx - Account Address: {:?}",
-                    account_address
+                    "XDB - test_build_tx - Account Address: {account_address:?}"
                 );
                 std::io::stdout().flush().unwrap();
 
                 let credential_raw_id = credential.raw_id;
                 let credential_raw_id_vec = credential_raw_id.clone().to_vec();
                 println!(
-                    "XDB - test_build_tx - Credential ID: {:?}",
-                    credential_raw_id_vec
+                    "XDB - test_build_tx - Credential ID: {credential_raw_id_vec:?}"
                 );
                 std::io::stdout().flush().unwrap();
 
                 let store = auth_stack.client.authenticator().store().clone();
-                println!("XDB - test_build_tx - Store: {:?}", store);
+                println!("XDB - test_build_tx - Store: {store:?}");
                 std::io::stdout().flush().unwrap();
 
                 let passkey = store.get(&credential_raw_id.clone().to_vec());
-                println!("XDB - test_build_tx - Passkey: {:?}", passkey);
+                println!("XDB - test_build_tx - Passkey: {passkey:?}");
                 std::io::stdout().flush().unwrap();
 
                 let passkey = find_credentials(
@@ -432,7 +453,7 @@ mod tests {
                 )
                 .await
                 .map_err(|e| eyre::eyre!("Error finding credentials: {:?}", e))?;
-                println!("XDB - test_build_tx - Found passkey: {:?}", passkey);
+                println!("XDB - test_build_tx - Found passkey: {passkey:?}");
                 std::io::stdout().flush().unwrap();
 
                 use crate::api::account::{

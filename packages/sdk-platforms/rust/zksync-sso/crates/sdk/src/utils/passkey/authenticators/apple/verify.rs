@@ -37,7 +37,7 @@ pub(crate) async fn verify_registration(
     let validated = registration
         .validate(&challenge, expected_origin)
         .map_err(|e| {
-            error!("Validation failed: {:?}", e);
+            error!("Validation failed: {e:?}");
             eyre::eyre!("Passkey validation failed: {:?}", e)
         })
         .map(Into::into)?;
@@ -84,7 +84,7 @@ mod tests {
     async fn test_verify_registration() -> eyre::Result<()> {
         let challenge = sha256(b"test challenge");
         let rp_id = "future.1password.com";
-        let origin = Url::parse(&format!("https://{}", rp_id)).unwrap();
+        let origin = Url::parse(&format!("https://{rp_id}")).unwrap();
 
         let user_validation_method = MyUserValidationMethod {};
 

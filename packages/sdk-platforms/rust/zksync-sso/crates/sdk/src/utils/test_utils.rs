@@ -21,6 +21,8 @@ use alloy_zksync::{
 use k256::{Secp256k1, elliptic_curve::SecretKey};
 use tokio::task;
 
+pub mod passkey;
+
 pub fn zksync_wallet_from_anvil_zksync(
     anvil_zksync: &AnvilZKsyncInstance,
 ) -> eyre::Result<(ZksyncWallet, SecretKey<Secp256k1>, Vec<SecretKey<Secp256k1>>)>
@@ -69,7 +71,7 @@ pub async fn spawn_node() -> eyre::Result<(
         let deploy_key =
             remaining_keys.first().ok_or(AnvilZKsyncError::NoKeysAvailable)?;
 
-        let deploy_key_hex = hex::encode(deploy_key.to_bytes());
+        let deploy_key_hex = alloy::hex::encode(deploy_key.to_bytes());
 
         (provider, deploy_key_hex)
     };
@@ -93,7 +95,8 @@ pub async fn spawn_node_and_deploy_contracts() -> eyre::Result<(
 
     let contracts = deploy_contracts(node_url.clone()).await?;
 
-    let config = Config { contracts, node_url, deploy_wallet };
+    let config =
+        Config { contracts, node_url, deploy_wallet: Some(deploy_wallet) };
 
     Ok((anvil_zksync, config, provider))
 }
@@ -103,7 +106,7 @@ pub async fn spawn_node_and_deploy_contracts() -> eyre::Result<(
 async fn test_spawn_node_and_deploy_contracts() -> eyre::Result<()> {
     let (anvil_zksync, config, _) = spawn_node_and_deploy_contracts().await?;
 
-    println!("config: {:?}", config);
+    println!("config: {config:?}");
 
     drop(anvil_zksync);
 

@@ -1,11 +1,9 @@
 use crate::{
-    client::{
-        contracts::AAFactory,
-        passkey::actions::deploy::{
-            CredentialDetails, DeployAccountArgs, deploy_account,
-        },
+    client::passkey::actions::deploy::{
+        CredentialDetails, DeployAccountArgs, deploy_account,
     },
     config::Config,
+    contracts::AAFactory,
     utils::contract_deployed::{Contract, check_contract_deployed},
 };
 use alloy::{
@@ -31,7 +29,7 @@ pub struct AccountParams {
 pub(crate) async fn get_smart_account_bytecode_hash(
     config: &Config,
 ) -> eyre::Result<FixedBytes<32>> {
-    let contracts = config.contracts.clone();
+    let contracts = config.contracts;
     let provider = {
         let node_url: url::Url = config.clone().node_url;
 
@@ -39,16 +37,16 @@ pub(crate) async fn get_smart_account_bytecode_hash(
     };
     let factory = AAFactory::new(contracts.account_factory, &provider);
     let result = factory.beaconProxyBytecodeHash().call().await?;
-    debug!("XDB get_smart_account_bytecode_hash - result: {:?}", result);
+    debug!("XDB get_smart_account_bytecode_hash - result: {result:?}");
     let hash = result._0;
-    debug!("XDB get_smart_account_bytecode_hash - hash: {:?}", hash);
+    debug!("XDB get_smart_account_bytecode_hash - hash: {hash:?}");
     Ok(hash)
 }
 
 pub(crate) async fn get_smart_account_proxy_address(
     config: &Config,
 ) -> eyre::Result<Bytes> {
-    let contracts = config.contracts.clone();
+    let contracts = config.contracts;
     let provider = {
         let node_url: url::Url = config.clone().node_url;
 
@@ -75,13 +73,13 @@ async fn is_account_deployed(
 }
 
 pub fn get_account_id_by_user_id(user_id: String) -> FixedBytes<32> {
-    debug!("XDB get_account_id_by_user_id - user_id: {}", user_id);
+    debug!("XDB get_account_id_by_user_id - user_id: {user_id}");
 
-    let salt = hex::encode(user_id);
-    debug!("XDB salt: {:?}", salt);
+    let salt = alloy::hex::encode(user_id);
+    debug!("XDB salt: {salt:?}");
 
     let salt_hash = keccak256(salt);
-    debug!("XDB salt_hash: {:?}", salt_hash);
+    debug!("XDB salt_hash: {salt_hash:?}");
 
     salt_hash
 }
@@ -90,7 +88,7 @@ pub async fn get_smart_account_address_by_user_id(
     user_id: String,
     config: &Config,
 ) -> eyre::Result<Address> {
-    let contracts = config.contracts.clone();
+    let contracts = config.contracts;
     check_contract_deployed(
         &config.node_url,
         &Contract {
@@ -100,39 +98,37 @@ pub async fn get_smart_account_address_by_user_id(
     )
     .await?;
     let unique_id = get_account_id_by_user_id(user_id.clone());
-    debug!(
-        "XDB get_smart_account_address_by_user_id - unique_id: {}",
-        unique_id
-    );
+    debug!("XDB get_smart_account_address_by_user_id - unique_id: {unique_id}");
 
     let smart_account_proxy_address =
         get_smart_account_proxy_address(config).await?;
     debug!(
-        "XDB get_smart_account_address_by_user_id - Smart account proxy address: {}",
-        smart_account_proxy_address
+        "XDB get_smart_account_address_by_user_id - Smart account proxy address: {smart_account_proxy_address}"
     );
 
     let smart_account_bytecode_hash =
         get_smart_account_bytecode_hash(config).await?;
     debug!(
-        "XDB get_smart_account_address_by_user_id - Smart account bytecode hash: {}",
-        smart_account_bytecode_hash
+        "XDB get_smart_account_address_by_user_id - Smart account bytecode hash: {smart_account_bytecode_hash}"
     );
 
     let account_id_hash = unique_id;
 
     let deploy_wallet_address = {
-        let signer =
-            PrivateKeySigner::from_str(&config.deploy_wallet.private_key_hex)?;
-        let wallet = ZksyncWallet::from(signer);
+        let wallet = if let Some(deploy_wallet) = config.clone().deploy_wallet {
+            ZksyncWallet::from(PrivateKeySigner::from_str(
+                &deploy_wallet.private_key_hex,
+            )?)
+        } else {
+            ZksyncWallet::from(PrivateKeySigner::random())
+        };
 
         wallet.default_signer().address()
     };
 
     let wallet_address_bytes = deploy_wallet_address.0.to_vec();
     debug!(
-        "XDB get_predicted_deployed_account_address - wallet_address_bytes: {:?}",
-        wallet_address_bytes
+        "XDB get_predicted_deployed_account_address - wallet_address_bytes: {wallet_address_bytes:?}"
     );
 
     let concatenated_bytes = {
@@ -142,26 +138,22 @@ pub async fn get_smart_account_address_by_user_id(
         concatenated_bytes
     };
     debug!(
-        "XDB get_predicted_deployed_account_address - concatenated_bytes: {:?}",
-        concatenated_bytes
+        "XDB get_predicted_deployed_account_address - concatenated_bytes: {concatenated_bytes:?}"
     );
 
-    let concatenated_bytes_hex = hex::encode(concatenated_bytes.clone());
+    let concatenated_bytes_hex = alloy::hex::encode(concatenated_bytes.clone());
     debug!(
-        "XDB get_predicted_deployed_account_address - concatenated_bytes_hex: {:?}",
-        concatenated_bytes_hex
+        "XDB get_predicted_deployed_account_address - concatenated_bytes_hex: {concatenated_bytes_hex:?}"
     );
 
     let unique_salt = keccak256(concatenated_bytes.clone());
     debug!(
-        "XDB get_predicted_deployed_account_address - unique_salt: {:?}",
-        unique_salt
+        "XDB get_predicted_deployed_account_address - unique_salt: {unique_salt:?}"
     );
 
-    let unique_salt_hex = hex::encode(unique_salt);
+    let unique_salt_hex = alloy::hex::encode(unique_salt);
     debug!(
-        "XDB get_predicted_deployed_account_address - unique_salt_hex: {:?}",
-        unique_salt_hex
+        "XDB get_predicted_deployed_account_address - unique_salt_hex: {unique_salt_hex:?}"
     );
 
     let address = create2_address(
@@ -171,8 +163,7 @@ pub async fn get_smart_account_address_by_user_id(
         smart_account_proxy_address,
     );
     debug!(
-        "XDB get_smart_account_address_by_user_id - Smart account address: {}",
-        address
+        "XDB get_smart_account_address_by_user_id - Smart account address: {address}"
     );
 
     Ok(address)
@@ -185,7 +176,7 @@ async fn deploy_smart_account(
     paymaster: Option<PaymasterParams>,
     config: &Config,
 ) -> eyre::Result<Address> {
-    let contracts = config.contracts.clone();
+    let contracts = config.contracts;
 
     let args = DeployAccountArgs {
         credential: CredentialDetails {
@@ -195,13 +186,14 @@ async fn deploy_smart_account(
         expected_origin: Some(account_params.passkey_expected_origin.clone()),
         unique_account_id: Some(user_id.clone()),
         paymaster,
-        contracts: contracts.clone(),
+        contracts,
         initial_k1_owners: None,
+        initial_session: None,
     };
 
     let result = deploy_account(args, config).await?;
     let deployed_account_address = result.address;
-    debug!("Deployed account address: {}", deployed_account_address);
+    debug!("Deployed account address: {deployed_account_address}");
 
     let derived_address =
         get_smart_account_address_by_user_id(user_id.clone(), config).await?;
@@ -224,19 +216,19 @@ pub async fn create_account(
     paymaster: Option<PaymasterParams>,
     config: &Config,
 ) -> eyre::Result<Address> {
-    debug!("XDB create_account - user_id: {}", user_id);
-    debug!("XDB create_account - credential: {:?}", credential);
-    debug!("XDB create_account - account_params: {:?}", account_params);
-    debug!("XDB create_account - paymaster: {:?}", paymaster);
-    debug!("XDB create_account - config: {:?}", config);
+    debug!("XDB create_account - user_id: {user_id}");
+    debug!("XDB create_account - credential: {credential:?}");
+    debug!("XDB create_account - account_params: {account_params:?}");
+    debug!("XDB create_account - paymaster: {paymaster:?}");
+    debug!("XDB create_account - config: {config:?}");
 
     let address =
         get_smart_account_address_by_user_id(user_id.clone(), config).await?;
-    debug!("XDB create_account - address: {}", address);
+    debug!("XDB create_account - address: {address}");
 
     let is_already_deployed =
         is_account_deployed(user_id.clone(), config).await?;
-    debug!("XDB create_account - is_already_deployed: {}", is_already_deployed);
+    debug!("XDB create_account - is_already_deployed: {is_already_deployed}");
 
     if is_already_deployed {
         debug!("XDB create_account - account already deployed");
@@ -260,9 +252,8 @@ pub async fn create_account(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        client::passkey::actions::deploy::CredentialDetails,
-        utils::test_utils::spawn_node_and_deploy_contracts,
+    use crate::utils::test_utils::{
+        passkey::get_mock_credential_details, spawn_node_and_deploy_contracts,
     };
     use alloy::signers::local::PrivateKeySigner;
 
@@ -277,7 +268,7 @@ mod tests {
 
         // Assert
         assert_eq!(bytecode_hash.len(), 32);
-        println!("Bytecode hash: 0x{}", hex::encode(bytecode_hash));
+        println!("Bytecode hash: 0x{}", alloy::hex::encode(bytecode_hash));
 
         let bytecode_hash2 = get_smart_account_bytecode_hash(&config).await?;
         assert_eq!(bytecode_hash, bytecode_hash2);
@@ -295,24 +286,13 @@ mod tests {
 
         let user_id = "unique-id".to_string();
 
-        let credential_public_key = vec![
-            165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            34, 88, 32, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-        ];
-
         let contracts = config.clone().contracts;
 
         let origin: String = "https://example.com".to_string();
 
         let account_params = AccountParams { passkey_expected_origin: origin };
 
-        let credential_id = "unique-base64encoded-string".to_string();
-        let credential = CredentialDetails {
-            id: credential_id,
-            public_key: credential_public_key.clone(),
-        };
+        let credential = get_mock_credential_details();
 
         let paymaster = Some(PaymasterParams {
             paymaster: contracts.account_paymaster,
@@ -371,14 +351,14 @@ mod tests {
 
         let wallet_address = {
             let wallet = ZksyncWallet::from(PrivateKeySigner::from_str(
-                &config.deploy_wallet.private_key_hex,
+                &config.clone().deploy_wallet.unwrap().private_key_hex,
             )?);
             wallet.default_signer().address()
         };
-        println!("XDB - Wallet address: {}", wallet_address);
+        println!("XDB - Wallet address: {wallet_address}");
 
         let account_factory_address = config.contracts.account_factory;
-        println!("XDB - Account factory address: {}", account_factory_address);
+        println!("XDB - Account factory address: {account_factory_address}");
 
         // Act
         let user_id = "unique-id".to_string();
@@ -418,7 +398,7 @@ mod tests {
         let account_id_hash = get_account_id_by_user_id(user_id.clone());
         let deploy_wallet_address = {
             let signer = PrivateKeySigner::from_str(
-                &config.deploy_wallet.private_key_hex,
+                &config.clone().deploy_wallet.unwrap().private_key_hex,
             )?;
             let wallet = ZksyncWallet::from(signer);
 

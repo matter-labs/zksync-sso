@@ -32,9 +32,6 @@ log.workspace = true
 rand.workspace = true
 base64.workspace = true
 
-# Hex encoding/decoding
-hex.workspace = true
-
 # Target-specific dependencies - Android
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger.workspace = true

@@ -1,7 +1,7 @@
 pub mod contracts;
 pub mod deploy_wallet;
 
-use crate::config::{contracts::PasskeyContracts, deploy_wallet::DeployWallet};
+use crate::config::{contracts::SSOContracts, deploy_wallet::DeployWallet};
 use eyre::Result;
 use serde::{Deserialize, Serialize};
 use std::{env, fs, io::Write, path::PathBuf};
@@ -10,24 +10,24 @@ use url::Url;
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
-    pub contracts: PasskeyContracts,
+    pub contracts: SSOContracts,
     pub node_url: Url,
-    pub deploy_wallet: DeployWallet,
+    pub deploy_wallet: Option<DeployWallet>,
 }
 
 impl Config {
     pub fn new(
-        contracts: PasskeyContracts,
+        contracts: SSOContracts,
         node_url: Url,
-        deploy_wallet: DeployWallet,
+        deploy_wallet: Option<DeployWallet>,
     ) -> Self {
         Self { contracts, node_url, deploy_wallet }
     }
 
     pub fn with_url_str(
-        contracts: PasskeyContracts,
+        contracts: SSOContracts,
         node_url: &str,
-        deploy_wallet: DeployWallet,
+        deploy_wallet: Option<DeployWallet>,
     ) -> Result<Self> {
         Ok(Self {
             contracts,
@@ -54,7 +54,7 @@ impl Config {
         file.write_all(json.as_bytes())
             .map_err(|e| eyre::eyre!("Failed to write config file: {}", e))?;
 
-        println!("Wrote config to: {:?}", config_path);
+        println!("Wrote config to: {config_path:?}");
         Ok(())
     }
 

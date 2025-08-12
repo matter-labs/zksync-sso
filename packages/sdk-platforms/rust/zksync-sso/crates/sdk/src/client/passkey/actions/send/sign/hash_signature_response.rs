@@ -13,8 +13,7 @@ pub(crate) fn hash_signature_response_format(
     config: &Config,
 ) -> Result<Vec<u8>> {
     debug!(
-        "XDB - api::account::sign::hash_signature_response_format signature_response: {:?}",
-        signature_response
+        "XDB - api::account::sign::hash_signature_response_format signature_response: {signature_response:?}"
     );
 
     let passkey_response = decode_signature_response(&signature_response)?;
@@ -25,8 +24,7 @@ pub(crate) fn hash_signature_response_format(
     )?;
 
     debug!(
-        "XDB - api::account::sign::hash_signature_response_format result: {:?}",
-        result
+        "XDB - api::account::sign::hash_signature_response_format result: {result:?}"
     );
 
     Ok(result)
@@ -36,8 +34,7 @@ fn decode_signature_response(
     signature_response: &[u8],
 ) -> Result<AuthenticatorAssertionResponseJSON> {
     debug!(
-        "XDB - api::account::sign::decode_signature_response signature_response: {:?}",
-        signature_response
+        "XDB - api::account::sign::decode_signature_response signature_response: {signature_response:?}"
     );
 
     debug!(
@@ -49,8 +46,7 @@ fn decode_signature_response(
         serde_json::from_slice(signature_response)?;
 
     debug!(
-        "XDB - api::account::sign::decode_signature_response assertion: {:?}",
-        assertion
+        "XDB - api::account::sign::decode_signature_response assertion: {assertion:?}"
     );
 
     debug!(
@@ -78,8 +74,7 @@ fn decode_signature_response(
     };
 
     debug!(
-        "XDB - api::account::sign::decode_signature_response response: {:?}",
-        response
+        "XDB - api::account::sign::decode_signature_response response: {response:?}"
     );
 
     Ok(response)
