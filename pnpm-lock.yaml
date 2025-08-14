@@ -11,6 +11,9 @@ importers:
       prettier-plugin-solidity:
         specifier: ^1.4.1
         version: 1.4.1(prettier@3.3.3)
+      snarkjs:
+        specifier: ^0.7.5
+        version: 0.7.5
     devDependencies:
       '@commitlint/cli':
         specifier: 19.5.0
@@ -42,9 +45,6 @@ importers:
       '@swc/core':
         specifier: 1.7.26
         version: 1.7.26(@swc/helpers@0.5.13)
-      'zksync-sso-wagmi-connector':
-        specifier: workspace:*
-        version: link:packages/connector-export
       cspell:
         specifier: 8.14.4
         version: 8.14.4
@@ -87,6 +87,9 @@ importers:
       zksync-sso:
         specifier: workspace:*
         version: link:packages/sdk
+      zksync-sso-wagmi-connector:
+        specifier: workspace:*
+        version: link:packages/connector-export
 
   examples/bank-demo:
     dependencies:
@@ -104,7 +107,7 @@ importers:
         version: 3.2.0(magicast@0.3.5)(rollup@4.30.1)
       '@nuxtjs/tailwindcss':
         specifier: ^6.12.0
-        version: 6.12.2(magicast@0.3.5)(rollup@4.30.1)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.15.33)(typescript@5.6.2))
+        version: 6.12.2(magicast@0.3.5)(rollup@4.30.1)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
       '@pinia/nuxt':
         specifier: ^0.5.5
         version: 0.5.5(magicast@0.3.5)(rollup@4.30.1)(typescript@5.6.2)(vue@3.5.18(typescript@5.6.2))
@@ -168,9 +171,6 @@ importers:
       '@web3modal/wagmi':
         specifier: ^5.1.11
         version: 5.1.11(mrlkeg64oywb3e2jhm34h65fj4)
-      'zksync-sso-wagmi-connector':
-        specifier: workspace:*
-        version: link:../../packages/connector-export
       ethers:
         specifier: ^6.13.2
         version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
@@ -192,13 +192,16 @@ importers:
       zksync-sso:
         specifier: workspace:*
         version: link:../../packages/sdk
+      zksync-sso-wagmi-connector:
+        specifier: workspace:*
+        version: link:../../packages/connector-export
     devDependencies:
       '@nuxt/eslint':
         specifier: ^0.5.7
         version: 0.5.7(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.4.2))(magicast@0.3.5)(rollup@4.30.1)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
       '@nuxtjs/tailwindcss':
         specifier: ^6.12.0
-        version: 6.12.2(magicast@0.3.5)(rollup@4.30.1)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.15.33)(typescript@5.6.2))
+        version: 6.12.2(magicast@0.3.5)(rollup@4.30.1)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.8.0)(typescript@5.6.2))
       '@playwright/test':
         specifier: ^1.47.2
         version: 1.48.1
@@ -437,6 +440,9 @@ importers:
       sass:
         specifier: ^1.77.6
         version: 1.80.4
+      snarkjs:
+        specifier: ^0.7.5
+        version: 0.7.5
       tailwind-merge:
         specifier: ^2.5.2
         version: 2.5.4
@@ -753,7 +759,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.19(@types/react@19.1.8)
+        version: 1.2.20(@types/react@19.1.8)
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -4660,8 +4666,8 @@ packages:
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
 
-  '@types/bun@1.2.19':
-    resolution: {integrity: sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg==}
+  '@types/bun@1.2.20':
+    resolution: {integrity: sha512-dX3RGzQ8+KgmMw7CsW4xT5ITBSCrSbfHc36SNT31EOUg/LA9JWq0VDdEXDRSe1InVWpd2yLUM1FUF/kEOyTzYA==}
 
   '@types/chai-as-promised@7.1.8':
     resolution: {integrity: sha512-ThlRVIJhr69FLlh6IctTXFkmhtP3NpMZ2QGq69StYLyKZFp/HOp1VdKZj7RvfNWYYcJ1xlbLGLLWj1UvP5u/Gw==}
@@ -6012,8 +6018,8 @@ packages:
     resolution: {integrity: sha512-zhaCDicdLuWN5UbN5IMnFqNMhNfo919sH85y2/ea+5Yg9TsTkeZxpL+JLbp6cgYFS4sRLp3YV4S6yDuqVWHYOw==}
     engines: {node: '>=6'}
 
-  bun-types@1.2.19:
-    resolution: {integrity: sha512-uAOTaZSPuYsWIXRpj7o56Let0g/wjihKCkeRqUBhlLVM/Bt+Fj9xTo+LhC1OV1XDaGkz4hNC80et5xgy+9KTHQ==}
+  bun-types@1.2.20:
+    resolution: {integrity: sha512-pxTnQYOrKvdOwyiyd/7sMt9yFOenN004Y6O4lCcCUoKVej48FS5cvTw9geRaEcB9TsDZaJKAxPTVvi8tFsVuXA==}
     peerDependencies:
       '@types/react': ^19
 
@@ -17916,9 +17922,9 @@ snapshots:
       '@types/connect': 3.4.38
       '@types/node': 22.15.33
 
-  '@types/bun@1.2.19(@types/react@19.1.8)':
+  '@types/bun@1.2.20(@types/react@19.1.8)':
     dependencies:
-      bun-types: 1.2.19(@types/react@19.1.8)
+      bun-types: 1.2.20(@types/react@19.1.8)
     transitivePeerDependencies:
       - '@types/react'
 
@@ -20933,7 +20939,7 @@ snapshots:
 
   builtin-modules@3.3.0: {}
 
-  bun-types@1.2.19(@types/react@19.1.8):
+  bun-types@1.2.20(@types/react@19.1.8):
     dependencies:
       '@types/node': 22.15.33
       '@types/react': 19.1.8

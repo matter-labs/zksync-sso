@@ -55,6 +55,7 @@
   },
   "packageManager": "pnpm@9.11.0",
   "dependencies": {
-    "prettier-plugin-solidity": "^1.4.1"
+    "prettier-plugin-solidity": "^1.4.1",
+    "snarkjs": "^0.7.5"
   }
 }

@@ -6,7 +6,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "command": "PORT=3002 nuxt dev"
+        "command": "pnpm run copy:snarkjs && PORT=3002 nuxt dev"
       },
       "dependsOn": ["^build", "zksync-sso-contracts:deploy", "nft-quest-contracts:deploy:local"]
     },
@@ -24,7 +24,7 @@
         "cwd": "packages/auth-server",
         "commands": [
           {
-            "command": "pnpm nuxt generate"
+            "command": "pnpm run copy:snarkjs && pnpm nuxt generate"
           }
         ]
       }
