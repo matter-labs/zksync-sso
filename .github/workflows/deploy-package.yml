@@ -51,7 +51,7 @@ jobs:
       - name: Build the package
         run: pnpm nx build sdk
 
-      - name: Build the connector-export package
+      - name: Build the wagmi-connector package
         run: pnpm nx build connector-export
 
       - name: Prepare package.json
@@ -60,7 +60,7 @@ jobs:
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
 
-      - name: Prepare connector-export package.json
+      - name: Prepare wagmi connector package.json
         working-directory: packages/connector-export
         run: node prepare-package.mjs
         env:
@@ -84,7 +84,7 @@ jobs:
         working-directory: packages/sdk
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
 
-      - name: Publish connector-export to NPM
+      - name: Publish wagmi connector to NPM
         working-directory: packages/connector-export
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
     
@@ -101,9 +101,9 @@ jobs:
           npm pkg set name="@matter-labs/zksync-sso"
           npm publish --registry=https://npm.pkg.github.com --tag ${{ steps.npm_tag.outputs.tag }}
 
-      - name: Publish connector-export to GitHub Packages
+      - name: Publish wagmi connector to GitHub Packages
         working-directory: packages/connector-export
         run: |
           # Update package name for GitHub Packages to be scoped to the organization
-          npm pkg set name="@matter-labs/zksync-sso-connector-export"
+          npm pkg set name="@matter-labs/zksync-sso-wagmi-connector"
           npm publish --registry=https://npm.pkg.github.com --tag ${{ steps.npm_tag.outputs.tag }}
