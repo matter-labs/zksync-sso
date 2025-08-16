@@ -2,14 +2,23 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 function main() {
   // Resolve the path to snarkjs browser bundle
   // Resolve snarkjs package base
   let baseDir;
   try {
-    const pkgJson = require.resolve("snarkjs/package.json");
-    baseDir = dirname(pkgJson);
+    // Prefer import.meta.resolve for pure ESM; fallback to createRequire for older Node versions
+    let pkgJsonPath;
+    if (typeof import.meta.resolve === "function") {
+      const resolvedUrl = import.meta.resolve("snarkjs/package.json");
+      pkgJsonPath = fileURLToPath(resolvedUrl);
+    } else {
+      const require = createRequire(import.meta.url);
+      pkgJsonPath = require.resolve("snarkjs/package.json");
+    }
+    baseDir = dirname(pkgJsonPath);
   } catch (e) {
     console.warn("[copy-snarkjs] snarkjs not installed yet; skipping copy", e);
     return; // don't fail install, maybe another step will install it
