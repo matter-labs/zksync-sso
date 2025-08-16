@@ -5,6 +5,7 @@ import { config } from "dotenv";
 import express from "express";
 import { rateLimit } from "express-rate-limit";
 import * as jose from "jose";
+import client from "prom-client";
 import { bytesToHex } from "viem";
 import { z } from "zod";
 
@@ -39,6 +40,34 @@ const limiter = rateLimit({
 });
 
 const app = express();
+
+// ----- Metrics setup -----
+// Collect default metrics (Node.js process metrics, etc.)
+client.collectDefaultMetrics();
+
+// Custom metrics
+const requestCounter = new client.Counter({
+  name: "salt_service_requests_total",
+  help: "Total number of requests received by path and method",
+  labelNames: ["method", "path", "status"],
+});
+const requestDuration = new client.Histogram({
+  name: "salt_service_request_duration_seconds",
+  help: "Histogram of request durations in seconds",
+  labelNames: ["method", "path", "status"],
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5],
+});
+
+// Middleware to record metrics
+app.use((req, res, next) => {
+  const end = requestDuration.startTimer();
+  res.on("finish", () => {
+    const labels = { method: req.method, path: req.route?.path || req.path, status: res.statusCode.toString() };
+    requestCounter.inc(labels);
+    end(labels);
+  });
+  next();
+});
 
 app.use(cors({ origin: env.AUTH_SERVER_URL }));
 app.use(limiter);
@@ -86,6 +115,25 @@ app.get("/salt", async (req, res): Promise<void> => {
   res.json({ salt: bytesToHex(hash) });
 });
 
-app.listen(env.SALT_SERVICE_PORT, () => {
-  console.log(`Server listening on port ${env.SALT_SERVICE_PORT}`);
+const mainPort = env.SALT_SERVICE_PORT || "3003";
+app.listen(mainPort, () => {
+  console.log(`Server listening on port ${mainPort}`);
+});
+
+// Separate metrics server on port 9090
+const METRICS_PORT = 9090;
+const metricsApp = express();
+metricsApp.get("/metrics", async (_req, res) => {
+  try {
+    res.set("Content-Type", client.register.contentType);
+    res.end(await client.register.metrics());
+  } catch (err) {
+    res.status(500).end((err as Error).message);
+  }
+});
+metricsApp.get("/health", async (_req, res) => {
+  res.json({ status: "ok" });
+});
+metricsApp.listen(METRICS_PORT, () => {
+  console.log(`Metrics server listening on port ${METRICS_PORT}`);
 });
