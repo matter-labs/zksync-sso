@@ -5,25 +5,30 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 function main() {
-  // Resolve the path to snarkjs browser bundle
-  // Resolve snarkjs package base
+  // Resolve the path to snarkjs browser bundle.
+  // We cannot rely on snarkjs/package.json because it is not exported.
   let baseDir;
   try {
-    // Prefer import.meta.resolve for pure ESM; fallback to createRequire for older Node versions
-    let pkgJsonPath;
-    if (typeof import.meta.resolve === "function") {
-      const resolvedUrl = import.meta.resolve("snarkjs/package.json");
-      pkgJsonPath = fileURLToPath(resolvedUrl);
-    } else {
-      const require = createRequire(import.meta.url);
-      pkgJsonPath = require.resolve("snarkjs/package.json");
+    const require = createRequire(import.meta.url);
+    const mainEntry = require.resolve("snarkjs"); // e.g. node_modules/snarkjs/dist/main.cjs
+    // ascend until we reach the package root (folder named 'snarkjs')
+    let curr = dirname(mainEntry);
+    while (curr && curr !== "/" && curr.includes("snarkjs")) {
+      if (curr.endsWith("snarkjs")) {
+        baseDir = curr;
+        break;
+      }
+      curr = dirname(curr);
     }
-    baseDir = dirname(pkgJsonPath);
+    if (!baseDir) {
+      // fallback: one directory up from dist
+      baseDir = dirname(dirname(mainEntry));
+    }
   } catch (e) {
     console.warn("[copy-snarkjs] snarkjs not installed yet; skipping copy", e);
     return; // don't fail install, maybe another step will install it
   }
-  const candidateRelPaths = ["dist/web/snarkjs.min.js", "dist/snarkjs.min.js", "build/snarkjs.min.js"];
+  const candidateRelPaths = ["dist/web/snarkjs.min.js", "dist/snarkjs.min.js", "build/snarkjs.min.js", "snarkjs.min.js"];
   let src;
   for (const rel of candidateRelPaths) {
     const cand = join(baseDir, rel);

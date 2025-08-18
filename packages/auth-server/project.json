@@ -22,11 +22,17 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "commands": [
-          {
-            "command": "pnpm run copy:snarkjs && pnpm nuxt generate"
-          }
-        ]
+        "commands": [{ "command": "pnpm nuxt generate" }]
+      },
+      "inputs": ["default", "{projectRoot}/scripts/copy-snarkjs.mjs"],
+      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": ["copy-snarkjs"]
+    },
+    "copy-snarkjs": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "pnpm run copy:snarkjs"
       }
     },
     "build:local": {
@@ -35,7 +41,7 @@
         "cwd": "packages/auth-server",
         "command": "pnpm nuxt generate --envName local"
       },
-      "dependsOn": ["^build"]
+      "dependsOn": ["copy-snarkjs", "^build"]
     },
     "preview": {
       "executor": "nx:run-commands",
