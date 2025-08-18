@@ -106,7 +106,7 @@
 
 <script lang="ts" setup>
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
-import { signTypedData } from "viem/experimental/erc7739";
+// import { signTypedData } from "viem/experimental/erc7739";
 import type { ExtractParams } from "zksync-sso/client-auth-server";
 
 const { appMeta } = useAppMeta();
@@ -148,13 +148,7 @@ const confirmSign = async () => {
       throw new Error("Typed data parameters are not available");
     }
     const client = getClient({ chainId: requestChain.value!.id });
-    const signature = await signTypedData(client, {
-      verifier: client.account.address,
-      domain: typedData.value.domain,
-      types: typedData.value.types,
-      primaryType: typedData.value.primaryType,
-      message: typedData.value.message,
-    });
+    const signature = await client.signTypedData(typedData.value);
     return {
       result: signature,
     };

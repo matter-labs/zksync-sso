@@ -61,7 +61,10 @@ export function zksyncSsoPasskeyWalletActions<
     //     ...args,
     //   } as any);
     // },
-    signTypedData: (args) => signTypedData(client, args),
+    signTypedData: (args) => {
+      console.log("Signing", args);
+      return signTypedData(client, args);
+    },
     signMessage: (args) => signMessage(client, args),
     /* signMessage: async (args) => {
       console.log("signMessage", args);

@@ -34,6 +34,7 @@ export function toPasskeyAccount<
     address,
     sign,
     async signMessage({ message }) {
+      console.log("Passkey client, signing", message);
       return sign({
         hash: hashMessage(message),
       });

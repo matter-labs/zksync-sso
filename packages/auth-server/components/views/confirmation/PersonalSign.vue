@@ -122,9 +122,10 @@ const confirmSign = async () => {
       throw new Error("Message parameters are not available");
     }
     const client = getClient({ chainId: requestChain.value!.id });
+    console.log("Auth Signing", { raw: messageParams.value[0] });
     const signature = await client.signMessage({
       // verifier: client.account.address,
-      message: messageParams.value[0],
+      message: { raw: messageParams.value[0] },
     });
     return {
       result: signature,

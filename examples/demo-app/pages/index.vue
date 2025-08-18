@@ -50,63 +50,16 @@
       class="mt-8 border-t pt-4"
     >
       <h2 class="text-xl font-bold mb-4">
-        Message Signature Verification
-      </h2>
-      <div class="mb-4">
-        <label class="block text-gray-700 text-sm font-bold mb-2">
-          Message to Sign:
-        </label>
-        <input
-          v-model="messageToSign"
-          type="text"
-          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline max-w-md"
-        >
-      </div>
-      <button
-        class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:bg-slate-300"
-        :disabled="isSigningMessage"
-        @click="signMessageHandler"
-      >
-        {{ isSigningMessage ? 'Signing...' : 'Sign Message' }}
-      </button>
-      <div
-        v-if="messageSignature"
-        class="mt-4"
-      >
-        <p class="break-all">
-          <strong>Signature:</strong> <span class="text-xs line-clamp-3">{{ messageSignature }}</span>
-        </p>
-      </div>
-      <div
-        v-if="isVerifyingSignature"
-        class="mt-4"
-      >
-        <p class="text-gray-600">
-          Verifying signature...
-        </p>
-      </div>
-      <div
-        v-else-if="isValidSignature !== null"
-        class="mt-4"
-      >
-        <p :class="isValidSignature ? 'text-green-600' : 'text-red-600'">
-          <strong>Verification Result:</strong> {{ isValidSignature ? 'Valid ✓' : 'Invalid ✗' }}
-        </p>
-      </div>
-    </div>
-
-    <div
-      v-if="address"
-      class="mt-8 border-t pt-4"
-    >
-      <h2 class="text-xl font-bold mb-4">
         Typed Data Signature Verification
       </h2>
       <div class="mb-4">
-        <label class="block text-gray-700 text-sm font-bold mb-2">
-          Typed Data (EIP-712):
-        </label>
-        <pre class="bg-gray-100 p-3 rounded text-sm overflow-x-auto max-w-2xl">{{ JSON.stringify(typedData, null, 2) }}</pre>
+        <pre class="bg-gray-100 p-3 rounded text-xs overflow-x-auto max-w-2xl max-h-60">{{ JSON.stringify(typedData, null, 2) }}</pre>
+      </div>
+      <div
+        v-if="ERC1271CallerContract.deployedTo"
+        class="mb-4 text-xs text-gray-600"
+      >
+        <p>ERC1271 Caller address: {{ ERC1271CallerContract.deployedTo }}</p>
       </div>
       <button
         class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded disabled:bg-slate-300"
@@ -120,7 +73,7 @@
         class="mt-4"
       >
         <p class="break-all">
-          <strong>Typed Data Signature:</strong> {{ typedDataSignature }}
+          <strong>Signature:</strong> <span class="text-xs line-clamp-3">{{ typedDataSignature }}</span>
         </p>
       </div>
       <div
@@ -151,16 +104,22 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType } from "@wagmi/core";
-import { zksyncSsoConnector, eraTestNode } from "@zksync-sso/connector-export";
-import { createWalletClient, http, parseEther, type Address } from "viem";
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract } from "@wagmi/core";
+import { zksyncSsoConnector } from "@zksync-sso/connector-export";
+import { createWalletClient, createPublicClient, http, parseEther, type Address, type Hash } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { getGeneralPaymasterInput } from "viem/zksync";
-import PaymasterContract from "../forge-output.json";
+import { getGeneralPaymasterInput, zksyncInMemoryNode } from "viem/zksync";
+import PaymasterContract from "../forge-output-paymaster.json";
+import ERC1271CallerContract from "../forge-output-erc1271.json";
 
-const chain = eraTestNode; // Now using the exported eraTestNode instead of zksyncInMemoryNode
+const chain = zksyncInMemoryNode;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
+
+const publicClient = createPublicClient({
+  chain: chain,
+  transport: http(),
+});
 const zksyncConnectorWithSession = zksyncSsoConnector({
   authServerUrl: "http://localhost:3002/confirm",
   session: {
@@ -185,57 +144,9 @@ const wagmiConfig = createConfig({
 });
 reconnect(wagmiConfig);
 
-const publicClient = createPublicClient({
-  chain: chain,
-  transport: http(),
-});
-
 const address = ref<Address | null>(null);
 const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
-const isSendingEth = ref<boolean>(false);
-const messageToSign = ref<string>("hello world");
-const messageSignature = ref<Hash | null>(null);
-const isValidSignature = ref<boolean | null>(null);
-const isSigningMessage = ref<boolean>(false);
-const isVerifyingSignature = ref<boolean>(false);
-
-const typedDataSignature = ref<Hash | null>(null);
-const isValidTypedDataSignature = ref<boolean | null>(null);
-const isSigningTypedData = ref<boolean>(false);
-const isVerifyingTypedDataSignature = ref<boolean>(false);
-
-const typedData = {
-  domain: {
-    name: "ZKsync SSO Demo",
-    version: "1",
-    chainId: chain.id,
-    verifyingContract: "0x0000000000000000000000000000000000000000",
-  },
-  types: {
-    Person: [
-      { name: "name", type: "string" },
-      { name: "wallet", type: "address" },
-    ],
-    Mail: [
-      { name: "from", type: "Person" },
-      { name: "to", type: "Person" },
-      { name: "contents", type: "string" },
-    ],
-  },
-  primaryType: "Mail" as const,
-  message: {
-    from: {
-      name: "Alice",
-      wallet: "0xa1cf087DB965Ab02Fb3CFaCe1f5c63935815f044",
-    },
-    to: {
-      name: "Bob",
-      wallet: "0x6cC8cf7f6b488C58AA909B77E6e65c631c204784",
-    },
-    contents: "Hello, ZKsync!",
-  },
-} as const;
 
 const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
@@ -309,6 +220,9 @@ const disconnectWallet = async () => {
   await disconnect(wagmiConfig);
 };
 
+/* Send ETH */
+const isSendingEth = ref<boolean>(false);
+
 const sendTokens = async (usePaymaster: boolean) => {
   if (!address.value) return;
 
@@ -369,67 +283,25 @@ const sendTokens = async (usePaymaster: boolean) => {
   }
 };
 
-const signMessageHandler = async () => {
-  if (!address.value) return;
+/* Typed data */
+const typedDataSignature = ref<Hash | null>(null);
+const isValidTypedDataSignature = ref<boolean | null>(null);
+const isSigningTypedData = ref<boolean>(false);
+const isVerifyingTypedDataSignature = ref<boolean>(false);
 
-  errorMessage.value = "";
-  isSigningMessage.value = true;
-  isValidSignature.value = null;
-  try {
-    const signature = await signMessage(wagmiConfig, {
-      message: messageToSign.value,
-    });
-    messageSignature.value = signature;
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Message signing failed:", error);
-    errorMessage.value = "Message signing failed, see console for more info.";
-  } finally {
-    isSigningMessage.value = false;
-  }
-};
-
-const verifySignatureAutomatically = async () => {
-  if (!address.value || !messageSignature.value) {
-    isVerifyingSignature.value = false;
-    isValidSignature.value = null;
-    return;
-  }
-
-  isVerifyingSignature.value = true;
-  try {
-    // const { salt, ...domain } = (await publicClient.getEip712Domain({
-    //   address: address.value,
-    // })).domain;
-    // const struct = {
-    //   domain,
-    //   types: {
-    //     PersonalSign: [{ name: "prefixed", type: "bytes" }],
-    //   },
-    //   primaryType: "PersonalSign",
-    //   message: {
-    //     prefixed: toPrefixedMessage(message),
-    //   },
-    // } as const;
-    // const isValid = await erc1271Caller.validateStruct(
-    //   struct,
-    //   address.value,
-    //   messageSignature.value,
-    // );
-    const isValid = await publicClient.verifyMessage({
-      address: address.value,
-      message: messageToSign.value,
-      signature: messageSignature.value,
-    });
-    isValidSignature.value = isValid;
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Signature verification failed:", error);
-    isValidSignature.value = false;
-  } finally {
-    isVerifyingSignature.value = false;
-  }
-};
+const typedData = {
+  types: {
+    TestStruct: [
+      { name: "message", type: "string" },
+      { name: "value", type: "uint256" },
+    ],
+  },
+  primaryType: "TestStruct",
+  message: {
+    message: "test",
+    value: 42n,
+  },
+} as const;
 
 const signTypedDataHandler = async () => {
   if (!address.value) return;
@@ -438,7 +310,15 @@ const signTypedDataHandler = async () => {
   isSigningTypedData.value = true;
   isValidTypedDataSignature.value = null;
   try {
-    const signature = await signTypedData(wagmiConfig, typedData);
+    const erc1271CallerAddress = ERC1271CallerContract.deployedTo as Address;
+    const { domain: callerDomain } = await publicClient.getEip712Domain({
+      address: erc1271CallerAddress,
+    });
+
+    const signature = await signTypedData(wagmiConfig, {
+      domain: callerDomain,
+      ...typedData,
+    });
     typedDataSignature.value = signature;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -457,14 +337,47 @@ const verifyTypedDataSignatureAutomatically = async () => {
 
   isVerifyingTypedDataSignature.value = true;
   try {
-    const isValid = await publicClient.verifyTypedData({
-      address: address.value,
-      domain: typedData.domain,
-      types: typedData.types,
-      primaryType: typedData.primaryType,
-      message: typedData.message,
-      signature: typedDataSignature.value,
+    const contractAddress = ERC1271CallerContract.deployedTo as Address;
+
+    const isValid = await readContract(wagmiConfig, {
+      address: contractAddress,
+      abi: [{
+        inputs: [
+          {
+            components: [
+              { name: "message", type: "string" },
+              { name: "value", type: "uint256" },
+            ],
+            name: "testStruct",
+            type: "tuple",
+          },
+          {
+            name: "signer",
+            type: "address",
+          },
+          {
+            name: "signature",
+            type: "bytes",
+          },
+        ],
+        name: "validateStruct",
+        outputs: [
+          {
+            name: "",
+            type: "bool",
+          },
+        ],
+        stateMutability: "view",
+        type: "function",
+      }] as const,
+      functionName: "validateStruct",
+      args: [
+        typedData.message,
+        address.value,
+        typedDataSignature.value,
+      ],
     });
+
     isValidTypedDataSignature.value = isValid;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -475,7 +388,11 @@ const verifyTypedDataSignatureAutomatically = async () => {
   }
 };
 
-watch([messageToSign, address], () => messageSignature.value = null);
-watch(messageSignature, verifySignatureAutomatically);
+watch(address, () => typedDataSignature.value = null);
 watch(typedDataSignature, verifyTypedDataSignatureAutomatically);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window.BigInt as any).prototype.toJSON = function () {
+  return this.toString();
+};
 </script>
