@@ -31,6 +31,7 @@ export function createZksyncPasskeyClient<
     contracts: parameters.contracts,
     transport: parameters.transport,
     sign: async ({ hash }) => {
+      console.log({ hash });
       const passkeySignature = await requestPasskeyAuthentication({
         challenge: hash,
         credentialPublicKey: parameters.credentialPublicKey,

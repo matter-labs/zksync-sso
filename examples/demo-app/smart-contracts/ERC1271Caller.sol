@@ -31,12 +31,7 @@ contract ERC1271Caller is EIP712 {
 
     bytes32 digest = _hashTypedDataV4(structHash);
 
-    if (Address.isContract(signer)) {
-      // Call the ERC1271 contract
-      bytes4 magic = IERC1271(signer).isValidSignature(digest, signature);
-      return magic == IERC1271.isValidSignature.selector;
-    } else {
-      return ECDSA.recover(digest, signature) == signer;
-    }
+    bytes4 magic = IERC1271(signer).isValidSignature(digest, signature);
+    return magic == IERC1271.isValidSignature.selector;
   }
 }

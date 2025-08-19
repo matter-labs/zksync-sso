@@ -106,7 +106,6 @@
 
 <script lang="ts" setup>
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
-// import { signTypedData } from "viem/experimental/erc7739";
 import type { ExtractParams } from "zksync-sso/client-auth-server";
 
 const { appMeta } = useAppMeta();

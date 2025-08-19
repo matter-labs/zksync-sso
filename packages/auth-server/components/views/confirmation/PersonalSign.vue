@@ -77,7 +77,6 @@
 <script lang="ts" setup>
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { hexToString, isHex } from "viem";
-// import { signMessage } from "viem/experimental/erc7739";
 import type { ExtractParams } from "zksync-sso/client-auth-server";
 
 const { appMeta } = useAppMeta();
@@ -122,9 +121,7 @@ const confirmSign = async () => {
       throw new Error("Message parameters are not available");
     }
     const client = getClient({ chainId: requestChain.value!.id });
-    console.log("Auth Signing", { raw: messageParams.value[0] });
     const signature = await client.signMessage({
-      // verifier: client.account.address,
       message: { raw: messageParams.value[0] },
     });
     return {
@@ -132,40 +129,4 @@ const confirmSign = async () => {
     };
   });
 };
-/* const confirmSign = async () => {
-  respond(async () => {
-    if (!messageParams.value) {
-      throw new Error("Message parameters are not available");
-    }
-    const client = getClient({ chainId: requestChain.value!.id });
-    const verifier = client.account.address;
-    const message = messageParams.value[0];
-
-    const { salt, ...domain } = (await client.getEip712Domain({
-      address: verifier!,
-      // factory,
-      // factoryData,
-    })).domain;
-
-    console.log({
-      salt, domain,
-    });
-
-    const signature = await client.signTypedData({
-      account: client.account,
-      domain,
-      types: {
-        PersonalSign: [{ name: "prefixed", type: "bytes" }],
-      },
-      primaryType: "PersonalSign",
-      message: {
-        prefixed: toPrefixedMessage(message),
-      },
-    });
-
-    return {
-      result: signature,
-    };
-  });
-}; */
 </script>

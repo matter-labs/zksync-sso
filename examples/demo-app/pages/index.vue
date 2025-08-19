@@ -316,7 +316,10 @@ const signTypedDataHandler = async () => {
     });
 
     const signature = await signTypedData(wagmiConfig, {
-      domain: callerDomain,
+      domain: {
+        ...callerDomain,
+        salt: undefined, // Otherwise the signature verification fails (todo: figure out why)
+      },
       ...typedData,
     });
     typedDataSignature.value = signature;
@@ -342,33 +345,21 @@ const verifyTypedDataSignatureAutomatically = async () => {
     const isValid = await readContract(wagmiConfig, {
       address: contractAddress,
       abi: [{
+        type: "function",
+        name: "validateStruct",
+        stateMutability: "view",
         inputs: [
           {
+            name: "testStruct", type: "tuple", internalType: "struct ERC1271Caller.TestStruct",
             components: [
-              { name: "message", type: "string" },
-              { name: "value", type: "uint256" },
+              { name: "message", type: "string", internalType: "string" },
+              { name: "value", type: "uint256", internalType: "uint256" },
             ],
-            name: "testStruct",
-            type: "tuple",
           },
-          {
-            name: "signer",
-            type: "address",
-          },
-          {
-            name: "signature",
-            type: "bytes",
-          },
+          { name: "signer", type: "address", internalType: "address" },
+          { name: "encodedSignature", type: "bytes", internalType: "bytes" },
         ],
-        name: "validateStruct",
-        outputs: [
-          {
-            name: "",
-            type: "bool",
-          },
-        ],
-        stateMutability: "view",
-        type: "function",
+        outputs: [{ name: "", type: "bool", internalType: "bool" }],
       }] as const,
       functionName: "validateStruct",
       args: [
