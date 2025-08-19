@@ -52,8 +52,8 @@ export function zksyncSsoPasskeyWalletActions<
 
       return await sendEip712Transaction(client, tx);
     },
+    signTypedData: (args) => signTypedData(client, args),
     signMessage: (args) => signMessage(client, args),
-
     signTransaction: async (args) => {
       /* eslint-disable @typescript-eslint/no-unused-vars */
       const { chainId: _, ...unformattedTxWithPaymaster } = await getTransactionWithPaymasterData(
@@ -67,7 +67,6 @@ export function zksyncSsoPasskeyWalletActions<
         unformattedTxWithPaymaster,
       } as any) as any;
     },
-    signTypedData: (args) => signTypedData(client, args),
     writeContract: (args) => writeContract(client, args),
     signAuthorization: (args) => signAuthorization(client, args),
     getCallsStatus: (args) => getCallsStatus(client, args),

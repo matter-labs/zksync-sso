@@ -221,8 +221,7 @@ command.
 To execute the end-to-end tests for the `demo-app` (or similarly for
 `nft-quest`), you'll need to do some setup:
 
-1. Start `era_test_node` (In a separate terminal, run
-   `npx zksync-cli dev start`)
+1. Start `anvil-zksync`
 2. Deploy the smart contracts, `pnpm --dir packages/contracts run deploy`
 
 Once the local node is configured with the smart contracts deployed, you can run

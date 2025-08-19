@@ -3,12 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
     "@matterlabs/zksync-contracts": "^0.6.1",
     "@nuxtjs/google-fonts": "^3.2.0",
+    "@openzeppelin/contracts": "^5.4.0",
     "@pinia/nuxt": "^0.5.5",
     "@simplewebauthn/browser": "^13.1.0",
     "@simplewebauthn/server": "^13.1.1",
