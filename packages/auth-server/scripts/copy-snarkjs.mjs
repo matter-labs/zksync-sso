@@ -13,7 +13,7 @@ function main() {
     const mainEntry = require.resolve("snarkjs"); // e.g. node_modules/snarkjs/dist/main.cjs
     // ascend until we reach the package root (folder named 'snarkjs')
     let curr = dirname(mainEntry);
-    while (curr && curr !== "/" && curr.includes("snarkjs")) {
+    while (curr && curr !== "/" && basename(curr) === "snarkjs") {
       if (curr.endsWith("snarkjs")) {
         baseDir = curr;
         break;
