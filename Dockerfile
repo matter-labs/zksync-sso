@@ -16,7 +16,8 @@ COPY --from=build /prod/oidc-server /prod/oidc-server
 WORKDIR /prod/oidc-server
 COPY --from=build /usr/src/app/packages/oidc-server/dist ./dist
 ENV SALT_SERVICE_PORT=3003
-EXPOSE 3003
+# Expose main service port and Prometheus metrics port
+EXPOSE 3003 9090
 CMD [ "node", "dist/salt-service.js" ]
 
 FROM oidc-server AS key-registry

@@ -105,8 +105,8 @@
 
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract } from "@wagmi/core";
-import { zksyncSsoConnector } from "@zksync-sso/connector-export";
 import { createWalletClient, createPublicClient, http, parseEther, type Address, type Hash } from "viem";
+import { zksyncSsoConnector } from "zksync-sso-wagmi-connector";
 import { privateKeyToAccount } from "viem/accounts";
 import { getGeneralPaymasterInput, zksyncInMemoryNode } from "viem/zksync";
 import PaymasterContract from "../forge-output-paymaster.json";
