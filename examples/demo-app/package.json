@@ -16,7 +16,6 @@
     "@simplewebauthn/server": "^13.1.1",
     "@wagmi/core": "^2.13.3",
     "@web3modal/wagmi": "^5.1.11",
-    "@zksync-sso/connector-export": "workspace:*",
     "ethers": "^6.13.2",
     "nuxt": "^3.12.3",
     "viem": "2.30.0",

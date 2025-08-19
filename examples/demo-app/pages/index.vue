@@ -73,7 +73,7 @@
         class="mt-4"
       >
         <p class="break-all">
-          <strong>Signature:</strong> <span class="text-xs line-clamp-3">{{ typedDataSignature }}</span>
+          <strong>Signature:</strong> <span class="text-xs line-clamp-2">{{ typedDataSignature }}</span>
         </p>
       </div>
       <div
