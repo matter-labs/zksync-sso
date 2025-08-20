@@ -1,22 +1,22 @@
 import type { Address } from "viem";
-import { FactoryAbi } from "zksync-sso/abi";
+import { AAFactoryAbi } from "zksync-sso/abi";
 
 export const useCheckSsoAccount = (_chainId: MaybeRef<SupportedChainId>) => {
   const chainId = toRef(_chainId);
   const { getThrowAwayClient } = useClientStore();
 
-  const { inProgress: isLoading, error, execute: checkIsSsoAccount } = useAsync(async (guardianAddress: Address): Promise<boolean> => {
+  const { inProgress: isLoading, error, execute: checkIsSsoAccount } = useAsync(async (accountId: Address): Promise<boolean> => {
     const client = getThrowAwayClient({ chainId: chainId.value });
     const factoryAddress = contractsByChain[chainId.value].accountFactory;
 
-    const accountId = await client.readContract({
+    const guardianAddress = await client.readContract({
       address: factoryAddress,
-      abi: FactoryAbi,
-      functionName: "accountIds",
-      args: [guardianAddress],
+      abi: AAFactoryAbi,
+      functionName: "accountMappings",
+      args: [accountId],
     });
 
-    return accountId !== "";
+    return guardianAddress !== "0x0000000000000000000000000000000000000000";
   });
 
   return {
