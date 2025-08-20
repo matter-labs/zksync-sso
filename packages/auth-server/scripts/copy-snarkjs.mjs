@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, parse, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 function main() {
@@ -13,7 +13,7 @@ function main() {
     const mainEntry = require.resolve("snarkjs"); // e.g. node_modules/snarkjs/dist/main.cjs
     // ascend until we reach the package root (folder named 'snarkjs')
     let curr = dirname(mainEntry);
-    while (curr && curr !== "/" && basename(curr) === "snarkjs") {
+    while (curr && curr !== parse(curr).root && basename(curr) === "snarkjs") {
       if (curr.endsWith("snarkjs")) {
         baseDir = curr;
         break;
