@@ -2,7 +2,17 @@ import Foundation
 import ZKsyncSSOFFI
 
 public struct Config {
-    let inner: ZKsyncSSOFFI.Config
+    
+    public var contracts: SsoContracts { SsoContracts(inner: inner.contracts) }
+    
+    public var nodeUrl: String { inner.nodeUrl }
+    
+    public var deployWallet: DeployWallet? {
+        get { inner.deployWallet.map(DeployWallet.init) }
+        set { inner.deployWallet = newValue.map(\.inner) }
+    }
+
+    var inner: ZKsyncSSOFFI.Config
 
     public init(
         contracts: SsoContracts,
@@ -12,7 +22,7 @@ public struct Config {
         inner = .init(
             contracts: contracts.inner,
             nodeUrl: nodeUrl,
-            deployWallet: deployWallet
+            deployWallet: deployWallet.map(\.inner)
         )
     }
 

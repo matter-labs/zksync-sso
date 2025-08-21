@@ -2,7 +2,10 @@ use crate::config;
 use sdk::api::{
     account::session::{
         decode_session_config,
-        state::GetSessionStateArgs as SdkGetSessionStateArgs,
+        state::{
+            GetSessionStateArgs as SdkGetSessionStateArgs,
+            get_session_state as sdk_get_session_state,
+        },
     },
     utils::parse_address,
 };
@@ -42,16 +45,13 @@ pub async fn get_session_state(
 
     let sdk_args = SdkGetSessionStateArgs { account, session_config };
 
-    let result = sdk::api::account::session::state::get_session_state(
-        sdk_args,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                GetSessionStateError::GetSessionState(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| GetSessionStateError::GetSessionState(e.to_string()))?;
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        GetSessionStateError::GetSessionState(e.to_string())
+    })?;
+
+    let result = sdk_get_session_state(sdk_args, &sdk_config)
+        .await
+        .map_err(|e| GetSessionStateError::GetSessionState(e.to_string()))?;
 
     let session_state_json = serde_json::to_string(&result.session_state)
         .map_err(|e| GetSessionStateError::GetSessionState(e.to_string()))?;

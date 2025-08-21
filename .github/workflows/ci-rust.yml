@@ -1,10 +1,10 @@
 name: Rust CI
 
 on:
-  push:
+  pull_request:
     paths:
       - 'packages/contracts/**'
-      - 'packages/sdk-platforms/**'
+      - 'packages/sdk-platforms/rust/**'
       - '.github/workflows/ci-rust.yml'
 
 jobs:
@@ -68,6 +68,22 @@ jobs:
           cargo clippy --all-targets -- -D warnings
         working-directory: packages/sdk-platforms/rust/zksync-sso
 
+      - name: Start anvil-zksync node
+        run: |
+          anvil-zksync --cache=none run > anvil-zksync.log 2>&1 &
+          # Wait a few seconds to ensure the node starts
+          sleep 5
+          # Verify it's running
+          if ! pgrep -f "anvil-zksync"; then
+            echo "Error: anvil-zksync failed to start"
+            cat anvil-zksync.log
+            exit 1
+          fi
+        
       - name: Run rust tests
-        run: cargo test
+        run: cargo test -- --test-threads=1
+        working-directory: packages/sdk-platforms/rust/zksync-sso
+
+      - name: Run integration tests
+        run: cargo test test_complete_zksync_sso_integration -- --ignored
         working-directory: packages/sdk-platforms/rust/zksync-sso

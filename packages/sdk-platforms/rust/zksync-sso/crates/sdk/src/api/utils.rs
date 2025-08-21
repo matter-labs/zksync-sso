@@ -5,15 +5,30 @@ use crate::{
 };
 use alloy::{
     hex::FromHex,
-    primitives::{Address, Bytes, FixedBytes},
+    primitives::{Address, Bytes, FixedBytes, U256},
     signers::local::PrivateKeySigner,
 };
 use alloy_zksync::network::unsigned_tx::eip712::PaymasterParams;
 use eyre::eyre;
+use ruint::UintTryFrom;
 use std::str::FromStr;
 
 pub fn parse_address(address: &str) -> eyre::Result<Address> {
     address.parse::<Address>().map_err(|e| eyre!("Invalid address: {}", e))
+}
+
+/// Create a U256 from various integer types
+///
+/// # Arguments
+/// * `value` - The integer value to convert (u64, u128, etc.)
+///
+/// # Returns
+/// U256 value
+pub fn u256_from<T>(value: T) -> U256
+where
+    U256: UintTryFrom<T>,
+{
+    U256::from(value)
 }
 
 pub fn parse_paymaster_params(
@@ -38,7 +53,7 @@ pub fn decode_hex<T: FromHex>(hex: &str) -> eyre::Result<T> {
     T::from_hex(hex).map_err(|_| eyre!("Invalid hex"))
 }
 
-/// Create a SignFn from a private key hex string  
+/// Create a SignFn from a private key hex string
 ///
 /// # Arguments
 /// * `private_key_hex` - Private key as a hex string

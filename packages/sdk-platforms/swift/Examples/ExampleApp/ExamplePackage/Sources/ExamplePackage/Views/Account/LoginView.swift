@@ -40,11 +40,10 @@ public struct LoginView: View {
                             TextField("Enter your user ID", text: $accountInfo.userID)
                                 .focused($isFocused)
                                 .padding()
-                                .background(Color(uiColor: .systemGray6))
+                                .background(Color.secondary.opacity(0.1))
                                 .cornerRadius(10)
                                 .font(.system(.body, design: .monospaced))
                                 .autocorrectionDisabled()
-                                .autocapitalization(.none)
 
                             if isFocused && !accountInfo.userID.isEmpty {
                                 Button {
@@ -87,13 +86,23 @@ public struct LoginView: View {
                 Spacer()
             }
             .navigationTitle("Sign In")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
-                        dismiss()
+                #if os(iOS)
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
                     }
-                }
+                #else
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                    }
+                #endif
 
                 ToolbarItem(placement: .keyboard) {
                     Button("Done") {

@@ -323,9 +323,6 @@ mod tests {
     #[tokio::test]
     async fn test_deploy_account_with_initial_k1_owners_and_send_transaction()
     -> Result<()> {
-        // Add delay to avoid test run timing out
-        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-
         // Arrange
         let (anvil_zksync, config, _) =
             spawn_node_and_deploy_contracts().await?;

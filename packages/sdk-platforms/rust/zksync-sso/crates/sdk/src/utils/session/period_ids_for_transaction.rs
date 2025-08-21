@@ -5,6 +5,7 @@ use crate::{
     },
 };
 use alloy::primitives::{Address, FixedBytes, U64};
+use log::debug;
 
 /// Gets the period IDs for a transaction based on the session config and transaction details
 ///
@@ -53,10 +54,10 @@ pub fn get_period_ids_for_transaction(
 
     let find_transfer_policy =
         |transfer_policies: Vec<TransferSpec>| -> Option<TransferSpec> {
-            println!(
+            debug!(
                 "find_transfer_policy - transfer_policies: {transfer_policies:?}"
             );
-            println!("find_transfer_policy - target: {target:?}");
+            debug!("find_transfer_policy - target: {target:?}");
             transfer_policies
                 .iter()
                 .find(|policy| policy.target == target)

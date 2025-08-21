@@ -3,7 +3,9 @@ pub mod tests {
     use crate::{
         api::account::{
             deployment::{DeployedAccountDetails, deploy_account},
-            passkey::{passkey_parameters::PasskeyParameters, rp_id::RpId},
+            passkey::{
+                passkey_parameters::PasskeyParameters, relying_party::RpId,
+            },
         },
         config::Config,
         utils::test_utils::spawn_node_and_deploy_contracts,

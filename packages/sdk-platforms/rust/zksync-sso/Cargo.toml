@@ -29,6 +29,9 @@ alloy = { version = "0.12.5", default-features = false, features = [
 ] }
 alloy-zksync = { version = "0.12.5" }
 
+# Ruint (for UintTryFrom trait, must match alloy's version)
+ruint = "1.15.0"
+
 # Alloy OpenSSL dependencies for android
 openssl = "0.10.71"
 openssl-sys = "0.9.106"

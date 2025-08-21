@@ -1,18 +1,21 @@
 import ExamplePackageUIComponents
 import SwiftUI
 import ZKsyncSSO
+import ZKsyncSSOIntegration
 
 struct SessionDetailView: View {
     let session: Session
-    let account: DeployedAccount
+    let account: DeployedAccountDetails
     let signers: AccountSigners
 
     @State private var showingRevokeConfirm = false
     @State private var isRevoking = false
     @State private var error: UIError?
+    @State private var showingSendTransaction = false
+    @Environment(\.dismiss) private var dismiss
 
     init(
-        session: Session, account: DeployedAccount, signers: AccountSigners,
+        session: Session, account: DeployedAccountDetails, signers: AccountSigners,
         error: UIError? = nil
     ) {
         self.session = session
@@ -47,6 +50,23 @@ struct SessionDetailView: View {
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
             }
+
+            Section {
+                Button(action: { showingSendTransaction = true }) {
+                    HStack(spacing: 8) {
+                        Spacer()
+                        Image(systemName: "paperplane.fill")
+                        Text("Send Transaction")
+                            .font(.headline)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
 
             Section {
                 Button(action: { showingRevokeConfirm = true }) {
@@ -86,6 +106,19 @@ struct SessionDetailView: View {
         } message: {
             Text("This action cannot be undone.")
         }
+        .sheet(isPresented: $showingSendTransaction) {
+            SendTransactionView(
+                configuration: TransactionConfigurationFactory.sessionTransaction(
+                    session: session,
+                    account: .init(
+                        info: .default,
+                        address: account.address,
+                        uniqueAccountId: account.uniqueAccountId!
+                    )
+                ),
+                fromAddress: account.address
+            )
+        }
     }
 
     private func revoke() async {
@@ -94,12 +127,14 @@ struct SessionDetailView: View {
         error = nil
         defer { isRevoking = false }
         do {
-            let args = RevokeSessionArgs(
-                account: account.address,
-                sessionId: session.id,
-                ownerPrivateKey: signers.accountOwner.privateKeyHex
+            print("🔒 Revoking session using ZKsyncSSOIntegration.revokeSession...")
+            try await ZKsyncSSOIntegration.revokeSession(
+                deployedAccount: account,
+                sessionId: session.id
             )
-            _ = try await revokeSession(args: args, config: .default)
+            print("✅ Session revocation completed!")
+            
+            dismiss()
         } catch {
             self.error = UIError(from: error)
         }
@@ -125,17 +160,10 @@ struct SessionDetailView: View {
         SessionDetailView(
             session: .init(
                 createdAt: Date(),
-                sessionSpec: SessionSpec.default
+                sessionSpec: SessionSpec.default,
+                sessionKey: AccountSigners.default.sessionOwner.privateKeyHex
             ),
-            account: .init(
-                info: .init(
-                    name: "Jane Doe",
-                    userID: "jdoe@example.com",
-                    domain: "auth-test.zksync.dev"
-                ),
-                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-                uniqueAccountId: "jdoe@example.com"
-            ),
+            account: .default,
             signers: .default
         )
     }
@@ -146,17 +174,10 @@ struct SessionDetailView: View {
         SessionDetailView(
             session: .init(
                 createdAt: Date(),
-                sessionSpec: SessionSpec.default
+                sessionSpec: SessionSpec.default,
+                sessionKey: AccountSigners.default.sessionOwner.privateKeyHex
             ),
-            account: .init(
-                info: .init(
-                    name: "Jane Doe",
-                    userID: "jdoe@example.com",
-                    domain: "auth-test.zksync.dev"
-                ),
-                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-                uniqueAccountId: "jdoe@example.com"
-            ),
+            account: .default,
             signers: .default,
             error: UIError(
                 message:

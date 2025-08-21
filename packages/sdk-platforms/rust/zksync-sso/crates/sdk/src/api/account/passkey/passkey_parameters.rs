@@ -1,5 +1,5 @@
 use crate::{
-    api::account::passkey::rp_id::RpId,
+    api::account::passkey::relying_party::RpId,
     utils::passkey::authenticators::{
         apple::extract_public_key, verify::verify_registration,
     },
@@ -26,7 +26,7 @@ pub struct ParsedPasskeyParameters {
     pub expected_origin: String,
 }
 
-pub(crate) async fn parse_passkey_parameters(
+pub async fn parse_passkey_parameters(
     params: &PasskeyParameters,
 ) -> eyre::Result<ParsedPasskeyParameters> {
     let (old_public_key_x, old_public_key_y) =
@@ -104,7 +104,7 @@ pub(crate) async fn parse_passkey_parameters(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::account::passkey::rp_id::{AndroidRpId, RpId};
+    use crate::api::account::passkey::relying_party::{AndroidRpId, RpId};
     use base64::Engine;
     use eyre::Ok;
 

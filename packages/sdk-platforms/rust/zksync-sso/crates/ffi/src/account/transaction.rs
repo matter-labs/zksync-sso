@@ -1,4 +1,6 @@
-use sdk::api::utils::parse_address;
+use sdk::api::{
+    account::transaction::Transaction as SdkTransaction, utils::parse_address,
+};
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum TransactionConversionError {
@@ -14,7 +16,7 @@ pub struct Transaction {
     pub input: Option<String>,
 }
 
-impl TryFrom<Transaction> for sdk::api::account::transaction::Transaction {
+impl TryFrom<Transaction> for SdkTransaction {
     type Error = TransactionConversionError;
 
     fn try_from(tx: Transaction) -> Result<Self, Self::Error> {

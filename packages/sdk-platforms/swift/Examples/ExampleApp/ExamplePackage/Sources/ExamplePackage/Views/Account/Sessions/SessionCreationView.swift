@@ -1,26 +1,50 @@
 import SwiftUI
 import ZKsyncSSO
+import ZKsyncSSOIntegration
 
 struct SessionCreationView: View {
-    let accountAddress: String
+    let deployedAccount: DeployedAccountDetails
     let signers: AccountSigners
     let onSessionCreated: (Session) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var sessionSpec = SessionSpec.default
+    @State private var sessionSpec: SessionSpec
     @State private var isCreating = false
     @State private var error: UIError?
 
     init(
-        accountAddress: String,
+        deployedAccount: DeployedAccountDetails,
         signers: AccountSigners,
         onSessionCreated: @escaping (Session) -> Void,
         error: UIError? = nil
     ) {
-        self.accountAddress = accountAddress
+        self.deployedAccount = deployedAccount
         self.signers = signers
         self.onSessionCreated = onSessionCreated
         self._error = State(initialValue: error)
+
+        let sessionConfig = SessionSpec(
+            signer: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",  // secondSessionOwnerAddress from debug
+            expiresAt: "1767225600",  // January 1st, 2026 00:00:00 UTC
+            feeLimit: UsageLimit(
+                limitType: .lifetime,
+                limit: "50000000000000000",  // 0.05 ETH
+                period: "0"
+            ),
+            callPolicies: [],
+            transferPolicies: [
+                TransferSpec(
+                    target: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",  // vitalikAddress
+                    maxValuePerUse: "5000000000000000",  // 0.005 ETH
+                    valueLimit: UsageLimit(
+                        limitType: .unlimited,
+                        limit: "0",
+                        period: "0"
+                    )
+                )
+            ]
+        )
+        self._sessionSpec = State(initialValue: sessionConfig)
     }
 
     private var sessionConfigJson: String {
@@ -93,20 +117,28 @@ struct SessionCreationView: View {
         defer { isCreating = false }
 
         do {
-            let args = CreateSessionArgs(
-                account: accountAddress,
-                sessionConfig: sessionSpec,
-                ownerPrivateKey: signers.accountOwner.privateKeyHex,
-                paymaster: nil
+            let sessionOwner = signers.sessionOwner
+            let sessionKey = sessionOwner.privateKeyHex
+            
+            // Assert we're using the correct account address (should be the deterministic one)
+            assert(
+                deployedAccount.address == IntegrationConstants.deployedAccountAddress,
+                "Account address mismatch: expected \(IntegrationConstants.deployedAccountAddress), got \(deployedAccount.address)"
             )
-            _ = try await ZKsyncSSO.createSession(
-                args: args,
-                config: Config.default
+            
+            print("🚀 Creating session using ZKsyncSSOIntegration.createSession...")
+            
+            let sessionHashStr = try await ZKsyncSSOIntegration.createSession(
+                deployedAccount: deployedAccount
             )
-
+            
+            print("✅ Session creation completed!")
+            print("  Session ID: \(sessionHashStr)")
+            
             let newSession = Session(
                 createdAt: Date(),
-                sessionSpec: sessionSpec
+                sessionSpec: sessionSpec,
+                sessionKey: sessionKey
             )
             onSessionCreated(newSession)
 
@@ -120,15 +152,16 @@ struct SessionCreationView: View {
 
 #Preview {
     SessionCreationView(
-        accountAddress: "0x1234567890abcdef",
+        deployedAccount: DeployedAccountDetails.default,
         signers: .default,
-        onSessionCreated: { _ in }
+        onSessionCreated: { _ in
+ }
     )
 }
 
 #Preview("Error State") {
     SessionCreationView(
-        accountAddress: "0x1234567890abcdef",
+        deployedAccount: DeployedAccountDetails.default,
         signers: .default,
         onSessionCreated: { _ in },
         error: UIError(

@@ -1,10 +1,21 @@
 use crate::{
-    api::account::passkey::passkey_parameters::{
-        PasskeyParameters, parse_passkey_parameters,
+    api::account::{
+        modular_account::{
+            CredentialDetails as ModularCredentialDetails,
+            DeployModularAccountArgs,
+            PasskeyModuleArgs as ModularPasskeyModuleArgs, SessionModuleArgs,
+            deploy_modular_account as client_deploy_modular_account,
+        },
+        passkey::passkey_parameters::{
+            PasskeyParameters, parse_passkey_parameters,
+        },
     },
     client::passkey::{
         account_factory::{AccountParams, create_account},
-        actions::deploy::CredentialDetails,
+        actions::deploy::{
+            CredentialDetails, DeployAccountArgs,
+            deploy_account as client_deploy_account,
+        },
     },
     config::Config,
     utils::session::session_lib::session_spec::SessionSpec,
@@ -36,26 +47,21 @@ pub async fn deploy_account(
         paymaster_input: Bytes::new(),
     });
 
-    let deploy_account_args =
-        crate::client::passkey::actions::deploy::DeployAccountArgs {
-            credential: CredentialDetails {
-                id: parsed_params.credential.id,
-                public_key: parsed_params.credential.public_key,
-            },
-            expected_origin: Some(parsed_params.expected_origin),
-            contracts: config.contracts,
-            paymaster,
-            initial_k1_owners,
-            initial_session,
-            ..Default::default()
-        };
+    let deploy_account_args = DeployAccountArgs {
+        credential: CredentialDetails {
+            id: parsed_params.credential.id,
+            public_key: parsed_params.credential.public_key,
+        },
+        expected_origin: Some(parsed_params.expected_origin),
+        contracts: config.contracts,
+        paymaster,
+        initial_k1_owners,
+        initial_session,
+        ..Default::default()
+    };
 
     let deployed_account_details =
-        crate::client::passkey::actions::deploy::deploy_account(
-            deploy_account_args,
-            config,
-        )
-        .await?;
+        client_deploy_account(deploy_account_args, config).await?;
 
     let address = deployed_account_details.address;
     let unique_account_id =
@@ -109,5 +115,67 @@ pub async fn deploy_account_with_unique_id(
         address,
         unique_account_id,
         transaction_receipt_json: None,
+    })
+}
+
+pub async fn deploy_modular_account(
+    passkey_parameters: Option<PasskeyParameters>,
+    initial_k1_owners: Option<Vec<Address>>,
+    initial_session: Option<SessionSpec>,
+    config: &Config,
+) -> eyre::Result<DeployedAccountDetails> {
+    debug!(
+        "XDB deploy_modular_account_with_passkey - passkey_parameters: {passkey_parameters:?}"
+    );
+
+    let paymaster = Some(PaymasterParams {
+        paymaster: config.contracts.account_paymaster,
+        paymaster_input: Bytes::new(),
+    });
+
+    // Map parsed parameters to PasskeyModuleArgs if provided
+    let passkey_module = if let Some(passkey_params) = passkey_parameters {
+        let parsed_params = parse_passkey_parameters(&passkey_params).await?;
+
+        debug!(
+            "XDB deploy_modular_account_with_passkey - parsed_params: {parsed_params:?}"
+        );
+
+        Some(ModularPasskeyModuleArgs {
+            location: config.contracts.passkey,
+            credential: ModularCredentialDetails {
+                id: parsed_params.credential.id,
+                public_key: parsed_params.credential.public_key,
+            },
+            expected_origin: Some(parsed_params.expected_origin),
+        })
+    } else {
+        None
+    };
+
+    let session_module = initial_session.map(|session| SessionModuleArgs {
+        location: config.contracts.session,
+        initial_session: Some(session),
+    });
+
+    let deploy_modular_account_args = DeployModularAccountArgs {
+        install_no_data_modules: vec![],
+        owners: initial_k1_owners.unwrap_or_default(),
+        session_module,
+        paymaster,
+        passkey_module,
+        unique_account_id: None,
+    };
+
+    let deployed_account_details =
+        client_deploy_modular_account(deploy_modular_account_args, config)
+            .await?;
+
+    Ok(DeployedAccountDetails {
+        address: deployed_account_details.address,
+        unique_account_id: deployed_account_details.unique_account_id,
+        transaction_receipt_json: Some(
+            deployed_account_details.transaction_receipt_json,
+        ),
     })
 }

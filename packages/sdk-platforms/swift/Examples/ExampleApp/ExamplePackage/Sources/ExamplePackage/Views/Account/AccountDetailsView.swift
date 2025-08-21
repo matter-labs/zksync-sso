@@ -1,6 +1,7 @@
 import ExamplePackageUIComponents
 import SwiftUI
 import ZKsyncSSO
+import ZKsyncSSOIntegration
 
 #if canImport(UIKit)
     import UIKit
@@ -163,17 +164,19 @@ struct AccountDetailsView: View {
                     style: .prominent,
                     action: { showingSendTransaction = true }
                 )
-
-                VStack(spacing: 12) {
-                    Text("Sessions")
-                        .font(.headline)
-
-                    ActionButton(
-                        title: "Sessions",
-                        icon: "list.bullet.rectangle.portrait",
-                        style: .plain,
-                        action: { showingSessions = true }
-                    )
+                
+                if ExampleConfiguration.showSessionAccountFlowView {
+                    VStack(spacing: 12) {
+                        Text("Sessions")
+                            .font(.headline)
+                        
+                        ActionButton(
+                            title: "Sessions",
+                            icon: "list.bullet.rectangle.portrait",
+                            style: .plain,
+                            action: { showingSessions = true }
+                        )
+                    }
                 }
             }
             .padding()
@@ -213,7 +216,11 @@ struct AccountDetailsView: View {
         }
         .sheet(isPresented: $showingSendTransaction) {
             SendTransactionView(
-                fromAccount: account.account,
+                configuration: TransactionConfigurationFactory.regularTransaction(
+                    fromAccount: account.account,
+                    authorizationController: authorizationController
+                ),
+                fromAddress: account.account.address,
                 onTransactionSent: {
                     Task {
                         await loadBalance()
@@ -222,8 +229,17 @@ struct AccountDetailsView: View {
             )
         }
         .sheet(isPresented: $showingSessions) {
-            SessionsView(account: account.account, signers: signers)
-                .environmentObject(SessionsStore.shared)
+            SessionsView(
+                account: DeployedAccountDetails(
+                    address: account.address,
+                    owner: signers.accountOwner,
+                    uniqueAccountId: account.uniqueAccountId,
+                    sessionConfigJson: nil,
+                    config: .default
+                ),
+                signers: signers
+            )
+            .environmentObject(SessionsStore.shared)
         }
         .id("AccountDetailsView")
         .onAppear { print("AccountDetailsView appeared") }
@@ -277,7 +293,8 @@ struct AccountDetailsView: View {
                 )
             )
 
-            try await accountClient.fundAccount()
+            try await accountClient.fundAccount(amount: "1.0")
+            
             await loadBalance()
         } catch {
             print("Error funding account: \(error)")

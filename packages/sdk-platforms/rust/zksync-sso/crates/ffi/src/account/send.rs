@@ -5,6 +5,7 @@ use crate::{
 };
 use futures::future::BoxFuture;
 use log::debug;
+use sdk::api::account::send::send_transaction as sdk_send_transaction;
 use std::sync::Arc;
 
 pub mod prepare;
@@ -71,18 +72,14 @@ pub async fn send_transaction(
         },
     );
 
-    sdk::api::account::send::send_transaction(
-        tx,
-        sign_message,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                SendTransactionError::SendTransaction(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| SendTransactionError::SendTransaction(e.to_string()))
-    .map(Into::into)
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        SendTransactionError::SendTransaction(e.to_string())
+    })?;
+
+    sdk_send_transaction(tx, sign_message, &sdk_config)
+        .await
+        .map_err(|e| SendTransactionError::SendTransaction(e.to_string()))
+        .map(Into::into)
 }
 
 #[uniffi::export(async_runtime = "tokio")]
@@ -114,16 +111,12 @@ pub async fn send_transaction_async_signer(
         },
     );
 
-    sdk::api::account::send::send_transaction(
-        tx,
-        sign_message,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                SendTransactionError::SendTransaction(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| SendTransactionError::SendTransaction(e.to_string()))
-    .map(Into::into)
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        SendTransactionError::SendTransaction(e.to_string())
+    })?;
+
+    sdk_send_transaction(tx, sign_message, &sdk_config)
+        .await
+        .map_err(|e| SendTransactionError::SendTransaction(e.to_string()))
+        .map(Into::into)
 }

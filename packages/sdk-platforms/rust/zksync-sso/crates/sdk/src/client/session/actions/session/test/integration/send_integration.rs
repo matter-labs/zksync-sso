@@ -151,7 +151,6 @@ mod tests {
 
         let deploy_result = deploy_modular_account(
             DeployModularAccountArgs {
-                account_factory: contracts.account_factory,
                 owners: vec![owner_address],
                 install_no_data_modules: vec![],
                 session_module: Some(SessionModuleArgs {

@@ -30,16 +30,10 @@ pub async fn is_k1_owner(
         .map_err(|e| IsK1OwnerError::InvalidAccountAddress(e.to_string()))?;
     let owner_address = parse_address(&args.owner_address)
         .map_err(|e| IsK1OwnerError::InvalidOwnerAddress(e.to_string()))?;
-    let result = is_k1_owner_sdk(
-        account,
-        owner_address,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                IsK1OwnerError::InvalidConfig(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| IsK1OwnerError::IsK1Owner(e.to_string()))?;
-    Ok(result)
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        IsK1OwnerError::InvalidConfig(e.to_string())
+    })?;
+    is_k1_owner_sdk(account, owner_address, &sdk_config)
+        .await
+        .map_err(|e| IsK1OwnerError::IsK1Owner(e.to_string()))
 }

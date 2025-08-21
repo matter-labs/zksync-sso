@@ -38,7 +38,7 @@ public struct AccountCreationView: View {
                 TextField("Enter username", text: $accountInfo.name)
                     .focused($focusedField, equals: .username)
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(Color.secondary.opacity(0.1))
                     .cornerRadius(10)
                     .autocorrectionDisabled()
 
@@ -72,11 +72,10 @@ public struct AccountCreationView: View {
                 TextField("Enter user ID", text: $accountInfo.userID)
                     .focused($focusedField, equals: .userID)
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(Color.secondary.opacity(0.1))
                     .cornerRadius(10)
                     .font(.system(.body, design: .monospaced))
                     .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
 
                 if focusedField == .userID && !accountInfo.userID.isEmpty {
                     Button {
@@ -186,15 +185,27 @@ public struct AccountCreationView: View {
                 }
             }
             .navigationTitle("Create Account")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
-                        if !previewWithRedBackground {
-                            dismiss()
+                #if os(iOS)
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Cancel") {
+                            if !previewWithRedBackground {
+                                dismiss()
+                            }
                         }
                     }
-                }
+                #else
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("Cancel") {
+                            if !previewWithRedBackground {
+                                dismiss()
+                            }
+                        }
+                    }
+                #endif
 
                 ToolbarItem(placement: .keyboard) {
                     Button("Done") {

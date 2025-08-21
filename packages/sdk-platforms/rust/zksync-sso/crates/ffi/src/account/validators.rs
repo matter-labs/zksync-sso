@@ -1,6 +1,6 @@
 use crate::config;
 use sdk::api::{
-    account::validators::is_module_validator as is_module_validator_sdk,
+    account::validators::is_module_validator as sdk_is_module_validator,
     utils::parse_address,
 };
 
@@ -33,16 +33,10 @@ pub async fn is_module_validator(
     let module_address = parse_address(&args.module_address).map_err(|e| {
         IsModuleValidatorError::InvalidModuleAddress(e.to_string())
     })?;
-    let result = is_module_validator_sdk(
-        account,
-        module_address,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                IsModuleValidatorError::InvalidConfig(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| IsModuleValidatorError::IsModuleValidator(e.to_string()))?;
-    Ok(result)
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        IsModuleValidatorError::InvalidConfig(e.to_string())
+    })?;
+    sdk_is_module_validator(account, module_address, &sdk_config)
+        .await
+        .map_err(|e| IsModuleValidatorError::IsModuleValidator(e.to_string()))
 }

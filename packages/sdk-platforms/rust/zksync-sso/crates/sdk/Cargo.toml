@@ -17,6 +17,9 @@ futures.workspace = true
 alloy.workspace = true
 alloy-zksync.workspace = true
 
+# Ruint (for UintTryFrom trait)
+ruint.workspace = true
+
 # Signer
 k256.workspace = true
 

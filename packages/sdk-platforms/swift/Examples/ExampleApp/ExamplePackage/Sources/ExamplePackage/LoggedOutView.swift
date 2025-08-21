@@ -10,6 +10,7 @@ struct LoggedOutView: View {
 
     @State private var showingCreateAccount = false
     @State private var showingLoginView = false
+    @State private var showingSessionDemoView = false
 
     var onAccountCreated: ((AccountSession) -> Void)?
     var onSignedIn: ((AccountSession) -> Void)?
@@ -44,7 +45,7 @@ struct LoggedOutView: View {
 
             VStack(spacing: 16) {
                 ActionButton(
-                    title: "Create Account",
+                    title: "Create Account with Passkey",
                     icon: "plus.circle.fill",
                     style: .prominent
                 ) {
@@ -70,7 +71,7 @@ struct LoggedOutView: View {
                 }
 
                 ActionButton(
-                    title: "Sign In",
+                    title: "Sign In with Passkey",
                     icon: "person.fill",
                     style: .plain
                 ) {
@@ -81,6 +82,19 @@ struct LoggedOutView: View {
                         accountInfo: accountInfo,
                         onSignedIn: onSignedIn
                     )
+                }
+
+                if ExampleConfiguration.showSessionDemoView {
+                    ActionButton(
+                        title: "Session Demo",
+                        icon: "wrench.and.screwdriver.fill",
+                        style: .plain
+                    ) {
+                        showingSessionDemoView = true
+                    }
+                    .sheet(isPresented: $showingSessionDemoView) {
+                        SessionDemoView()
+                    }
                 }
             }
         }

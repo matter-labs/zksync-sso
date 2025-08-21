@@ -25,7 +25,6 @@ mod tests {
         },
         contracts::SsoAccount,
         utils::{
-            alloy::extensions::ProviderExt,
             anvil_zksync::rich_wallet::RichWallet,
             session::session_lib::session_spec::{
                 SessionSpec, limit_type::LimitType,
@@ -71,15 +70,15 @@ mod tests {
             node_url: node_url.clone(),
             contracts: SSOContracts {
                 account_factory: address!(
-                    "0xf3463a972529039ac73db42b4a48997a6ea679cd"
+                    "0x799b1252b0a05e17dadb23e19553611997e1aafe"
                 ),
-                session: address!("0x027ba0517cfa4471457c6e74f201753d98e7431d"),
+                session: address!("0x031f5d8f86afe1d6011dc3f3e8d27e274fbceb13"),
                 passkey: address!("0xa472581ea2aca6e6bd8ea6cca95d3e1297aa5ae3"),
                 account_paymaster: address!(
-                    "0xd3de94e23314d43341be4103e508b75e070460ed"
+                    "0xebc6385457c82f764b18d3e36a5ea18617340ac4"
                 ),
                 recovery: address!(
-                    "0xe72da237538a1854535e9565dbee0b414f382698"
+                    "0x6eddce98684947c563408198144e3c05823910eb"
                 ),
             },
             deploy_wallet: Some(DeployWallet {
@@ -217,7 +216,6 @@ mod tests {
 
         let deploy_result = deploy_modular_account(
             DeployModularAccountArgs {
-                account_factory: config.contracts.account_factory,
                 owners: vec![owner_address], // Use the ECDSA owner
                 install_no_data_modules: vec![],
                 session_module: Some(SessionModuleArgs {
@@ -744,7 +742,6 @@ mod tests {
             spawn_node_and_deploy_contracts().await?;
 
         let mut config = config.clone();
-        // let node_url = &config.node_url;
 
         let (wallet, _, _) = zksync_wallet_from_anvil_zksync(&anvil_zksync)?;
 
@@ -756,10 +753,6 @@ mod tests {
         println!(
             "\n=== RUST SDK REPLICATION OF 'should deploy proxy account via factory' TEST ==="
         );
-
-        // Hardcoded deterministic configuration (no dynamic node/contract deployment)
-        let expected_funding_signer_address =
-            address!("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"); // Account: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 (Rich Wallet 4)
 
         // Account: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 (Rich Wallet 4: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65)
         let private_key = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a";
@@ -900,7 +893,6 @@ mod tests {
 
         let deploy_result = deploy_modular_account(
             DeployModularAccountArgs {
-                account_factory: config.contracts.account_factory,
                 owners: vec![owner_address], // Use the ECDSA owner
                 install_no_data_modules: vec![],
                 session_module: Some(SessionModuleArgs {
@@ -1063,45 +1055,8 @@ mod tests {
         println!("Funding smart account for transaction fees...");
         let funding_amount = U256::from(1000000000000000000u64); // 1 ETH
 
-        let funding_provider = {
-            let node_url: url::Url = config.clone().node_url;
-            let signer = PrivateKeySigner::from_str(private_key)?;
-            let signer_address = signer.address();
-            println!("signer_address: {signer_address:?}");
-
-            eyre::ensure!(
-                signer_address == expected_funding_signer_address,
-                "signer address does not match owner address, expected: {:?}, received: {:?}",
-                expected_funding_signer_address,
-                signer_address
-            );
-
-            let wallet = ZksyncWallet::from(signer.clone());
-
-            zksync_provider()
-                .with_recommended_fillers()
-                .wallet(wallet)
-                .on_http(node_url)
-        };
-
         // Send funding transaction to the smart account
-        let funding_tx = {
-            let tx_request = TransactionRequest::default()
-                .with_to(deployed_account_address)
-                .with_value(funding_amount);
-
-            funding_provider.send_transaction(tx_request).await?
-        };
-        println!("Funding transaction sent: {}", funding_tx.tx_hash());
-
-        // Wait for funding transaction to be confirmed
-        let funding_receipt = funding_provider
-            .wait_for_transaction_receipt(funding_tx.tx_hash().to_owned())
-            .await?;
-        println!(
-            "Funding transaction confirmed: {:?}",
-            funding_receipt.status()
-        );
+        fund_account(deployed_account_address, funding_amount, &config).await?;
 
         // Check smart account balance
         let account_balance =
@@ -1327,7 +1282,7 @@ mod tests {
         // println!("  Amount: {} wei (0.003 ETH)", transfer_amount);
         // println!(
         //     "  Session max per use: {} wei (0.005 ETH)",
-        //     second_session_config.transferPolicies[0].maxValuePerUse
+        //     second_session_config.transfer_policies[0].max_value_per_use
         // );
         // println!("  Session signer: {}", second_session_config.signer);
 
@@ -1420,22 +1375,22 @@ mod tests {
 
         // println!("Session state after transaction:");
         // println!(
-        //     "  Status: {} (1 = Active)",
+        //     "  Status: {:?} (1 = Active)",
         //     session_state_after_tx.session_state.status
         // );
         // println!(
         //     "  Fees remaining: {}",
-        //     session_state_after_tx.session_state.feesRemaining
+        //     session_state_after_tx.session_state.fees_remaining
         // );
         // println!(
         //     "  Transfer value entries: {}",
-        //     session_state_after_tx.session_state.transferValue.len()
+        //     session_state_after_tx.session_state.transfer_value.len()
         // );
 
-        // if !session_state_after_tx.session_state.transferValue.is_empty() {
+        // if !session_state_after_tx.session_state.transfer_value.is_empty() {
         //     println!(
         //         "Transfer value remaining: {}",
-        //         session_state_after_tx.session_state.transferValue[0].remaining
+        //         session_state_after_tx.session_state.transfer_value[0].remaining
         //     );
 
         //     // The transfer value limit should have decreased by the transfer amount
@@ -1444,7 +1399,7 @@ mod tests {
         //         U256::from_str(original_transfer_limit_hex)?;
         //     let expected_remaining = original_transfer_limit - transfer_amount;
         //     let actual_remaining =
-        //         session_state_after_tx.session_state.transferValue[0].remaining;
+        //         session_state_after_tx.session_state.transfer_value[0].remaining;
         //     println!("Expected remaining: {}", expected_remaining);
         //     println!("Actual remaining: {}", actual_remaining);
         //     eyre::ensure!(
@@ -1455,22 +1410,22 @@ mod tests {
 
         // // Session should still be active after the transaction
         // eyre::ensure!(
-        //     session_state_after_tx.session_state.status == 1,
+        //     session_state_after_tx.session_state.is_active(),
         //     "Session should still be active after the transaction"
         // );
 
         // println!("Session transaction completed successfully! 🎉");
 
-        // // println!("\n=== RUST SDK TEST COMPLETED SUCCESSFULLY (Steps 1-7) ===");
-        // // println!("This test successfully:");
-        // // println!("1. Deployed a smart account with initial session");
-        // // println!("2. Verified session module is a validator");
-        // // println!("3. Got initial session state and validated properties");
-        // // println!("4. Calculated and verified session hash");
-        // // println!("5. Funded smart account and revoked the first session");
-        // // println!("6. Verified session is now closed/revoked");
-        // // println!("7. Created a new session with different parameters");
-        // // println!("All using SDK functions with config-based authentication.");
+        // println!("\n=== RUST SDK TEST COMPLETED SUCCESSFULLY (Steps 1-7) ===");
+        // println!("This test successfully:");
+        // println!("1. Deployed a smart account with initial session");
+        // println!("2. Verified session module is a validator");
+        // println!("3. Got initial session state and validated properties");
+        // println!("4. Calculated and verified session hash");
+        // println!("5. Funded smart account and revoked the first session");
+        // println!("6. Verified session is now closed/revoked");
+        // println!("7. Created a new session with different parameters");
+        // println!("All using SDK functions with config-based authentication.");
 
         drop(anvil_zksync);
 

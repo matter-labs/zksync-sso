@@ -21,7 +21,7 @@ OUT_PATH="out"
 MIN_IOS_VERSION="17.0"
 WRAPPER_PATH="../../../../swift/ZKsyncSSO/Sources/ZKsyncSSOFFI"
 TARGET_PATH="../../target"
-BUILD_TYPE="release" # Options: "debug" or "release" - use release for CI builds
+BUILD_TYPE="debug" # Options: "debug" or "release" - use release for CI builds
 
 AARCH64_APPLE_IOS_SIM_PATH="$TARGET_PATH/aarch64-apple-ios-sim/$BUILD_TYPE"
 

@@ -85,6 +85,7 @@ mod tests {
             },
             session::actions::session::{
                 hash::get_session_hash,
+                send::sign_fn_from_signer,
                 state::{GetSessionStateArgs, get_session_state},
             },
         },
@@ -106,7 +107,7 @@ mod tests {
     };
     use alloy::{
         network::ReceiptResponse,
-        primitives::{FixedBytes, U256, address, hex},
+        primitives::{FixedBytes, U256, address, hex, keccak256},
         providers::Provider,
         signers::local::PrivateKeySigner,
     };
@@ -116,9 +117,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_and_revoke_session() -> eyre::Result<()> {
-        // Add delay to avoid test run timing out
-        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-
         // Arrange
         let (anvil_zksync, config, _) =
             spawn_node_and_deploy_contracts().await?;
@@ -180,8 +178,7 @@ mod tests {
         let session_owner_address =
             address!("0x9BbC92a33F193174bf6Cc09c4b4055500d972479");
         let random_salt_str = "sdk-test-factory-replication-010";
-        let random_salt =
-            alloy::primitives::keccak256(random_salt_str.as_bytes()); // Unique ID for deterministic salt
+        let random_salt = keccak256(random_salt_str.as_bytes()); // Unique ID for deterministic salt
         let expires_at = 1749040108u64;
 
         println!("=== REPLICATION DATA VERIFICATION ===");
@@ -276,7 +273,6 @@ mod tests {
 
         let deploy_result = deploy_modular_account(
             DeployModularAccountArgs {
-                account_factory: config.contracts.account_factory,
                 owners: vec![owner_address], // Use the ECDSA owner
                 install_no_data_modules: vec![],
                 session_module: Some(SessionModuleArgs {
@@ -409,7 +405,7 @@ mod tests {
         );
 
         // Verify session hash is deterministic and not empty
-        let empty_hash = alloy::primitives::FixedBytes::<32>::from([0u8; 32]);
+        let empty_hash = FixedBytes::<32>::from([0u8; 32]);
         eyre::ensure!(
             session_hash != empty_hash.into(),
             "Session hash should not be empty"
@@ -465,13 +461,8 @@ mod tests {
 
         let revoke_args = RevokeSessionArgs { session_id: session_hash };
 
-        let signer = alloy::signers::local::PrivateKeySigner::from_str(
-            owner_private_key,
-        )?;
-        let sign_fn =
-            crate::client::session::actions::session::send::sign_fn_from_signer(
-                signer,
-            );
+        let signer = PrivateKeySigner::from_str(owner_private_key)?;
+        let sign_fn = sign_fn_from_signer(signer);
         let revoke_result = revoke_session(
             revoke_args,
             deployed_account_address,

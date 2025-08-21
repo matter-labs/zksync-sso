@@ -1,6 +1,9 @@
 use crate::config;
 use sdk::api::{
-    account::session::revoke::RevokeSessionArgs as SdkRevokeSessionArgs,
+    account::session::revoke::{
+        RevokeSessionArgs as SdkRevokeSessionArgs,
+        revoke_session as sdk_revoke_session,
+    },
     utils::{parse_address, sign_fn_from_private_key_hex},
 };
 
@@ -48,18 +51,14 @@ pub async fn revoke_session(
 
     let sdk_args = SdkRevokeSessionArgs { session_id: args.session_id };
 
-    let result = sdk::api::account::session::revoke::revoke_session(
-        sdk_args,
-        account_address,
-        sign_fn,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                RevokeSessionError::RevokeSession(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| RevokeSessionError::RevokeSession(e.to_string()))?;
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        RevokeSessionError::RevokeSession(e.to_string())
+    })?;
+
+    let result =
+        sdk_revoke_session(sdk_args, account_address, sign_fn, &sdk_config)
+            .await
+            .map_err(|e| RevokeSessionError::RevokeSession(e.to_string()))?;
 
     Ok(RevokeSessionReturnType {
         transaction_receipt_json: result.transaction_receipt_json,

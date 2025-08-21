@@ -1,2 +1,2 @@
-pub mod deploy_contracts;
+pub mod config;
 pub mod handle_cli;

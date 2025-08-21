@@ -1,7 +1,13 @@
 use crate::{
     contracts::SessionLib::SessionState as SessionLibSessionState,
-    utils::session::session_lib::session_state::{
-        limit_state::LimitState, status::Status,
+    utils::{
+        alloy::serde_helpers::{
+            deserialize_u256_from_integer_string,
+            serialize_u256_as_integer_string,
+        },
+        session::session_lib::session_state::{
+            limit_state::LimitState, status::Status,
+        },
     },
 };
 use alloy::primitives::U256;
@@ -11,8 +17,13 @@ pub mod limit_state;
 pub mod status;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionState {
     pub status: Status,
+    #[serde(
+        serialize_with = "serialize_u256_as_integer_string",
+        deserialize_with = "deserialize_u256_from_integer_string"
+    )]
     pub fees_remaining: U256,
     pub transfer_value: Vec<LimitState>,
     pub call_value: Vec<LimitState>,

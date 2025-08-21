@@ -6,6 +6,31 @@ deploy-contracts:
 build-and-deploy-contracts: 
     cargo run --bin cli -- build-and-deploy-contracts
 
+# Deploy a modular account with test configuration
+deploy-account:
+    cargo run --bin cli -- deploy-account
+
+# Create a session for the deterministically deployed account
+create-session:
+    cargo run --bin cli -- create-session
+
+# Create a session for a specific account address
+create-session-with-account account_address:
+    cargo run --bin cli -- create-session-with-account --account-address {{account_address}}
+
+# Send a transaction using session for the deterministically deployed account
+send-transaction:
+    cargo run --bin cli -- send-transaction
+
+# Send a transaction using session for a specific account address
+send-transaction-with-account account_address:
+    cargo run --bin cli -- send-transaction-with-account --account-address {{account_address}}
+
+# Deploy account and then create its session (full workflow test)
+deploy-and-create:
+    just deploy-account
+    just create-session
+
 # Build Swift framework for iOS
 build-swift-framework:
     sh crates/ffi/build-swift-framework-ios-ci.sh
@@ -28,6 +53,7 @@ clippy-fix:
 
 # Format and fix linting issues
 fix:
-    #cargo +nightly fmt --all
+    cargo +nightly fmt --all
     cargo clippy --fix --allow-dirty --allow-staged
     cargo +nightly fmt --all
+    cargo clippy --fix --allow-dirty --allow-staged

@@ -1,10 +1,11 @@
 name: Swift CI
 
 on:
-  push:
+  pull_request:
     paths:
       - 'packages/contracts/**'
-      - 'packages/sdk-platforms/**'
+      - 'packages/sdk-platforms/rust/**'
+      - 'packages/sdk-platforms/swift/**'
       - '.github/workflows/ci-swift.yml'
 
 jobs:
@@ -95,6 +96,15 @@ jobs:
           xcodebuild test \
             -skipMacroValidation \
             -configuration debug \
-            -workspace .github/package.xcworkspace \
+            -workspace .github/zksyncsso.xcworkspace \
             -scheme zksyncsso \
+            -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" || exit 1
+
+      - name: Run Swift Integration Tests
+        run: |
+          xcodebuild test \
+            -skipMacroValidation \
+            -configuration debug \
+            -workspace .github/zksyncssointegration.xcworkspace \
+            -scheme zksyncssointegration \
             -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" || exit 1

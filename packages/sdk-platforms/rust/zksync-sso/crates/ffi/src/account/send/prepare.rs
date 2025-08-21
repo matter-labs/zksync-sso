@@ -1,11 +1,13 @@
 use crate::{
     account::{
-        send::prepare::PrepareTransactionError::{
-            InvalidAddress, PrepareTransaction,
-        },
+        send::prepare::PrepareTransactionError::InvalidAddress,
         transaction::Transaction,
     },
     config,
+};
+use sdk::api::account::send::prepare::{
+    PreparedTransaction as SdkPreparedTransaction,
+    prepare_send_transaction as sdk_prepare_send_transaction,
 };
 
 #[derive(Debug, uniffi::Record)]
@@ -17,9 +19,7 @@ pub struct PreparedTransaction {
     pub display_fee: String,
 }
 
-pub struct PreparedTransactionWrapper(
-    sdk::api::account::send::prepare::PreparedTransaction,
-);
+pub struct PreparedTransactionWrapper(SdkPreparedTransaction);
 
 impl TryFrom<PreparedTransactionWrapper> for PreparedTransaction {
     type Error = PrepareTransactionError;
@@ -63,17 +63,16 @@ pub async fn prepare_send_transaction(
             }
         })?;
 
-    sdk::api::account::send::prepare::prepare_send_transaction(
-        transaction,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| -> PrepareTransactionError {
-                PrepareTransaction(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| PrepareTransactionError::PrepareTransaction(e.to_string()))
-    .and_then(|prepared_tx| {
-        PreparedTransaction::try_from(PreparedTransactionWrapper(prepared_tx))
-    })
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        PrepareTransactionError::PrepareTransaction(e.to_string())
+    })?;
+
+    sdk_prepare_send_transaction(transaction, &sdk_config)
+        .await
+        .map_err(|e| PrepareTransactionError::PrepareTransaction(e.to_string()))
+        .and_then(|prepared_tx| {
+            PreparedTransaction::try_from(PreparedTransactionWrapper(
+                prepared_tx,
+            ))
+        })
 }

@@ -1,9 +1,10 @@
 import SwiftUI
 import ZKsyncSSO
+import ZKsyncSSOIntegration
 
 struct SessionsListView: View {
     let sessions: [Session]
-    let account: DeployedAccount
+    let account: DeployedAccountDetails
     let signers: AccountSigners
     let onSelect: (Session) -> Void
 
@@ -56,18 +57,11 @@ struct SessionsListView: View {
         sessions: [
             .init(
                 createdAt: Date(),
-                sessionSpec: SessionSpec.default
+                sessionSpec: SessionSpec.default,
+                sessionKey: AccountSigners.default.sessionOwner.privateKeyHex
             )
         ],
-        account: .init(
-            info: .init(
-                name: "Jane Doe",
-                userID: "jdoe@example.com",
-                domain: "auth-test.zksync.dev"
-            ),
-            address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-            uniqueAccountId: "jdoe@example.com"
-        ),
+        account: .default,
         signers: .default,
         onSelect: { _ in }
     )

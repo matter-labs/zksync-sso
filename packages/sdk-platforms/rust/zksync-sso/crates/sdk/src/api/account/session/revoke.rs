@@ -1,6 +1,10 @@
 use crate::{
     client::session::actions::session::{
-        revoke::revoke_session as client_revoke_session, send::SignFn,
+        revoke::{
+            RevokeSessionArgs as SdkRevokeSessionArgs,
+            revoke_session as client_revoke_session,
+        },
+        send::SignFn,
     },
     config::Config,
 };
@@ -26,16 +30,12 @@ pub struct RevokeSessionReturnType {
     pub transaction_receipt_json: String,
 }
 
-impl TryFrom<RevokeSessionArgs>
-    for crate::client::session::actions::session::revoke::RevokeSessionArgs
-{
+impl TryFrom<RevokeSessionArgs> for SdkRevokeSessionArgs {
     type Error = FromHexError;
 
     fn try_from(args: RevokeSessionArgs) -> Result<Self, Self::Error> {
         let session_id_bytes = FixedBytes::<32>::from_hex(args.session_id)?;
-        Ok(crate::client::session::actions::session::revoke::RevokeSessionArgs {
-            session_id: session_id_bytes.into(),
-        })
+        Ok(SdkRevokeSessionArgs { session_id: session_id_bytes.into() })
     }
 }
 
@@ -95,10 +95,7 @@ mod tests {
     use url;
 
     #[tokio::test]
-    async fn test_create_and_revoke_session() -> eyre::Result<()> {
-        // Add delay to avoid test run timing out
-        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-
+    async fn test_api_create_and_revoke_session() -> eyre::Result<()> {
         // Arrange
         let (anvil_zksync, mut config, _) =
             spawn_node_and_deploy_contracts().await?;

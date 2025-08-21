@@ -72,14 +72,15 @@ pub async fn create_session(
     let sign_fn = sign_fn_from_private_key_hex(owner_private_key)
         .map_err(|e| CreateSessionError::InvalidPrivateKey(e.to_string()))?;
 
+    let sdk_config: sdk::config::Config =
+        config.try_into().map_err(|e: config::ConfigError| {
+            CreateSessionError::InvalidConfig(e.to_string())
+        })?;
+
     let result = sdk::api::account::session::create::create_session(
         args,
         sign_fn,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                CreateSessionError::InvalidConfig(e.to_string())
-            })?,
+        &sdk_config,
     )
     .await
     .map_err(|e| CreateSessionError::CreateSession(e.to_string()))?;

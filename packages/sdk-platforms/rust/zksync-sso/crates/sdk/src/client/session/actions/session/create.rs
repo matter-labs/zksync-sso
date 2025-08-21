@@ -309,7 +309,6 @@ mod tests {
 
         let deploy_result = deploy_modular_account(
             DeployModularAccountArgs {
-                account_factory: config.contracts.account_factory,
                 owners: vec![owner_address], // Use the ECDSA owner
                 install_no_data_modules: vec![],
                 session_module: Some(SessionModuleArgs {

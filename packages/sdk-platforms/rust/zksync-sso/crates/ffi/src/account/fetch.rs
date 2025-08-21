@@ -1,4 +1,8 @@
 use crate::config;
+use sdk::api::account::fetch::{
+    fetch_account as sdk_fetch_account,
+    get_account_by_user_id as sdk_get_account_by_user_id,
+};
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum FetchAccountError {
@@ -30,18 +34,14 @@ pub async fn fetch_account(
     expected_origin: String,
     config: config::Config,
 ) -> Result<super::Account, FetchAccountError> {
-    sdk::api::account::fetch::fetch_account(
-        unique_account_id,
-        expected_origin,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                FetchAccountError::FetchAccount(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| FetchAccountError::FetchAccount(e.to_string()))
-    .map(Into::into)
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        FetchAccountError::FetchAccount(e.to_string())
+    })?;
+
+    sdk_fetch_account(unique_account_id, expected_origin, &sdk_config)
+        .await
+        .map_err(|e| FetchAccountError::FetchAccount(e.to_string()))
+        .map(Into::into)
 }
 
 #[uniffi::export(async_runtime = "tokio")]
@@ -49,15 +49,12 @@ pub async fn get_account_by_user_id(
     unique_account_id: String,
     config: config::Config,
 ) -> Result<super::Account, FetchAccountError> {
-    sdk::api::account::fetch::get_account_by_user_id(
-        unique_account_id,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                FetchAccountError::FetchAccount(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| FetchAccountError::FetchAccount(e.to_string()))
-    .map(Into::into)
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        FetchAccountError::FetchAccount(e.to_string())
+    })?;
+
+    sdk_get_account_by_user_id(unique_account_id, &sdk_config)
+        .await
+        .map_err(|e| FetchAccountError::FetchAccount(e.to_string()))
+        .map(Into::into)
 }

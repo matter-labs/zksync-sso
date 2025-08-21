@@ -9,14 +9,28 @@ struct Session: Identifiable, Hashable {
     let createdAt: Date
     let sessionHash: String
     let sessionSpec: SessionSpec
+    let sessionKey: String
 
-    public init(
+    init(
         createdAt: Date,
-        sessionSpec: SessionSpec
+        sessionSpec: SessionSpec,
+        sessionKey: String
     ) {
         self.createdAt = createdAt
         self.sessionHash = try! sessionSpec.sessionHash()
         self.sessionSpec = sessionSpec
+        self.sessionKey = sessionKey
+    }
+    
+    static func create(
+        sessionKey: String,
+        sessionSpec: SessionSpec,
+    ) -> Self {
+        Self(
+            createdAt: Date(),
+            sessionSpec: sessionSpec,
+            sessionKey: sessionKey
+        )
     }
 }
 

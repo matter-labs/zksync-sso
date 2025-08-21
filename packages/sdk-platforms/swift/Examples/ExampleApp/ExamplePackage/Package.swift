@@ -15,12 +15,14 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../../../ZKsyncSSO/"),
+        .package(path: "../../../ZKsyncSSOIntegration/"),
     ],
     targets: [
         .target(
             name: "ExamplePackage",
             dependencies: [
                 "ZKsyncSSO",
+                "ZKsyncSSOIntegration",
                 "ExamplePackageUIComponents",
             ]
         ),

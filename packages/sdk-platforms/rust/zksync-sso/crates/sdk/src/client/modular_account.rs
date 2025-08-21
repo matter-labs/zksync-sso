@@ -61,8 +61,6 @@ pub struct PasskeyModuleArgs {
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct DeployModularAccountArgs {
-    /// Address of the AA factory used to deploy the proxy smart-account
-    pub account_factory: Address,
     /// Addresses of modules that should be installed without any constructor / parameter data.
     pub install_no_data_modules: Vec<Address>,
     /// List of initial ECDSA owners (can be an empty vector).
@@ -112,6 +110,8 @@ pub async fn deploy_modular_account(
     let wallet_address = wallet.default_signer().address();
     debug!("XDB deploy_modular_account - wallet_address: {wallet_address:?}");
 
+    let account_factory = config.clone().contracts.account_factory;
+
     //-------------------------------------------------------------------
     // Build provider & wallet
     //-------------------------------------------------------------------
@@ -130,7 +130,7 @@ pub async fn deploy_modular_account(
     // Ensure factory contract is deployed
     check_contract_deployed(
         &config.node_url.clone(),
-        &Contract { address: args.account_factory, name: "AA_FACTORY".into() },
+        &Contract { address: account_factory, name: "AA_FACTORY".into() },
     )
     .await?;
 
@@ -277,7 +277,7 @@ pub async fn deploy_modular_account(
     //-------------------------------------------------------------------
     // Build and send the deployment transaction
     //-------------------------------------------------------------------
-    let factory_instance = AAFactory::new(args.account_factory, &provider);
+    let factory_instance = AAFactory::new(account_factory, &provider);
 
     let deploy_call = factory_instance.deployProxySsoAccount(
         unique_id_hash,
@@ -391,7 +391,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_deploy_modular_account() -> Result<()> {
-        // Arrange --------------------------------------------------------------------
+        // Arrange
         let (anvil_zksync, config, _) =
             spawn_node_and_deploy_contracts().await?;
         let node_url = &config.node_url;
@@ -412,7 +412,6 @@ mod tests {
         check_contract_deployed(&node_url.clone(), &factory_contract).await?;
 
         let args = DeployModularAccountArgs {
-            account_factory: account_factory_addr,
             install_no_data_modules: vec![],
             owners: vec![wallet_address],
             session_module: None,
@@ -425,10 +424,10 @@ mod tests {
             unique_account_id: None,
         };
 
-        // Act ------------------------------------------------------------------------
+        // Act
         let result = deploy_modular_account(args, &config).await?;
 
-        // Assert ---------------------------------------------------------------------
+        // Assert
         println!("Deployed modular account at: {}", result.address);
         assert_ne!(
             result.address,
