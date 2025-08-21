@@ -19,11 +19,6 @@ function main() {
         break;
       }
       curr = dirname(curr);
-    while (curr && curr !== parse(curr).root && basename(curr) !== "snarkjs") {
-      curr = dirname(curr);
-    }
-    if (basename(curr) === "snarkjs") {
-      baseDir = curr;
     }
     if (!baseDir) {
       // fallback: one directory up from dist
