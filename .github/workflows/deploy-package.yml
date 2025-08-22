@@ -51,22 +51,59 @@ jobs:
       - name: Build the package
         run: pnpm nx build sdk
 
+      - name: Build the wagmi-connector package
+        run: pnpm nx build connector-export
+
       - name: Prepare package.json
         working-directory: packages/sdk
         run: node prepare-package.mjs
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
 
+      - name: Prepare wagmi connector package.json
+        working-directory: packages/connector-export
+        run: node prepare-package.mjs
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+
       - name: Create .npmrc for NPM
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
+        
+      - name: Determine npm publish tag
+        id: npm_tag
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ "$VERSION" =~ -([a-zA-Z0-9]+) ]]; then
+            TAG="${BASH_REMATCH[1]}"
+          else
+            TAG="latest"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
       
-      - name: Publish to NPM
+      - name: Publish SDK to NPM
         working-directory: packages/sdk
-        run: npm publish --access public
+        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
+
+      - name: Publish wagmi connector to NPM
+        working-directory: packages/connector-export
+        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
     
       - name: Create .npmrc for GitHub Packages
-        run: echo "@OWNER:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+        run: |
+          echo "@matter-labs:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "@zksync-sso:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
-      - name: Publish to GitHub Packages
+      - name: Publish SDK to GitHub Packages
         working-directory: packages/sdk
-        run: npm publish --access public
+        run: |
+          # Update package name for GitHub Packages to be scoped to the organization
+          npm pkg set name="@matter-labs/zksync-sso"
+          npm publish --registry=https://npm.pkg.github.com --tag ${{ steps.npm_tag.outputs.tag }}
+
+      - name: Publish wagmi connector to GitHub Packages
+        working-directory: packages/connector-export
+        run: |
+          # Update package name for GitHub Packages to be scoped to the organization
+          npm pkg set name="@matter-labs/zksync-sso-wagmi-connector"
+          npm publish --registry=https://npm.pkg.github.com --tag ${{ steps.npm_tag.outputs.tag }}

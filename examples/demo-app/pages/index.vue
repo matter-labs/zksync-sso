@@ -46,6 +46,55 @@
     </button>
 
     <div
+      v-if="address"
+      class="mt-8 border-t pt-4"
+    >
+      <h2 class="text-xl font-bold mb-4">
+        Typed Data Signature Verification
+      </h2>
+      <div class="mb-4">
+        <pre class="bg-gray-100 p-3 rounded text-xs overflow-x-auto max-w-2xl max-h-60">{{ JSON.stringify(typedData, null, 2) }}</pre>
+      </div>
+      <div
+        v-if="ERC1271CallerContract.deployedTo"
+        class="mb-4 text-xs text-gray-600"
+      >
+        <p>ERC1271 Caller address: {{ ERC1271CallerContract.deployedTo }}</p>
+      </div>
+      <button
+        class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded disabled:bg-slate-300"
+        :disabled="isSigningTypedData"
+        @click="signTypedDataHandler"
+      >
+        {{ isSigningTypedData ? 'Signing...' : 'Sign Typed Data' }}
+      </button>
+      <div
+        v-if="typedDataSignature"
+        class="mt-4"
+      >
+        <p class="break-all">
+          <strong>Signature:</strong> <span class="text-xs line-clamp-2">{{ typedDataSignature }}</span>
+        </p>
+      </div>
+      <div
+        v-if="isVerifyingTypedDataSignature"
+        class="mt-4"
+      >
+        <p class="text-gray-600">
+          Verifying typed data signature...
+        </p>
+      </div>
+      <div
+        v-else-if="isValidTypedDataSignature !== null"
+        class="mt-4"
+      >
+        <p :class="isValidTypedDataSignature ? 'text-green-600' : 'text-red-600'">
+          <strong>Typed Data Verification Result:</strong> {{ isValidTypedDataSignature ? 'Valid ✓' : 'Invalid ✗' }}
+        </p>
+      </div>
+    </div>
+
+    <div
       v-if="errorMessage"
       class="p-4 mt-4 mb-4 max-w-96 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400"
     >
@@ -55,17 +104,22 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType } from "@wagmi/core";
-import { zksyncSsoConnector } from "zksync-sso/connector";
-import { zksyncInMemoryNode } from "@wagmi/core/chains";
-import { createWalletClient, http, parseEther, type Address } from "viem";
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract } from "@wagmi/core";
+import { createWalletClient, createPublicClient, http, parseEther, type Address, type Hash } from "viem";
+import { zksyncSsoConnector } from "zksync-sso-wagmi-connector";
 import { privateKeyToAccount } from "viem/accounts";
-import { getGeneralPaymasterInput } from "viem/zksync";
-import PaymasterContract from "../forge-output.json";
+import { getGeneralPaymasterInput, zksyncInMemoryNode } from "viem/zksync";
+import PaymasterContract from "../forge-output-paymaster.json";
+import ERC1271CallerContract from "../forge-output-erc1271.json";
 
 const chain = zksyncInMemoryNode;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
+
+const publicClient = createPublicClient({
+  chain: chain,
+  transport: http(),
+});
 const zksyncConnectorWithSession = zksyncSsoConnector({
   authServerUrl: "http://localhost:3002/confirm",
   session: {
@@ -93,7 +147,6 @@ reconnect(wagmiConfig);
 const address = ref<Address | null>(null);
 const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
-const isSendingEth = ref<boolean>(false);
 
 const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
@@ -167,6 +220,9 @@ const disconnectWallet = async () => {
   await disconnect(wagmiConfig);
 };
 
+/* Send ETH */
+const isSendingEth = ref<boolean>(false);
+
 const sendTokens = async (usePaymaster: boolean) => {
   if (!address.value) return;
 
@@ -179,7 +235,7 @@ const sendTokens = async (usePaymaster: boolean) => {
       transactionHash = await sendTransaction(wagmiConfig, {
         to: testTransferTarget,
         value: parseEther("0.1"),
-        paymaster: PaymasterContract.deployedTo as `0x${string}`,
+        paymaster: PaymasterContract.deployedTo as Address,
         paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
       });
     } else {
@@ -225,5 +281,109 @@ const sendTokens = async (usePaymaster: boolean) => {
   } finally {
     isSendingEth.value = false;
   }
+};
+
+/* Typed data */
+const typedDataSignature = ref<Hash | null>(null);
+const isValidTypedDataSignature = ref<boolean | null>(null);
+const isSigningTypedData = ref<boolean>(false);
+const isVerifyingTypedDataSignature = ref<boolean>(false);
+
+const typedData = {
+  types: {
+    TestStruct: [
+      { name: "message", type: "string" },
+      { name: "value", type: "uint256" },
+    ],
+  },
+  primaryType: "TestStruct",
+  message: {
+    message: "test",
+    value: 42n,
+  },
+} as const;
+
+const signTypedDataHandler = async () => {
+  if (!address.value) return;
+
+  errorMessage.value = "";
+  isSigningTypedData.value = true;
+  isValidTypedDataSignature.value = null;
+  try {
+    const erc1271CallerAddress = ERC1271CallerContract.deployedTo as Address;
+    const { domain: callerDomain } = await publicClient.getEip712Domain({
+      address: erc1271CallerAddress,
+    });
+
+    const signature = await signTypedData(wagmiConfig, {
+      domain: {
+        ...callerDomain,
+        salt: undefined, // Otherwise the signature verification fails (todo: figure out why)
+      },
+      ...typedData,
+    });
+    typedDataSignature.value = signature;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Typed data signing failed:", error);
+    errorMessage.value = "Typed data signing failed, see console for more info.";
+  } finally {
+    isSigningTypedData.value = false;
+  }
+};
+
+const verifyTypedDataSignatureAutomatically = async () => {
+  if (!address.value || !typedDataSignature.value) {
+    isValidTypedDataSignature.value = null;
+    return;
+  }
+
+  isVerifyingTypedDataSignature.value = true;
+  try {
+    const contractAddress = ERC1271CallerContract.deployedTo as Address;
+
+    const isValid = await readContract(wagmiConfig, {
+      address: contractAddress,
+      abi: [{
+        type: "function",
+        name: "validateStruct",
+        stateMutability: "view",
+        inputs: [
+          {
+            name: "testStruct", type: "tuple", internalType: "struct ERC1271Caller.TestStruct",
+            components: [
+              { name: "message", type: "string", internalType: "string" },
+              { name: "value", type: "uint256", internalType: "uint256" },
+            ],
+          },
+          { name: "signer", type: "address", internalType: "address" },
+          { name: "encodedSignature", type: "bytes", internalType: "bytes" },
+        ],
+        outputs: [{ name: "", type: "bool", internalType: "bool" }],
+      }] as const,
+      functionName: "validateStruct",
+      args: [
+        typedData.message,
+        address.value,
+        typedDataSignature.value,
+      ],
+    });
+
+    isValidTypedDataSignature.value = isValid;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Typed data signature verification failed:", error);
+    isValidTypedDataSignature.value = false;
+  } finally {
+    isVerifyingTypedDataSignature.value = false;
+  }
+};
+
+watch(address, () => typedDataSignature.value = null);
+watch(typedDataSignature, verifyTypedDataSignatureAutomatically);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window.BigInt as any).prototype.toJSON = function () {
+  return this.toString();
 };
 </script>

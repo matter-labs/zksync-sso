@@ -61,7 +61,9 @@ jobs:
       working-directory: packages/contracts
 
     - name: Build SDK
-      run: pnpm nx build sdk
+      run: |
+        pnpm nx build sdk
+        pnpm nx build connector-export
 
     - name: Install zksync-foundry
       run: |

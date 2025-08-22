@@ -174,7 +174,6 @@
     "abitype": "^1.0.6",
     "bigint-conversion": "^2.4.3",
     "buffer": "^6.0.3",
-    "ms": "^2.1.3",
-    "zksync-sso-circuits": "workspace:*"
+    "ms": "^2.1.3"
   }
 }

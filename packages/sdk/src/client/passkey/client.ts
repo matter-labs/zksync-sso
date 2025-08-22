@@ -1,4 +1,5 @@
 import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import { erc7739Actions } from "viem/experimental";
 import { eip712WalletActions } from "viem/zksync";
 
 import type { CustomPaymasterHandler } from "../../paymaster/index.js";
@@ -57,7 +58,10 @@ export function createZksyncPasskeyClient<
     .extend(walletActions)
     .extend(eip712WalletActions())
     .extend(zksyncSsoPasskeyActions)
-    .extend(zksyncSsoPasskeyWalletActions);
+    .extend(zksyncSsoPasskeyWalletActions)
+    .extend(erc7739Actions({
+      verifier: account.address,
+    }));
   return client;
 }
 

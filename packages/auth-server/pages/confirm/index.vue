@@ -17,6 +17,14 @@
       v-else-if="hasProhibitedCallTarget"
       key="prohibited-target"
     />
+    <ViewsConfirmationPersonalSign
+      v-else-if="requestMethod === 'personal_sign'"
+      key="personal-sign"
+    />
+    <ViewsConfirmationSignTypedData
+      v-else-if="requestMethod === 'eth_signTypedData_v4'"
+      key="sign-typed-data"
+    />
     <ViewsConfirmationSend
       v-else
       key="confirmation"
