@@ -80,7 +80,7 @@ export default defineNuxtConfig({
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
       oidc: {
         googlePublicClient: "69763429492-f7nl555i50akmail80pid3m4hhsg7u2n.apps.googleusercontent.com",
-        saltServiceUrl: process.env.NUXT_PUBLIC_SALT_SERVICE_URL || "http://localhost:3030/salt",
+        saltServiceUrl: process.env.NUXT_PUBLIC_SALT_SERVICE_URL || "https://sso-oidc.zksync.dev/salt",
         zkeyUrl: process.env.NUXT_PUBLIC_ZKEY_URL || "https://sso-oidc.zksync.dev/zkey",
         witnessUrl: process.env.NUXT_PUBLIC_WITNESS_WASM_URL || "https://sso-oidc.zksync.dev/witness",
       },
