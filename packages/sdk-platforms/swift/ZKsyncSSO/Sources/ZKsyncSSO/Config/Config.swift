@@ -2,28 +2,41 @@ import Foundation
 import ZKsyncSSOFFI
 
 public struct Config {
-    let inner: ZKsyncSSOFFI.Config
+    
+    public var contracts: SsoContracts { SsoContracts(inner: inner.contracts) }
+    
+    public var nodeUrl: String { inner.nodeUrl }
+    
+    public var deployWallet: DeployWallet? {
+        get { inner.deployWallet.map(DeployWallet.init) }
+        set { inner.deployWallet = newValue.map(\.inner) }
+    }
+
+    var inner: ZKsyncSSOFFI.Config
 
     public init(
-        contracts: PasskeyContracts,
+        contracts: SsoContracts,
         nodeUrl: String,
-        deployWallet: DeployWallet
+        deployWallet: DeployWallet?
     ) {
-        self.inner = .init(
+        inner = .init(
             contracts: contracts.inner,
             nodeUrl: nodeUrl,
-            deployWallet: deployWallet
+            deployWallet: deployWallet.map(\.inner)
         )
     }
 
     public static var `default`: Self {
         let innerDefault = ZKsyncSSOFFI.Config.default
         return Self(
-            contracts: PasskeyContracts(inner: innerDefault.contracts),
+            contracts: SsoContracts(inner: innerDefault.contracts),
             nodeUrl: innerDefault.nodeUrl,
-            deployWallet: DeployWallet(
-                privateKeyHex: innerDefault.deployWallet.privateKeyHex
-            )
+            deployWallet: {
+                guard let privateKeyHex = innerDefault.deployWallet?.privateKeyHex else {
+                    return nil
+                }
+                return DeployWallet(privateKeyHex: privateKeyHex)
+            }()
         )
     }
 }

@@ -1,17 +1,19 @@
 use crate::config;
-use sdk::api::utils::parse_address;
+use sdk::api::{
+    account::balance::{
+        GetAccountBalanceResult as SdkGetAccountBalanceResult,
+        get_balance as sdk_get_balance,
+    },
+    utils::parse_address,
+};
 
 #[derive(Debug, uniffi::Record)]
 pub struct AccountBalance {
     pub balance: String,
 }
 
-impl From<sdk::api::account::balance::GetAccountBalanceResult>
-    for AccountBalance
-{
-    fn from(
-        result: sdk::api::account::balance::GetAccountBalanceResult,
-    ) -> Self {
+impl From<SdkGetAccountBalanceResult> for AccountBalance {
+    fn from(result: SdkGetAccountBalanceResult) -> Self {
         Self { balance: result.balance }
     }
 }
@@ -30,15 +32,11 @@ pub async fn get_balance(
     let address = parse_address(&address).map_err(|_| {
         GetAccountBalanceError::GetBalance("Invalid address".to_string())
     })?;
-    sdk::api::account::balance::get_balance(
-        address,
-        &(config.try_into()
-            as Result<sdk::config::Config, config::ConfigError>)
-            .map_err(|e: config::ConfigError| {
-                GetAccountBalanceError::GetBalance(e.to_string())
-            })?,
-    )
-    .await
-    .map_err(|e| GetAccountBalanceError::GetBalance(e.to_string()))
-    .map(Into::into)
+    let sdk_config = config.try_into().map_err(|e: config::ConfigError| {
+        GetAccountBalanceError::GetBalance(e.to_string())
+    })?;
+    sdk_get_balance(address, &sdk_config)
+        .await
+        .map_err(|e| GetAccountBalanceError::GetBalance(e.to_string()))
+        .map(Into::into)
 }

@@ -4,6 +4,7 @@ mod account;
 mod config;
 mod logging;
 mod native_apis;
+mod utils;
 
 use base64::Engine;
 use rand::{Rng, rng};

@@ -16,9 +16,9 @@ export default defineNuxtConfig({
   app: {
     head: {
       bodyAttrs: {
-        class: "bg-khaki"
-      }
-    }
+        class: "bg-khaki",
+      },
+    },
   },
   runtimeConfig: {
     public: {
@@ -30,7 +30,7 @@ export default defineNuxtConfig({
       accountFactory: localChainData.accountFactory,
       recovery: localChainData.recovery,
       explorerUrl: "http://localhost:3010/",
-    }
+    },
   },
   $production: {
     runtimeConfig: {
@@ -50,8 +50,8 @@ export default defineNuxtConfig({
         accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
         recovery: "0x6AA83E35439D71F28273Df396BC7768dbaA9849D",
         explorerUrl: "http://34.121.229.57:3010/",
-      }
-    }
+      },
+    },
   },
   vite: {
     css: {

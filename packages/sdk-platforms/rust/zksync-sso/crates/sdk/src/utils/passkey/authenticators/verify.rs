@@ -2,7 +2,7 @@ use super::{
     android::verify::verify_registration as android_verify_registration,
     apple::verify::verify_registration as apple_verify_registration,
 };
-use crate::api::account::deployment::RpId;
+use crate::api::account::passkey::relying_party::RpId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatedPasskey {

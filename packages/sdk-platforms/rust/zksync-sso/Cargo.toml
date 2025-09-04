@@ -5,7 +5,7 @@ resolver = "2"
 [workspace.package]
 version = "0.0.1"
 edition = "2024"
-rust-version = "1.86"
+rust-version = "1.87"
 license = "Apache-2.0"
 
 [profile.release]
@@ -29,9 +29,15 @@ alloy = { version = "0.12.5", default-features = false, features = [
 ] }
 alloy-zksync = { version = "0.12.5" }
 
+# Ruint (for UintTryFrom trait, must match alloy's version)
+ruint = "1.15.0"
+
 # Alloy OpenSSL dependencies for android
 openssl = "0.10.71"
 openssl-sys = "0.9.106"
+
+# Signer
+k256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
 
 # Passkey support
 passkey-types = { git = "https://github.com/jackpooleyml/passkey-rs", branch = "validate-credential", features = [
@@ -59,8 +65,7 @@ async-trait = "0.1"
 futures = "0.3"
 
 # Uniffi
-# uniffi = { version = "0.29" }
-uniffi = { git = "https://github.com/mozilla/uniffi-rs", rev = "6c3f9b2376cb4b622247e4ae94eabe8d426cc5c5" }
+uniffi = { version = "0.29" }
 
 # Error handling
 eyre = "0.6"
@@ -69,12 +74,25 @@ thiserror = "2.0.11"
 # Randomness
 rand = "0.9"
 
-# Hex
-hex = "0.4"
+# Hashing
+sha2 = "0.10"
+sha3 = "0.10.8"
+
+# passkey support
+coset = "0.3"
+
+# CBOR
+serde_cbor = "0.11"
+ciborium = { version = "^0.2.1", default-features = false }
+ciborium-io = { version = "^0.2.0", features = ["alloc"] }
 
 # Base64
 base64-url = "3.0.0"
 base64 = "0.21"
+
+# DER
+der = { version = "0.7", features = ["alloc"] }
+der_derive = "0.7"
 
 # i18n
 icu = { version = "1.5.0", features = ["default", "serde", "std"] }
@@ -89,3 +107,7 @@ log = "0.4"
 android_logger = { version = "0.15" }
 # Logging for Apple platforms
 oslog = "0.2"
+
+# Mocking
+mockall = { version = "0.13.1" }
+scopeguard = { version = "1.2.0" }

@@ -1,0 +1,27 @@
+{
+  "name": "zksync-sso-oidc-server",
+  "tags": ["type:package"],
+  "targets": {
+    "dev:salt": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "dev:salt"
+      }
+    },
+    "dev:key-registry": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "dev:key-registry"
+      }
+    },
+    "dev:all": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["zksync-sso-contracts:deploy"],
+      "options": {
+        "cwd": "packages/oidc-server",
+        "parallel": true,
+        "commands": ["pnpm run dev:key-registry", "pnpm run dev:salt"]
+      }
+    }
+  }
+}

@@ -47,13 +47,15 @@
     "typescript": "5.6.2",
     "typescript-eslint": "8.7.0",
     "viem": "^2.30.0",
-    "zksync-sso": "workspace:*"
+    "zksync-sso": "workspace:*",
+    "zksync-sso-wagmi-connector": "workspace:*"
   },
   "nx": {
     "includedScripts": []
   },
   "packageManager": "pnpm@9.11.0",
   "dependencies": {
-    "prettier-plugin-solidity": "^1.4.1"
+    "prettier-plugin-solidity": "^1.4.1",
+    "snarkjs": "^0.7.5"
   }
 }

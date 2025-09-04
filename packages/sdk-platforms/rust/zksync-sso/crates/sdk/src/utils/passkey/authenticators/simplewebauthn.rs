@@ -1,6 +1,7 @@
 use crate::client::passkey::actions::passkey::AuthenticationResponseJSON;
 use coset::iana;
 use eyre::Result;
+use log::debug;
 use passkey::{
     authenticator::{Authenticator, UserCheck, UserValidationMethod},
     client::{Client, WebauthnError},
@@ -95,7 +96,7 @@ pub async fn _start_authentication(
     options: CloneablePublicKeyCredentialRequestOptions,
 ) -> Result<AuthenticatedPublicKeyCredential> {
     let rp_id = options.rp_id.unwrap_or_else(|| "1password".to_string());
-    let origin = format!("https://{}", rp_id);
+    let origin = format!("https://{rp_id}");
     let challenge = options.challenge.to_vec();
     let (_, public_key_credential) =
         create_credential(origin, rp_id, challenge).await?;
@@ -242,8 +243,8 @@ async fn create_credential(
     .await
     .map_err(|e| eyre::eyre!("{:?}", e))?;
 
-    println!("Webauthn credential created:\n\n{:?}\n\n", created_cred);
-    println!("Webauthn credential auth'ed:\n\n{:?}\n\n", authed_cred);
+    debug!("Webauthn credential created:\n\n{created_cred:?}\n\n");
+    debug!("Webauthn credential auth'ed:\n\n{authed_cred:?}\n\n");
 
     Ok((created_cred, authed_cred))
 }

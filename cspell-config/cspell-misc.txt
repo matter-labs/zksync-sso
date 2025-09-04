@@ -11,6 +11,7 @@ testid
 vueuse
 dockerized
 ethereum
+sepolia
 foundryup
 
 // examples/bank-demo
@@ -30,6 +31,19 @@ Fren
 fren
 nfts
 
+// auth-server
+oidc
+Oidc
+jwks
+merkle
+
+// zk and circom
+Groth
+groth
+zkey
+snark
+snarkjs
+
 // examples/demo-app
 zkout
 cancun
@@ -37,11 +51,3 @@ EVMLA
 
 // paymasters
 zyfi
-
-// auth-server
-okta
-Okta
-prividium
-Prividium
-PRIVIDIUM
-pkce

@@ -1,3 +1,4 @@
+use crate::utils::anvil_zksync::rich_wallet::RichWallet;
 use alloy::{primitives::Address, signers::local::PrivateKeySigner};
 use alloy_zksync::wallet::ZksyncWallet;
 use serde::{Deserialize, Serialize};
@@ -17,7 +18,13 @@ impl DeployWallet {
 
     pub fn random() -> Self {
         let signer = PrivateKeySigner::random();
-        let private_key_hex = hex::encode(signer.to_bytes());
+        let private_key_hex = alloy::hex::encode(signer.to_bytes());
+        Self { private_key_hex }
+    }
+
+    pub fn rich_wallet() -> Self {
+        let rich_wallet = RichWallet::four();
+        let private_key_hex = rich_wallet.private_key_hex().to_string();
         Self { private_key_hex }
     }
 
@@ -51,7 +58,7 @@ mod tests {
     #[test]
     fn test_random() -> eyre::Result<()> {
         let deploy_wallet = DeployWallet::random();
-        println!("Deploy wallet: {:?}", deploy_wallet);
+        println!("Deploy wallet: {deploy_wallet:?}");
 
         let signer =
             PrivateKeySigner::from_str(&deploy_wallet.private_key_hex)?;

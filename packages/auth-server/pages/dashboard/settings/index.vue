@@ -10,7 +10,9 @@
       <p class="text-yellow-700 mb-4 dark:text-yellow-300">
         Configure your account recovery methods to ensure your account is secure.
       </p>
-      <AddRecoveryMethodModal>
+      <AddRecoveryMethodModal
+        @closed="refreshGuardians"
+      >
         <template #trigger>
           <Button
             class="bg-yellow-500 hover:bg-yellow-600 text-white dark:bg-yellow-600 dark:hover:bg-yellow-700 focus:bg-yellow-600 active:bg-yellow-700 disabled:bg-yellow-500 disabled:text-yellow-300 disabled:dark:bg-yellow-600 disabled:dark:hover:bg-yellow-700 dark:focus:bg-yellow-700 dark:active:bg-yellow-800 focus:ring-yellow-400 dark:focus:ring-yellow-800"
@@ -23,7 +25,7 @@
     <div v-else>
       <div class="space-y-6">
         <Card
-          v-for="method in recoveryMethods"
+          v-for="method in guardianMethods"
           :key="method.address"
           :loading="getGuardiansInProgress && removeGuardianInProgress"
           class="p-6"
@@ -33,7 +35,7 @@
             <div class="space-y-4">
               <div class="flex items-center gap-2">
                 <h3 class="font-semibold text-lg">
-                  {{ method.method }}
+                  Guardian
                 </h3>
                 <span
                   v-if="method.pendingUrl"
@@ -42,7 +44,9 @@
                   (Pending)
                 </span>
               </div>
-              <div class="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+              <div
+                class="flex items-center gap-3 text-gray-600 dark:text-gray-400"
+              >
                 <WalletIcon class="w-5 h-5 flex-shrink-0" />
                 <span class="font-mono text-sm">{{ isMobile ? shortenAddress(method.address) : method.address }}</span>
                 <CopyToClipboard
@@ -76,9 +80,49 @@
               </div>
             </div>
             <Button
+              v-if="method.method === 'Guardian'"
               type="danger"
               class="text-sm lg:w-auto w-full"
               @click="removeGuardian(method.address)"
+            >
+              Remove
+            </Button>
+          </div>
+        </Card>
+
+        <Card
+          v-for="method in activeOidc"
+          :key="method.digest"
+          :loading="getOidcAccountsInProgress"
+          class="p-6"
+        >
+          <div class="flex justify-between lg:flex-row flex-col items-start gap-4">
+            <div class="space-y-4">
+              <div class="flex items-center gap-2">
+                <h3 class="font-semibold text-lg">
+                  Google Recovery
+                </h3>
+              </div>
+              <div
+                class="flex flex-col items-start gap-3 text-gray-600 dark:text-gray-400"
+              >
+                <div class="flex items-center gap-3">
+                  <ShieldCheckIcon class="w-5 h-5 flex-shrink-0" />
+                  <span class="font-mono text-sm">{{ method.iss }}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <SparklesIcon class="w-5 h-5 flex-shrink-0" />
+                  <span class="font-mono text-sm">{{ shortenAddress(method.digest, 6) }}</span>
+                </div>
+              </div>
+              <p class="text-sm text-gray-500 dark:text-gray-500">
+                Added on {{ method.addedOn.toLocaleDateString() }} {{ method.addedOn.toLocaleTimeString() }}
+              </p>
+            </div>
+            <Button
+              type="danger"
+              class="text-sm lg:w-auto w-full"
+              @click="removeOidc"
             >
               Remove
             </Button>
@@ -93,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { WalletIcon } from "@heroicons/vue/24/solid";
+import { ShieldCheckIcon, SparklesIcon, WalletIcon } from "@heroicons/vue/24/solid";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 
 import AddRecoveryMethodModal from "~/components/account-recovery/AddRecoveryMethodModal.vue";
@@ -105,24 +149,61 @@ import { shortenAddress } from "~/utils/formatters";
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
 const { address: accountAddress } = useAccountStore();
-const { getGuardiansInProgress, getGuardians, getGuardiansData, removeGuardian, removeGuardianInProgress } = useRecoveryGuardian();
+const {
+  getGuardiansInProgress,
+  getGuardians,
+  getGuardiansData,
+  removeGuardian,
+  removeGuardianInProgress,
+} = useRecoveryGuardian();
+const {
+  getOidcAccounts,
+  oidcAccounts,
+  getOidcAccountsInProgress,
+  removeOidcAccount,
+} = useRecoveryOidc();
 
-const recoveryMethods = computed(() => (getGuardiansData.value ?? []).map((x) => ({
+const config = useRuntimeConfig();
+
+const appUrl = config.public.appUrl;
+
+const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
+  return {
+    method: "OIDC",
+    iss: oidcData.iss,
+    digest: oidcData.oidcDigest,
+    addedOn: new Date(Number(oidcData.addedOn) * 1000),
+  };
+}));
+
+const guardianMethods = computed(() => (getGuardiansData.value ?? []).map((guardian) => ({
   method: "Guardian",
-  address: x.addr,
+  address: guardian.addr,
   addedOn: new Date(),
-  ...(!x.isReady && { pendingUrl: new URL(`/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${x.addr}`, window.location.origin).toString() }),
+  ...(!guardian.isReady && { pendingUrl: `${appUrl}/recovery/guardian/confirm-guardian?accountAddress=${accountAddress}&guardianAddress=${guardian.addr}` }),
 })));
+
+const recoveryMethods = computed(() => [
+  ...guardianMethods.value,
+  ...activeOidc.value,
+]);
 
 const refreshGuardians = () => {
   if (accountAddress) {
     getGuardians(accountAddress);
+    getOidcAccounts(accountAddress);
   }
 };
+
+async function removeOidc() {
+  await removeOidcAccount();
+  refreshGuardians();
+}
 
 watchEffect(async () => {
   if (accountAddress) {
     await getGuardians(accountAddress);
+    await getOidcAccounts(accountAddress);
   }
 });
 </script>

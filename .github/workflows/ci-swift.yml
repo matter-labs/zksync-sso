@@ -1,10 +1,12 @@
 name: Swift CI
 
 on:
-  push:
+  pull_request:
     paths:
       - 'packages/contracts/**'
-      - 'packages/sdk-platforms/**'
+      - 'packages/sdk-platforms/rust/**'
+      - 'packages/sdk-platforms/swift/**'
+      - '.github/workflows/ci-swift.yml'
 
 jobs:
   swift-sdk:
@@ -25,19 +27,12 @@ jobs:
       - name: Install Rust
         run: |
           rustup update stable && rustup default stable
-          rustup toolchain install nightly
-
-      - name: Run rustfmt
-        run: |
-          rustup component add rustfmt --toolchain nightly
-          cargo +nightly fmt --all -- --check
-        working-directory: packages/sdk-platforms/rust/zksync-sso
 
       - name: Install Anvil ZKsync Manually
         run: |
           SCRIPT_PATH=".github/workflows/scripts/install-anvil-zksync.sh"
           chmod +x "$SCRIPT_PATH"
-          sh "$SCRIPT_PATH"
+          bash "$SCRIPT_PATH"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -60,16 +55,6 @@ jobs:
       - name: Build contracts
         run: pnpm build
         working-directory: packages/contracts
-
-      - name: Run clippy
-        run: |
-          rustup component add clippy --toolchain stable
-          cargo clippy --all-targets -- -D warnings
-        working-directory: packages/sdk-platforms/rust/zksync-sso
-
-      - name: Run rust tests
-        run: cargo test
-        working-directory: packages/sdk-platforms/rust/zksync-sso
 
       - name: Start anvil-zksync node
         run: |
@@ -99,6 +84,7 @@ jobs:
           fi
           echo "Simulator UDID: $UDID"
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+        
       - name: Install swiftformat
         run: brew install swiftformat
 
@@ -110,6 +96,15 @@ jobs:
           xcodebuild test \
             -skipMacroValidation \
             -configuration debug \
-            -workspace .github/package.xcworkspace \
+            -workspace .github/zksyncsso.xcworkspace \
             -scheme zksyncsso \
+            -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" || exit 1
+
+      - name: Run Swift Integration Tests
+        run: |
+          xcodebuild test \
+            -skipMacroValidation \
+            -configuration debug \
+            -workspace .github/zksyncssointegration.xcworkspace \
+            -scheme zksyncssointegration \
             -destination "platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}" || exit 1

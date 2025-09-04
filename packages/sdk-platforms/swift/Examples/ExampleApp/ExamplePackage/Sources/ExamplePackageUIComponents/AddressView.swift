@@ -3,11 +3,11 @@ import SwiftUI
 public struct AddressView: View {
     let address: String
     @State private var showingCopiedFeedback = false
-    
+
     public init(address: String) {
         self.address = address
     }
-    
+
     public var body: some View {
         Text(address)
             .lineLimit(1)
@@ -48,4 +48,4 @@ public struct AddressView: View {
 #Preview {
     AddressView(address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
         .padding()
-} 
+}

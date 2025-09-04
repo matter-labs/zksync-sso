@@ -19,7 +19,7 @@ impl Default for MoneyFormatter {
     fn default() -> Self {
         match Self::new("en-US") {
             Ok(formatter) => formatter,
-            Err(e) => panic!("Failed to create default formatter: {}", e),
+            Err(e) => panic!("Failed to create default formatter: {e}"),
         }
     }
 }
@@ -27,7 +27,7 @@ impl Default for MoneyFormatter {
 impl MoneyFormatter {
     pub fn new(locale_id: &str) -> Result<Self, String> {
         let locale: Locale =
-            locale_id.parse().map_err(|e| format!("Invalid locale: {}", e))?;
+            locale_id.parse().map_err(|e| format!("Invalid locale: {e}"))?;
 
         let options = FixedDecimalFormatterOptions::default();
 
@@ -37,7 +37,7 @@ impl MoneyFormatter {
             &locale.clone().into(),
             options,
         )
-        .map_err(|e| format!("Failed to create decimal formatter: {}", e))?;
+        .map_err(|e| format!("Failed to create decimal formatter: {e}"))?;
 
         Ok(Self { locale, decimal_formatter, display_decimals: None })
     }
@@ -52,24 +52,22 @@ impl MoneyFormatter {
         target_decimals: i16,
         currency_decimals: i16,
     ) {
-        println!("XDB - adjust_precision: initial decimal={}", decimal);
+        println!("XDB - adjust_precision: initial decimal={decimal}");
         println!(
-            "XDB - adjust_precision: target_decimals={}, currency_decimals={}",
-            target_decimals, currency_decimals
+            "XDB - adjust_precision: target_decimals={target_decimals}, currency_decimals={currency_decimals}"
         );
 
         decimal.multiply_pow10(-currency_decimals);
-        println!("XDB - adjust_precision: after minor to major={}", decimal);
+        println!("XDB - adjust_precision: after minor to major={decimal}");
 
         let round_position = -target_decimals;
         decimal.half_even(round_position);
         println!(
-            "XDB - adjust_precision: after half_even at {}={}",
-            round_position, decimal
+            "XDB - adjust_precision: after half_even at {round_position}={decimal}"
         );
 
         decimal.pad_end(target_decimals);
-        println!("XDB - adjust_precision: after pad_end={}", decimal);
+        println!("XDB - adjust_precision: after pad_end={decimal}");
     }
 
     pub fn format(&self, money: &Money) -> String {
@@ -82,15 +80,14 @@ impl MoneyFormatter {
         let minor_value = money.minor_value().to_string();
         let mut decimal =
             FixedDecimal::from_str(&minor_value).expect("Valid decimal");
-        println!("XDB - format: initial decimal={}", decimal);
+        println!("XDB - format: initial decimal={decimal}");
 
         let currency_decimals = money.decimals() as i16;
-        println!("XDB - format: currency_decimals={}", currency_decimals);
+        println!("XDB - format: currency_decimals={currency_decimals}");
 
         if let Some(display_decimals) = self.display_decimals {
             println!(
-                "XDB - format: applying precision with display_decimals={}",
-                display_decimals
+                "XDB - format: applying precision with display_decimals={display_decimals}"
             );
             Self::adjust_precision(
                 &mut decimal,
@@ -103,13 +100,13 @@ impl MoneyFormatter {
             );
             decimal.multiply_pow10(-currency_decimals);
         }
-        println!("XDB - format: final decimal before formatting={}", decimal);
+        println!("XDB - format: final decimal before formatting={decimal}");
 
         let formatted = self.decimal_formatter.format(&decimal).to_string();
-        println!("XDB - format: ICU formatted={}", formatted);
+        println!("XDB - format: ICU formatted={formatted}");
 
         let result = format!("{} {}", formatted, money.symbol());
-        println!("XDB - format: final result={}", result);
+        println!("XDB - format: final result={result}");
         result
     }
 }

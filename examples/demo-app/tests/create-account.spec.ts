@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 async function waitForServicesToLoad(page: Page): Promise<void> {
   const maxRetryAttempts = 10;
@@ -368,4 +368,109 @@ test("Create passkey account and send ETH with paymaster", async ({ page }) => {
     .replace(" ETH", "");
   await expect(startBalance, "Balance after transfer should be 0.1 ETH less (no fees)")
     .toEqual(endBalance + 0.1);
+});
+
+test("Create passkey account and sign typed data", async ({ page }) => {
+  // Click the Connect button
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+
+  // Ensure popup is displayed
+  await page.waitForTimeout(2000);
+  let popup = page.context().pages()[1];
+  await expect(popup.getByText("Connect to")).toBeVisible();
+  popup.on("console", (msg) => {
+    if (msg.type() === "error")
+      console.log(`Auth server error console: "${msg.text()}"`);
+  });
+  popup.on("pageerror", (exception) => {
+    console.log(`Auth server uncaught exception: "${exception}"`);
+  });
+
+  // Setup webauthn a Chrome Devtools Protocol session
+  // NOTE: This needs to be done for every page of every test that uses WebAuthn
+  let client = await popup.context().newCDPSession(popup);
+  await client.send("WebAuthn.enable");
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+  let newCredential = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    console.log("New Passkey credential added");
+    console.log(`Authenticator ID: ${credentialAdded.authenticatorId}`);
+    console.log(`Credential: ${credentialAdded.credential}`);
+    newCredential = credentialAdded.credential;
+  });
+
+  // Click Sign Up
+  await popup.getByTestId("signup").click();
+
+  // Confirm access to your account
+  await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
+  await expect(popup.getByText("localhost:3004")).toBeVisible();
+  await expect(popup.getByText("Let it see your address, balance and activity")).toBeVisible();
+  await popup.getByTestId("connect").click();
+
+  // Waits for session to complete and popup to close
+  await page.waitForTimeout(2000);
+
+  // Check address/balance is shown
+  await expect(page.getByText("Disconnect")).toBeVisible();
+  await expect(page.getByText("Balance:")).toBeVisible();
+
+  // Verify typed data section is visible
+  await expect(page.getByText("Typed Data Signature Verification")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign Typed Data" })).toBeVisible();
+
+  // Click Sign Typed Data button
+  await page.getByRole("button", { name: "Sign Typed Data" }).click();
+
+  // Wait for Auth Server popup to open
+  await page.waitForTimeout(2000);
+  popup = page.context().pages()[1];
+
+  // We need to recreate the virtual authenticator to match the previous one
+  client = await popup.context().newCDPSession(popup);
+  await client.send("WebAuthn.enable");
+  const result = await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+  await expect(newCredential).not.toBeNull();
+  await client.send("WebAuthn.addCredential", {
+    authenticatorId: result.authenticatorId,
+    credential: newCredential!,
+  });
+
+  // Verify the sign typed data popup content
+  await expect(popup.getByText("Sign Typed Data Request")).toBeVisible();
+  await expect(popup.getByText("Message (TestStruct)", { exact: true })).toBeVisible();
+
+  // Click Sign button in the popup
+  await popup.getByTestId("confirm").click();
+
+  // Wait for signature to complete and popup to close
+  await page.waitForTimeout(3000);
+
+  // Verify signature appears on main page
+  await expect(page.getByText("Signature:")).toBeVisible();
+
+  // Wait for signature verification to complete
+  await page.waitForTimeout(2000);
+
+  // Verify signature validation shows as successful
+  await expect(page.getByText("Typed Data Verification Result:")).toBeVisible();
+  await expect(page.getByText("Valid ✓")).toBeVisible();
 });

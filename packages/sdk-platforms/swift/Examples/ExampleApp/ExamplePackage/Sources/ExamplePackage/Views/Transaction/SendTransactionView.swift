@@ -2,38 +2,53 @@ import ExamplePackageUIComponents
 import SwiftUI
 import ZKsyncSSO
 
-struct SendTransactionView: View {
-    
-    let fromAccount: DeployedAccount
-    
-    @Environment(\.dismiss) private var dismiss
-  
-    @Environment(\.authorizationController) private var authorizationController
+struct TransactionConfiguration {
 
-    @State private var toAddress: String = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
-    @State private var amount: String = "1.0"
+    typealias PrepareTransactionFn = (String, String) async throws -> PreparedTransaction
+    typealias ConfirmTransactionFn = (String, String) async throws -> Void
+
+    let title: String
+    let buttonTitle: String
+    let buttonProgressTitle: String
+    let initialToAddress: String
+    let initialAmount: String
+    let prepareTransaction: PrepareTransactionFn
+    let confirmTransaction: ConfirmTransactionFn
+}
+
+struct SendTransactionView: View {
+    let configuration: TransactionConfiguration
+    let fromAddress: String
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var toAddress: String
+    @State private var amount: String
     @State private var isConfirming = false
-    @State private var error: String?
+    @State private var error: UIError?
     @State private var showingSuccess = false
     @State private var preparedTransaction: PreparedTransaction?
     @State private var isPreparing = false
-    
+
     private let onTransactionSent: () -> Void
 
     init(
-        fromAccount: DeployedAccount,
+        configuration: TransactionConfiguration,
+        fromAddress: String,
         onTransactionSent: @escaping () -> Void = {}
     ) {
-        print("Initializing SendTransactionView")
-        self.fromAccount = fromAccount
+        self.configuration = configuration
+        self.fromAddress = fromAddress
         self.onTransactionSent = onTransactionSent
+        self._toAddress = State(initialValue: configuration.initialToAddress)
+        self._amount = State(initialValue: configuration.initialAmount)
     }
 
     var body: some View {
         NavigationView {
             Form {
                 TransactionFormFields(
-                    fromAddress: fromAccount.address,
+                    fromAddress: fromAddress,
                     toAddress: $toAddress,
                     amount: $amount
                 )
@@ -48,14 +63,19 @@ struct SendTransactionView: View {
                 if let error = error {
                     Section {
                         Button {
-                            UIPasteboard.general.string = error
+                            #if os(iOS)
+                                UIPasteboard.general.string = error.message
+                            #elseif os(macOS)
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(error.message, forType: .string)
+                            #endif
                         } label: {
                             HStack {
-                                Text(error)
+                                Text(error.message)
                                     .foregroundStyle(.red)
-                                
+
                                 Spacer()
-                                
+
                                 Image(systemName: "doc.on.doc")
                                     .foregroundStyle(.secondary)
                                     .font(.system(size: 14))
@@ -65,8 +85,8 @@ struct SendTransactionView: View {
                 }
 
                 ActionButton(
-                    title: "Send Transaction",
-                    progressTitle: "Sending Transaction...",
+                    title: configuration.buttonTitle,
+                    progressTitle: configuration.buttonProgressTitle,
                     icon: "paperplane.circle.fill",
                     isLoading: isConfirming || isPreparing,
                     isDisabled: !isValidInput || preparedTransaction == nil,
@@ -83,10 +103,10 @@ struct SendTransactionView: View {
                     )
                 }
             }
-            .id("SendTransactionView")
-            .onAppear { print("SendTransactionView appeared") }
-            .navigationTitle("Send Transaction")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(configuration.title)
+            #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -95,14 +115,14 @@ struct SendTransactionView: View {
                 }
             }
         }
-        .onChange(of: toAddress) { _ in
+        .onChange(of: toAddress) { _, _ in
             prepareTransaction()
         }
-        .onChange(of: amount) { _ in
+        .onChange(of: amount) { _, _ in
             prepareTransaction()
         }
         .task {
-            await prepareTransaction()
+            prepareTransaction()
         }
     }
 
@@ -112,103 +132,39 @@ struct SendTransactionView: View {
     }
 
     private func prepareTransaction() {
-        print("prepareTransaction")
         guard isValidInput else {
-            print("isValidInput")
             preparedTransaction = nil
             return
         }
 
-        guard let amountInEth = Double(amount) else {
-            print("prepareTransaction invalid amount")
+        guard Double(amount) != nil else {
             return
         }
-        print("prepareTransaction amountInEth: \(amountInEth)")
-      
-        let amountInWei = String(Int(amountInEth * 1_000_000_000_000_000_000.0))
-      
-        print("prepareTransaction amountInWei: \(amountInWei)")
-        
-        let authenticator = PasskeyAuthenticatorHelper(
-            controllerProvider: { self.authorizationController },
-            relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
-        )
-        
-        let accountClient = AccountClient(
-            account: .init(
-                address: fromAccount.address,
-                uniqueAccountId: fromAccount.uniqueAccountId
-            ),
-            authenticatorAsync: PasskeyAuthAsync(
-                authenticator: authenticator
-            )
-        )
 
         Task {
             isPreparing = true
             defer { isPreparing = false }
 
             do {
-                let transaction = TransactionRequest(
-                    to: toAddress,
-                    value: amountInWei
-                )
-              
-                print("prepareTransaction transaction: \(transaction)")
-                
-                let prepared = try await accountClient.prepare(
-                    transaction: transaction
-                )
-              
-                print("prepareTransaction prepared: \(prepared)")
-                
-                print(
-                    "Prepared transaction JSON: \(prepared.transactionRequestJson)"
-                )
-                preparedTransaction = prepared
+                preparedTransaction = try await configuration.prepareTransaction(toAddress, amount)
                 error = nil
             } catch {
-                self.error = error.localizedDescription
+                self.error = UIError(from: error)
                 preparedTransaction = nil
-                print("Error preparing transaction: \(error)")
             }
         }
     }
 
     private func confirmTransaction() {
-        print("confirmTransaction")
-        guard let amountInEth = Double(amount) else { return }
-        
-        let amountInWei = String(Int(amountInEth * 1_000_000_000_000_000_000.0))
+        guard Double(amount) != nil else { return }
 
         isConfirming = true
         error = nil
-        
-        let authenticator = PasskeyAuthenticatorHelper(
-            controllerProvider: { self.authorizationController },
-            relyingPartyIdentifier: "soo-sdk-example-pages.pages.dev"
-        )
-        
-        let accountClient = AccountClient(
-            account: .init(
-                address: fromAccount.address,
-                uniqueAccountId: fromAccount.uniqueAccountId
-            ),
-            authenticatorAsync: PasskeyAuthAsync(
-                authenticator: authenticator
-            )
-        )
 
         Task {
             do {
-                print("going to call accountClient.send")
-                try await accountClient.send(
-                    transaction: .init(
-                        to: toAddress,
-                        value: amountInWei
-                    )
-                )
-                
+                try await configuration.confirmTransaction(toAddress, amount)
+
                 withAnimation {
                     showingSuccess = true
                 }
@@ -219,25 +175,59 @@ struct SendTransactionView: View {
 
                 dismiss()
             } catch {
-                self.error = error.localizedDescription
-                print(error)
+                self.error = UIError(from: error)
                 isConfirming = false
-                print("Error preparing transaction: \(error)")
             }
         }
     }
 }
 
-#Preview {
+#Preview("Regular Transaction") {
     SendTransactionView(
-        fromAccount: .init(
-            info: .init(
-                name: "Jane Doe",
-                userID: "jdoe@example.com",
-                domain: "example.com"
-            ),
-            address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-            uniqueAccountId: "jdoe@example.com"
-        )
+        configuration: TransactionConfiguration(
+            title: "Send Transaction",
+            buttonTitle: "Send Transaction",
+            buttonProgressTitle: "Sending Transaction...",
+            initialToAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            initialAmount: "1.0",
+            prepareTransaction: { _, _ in
+                PreparedTransaction(
+                    transactionRequestJson: "{}",
+                    from: "",
+                    to: "",
+                    value: "",
+                    displayFee: "0.001 ETH",
+                )
+            },
+            confirmTransaction: { _, _ in
+                // Mock implementation
+            }
+        ),
+        fromAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f62411"
+    )
+}
+
+#Preview("Session Transaction") {
+    SendTransactionView(
+        configuration: TransactionConfiguration(
+            title: "Send Session Transaction",
+            buttonTitle: "Send Transaction",
+            buttonProgressTitle: "Sending Transaction...",
+            initialToAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            initialAmount: "0.5",
+            prepareTransaction: { _, _ in
+                PreparedTransaction(
+                    transactionRequestJson: "{}",
+                    from: "",
+                    to: "",
+                    value: "",
+                    displayFee: "0.001 ETH",
+                )
+            },
+            confirmTransaction: { _, _ in
+                // Mock implementation
+            }
+        ),
+        fromAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f62411"
     )
 }

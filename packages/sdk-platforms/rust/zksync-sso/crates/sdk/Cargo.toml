@@ -17,8 +17,11 @@ futures.workspace = true
 alloy.workspace = true
 alloy-zksync.workspace = true
 
-# signer
-k256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
+# Ruint (for UintTryFrom trait)
+ruint.workspace = true
+
+# Signer
+k256.workspace = true
 
 # Passkey support
 passkey-types.workspace = true
@@ -27,8 +30,8 @@ passkey.workspace = true
 passkey-authenticator.workspace = true
 public-suffix.workspace = true
 
+# Randomness
 rand.workspace = true
-hex.workspace = true
 
 # Serialization
 serde.workspace = true
@@ -37,34 +40,33 @@ serde_json.workspace = true
 # Error handling
 eyre.workspace = true
 
-# passkey support
-coset = "0.3"
-
 # Hashing
-sha2 = "0.10"
-sha3 = "0.10.8"
+sha2.workspace = true
+sha3.workspace = true
 
 # URL handling
 url = { workspace = true, features = ["serde"] }
 
+# passkey support
+coset.workspace = true
+
 # CBOR
-serde_cbor = "0.11"
-ciborium = { version = "^0.2.1", default-features = false }
-ciborium-io = { version = "^0.2.0", features = ["alloc"] }
+serde_cbor.workspace = true
+ciborium.workspace = true
+ciborium-io.workspace = true
 
 # Base64
 base64-url.workspace = true
 base64.workspace = true
 
 # DER
-der = { version = "0.7", features = ["alloc"] }
-der_derive = "0.7"
-
-# Mocking
-mockall = { version = "0.13.1" }
-scopeguard = { version = "1.2.0" }
+der.workspace = true
+der_derive.workspace = true
 
 # Logging
 log.workspace = true
 
 [dev-dependencies]
+# Mocking
+mockall.workspace = true
+scopeguard.workspace = true

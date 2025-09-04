@@ -16,22 +16,6 @@ export const SsoAccountAbi = [
     type: "error",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "actualValue",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "expectedValue",
-        type: "uint256",
-      },
-    ],
-    name: "BATCH_MSG_VALUE_MISMATCH",
-    type: "error",
-  },
-  {
     inputs: [],
     name: "FEE_PAYMENT_FAILED",
     type: "error",
@@ -108,6 +92,22 @@ export const SsoAccountAbi = [
   {
     inputs: [],
     name: "METHOD_NOT_IMPLEMENTED",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "actualValue",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "expectedValue",
+        type: "uint256",
+      },
+    ],
+    name: "MSG_VALUE_MISMATCH",
     type: "error",
   },
   {
@@ -376,7 +376,7 @@ export const SsoAccountAbi = [
             type: "bytes",
           },
         ],
-        internalType: "struct Call[]",
+        internalType: "struct IBatchCaller.Call[]",
         name: "_calls",
         type: "tuple[]",
       },
@@ -384,6 +384,49 @@ export const SsoAccountAbi = [
     name: "batchCall",
     outputs: [],
     stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "eip712Domain",
+    outputs: [
+      {
+        internalType: "bytes1",
+        name: "fields",
+        type: "bytes1",
+      },
+      {
+        internalType: "string",
+        name: "name",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "version",
+        type: "string",
+      },
+      {
+        internalType: "uint256",
+        name: "chainId",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "verifyingContract",
+        type: "address",
+      },
+      {
+        internalType: "bytes32",
+        name: "salt",
+        type: "bytes32",
+      },
+      {
+        internalType: "uint256[]",
+        name: "extensions",
+        type: "uint256[]",
+      },
+    ],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -678,7 +721,7 @@ export const SsoAccountAbi = [
     outputs: [
       {
         internalType: "bytes4",
-        name: "magicValue",
+        name: "result",
         type: "bytes4",
       },
     ],
@@ -728,6 +771,29 @@ export const SsoAccountAbi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "target",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "value",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "callData",
+        type: "bytes",
+      },
+    ],
+    name: "noHooksCall",
+    outputs: [],
+    stateMutability: "payable",
     type: "function",
   },
   {

@@ -10,21 +10,26 @@ let package = Package(
     products: [
         .library(
             name: "ExamplePackage",
-            targets: ["ExamplePackage"]),
+            targets: ["ExamplePackage"]
+        ),
     ],
     dependencies: [
-       .package(path: "../../../ZKsyncSSO/")
+        .package(path: "../../../ZKsyncSSO/"),
+        .package(path: "../../../ZKsyncSSOIntegration/"),
     ],
     targets: [
         .target(
             name: "ExamplePackage",
             dependencies: [
-              "ZKsyncSSO",
-              "ExamplePackageUIComponents",
-            ]),
+                "ZKsyncSSO",
+                "ZKsyncSSOIntegration",
+                "ExamplePackageUIComponents",
+            ]
+        ),
         .target(
             name: "ExamplePackageUIComponents",
-            dependencies: []),
+            dependencies: []
+        ),
         .testTarget(
             name: "ExamplePackageTests",
             dependencies: ["ExamplePackage"]

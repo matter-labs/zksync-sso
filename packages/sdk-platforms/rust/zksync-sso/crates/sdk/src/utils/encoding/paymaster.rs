@@ -1,5 +1,4 @@
 use alloy::{primitives::Bytes, sol, sol_types::SolCall};
-use eyre::Result;
 
 sol! {
     #[derive(Debug)]
@@ -15,14 +14,14 @@ sol! {
     }
 }
 
-pub fn generate_paymaster_input(inner_input: Option<Bytes>) -> Result<Bytes> {
+pub fn generate_paymaster_input(inner_input: Option<Bytes>) -> Bytes {
     let inner_input = inner_input.unwrap_or_default();
 
     let general_call = IPaymaster::generalCall { input: inner_input };
 
     let encoded_bytes = general_call.abi_encode();
 
-    Ok(encoded_bytes.into())
+    encoded_bytes.into()
 }
 
 #[cfg(test)]
@@ -30,8 +29,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_generate_paymaster_input_empty() -> Result<()> {
-        let result = generate_paymaster_input(None)?;
+    fn test_generate_paymaster_input_empty() -> eyre::Result<()> {
+        let result = generate_paymaster_input(None);
 
         assert!(!result.is_empty(), "Result should not be empty");
         assert!(
@@ -43,9 +42,9 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_paymaster_input_with_data() -> Result<()> {
+    fn test_generate_paymaster_input_with_data() -> eyre::Result<()> {
         let input = Bytes::from_static(&[1, 2, 3, 4]);
-        let result = generate_paymaster_input(Some(input))?;
+        let result = generate_paymaster_input(Some(input));
 
         assert!(!result.is_empty(), "Result should not be empty");
         assert!(

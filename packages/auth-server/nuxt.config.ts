@@ -25,6 +25,11 @@ export default defineNuxtConfig({
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       ],
+      script: [
+        {
+          src: "/snarkjs.min.js",
+        },
+      ],
     },
   },
   ssr: false,
@@ -66,19 +71,18 @@ export default defineNuxtConfig({
     public: {
       chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncSepoliaTestnet.id,
       [zksyncInMemoryNode.id]: {
-        nftQuestAddress: "0x4B5DF730c2e6b28E17013A1485E5d9BC41Efe021",
+        nftQuestAddress: "0x1325100533fbd113f82c52626944DC3332360A57",
       },
       [zksyncSepoliaTestnet.id]: {
         nftQuestAddress: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
       },
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
-      prividiumMode: process.env.PRIVIDIUM_MODE === "true",
-      okta: {
-        issuer: process.env.NUXT_PUBLIC_OKTA_ISSUER || "",
-        clientId: process.env.NUXT_PUBLIC_OKTA_CLIENT_ID || "",
-        redirectUri: process.env.NUXT_PUBLIC_OKTA_REDIRECT_URI || "",
-        proxyUrl: process.env.NUXT_PUBLIC_PROXY_URL || "",
+      oidc: {
+        googlePublicClient: "69763429492-f7nl555i50akmail80pid3m4hhsg7u2n.apps.googleusercontent.com",
+        saltServiceUrl: process.env.NUXT_PUBLIC_SALT_SERVICE_URL || "https://sso-oidc.zksync.dev/salt",
+        zkeyUrl: process.env.NUXT_PUBLIC_ZKEY_URL || "https://sso-oidc.zksync.dev/zkey",
+        witnessUrl: process.env.NUXT_PUBLIC_WITNESS_WASM_URL || "https://sso-oidc.zksync.dev/witness",
       },
     },
   },

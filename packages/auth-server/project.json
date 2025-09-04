@@ -6,19 +6,33 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "command": "PORT=5173 nuxt dev"
+        "command": "pnpm run copy:snarkjs && PORT=3002 nuxt dev"
       },
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "zksync-sso-contracts:deploy", "nft-quest-contracts:deploy:local"]
+    },
+    "dev:all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "commands": ["pnpm nx run auth-server:dev ", "pnpm nx run zksync-sso-oidc-server:dev:all"],
+        "parallel": true
+      }
     },
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "commands": [
-          {
-            "command": "pnpm nuxt generate"
-          }
-        ]
+        "commands": [{ "command": "pnpm nuxt generate" }]
+      },
+      "inputs": ["default", "{projectRoot}/scripts/copy-snarkjs.mjs"],
+      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": ["copy-snarkjs", "^build"]
+    },
+    "copy-snarkjs": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "pnpm run copy:snarkjs"
       }
     },
     "build:local": {
@@ -27,7 +41,7 @@
         "cwd": "packages/auth-server",
         "command": "pnpm nuxt generate --envName local"
       },
-      "dependsOn": ["^build"]
+      "dependsOn": ["copy-snarkjs", "^build"]
     },
     "preview": {
       "executor": "nx:run-commands",

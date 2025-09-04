@@ -4,7 +4,23 @@ set -euo pipefail
 
 REPO_URL="https://github.com/matter-labs/anvil-zksync.git"
 RELEASE_VERSION="v0.6.3"
-RELEASE_FILE_NAME="anvil-zksync-${RELEASE_VERSION}-aarch64-apple-darwin.tar.gz"
+
+# Detect platform
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    RELEASE_FILE_NAME="anvil-zksync-${RELEASE_VERSION}-aarch64-apple-darwin.tar.gz"
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "x86_64" ]]; then
+        RELEASE_FILE_NAME="anvil-zksync-${RELEASE_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+    else
+        echo "Error: Unsupported Linux architecture: $ARCH" >&2
+        exit 1
+    fi
+else
+    echo "Error: Unsupported OS: $OSTYPE" >&2
+    exit 1
+fi
+
 RELEASE_URL="https://github.com/matter-labs/anvil-zksync/releases/download/${RELEASE_VERSION}/${RELEASE_FILE_NAME}"
 INSTALL_DIR="/usr/local/bin"
 TEMP_DIR="$(mktemp -d)"

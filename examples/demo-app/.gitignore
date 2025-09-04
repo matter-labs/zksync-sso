@@ -23,3 +23,5 @@ logs
 .env.*
 !.env.example
 forge-output.json
+forge-output-paymaster.json
+forge-output-erc1271.json

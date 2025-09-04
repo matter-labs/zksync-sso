@@ -10,23 +10,28 @@ let package = Package(
     products: [
         .library(
             name: "ZKsyncSSO",
-            targets: ["ZKsyncSSO"])
+            targets: ["ZKsyncSSO"]
+        ),
     ],
     targets: [
         .target(
             name: "ZKsyncSSO",
             dependencies: ["ZKsyncSSOFFI"],
             resources: [
-                .copy("Config/config.json")
-            ]),
+                .copy("Config/config.json"),
+            ]
+        ),
         .target(
             name: "ZKsyncSSOFFI",
-            dependencies: ["ZKsyncSSOCore"]),
+            dependencies: ["ZKsyncSSOCore"]
+        ),
         .binaryTarget(
             name: "ZKsyncSSOCore",
-            path: "../../rust/zksync-sso/crates/ffi/out/ZKsyncSSOCore.xcframework"),
+            path: "../../rust/zksync-sso/crates/ffi/out/ZKsyncSSOCore.xcframework"
+        ),
         .testTarget(
             name: "ZKsyncSSOTests",
-            dependencies: ["ZKsyncSSO"]),
+            dependencies: ["ZKsyncSSO"]
+        ),
     ]
 )
