@@ -22,7 +22,7 @@ jobs:
     runs-on: [matterlabs-ci-runner]
     # Only run docker build/push for the main repository, not forks
     # Allow manual dispatch from any repository
-    if: github.repository == 'matter-labs/zksync-sso' || github.event_name == 'workflow_dispatch'
+    if: github.repository == 'matter-labs/zksync-sso' || (github.event_name == 'workflow_dispatch' && github.repository == 'matter-labs/zksync-sso')
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
