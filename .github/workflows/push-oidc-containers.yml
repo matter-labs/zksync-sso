@@ -42,8 +42,6 @@ jobs:
             echo "tag=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "tag=none" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=manual-${{ steps.git_sha.outputs.sha_short }}-${ts}" >> $GITHUB_OUTPUT
           else
             echo "Unsupported event ${GITHUB_EVENT_NAME} or ref ${GITHUB_REF}, only refs/heads/, refs/tags/, pull_request, and workflow_dispatch are supported."
             exit 1
