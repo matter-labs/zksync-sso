@@ -112,14 +112,7 @@ import { getGeneralPaymasterInput, zksyncInMemoryNode } from "viem/zksync";
 import PaymasterContract from "../forge-output-paymaster.json";
 import ERC1271CallerContract from "../forge-output-erc1271.json";
 
-const chain = {
-  ...zksyncInMemoryNode,
-  rpcUrls: {
-    default: {
-      http: ["http://localhost:8545"],
-    },
-  },
-};
+const chain = zksyncInMemoryNode;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 
@@ -128,7 +121,7 @@ const publicClient = createPublicClient({
   transport: http(),
 });
 const zksyncConnectorWithSession = zksyncSsoConnector({
-  authServerUrl: "http://localhost:5173/confirm",
+  authServerUrl: "http://localhost:3002/confirm",
   session: {
     feeLimit: parseEther("0.1"),
     transfers: [
@@ -140,7 +133,7 @@ const zksyncConnectorWithSession = zksyncSsoConnector({
   },
 });
 const zksyncConnector = zksyncSsoConnector({
-  authServerUrl: "http://localhost:5173/confirm",
+  authServerUrl: "http://localhost:3002/confirm",
 });
 const wagmiConfig = createConfig({
   chains: [chain],
