@@ -6,3 +6,5 @@ sepolia
 Zeek
 zksync
 ZKsync
+Prividium
+prividium
