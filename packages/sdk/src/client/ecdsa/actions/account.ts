@@ -79,6 +79,7 @@ export const deployAccount = async <
       [encodedSessionKeyModuleData],
       [args.owner],
     ],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 
   if (args.paymaster) {

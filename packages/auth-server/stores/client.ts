@@ -43,7 +43,7 @@ export const chainParameters: Record<SupportedChainId, { blockTime: number }> = 
 export const useClientStore = defineStore("client", () => {
   const runtimeConfig = useRuntimeConfig();
   const { address, username, passkey } = storeToRefs(useAccountStore());
-  const { getBearerToken } = useOktaAuthStore();
+  const prividiumAuthStore = usePrividiumAuthStore();
 
   const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
   const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
@@ -53,18 +53,11 @@ export const useClientStore = defineStore("client", () => {
   // Create transport with or without authentication based on Prividium mode
   const createTransport = () => {
     if (runtimeConfig.public.prividiumMode) {
-      const bearerToken = getBearerToken();
-      if (!bearerToken) {
-        throw new Error("Bearer token is required for Prividium mode");
+      const prividiumTransport = prividiumAuthStore.getTransport();
+      if (!prividiumTransport) {
+        throw new Error("Prividium transport not available. User may need to authenticate.");
       }
-
-      return http(runtimeConfig.public.okta.proxyUrl, {
-        fetchOptions: {
-          headers: {
-            Authorization: `Bearer ${bearerToken}`,
-          },
-        },
-      });
+      return prividiumTransport;
     }
 
     return http();

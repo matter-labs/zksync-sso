@@ -19,14 +19,14 @@
                   {{ shortenAddress(address!) }}
                 </button>
               </ZkTooltip>
-              <!-- Secondary: Okta info -->
+              <!-- Secondary: Authentication info -->
               <div
                 v-if="isPrividiumMode && isAuthenticated"
                 class="flex items-center space-x-1 mt-1"
               >
                 <div class="w-1 h-1 bg-green-500 rounded-full" />
                 <span class="text-xs text-neutral-500 dark:text-neutral-400">
-                  {{ userEmail || "Unknown" }}
+                  {{ profile?.displayName || profile?.userId || "Unknown" }}
                 </span>
               </div>
             </div>
@@ -48,7 +48,7 @@ import Web3Avatar from "web3-avatar-vue";
 
 const { address } = storeToRefs(useAccountStore());
 const { $config } = useNuxtApp();
-const { isAuthenticated, userEmail } = storeToRefs(useOktaAuthStore());
+const { isAuthenticated, profile } = storeToRefs(usePrividiumAuthStore());
 
 const isPrividiumMode = computed(() => $config.public.prividiumMode);
 

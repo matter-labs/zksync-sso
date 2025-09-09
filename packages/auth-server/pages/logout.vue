@@ -40,7 +40,7 @@
 <script setup lang="ts">
 const runtimeConfig = useRuntimeConfig();
 const { logout } = useAccountStore();
-const { signOut } = useOktaAuth();
+const prividiumAuthStore = usePrividiumAuthStore();
 
 const processing = ref(true);
 const error = ref<string | null>(null);
@@ -54,9 +54,12 @@ const processLogout = async () => {
     logout();
 
     if (runtimeConfig.public.prividiumMode) {
-      // Sign out from Okta (this will redirect automatically)
-      await signOut();
+      // Sign out from Prividium
+      prividiumAuthStore.signOut();
     }
+
+    // Navigate to home after logout
+    await navigateTo("/");
   } catch (err) {
     error.value = err instanceof Error ? err.message : "Logout failed";
     processing.value = false;

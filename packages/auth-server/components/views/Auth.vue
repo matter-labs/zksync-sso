@@ -1,9 +1,9 @@
 <template>
   <div class="h-full flex flex-col justify-center px-4">
-    <!-- Show Okta authentication first in Prividium mode -->
-    <OktaLogin v-if="needsOktaAuth" />
+    <!-- Show Prividium authentication first in Prividium mode -->
+    <PrividiumLogin v-if="needsPrividiumAuth" />
 
-    <!-- Show normal auth flow after Okta auth or if not in Prividium mode -->
+    <!-- Show normal auth flow after Prividium auth or if not in Prividium mode -->
     <template v-else>
       <SessionMetadata
         :app-meta="appMeta"
@@ -66,15 +66,15 @@ const { requestChain, requestMethod } = storeToRefs(useRequestsStore());
 const session = useAppSession();
 const runtimeConfig = useRuntimeConfig();
 
-// Okta authentication store
-const { needsAuthentication } = storeToRefs(useOktaAuthStore());
+// Prividium authentication store
+const { needsAuthentication } = storeToRefs(usePrividiumAuthStore());
 
 // Account creation and login composables
 const { registerInProgress, createAccount, createAccountError } = useAccountCreate(computed(() => requestChain.value!.id));
 const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(computed(() => requestChain.value!.id));
 
-// Check if Okta authentication is needed
-const needsOktaAuth = computed(() => {
+// Check if Prividium authentication is needed
+const needsPrividiumAuth = computed(() => {
   return runtimeConfig.public.prividiumMode && needsAuthentication.value;
 });
 

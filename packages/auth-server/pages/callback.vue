@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-const { handleLoginRedirect } = useOktaAuth();
+const runtimeConfig = useRuntimeConfig();
 
 const processing = ref(true);
 const error = ref<string | null>(null);
@@ -62,13 +62,17 @@ const processCallback = async () => {
     processing.value = true;
     error.value = null;
 
-    // Handle the OAuth callback
-    await handleLoginRedirect();
+    if (runtimeConfig.public.prividiumMode) {
+      // Prividium SDK uses popup-based authentication, not redirects
+      // This page shouldn't be reached in Prividium mode
+      error.value = "Invalid authentication flow. Please try again.";
+      processing.value = false;
+      return;
+    }
 
+    // For non-Prividium flows, redirect to home
     // Small delay to show success message
     await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Redirect to home page
     await navigateTo("/");
   } catch (err) {
     error.value = err instanceof Error ? err.message : "Authentication failed";
