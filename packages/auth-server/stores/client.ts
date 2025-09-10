@@ -190,6 +190,7 @@ export const useClientStore = defineStore("client", () => {
 
   return {
     defaultChain,
+    createTransport,
     getPublicClient,
     getClient,
     getThrowAwayClient,

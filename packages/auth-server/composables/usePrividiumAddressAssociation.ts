@@ -13,7 +13,7 @@ export const usePrividiumAddressAssociation = () => {
   };
 
   const fetchAddressAssociationMessage = async (address: string) => {
-    return await $fetch<{ message: string; nonce: string }>(`${proxyBaseUrl}/permissions/user-wallets/initiate`, {
+    const response = await $fetch<{ message?: string; nonce?: string; error?: string }>(`${proxyBaseUrl}/permissions/user-wallets/initiate`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: {
@@ -21,10 +21,20 @@ export const usePrividiumAddressAssociation = () => {
         domain: window.location.host,
       },
     });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    if (!response.message || !response.nonce) {
+      throw new Error("Invalid response: missing message or nonce");
+    }
+
+    return response as { message: string; nonce: string };
   };
 
   const associateAddress = async (address: string, message: string, signature: string) => {
-    const associateResponse = await $fetch<{ success: boolean }>(`${proxyBaseUrl}/permissions/user-wallets/associate`, {
+    const associateResponse = await $fetch<{ success?: boolean; error?: string }>(`${proxyBaseUrl}/permissions/user-wallets/associate`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: {
@@ -33,6 +43,10 @@ export const usePrividiumAddressAssociation = () => {
         signature,
       },
     });
+
+    if (associateResponse.error) {
+      throw new Error(associateResponse.error);
+    }
 
     if (!associateResponse.success) {
       throw new Error("Failed to associate address");

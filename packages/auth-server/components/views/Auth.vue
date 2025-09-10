@@ -61,7 +61,10 @@
 </template>
 
 <script lang="ts" setup>
+import { toHex } from "viem";
+
 const { appMeta } = useAppMeta();
+const { login } = useAccountStore();
 const { requestChain, requestMethod } = storeToRefs(useRequestsStore());
 const session = useAppSession();
 const runtimeConfig = useRuntimeConfig();
@@ -81,8 +84,13 @@ const needsPrividiumAuth = computed(() => {
 const registerAccount = async () => {
   if (!session.value) {
     // no session defined
-    await createAccount();
-    if (!createAccountError.value) {
+    const result = await createAccount();
+    if (result) {
+      login({
+        username: result.credentialId,
+        address: result.address,
+        passkey: toHex(result.credentialPublicKey),
+      });
       navigateTo("/confirm/connect");
     }
   } else {
