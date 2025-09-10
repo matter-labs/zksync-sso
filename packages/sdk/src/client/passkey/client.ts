@@ -1,3 +1,4 @@
+import { type PublicKeyCredentialDescriptorJSON } from "@simplewebauthn/browser";
 import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
 import { erc7739Actions } from "viem/experimental";
 import { eip712WalletActions } from "viem/zksync";
@@ -34,6 +35,7 @@ export function createZksyncPasskeyClient<
       const passkeySignature = await requestPasskeyAuthentication({
         challenge: hash,
         credentialPublicKey: parameters.credentialPublicKey,
+        credential: parameters.credential,
       });
 
       return passkeyHashSignatureResponseFormat(
@@ -114,6 +116,7 @@ export interface ZksyncSsoPasskeyClientConfig<
   userName: string;
   userDisplayName: string;
   contracts: PasskeyRequiredContracts;
+  credential?: PublicKeyCredentialDescriptorJSON;
   key?: string;
   name?: string;
 }
