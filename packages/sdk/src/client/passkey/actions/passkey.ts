@@ -1,4 +1,4 @@
-import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
+import { type PublicKeyCredentialDescriptorJSON, startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import type { AuthenticationResponseJSON, GenerateAuthenticationOptionsOpts, GenerateRegistrationOptionsOpts, PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON, RegistrationResponseJSON, VerifiedRegistrationResponse } from "@simplewebauthn/server";
 import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
 import type { Account, Address, Chain, Client, Hash, Hex, TransactionReceipt, Transport } from "viem";
@@ -115,6 +115,7 @@ export const registerNewPasskey = async (args: RegisterNewPasskeyArgs): Promise<
 export type RequestPasskeyAuthenticationArgs = {
   challenge: Hash; // Transaction hash to sign
   credentialPublicKey: Uint8Array;
+  credential?: PublicKeyCredentialDescriptorJSON;
   rpID?: string;
   origin?: string;
 };
@@ -127,7 +128,11 @@ export const requestPasskeyAuthentication = async (args: RequestPasskeyAuthentic
     challenge: toBytes(args.challenge),
   });
   const optionsJSON: PublicKeyCredentialRequestOptionsJSON = { ...passkeyAuthenticationOptions };
-  const authenticationResponse: AuthenticationResponseJSON = await startAuthentication({ optionsJSON: optionsJSON });
+  const authenticationResponse: AuthenticationResponseJSON = await startAuthentication({
+    optionsJSON: args.credential
+      ? { ...optionsJSON, allowCredentials: [args.credential] }
+      : { ...optionsJSON },
+  });
 
   let { rpID, origin } = identifyPasskeyParams();
   rpID = args.rpID || passkeyAuthenticationOptions.rpId || rpID;
