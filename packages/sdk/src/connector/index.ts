@@ -23,18 +23,27 @@ import { type AppMetadata, type ProviderInterface, type SessionPreferences, Wall
 import type { CustomPaymasterHandler } from "../paymaster/index.js";
 export { callPolicy } from "../client-auth-server/index.js";
 
+export type ConnectorMetadata = {
+  icon: string;
+  id: string;
+  name: string;
+  type: string;
+};
+
 export type ZksyncSsoConnectorOptions = {
   metadata?: Partial<AppMetadata>;
   session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   authServerUrl?: string;
   paymasterHandler?: CustomPaymasterHandler;
   communicator?: Communicator;
+  provider?: ProviderInterface;
+  connectorMetadata?: ConnectorMetadata;
 };
 
 export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
   type Provider = ProviderInterface;
 
-  let walletProvider: WalletProvider | undefined;
+  let walletProvider: Provider | undefined;
 
   let accountsChanged: Connector["onAccountsChanged"] | undefined;
   let chainChanged: Connector["onChainChanged"] | undefined;
@@ -59,11 +68,11 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
   };
 
   return createConnector<Provider>((config) => ({
-    icon: "https://zksync.io/favicon.ico",
-    id: "zksync-sso",
-    name: "ZKsync",
+    icon: parameters.connectorMetadata?.icon ?? "https://zksync.io/favicon.ico",
+    id: parameters.connectorMetadata?.id ?? "zksync-sso",
+    name: parameters.connectorMetadata?.name ?? "ZKsync",
+    type: parameters.connectorMetadata?.type ?? "zksync-sso",
     // supportsSimulation: true,
-    type: "zksync-sso",
     async connect({ chainId } = {}) {
       try {
         const provider = await this.getProvider();
@@ -135,7 +144,7 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
     },
     async getProvider() {
       if (!walletProvider) {
-        walletProvider = new WalletProvider({
+        walletProvider = parameters.provider ?? new WalletProvider({
           metadata: {
             name: parameters.metadata?.name,
             icon: parameters.metadata?.icon,
