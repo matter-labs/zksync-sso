@@ -1,11 +1,14 @@
 import { createPrividiumChain, type PrividiumChain, type UserProfile } from "test-prividium-sdk";
-import { zksyncInMemoryNode } from "viem/zksync";
 
 let prividiumInstance: PrividiumChain | null = null;
 
 export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
   const runtimeConfig = useRuntimeConfig();
-  // const { defaultChain } = useClientStore();
+  const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
+  const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
+  if (!defaultChain)
+    throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
+
   // Reactive state
   const profile = ref<UserProfile | null>(null);
   const isAuthenticated = ref(false);
@@ -26,7 +29,7 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
 
       prividiumInstance = createPrividiumChain({
         clientId,
-        chain: zksyncInMemoryNode, // TODO: use defaultChain
+        chain: defaultChain,
         rpcUrl: `${proxyBaseUrl}/rpc`,
         authBaseUrl,
         permissionsApiBaseUrl: permissionsApiBaseUrl,
