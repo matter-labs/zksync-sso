@@ -128,7 +128,7 @@
 
 <script lang="ts" setup>
 import { useNow } from "@vueuse/core";
-import { parseEther } from "viem";
+import { parseEther, toHex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionPreferences } from "zksync-sso";
 import { type ExtractReturnType, formatSessionPreferences, type Method, type RPCResponseMessage } from "zksync-sso/client-auth-server";
@@ -142,6 +142,7 @@ const props = defineProps({
 });
 
 const { appMeta, appOrigin } = useAppMeta();
+const { login } = useAccountStore();
 const { isLoggedIn } = storeToRefs(useAccountStore());
 const { responseInProgress, requestChainId } = storeToRefs(useRequestsStore());
 const { createAccount } = useAccountCreate(requestChainId);
@@ -278,6 +279,12 @@ const confirmConnection = async () => {
     if (!isLoggedIn.value) {
       // create a new account with initial session data
       const accountData = await createAccount(sessionConfig.value);
+      if (!accountData) return;
+      login({
+        username: accountData.credentialId,
+        address: accountData.address,
+        passkey: toHex(accountData.credentialPublicKey),
+      });
 
       response = {
         result: constructReturn(

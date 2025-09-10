@@ -32,6 +32,7 @@
     "**/*.ptau",
     "**/*.zkey",
     "packages/circuits/**",
+    "packages/examples/demo-app/cache/**",
     "packages/auth-server/public/snarkjs.min.js"
   ],
   "caseSensitive": true,

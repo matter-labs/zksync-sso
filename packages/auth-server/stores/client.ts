@@ -43,11 +43,25 @@ export const chainParameters: Record<SupportedChainId, { blockTime: number }> = 
 export const useClientStore = defineStore("client", () => {
   const runtimeConfig = useRuntimeConfig();
   const { address, username, passkey } = storeToRefs(useAccountStore());
+  const prividiumAuthStore = usePrividiumAuthStore();
 
   const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
   const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
   if (!defaultChain)
     throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
+
+  // Create transport with or without authentication based on Prividium mode
+  const createTransport = () => {
+    if (runtimeConfig.public.prividiumMode) {
+      const prividiumTransport = prividiumAuthStore.getTransport();
+      if (!prividiumTransport) {
+        throw new Error("Prividium transport not available. User may need to authenticate.");
+      }
+      return prividiumTransport;
+    }
+
+    return http();
+  };
 
   const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -55,7 +69,7 @@ export const useClientStore = defineStore("client", () => {
 
     const client = createPublicClient({
       chain,
-      transport: http(),
+      transport: createTransport(),
     });
 
     return client;
@@ -74,7 +88,7 @@ export const useClientStore = defineStore("client", () => {
       userDisplayName: username.value!,
       contracts,
       chain,
-      transport: http(),
+      transport: createTransport(),
     });
 
     return client;
@@ -89,7 +103,7 @@ export const useClientStore = defineStore("client", () => {
       address,
       contracts,
       chain: chain,
-      transport: http(),
+      transport: createTransport(),
     });
 
     return client;
@@ -129,7 +143,7 @@ export const useClientStore = defineStore("client", () => {
       userDisplayName: username,
       contracts,
       chain,
-      transport: http(),
+      transport: createTransport(),
     });
   };
 
@@ -140,7 +154,7 @@ export const useClientStore = defineStore("client", () => {
     const throwAwayClient = createWalletClient({
       account: privateKeyToAccount(generatePrivateKey()),
       chain,
-      transport: http(),
+      transport: createTransport(),
     })
       .extend(publicActions)
       .extend(walletActions)
@@ -161,6 +175,8 @@ export const useClientStore = defineStore("client", () => {
       method: "eth_requestAccounts",
     });
 
+    // For wallet client, we use the provider's transport, not our authenticated transport
+    // as this is for external wallet connections
     return createWalletClient({
       chain,
       account: accounts[0],
@@ -174,6 +190,7 @@ export const useClientStore = defineStore("client", () => {
 
   return {
     defaultChain,
+    createTransport,
     getPublicClient,
     getClient,
     getThrowAwayClient,

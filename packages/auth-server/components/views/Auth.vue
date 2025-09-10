@@ -1,72 +1,96 @@
 <template>
   <div class="h-full flex flex-col justify-center px-4">
-    <SessionMetadata
-      :app-meta="appMeta"
-      :connect="true"
-      class="grow flex justify-center items-center flex-col"
-    />
+    <!-- Show Prividium authentication first in Prividium mode -->
+    <PrividiumLogin v-if="needsPrividiumAuth" />
 
-    <CommonHeightTransition :opened="!!accountLoginError">
-      <p class="pt-3 text-sm text-error-300 text-center">
-        <span>
-          Account not found.
-          <button
-            type="button"
-            class="underline underline-offset-4"
+    <!-- Show normal auth flow after Prividium auth or if not in Prividium mode -->
+    <template v-else>
+      <SessionMetadata
+        :app-meta="appMeta"
+        :connect="true"
+        class="grow flex justify-center items-center flex-col"
+      />
+
+      <CommonHeightTransition :opened="!!accountLoginError">
+        <p class="pt-3 text-sm text-error-300 text-center">
+          <span>
+            Account not found.
+            <button
+              type="button"
+              class="underline underline-offset-4"
+              @click="registerAccount"
+            >
+              Sign up?
+            </button>
+          </span>
+        </p>
+      </CommonHeightTransition>
+
+      <CommonHeightTransition :opened="!!createAccountError">
+        <p class="pt-3 text-sm text-error-300 text-center">
+          <span>
+            Creating account failed.
+          </span>
+        </p>
+      </CommonHeightTransition>
+
+      <div class="flex flex-col gap-5 mt-8 py-8">
+        <ZkHighlightWrapper>
+          <ZkButton
+            class="w-full"
+            :loading="registerInProgress"
+            data-testid="signup"
             @click="registerAccount"
           >
-            Sign up?
-          </button>
-        </span>
-      </p>
-    </CommonHeightTransition>
+            Sign Up
+          </ZkButton>
+        </ZkHighlightWrapper>
 
-    <CommonHeightTransition :opened="!!createAccountError">
-      <p class="pt-3 text-sm text-error-300 text-center">
-        <span>
-          Creating account failed.
-        </span>
-      </p>
-    </CommonHeightTransition>
-
-    <div class="flex flex-col gap-5 mt-8 py-8">
-      <ZkHighlightWrapper>
         <ZkButton
-          class="w-full"
-          :loading="registerInProgress"
-          data-testid="signup"
-          @click="registerAccount"
+          type="secondary"
+          class="!text-slate-400"
+          :loading="loginInProgress"
+          data-testid="login"
+          @click="loginAccount"
         >
-          Sign Up
+          Log In
         </ZkButton>
-      </ZkHighlightWrapper>
-
-      <ZkButton
-        type="secondary"
-        class="!text-slate-400"
-        :loading="loginInProgress"
-        data-testid="login"
-        @click="loginAccount"
-      >
-        Log In
-      </ZkButton>
-    </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { toHex } from "viem";
+
 const { appMeta } = useAppMeta();
+const { login } = useAccountStore();
 const { requestChain, requestMethod } = storeToRefs(useRequestsStore());
 const session = useAppSession();
+const runtimeConfig = useRuntimeConfig();
 
+// Prividium authentication store
+const { needsAuthentication } = storeToRefs(usePrividiumAuthStore());
+
+// Account creation and login composables
 const { registerInProgress, createAccount, createAccountError } = useAccountCreate(computed(() => requestChain.value!.id));
 const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(computed(() => requestChain.value!.id));
+
+// Check if Prividium authentication is needed
+const needsPrividiumAuth = computed(() => {
+  return runtimeConfig.public.prividiumMode && needsAuthentication.value;
+});
 
 const registerAccount = async () => {
   if (!session.value) {
     // no session defined
-    await createAccount();
-    if (!createAccountError.value) {
+    const result = await createAccount();
+    if (result) {
+      login({
+        username: result.credentialId,
+        address: result.address,
+        passkey: toHex(result.credentialPublicKey),
+      });
       navigateTo("/confirm/connect");
     }
   } else {
