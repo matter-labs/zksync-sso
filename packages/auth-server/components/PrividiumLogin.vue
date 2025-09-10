@@ -201,17 +201,12 @@ const { inProgress: associateInProgress, execute: executeAssociation, error: ass
   const { message } = await fetchAddressAssociationMessage(passkeyClient.account.address);
 
   // Sign with passkey
-  const domain = {
-    name: "AddressAssociationVerifier",
-    version: "1.0.0",
-    chainId: chainId,
-    verifyingContract: zeroAddress,
-  } as const;
-
   const signature = await passkeyClient.signTypedData({
     domain: {
-      ...domain,
-      salt: undefined, // Otherwise the signature verification fails
+      name: "AddressAssociationVerifier",
+      version: "1.0.0",
+      chainId: chainId,
+      verifyingContract: zeroAddress,
     },
     types: {
       AddressAssociation: [
