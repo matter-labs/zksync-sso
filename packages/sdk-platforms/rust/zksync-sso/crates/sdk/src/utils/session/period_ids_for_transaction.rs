@@ -88,12 +88,13 @@ pub fn get_period_ids_for_transaction(
         let usage_limit = policy.clone().usage_limit().to_owned().into();
         let mut period_ids =
             vec![get_id(&session_config.feeLimit), get_id(&usage_limit)];
-        if is_contract_call {
-            if let Some(call_policy) = policy.as_call_policy() {
-                period_ids.extend(call_policy.constraints.iter().map(
-                    |constraint| get_id(&constraint.clone().limit.into()),
-                ));
-            }
+        if is_contract_call && let Some(call_policy) = policy.as_call_policy() {
+            period_ids.extend(
+                call_policy
+                    .constraints
+                    .iter()
+                    .map(|constraint| get_id(&constraint.clone().limit.into())),
+            );
         }
         period_ids
     };

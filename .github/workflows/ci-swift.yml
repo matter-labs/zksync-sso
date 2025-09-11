@@ -1,6 +1,14 @@
 name: Swift CI
+permissions:
+  contents: read
 
 on:
+  push:
+    paths:
+      - 'packages/contracts/**'
+      - 'packages/sdk-platforms/rust/**'
+      - 'packages/sdk-platforms/swift/**'
+      - '.github/workflows/ci-swift.yml'
   pull_request:
     paths:
       - 'packages/contracts/**'

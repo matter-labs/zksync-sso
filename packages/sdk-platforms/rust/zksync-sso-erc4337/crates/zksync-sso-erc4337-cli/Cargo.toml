@@ -1,0 +1,36 @@
+[package]
+name = "zksync-sso-erc4337-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line interface for zkSync SSO ERC-4337"
+
+[[bin]]
+name = "zksync-sso-erc4337-cli"
+path = "src/main.rs"
+
+[dependencies]
+# Core dependency
+zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core" }
+
+# CLI framework
+clap.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+
+# Error handling
+eyre.workspace = true
+thiserror.workspace = true
+
+# Logging/Tracing
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Async
+tokio.workspace = true
+async-trait.workspace = true
+futures.workspace = true

@@ -1,10 +1,10 @@
 {
   "contracts": {
-    "accountFactory": "0x799b1252b0a05e17dadb23e19553611997e1aafe",
-    "passkey": "0x0a39934c490546ff547a102f378876e625c9610f",
-    "session": "0x031f5d8f86afe1d6011dc3f3e8d27e274fbceb13",
-    "accountPaymaster": "0xebc6385457c82f764b18d3e36a5ea18617340ac4",
-    "recovery": "0x6eddce98684947c563408198144e3c05823910eb"
+    "accountFactory": "0xd4a02efa0ccfc809a15a4cd6dcea07eec30240a6",
+    "passkey": "0x4a52137ba3b6e0fa06b263f08be0c4a0175ee798",
+    "session": "0x3835758b9d0f70907f41772d7a57c4b644a66b29",
+    "accountPaymaster": "0x70bc9a09ca80abe6a46f0af107fc0943d9d416f2",
+    "recovery": "0xceb8e0dab7b59fa699809f99cd1258bcfbf468bf"
   },
   "nodeUrl": "http://localhost:8011/",
   "deployWallet": {

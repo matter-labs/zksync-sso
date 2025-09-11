@@ -10,6 +10,7 @@ use passkey::types::webauthn::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct RequestPasskeyAuthenticationArgs {
     pub challenge: [u8; 32],
     pub credential_public_key: Vec<u8>,
@@ -20,12 +21,14 @@ pub struct RequestPasskeyAuthenticationArgs {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct RequestPasskeyAuthenticationResponse {
     pub passkey_authentication_response: AuthenticationResponseJSON,
     pub passkey_authentication_options: PublicKeyCredentialRequestOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct GeneratePasskeyAuthenticationOptionsArgs {
     pub challenge: [u8; 32],
     pub rp_id: String,

@@ -5,7 +5,7 @@ resolver = "2"
 [workspace.package]
 version = "0.0.1"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.90"
 license = "Apache-2.0"
 
 [profile.release]
@@ -18,7 +18,7 @@ strip = true      # Remove debug symbols
 [workspace.dependencies]
 
 # Alloy
-alloy = { version = "0.12.5", default-features = false, features = [
+alloy = { version = "=0.12.5", default-features = false, features = [
     "rlp",
     "serde",
     "rpc-types",
@@ -27,7 +27,11 @@ alloy = { version = "0.12.5", default-features = false, features = [
     "contract",
     "eip712",
 ] }
-alloy-zksync = { version = "0.12.5" }
+alloy-provider = { version = "=0.12.5" }
+alloy-dyn-abi = { version = "=0.12.5" }
+alloy-signer = { version = "=0.12.5" }
+alloy-consensus = { version = "=0.12.5" }
+alloy-zksync = { version = "=0.12.5" }
 
 # Ruint (for UintTryFrom trait, must match alloy's version)
 ruint = "1.15.0"
