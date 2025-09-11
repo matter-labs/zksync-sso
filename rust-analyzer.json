@@ -1,0 +1,6 @@
+{
+  "linkedProjects": [
+    "/Users/jackml/Developer/github/matter-labs/zksync-sso/packages/sdk-platforms/rust/zksync-sso/Cargo.toml",
+    "/Users/jackml/Developer/github/matter-labs/zksync-sso/packages/sdk-platforms/rust/zksync-sso-erc4337/Cargo.toml"
+  ]
+}
