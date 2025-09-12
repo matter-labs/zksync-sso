@@ -88,8 +88,8 @@ export default defineNuxtConfig({
       oidc: {
         googlePublicClient: "69763429492-f7nl555i50akmail80pid3m4hhsg7u2n.apps.googleusercontent.com",
         saltServiceUrl: process.env.NUXT_PUBLIC_SALT_SERVICE_URL || "https://sso-oidc.zksync.dev/salt",
-        zkeyUrl: process.env.NUXT_PUBLIC_ZKEY_URL || "https://sso-oidc.zksync.dev/zkey",
-        witnessUrl: process.env.NUXT_PUBLIC_WITNESS_WASM_URL || "https://sso-oidc.zksync.dev/witness",
+        zkeyUrl: process.env.NUXT_PUBLIC_ZKEY_URL || "https://storage.googleapis.com/test-sso-oidc-recovery/jwt-tx-validation.final.zkey",
+        witnessUrl: process.env.NUXT_PUBLIC_WITNESS_WASM_URL || "https://storage.googleapis.com/test-sso-oidc-recovery/jwt-tx-validation.wasm",
       },
     },
   },
