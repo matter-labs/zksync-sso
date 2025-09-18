@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { type Address, bytesToBigInt, type Hex, pad, toHex } from "viem";
+import { type Address, bytesToBigInt, type Hex, pad } from "viem";
 import { sendTransaction } from "viem/zksync";
 import { createNonceV2 } from "zksync-sso-circuits";
 
@@ -144,7 +144,7 @@ async function go() {
 
   const calldata = recoveryStep1Calldata(
     proof,
-    pad(toHex(Buffer.from(key.kid, "hex"))),
+    pad(`0x${key.kid}` as Hex),
     passkeyHash,
     userAddress.value,
     timeLimit,
