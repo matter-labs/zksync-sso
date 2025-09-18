@@ -144,7 +144,7 @@ async function go() {
 
   const calldata = recoveryStep1Calldata(
     proof,
-    pad(`0x${key.kid}` as Hex),
+    pad(`0x${key.kid.replace(/^0x/, '')}` as Hex),
     passkeyHash,
     userAddress.value,
     timeLimit,
