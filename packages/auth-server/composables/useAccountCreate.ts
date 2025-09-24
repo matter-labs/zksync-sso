@@ -55,7 +55,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
         initialSession: sessionData,
       },
       owners: [ownerAddress],
-      installNoDataModules: [chainContracts.recovery],
+      installNoDataModules: [chainContracts.recovery, chainContracts.recoveryOidc],
     });
 
     // Clean up temporary association for Prividium mode
