@@ -14,7 +14,7 @@ use cli::{
 use url::Url;
 
 #[tokio::test]
-#[ignore]
+#[ignore = "This is a duplicate test that is not working, disabling for now"]
 async fn test_complete_zksync_sso_integration() -> eyre::Result<()> {
     println!("\n{}", "=".repeat(100));
     println!("🚀 RUNNING COMPLETE ZKSYNC SSO INTEGRATION TEST 🚀");

@@ -4,8 +4,7 @@ import Foundation
 
 // MARK: - Combined Integration Test
 
-//@Test(.disabled("Manual test only"))
-@Test
+@Test(.disabled("Manual test only"))
 func testCompleteZKsyncSSOIntegration() async throws {
     print("\n" + String(repeating: "=", count: 100))
     print("🚀 RUNNING COMPLETE ZKSYNC SSO INTEGRATION TEST 🚀")

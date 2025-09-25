@@ -1,0 +1,48 @@
+[package]
+name = "zksync-sso-erc4337-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core functionality for zkSync SSO ERC-4337 integration"
+
+[dependencies]
+# Alloy
+alloy.workspace = true
+alloy-provider.workspace = true
+alloy-dyn-abi.workspace = true
+alloy-signer.workspace = true
+
+# Error handling
+thiserror.workspace = true
+eyre.workspace = true
+
+# Logging/Tracing
+tracing.workspace = true
+
+# HTTP
+url.workspace = true
+reqwest.workspace = true
+
+# Async
+tokio.workspace = true
+
+# Serialization/Deserialization
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+# Alloy
+alloy = { workspace = true, features = ["node-bindings"] }
+alloy-signer.workspace = true
+alloy-dyn-abi.workspace = true
+
+# Async
+async-trait.workspace = true
+
+# Test Utils
+tempfile.workspace = true
+strip-ansi-escapes.workspace = true
+libc.workspace = true
+wiremock.workspace = true

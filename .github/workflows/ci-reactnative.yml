@@ -1,6 +1,14 @@
 name: React Native CI
-
+permissions:
+  contents: read
+  
 on:
+  push:
+    paths:
+      - 'packages/contracts/**'
+      - 'packages/sdk-platforms/rust/**'
+      - 'packages/sdk-platforms/react-native/react-native-zksync-sso/**'
+      - '.github/workflows/ci-reactnative.yml'
   pull_request:
     paths:
       - 'packages/contracts/**'
