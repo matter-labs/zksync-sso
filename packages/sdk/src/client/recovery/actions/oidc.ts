@@ -58,7 +58,7 @@ export const addOidcAccount = async <
     const primaryTxArgs = {
       ...baseTxArgs,
       paymaster: args.paymaster.address,
-      paymasterInput: args.paymaster.address ? (args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" })) : undefined,
+      paymasterInput: args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" }),
     };
     try {
       transactionHash = await sendTransaction(client, primaryTxArgs);
