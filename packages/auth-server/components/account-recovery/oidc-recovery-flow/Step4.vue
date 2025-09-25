@@ -36,12 +36,14 @@
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
 import { type Address, bytesToBigInt, type Hex, pad } from "viem";
+import { waitForTransactionReceipt } from "viem/actions";
 import { sendTransaction } from "viem/zksync";
+import { OidcRecoveryValidatorAbi } from "zksync-sso/abi";
 import { createNonceV2 } from "zksync-sso-circuits";
 
 import { GOOGLE_CERTS_URL } from "./constants";
 
-const { getWalletClient, defaultChain, getOidcClient } = useClientStore();
+const { getWalletClient, getPublicClient, defaultChain, getOidcClient } = useClientStore();
 const { startGoogleOauth } = useGoogleOauth();
 const accountData = useAppKitAccount();
 const {
@@ -92,6 +94,7 @@ function buildBlindingFactor(): bigint {
 
 async function go() {
   const client = await getWalletClient({ chainId: defaultChain.id });
+  const publicClient = getPublicClient({ chainId: defaultChain.id });
   const blindingFactor = buildBlindingFactor();
   const oidcData = await getOidcAccounts(userAddress.value);
   if (oidcData === undefined) {
@@ -150,22 +153,63 @@ async function go() {
     timeLimit,
   );
 
+  // Preflight checks
+  const recoveryAddress = contractsByChain[defaultChain.id].recoveryOidc as Address;
+  const senderAddress = client.account.address as Address;
+
+  // Ensure OIDC validator is initialized and wired correctly
+  const [webAuthValidatorAddr, keyRegistryAddr, verifierAddr] = await Promise.all([
+    publicClient.readContract({ address: recoveryAddress, abi: OidcRecoveryValidatorAbi, functionName: "webAuthValidator", args: [] }),
+    publicClient.readContract({ address: recoveryAddress, abi: OidcRecoveryValidatorAbi, functionName: "keyRegistry", args: [] }),
+    publicClient.readContract({ address: recoveryAddress, abi: OidcRecoveryValidatorAbi, functionName: "verifier", args: [] }),
+  ]) as [Address, Address, Address];
+
+  if (
+    webAuthValidatorAddr === "0x0000000000000000000000000000000000000000"
+    || keyRegistryAddr === "0x0000000000000000000000000000000000000000"
+    || verifierAddr === "0x0000000000000000000000000000000000000000"
+  ) {
+    throw new Error(`OIDC recovery validator at ${recoveryAddress} is not initialized`);
+  }
+
+  const expectedPasskey = contractsByChain[defaultChain.id].passkey as Address | undefined;
+  if (expectedPasskey && webAuthValidatorAddr.toLowerCase() !== expectedPasskey.toLowerCase()) {
+    throw new Error(`webAuthValidator mismatch: on-chain=${webAuthValidatorAddr}, expected=${expectedPasskey}`);
+  }
+
+  // Ensure sender has some balance for gas
+  const balance = await publicClient.getBalance({ address: senderAddress });
+  if (balance === 0n) {
+    throw new Error("Insufficient balance to pay gas for recovery transaction");
+  }
+
   const sendTransactionArgs = {
     account: client.account,
     to: contractsByChain[defaultChain.id].recoveryOidc,
     data: calldata,
-    gas: 20_000_000,
+    value: 0n,
+    gas: 20_000_000n,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
-  await sendTransaction(client, sendTransactionArgs);
 
+  const sentTx = await sendTransaction(client, sendTransactionArgs);
+
+  const startRecoveryReceipt = await waitForTransactionReceipt(client, { hash: sentTx, confirmations: 1 });
+  if (startRecoveryReceipt.status !== "success") {
+    throw new Error(`Recovery transaction ${startRecoveryReceipt.status}`);
+  }
   const oidcClient = getOidcClient({ chainId: defaultChain.id, address: userAddress.value });
 
-  await oidcClient.addNewPasskeyViaOidc({
+  const addedPasskey = await oidcClient.addNewPasskeyViaOidc({
     credentialId: passkey.value.credentialId,
     passkeyPubKey: passkey.value.passkeyPubKey,
     passkeyDomain: window.location.origin,
   });
+
+  if (addedPasskey.status !== "success") {
+    throw new Error(`Failed to add passkey via OIDC: ${addedPasskey.status}`);
+  }
+
   recoverySuccessful.value = true;
 }
 </script>
