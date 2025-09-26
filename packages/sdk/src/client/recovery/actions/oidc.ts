@@ -75,7 +75,7 @@ export const addOidcAccount = async <
   }
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  if (transactionReceipt.status !== "success") throw new Error(`addOidcAccount transaction reverted: ${transactionReceipt}`);
+  if (transactionReceipt.status !== "success") throw new Error(`addOidcAccount transaction reverted: status=${transactionReceipt.status}, transactionHash=${transactionReceipt.transactionHash}, blockHash=${transactionReceipt.blockHash}`);
 
   // (Optional) Could expose whether fallback was used in the future without breaking change by adding to return type.
 
