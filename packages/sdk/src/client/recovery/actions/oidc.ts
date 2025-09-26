@@ -64,7 +64,6 @@ export const addOidcAccount = async <
       transactionHash = await sendTransaction(client, primaryTxArgs);
     } catch (error) {
       console.error("Paymaster transaction failed, falling back to base transaction.", error);
-      // Fallback: retry without paymaster if paymaster attempt failed
       transactionHash = await sendTransaction(client, baseTxArgs);
     }
   } else {
