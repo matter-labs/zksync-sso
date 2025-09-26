@@ -44,24 +44,40 @@ export const addOidcAccount = async <
     functionName: "addOidcAccount",
     args: [args.oidcDigest, args.iss],
   });
-
-  const sendTransactionArgs = {
+  // Base transaction args (used for fallback as well)
+  const baseTxArgs = {
     account: client.account,
     to: args.contracts.recoveryOidc,
-    paymaster: args.paymaster?.address,
-    paymasterInput: args.paymaster?.address ? (args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" })) : undefined,
     data: callData,
     gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 
-  const transactionHash = await sendTransaction(client, sendTransactionArgs);
+  let transactionHash: Hash;
+  if (args.paymaster?.address) {
+    const primaryTxArgs = {
+      ...baseTxArgs,
+      paymaster: args.paymaster.address,
+      paymasterInput: args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" }),
+    };
+    try {
+      transactionHash = await sendTransaction(client, primaryTxArgs);
+    } catch {
+      // Paymaster transaction failed, falling back to base transaction.
+      transactionHash = await sendTransaction(client, baseTxArgs);
+    }
+  } else {
+    transactionHash = await sendTransaction(client, baseTxArgs);
+  }
+
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  if (transactionReceipt.status !== "success") throw new Error("addOidcAccount transaction reverted");
+  if (transactionReceipt.status !== "success") throw new Error(`addOidcAccount transaction reverted: status=${transactionReceipt.status}, transactionHash=${transactionReceipt.transactionHash}, blockHash=${transactionReceipt.blockHash}`);
+
+  // (Optional) Could expose whether fallback was used in the future without breaking change by adding to return type.
 
   return {
     transactionReceipt,
