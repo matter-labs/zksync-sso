@@ -35,7 +35,8 @@
 
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { type Address, bytesToBigInt, type Hex, pad } from "viem";
+import type { Address, Hex } from "viem";
+import { bytesToBigInt, pad, zeroAddress } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { sendTransaction } from "viem/zksync";
 import { OidcRecoveryValidatorAbi } from "zksync-sso/abi";
@@ -165,9 +166,9 @@ async function go() {
   ]) as [Address, Address, Address];
 
   if (
-    webAuthValidatorAddr === "0x0000000000000000000000000000000000000000"
-    || keyRegistryAddr === "0x0000000000000000000000000000000000000000"
-    || verifierAddr === "0x0000000000000000000000000000000000000000"
+    webAuthValidatorAddr === zeroAddress
+    || keyRegistryAddr === zeroAddress
+    || verifierAddr === zeroAddress
   ) {
     throw new Error(`OIDC recovery validator at ${recoveryAddress} is not initialized`);
   }
