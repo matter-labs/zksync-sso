@@ -1,0 +1,32 @@
+[package]
+name = "alloy-web-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+# Common dependencies for both WASM and native
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+eyre.workspace = true
+reqwest.workspace = true
+
+# WASM-only dependencies (still needed for core functionality)
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+alloy = { workspace = true, features = ["rlp", "serde", "rpc-types", "rpc-types-eth", "signer-local", "contract", "provider-http", "reqwest", "sol-types"] }
+getrandom = { version = "0.2", features = ["js"] }
+
+# Non-WASM dependencies
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+alloy = { workspace = true, features = ["rlp", "serde", "rpc-types", "rpc-types-eth", "signer-local", "contract", "provider-http", "reqwest", "sol-types"] }
+
+[dev-dependencies]
+alloy = { workspace = true, features = ["node-bindings"] }
+tokio = { version = "1", features = ["full"] }
