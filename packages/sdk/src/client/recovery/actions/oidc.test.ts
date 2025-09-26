@@ -8,9 +8,14 @@ import { addOidcAccount } from "./oidc.js";
 vi.mock("viem/actions", () => ({
   waitForTransactionReceipt: vi.fn(),
 }));
-vi.mock("viem/zksync", () => ({
-  sendTransaction: vi.fn(),
-}));
+vi.mock("viem/zksync", async () => {
+  const actual = await import("viem/zksync");
+  return {
+    ...actual,
+    sendTransaction: vi.fn(),
+    getGeneralPaymasterInput: vi.fn().mockReturnValue("0x"),
+  };
+});
 vi.mock("../../../abi/index.js", async () => {
   const actual = await import("../../../abi/index.js");
   return { ...actual };
@@ -64,10 +69,10 @@ describe("addOidcAccount", () => {
       iss,
     });
     expect(sendTransaction).toHaveBeenCalledTimes(1);
-    expect(sendTransaction).toHaveBeenCalledWith(
-      mockClient,
-      expect.objectContaining({ to: recoveryOidc, paymaster: undefined }),
-    );
+    const call = vi.mocked(sendTransaction).mock.calls[0];
+    expect(call?.[0]).toBe(mockClient);
+    expect(call?.[1]).toMatchObject({ to: recoveryOidc });
+    expect(call?.[1]).not.toHaveProperty("paymaster");
   });
 
   test("attempts paymaster then falls back when first send throws", async () => {
