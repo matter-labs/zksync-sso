@@ -1,0 +1,25 @@
+{
+  "name": "@alloy-web/core",
+  "version": "0.1.0",
+  "description": "Alloy-rs WebAssembly FFI bindings for web and Node.js",
+  "main": "pkg/alloy_web_ffi.js",
+  "types": "pkg/alloy_web_ffi.d.ts",
+  "files": [
+    "pkg"
+  ],
+  "scripts": {
+    "build": "wasm-pack build --target web --out-dir pkg",
+    "build:node": "wasm-pack build --target nodejs --out-dir pkg-node",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ethereum",
+    "alloy",
+    "wasm",
+    "web3",
+    "blockchain",
+    "ffi"
+  ],
+  "author": "",
+  "license": "MIT"
+}
