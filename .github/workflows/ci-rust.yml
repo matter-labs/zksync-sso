@@ -5,14 +5,14 @@ permissions:
 on:
   push:
     paths:
-      - 'packages/contracts/**'
-      - 'packages/sdk-platforms/rust/**'
-      - '.github/workflows/ci-rust.yml'
+      - "packages/contracts/**"
+      - "packages/sdk-platforms/rust/**"
+      - ".github/workflows/ci-rust.yml"
   pull_request:
     paths:
-      - 'packages/contracts/**'
-      - 'packages/sdk-platforms/rust/**'
-      - '.github/workflows/ci-rust.yml'
+      - "packages/contracts/**"
+      - "packages/sdk-platforms/rust/**"
+      - ".github/workflows/ci-rust.yml"
 
 jobs:
   rust-sdk:
@@ -26,19 +26,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-        
+
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
 
       - name: Install Rust
         run: |
           rustup update stable && rustup default stable
-          rustup toolchain install nightly
+          rustup toolchain install stable
 
       - name: Run rustfmt
         run: |
-          rustup component add rustfmt --toolchain nightly
-          cargo +nightly fmt --all -- --check
+          rustup component add rustfmt --toolchain stable
+          cargo +stable fmt --all -- --check
         working-directory: packages/sdk-platforms/rust/zksync-sso
 
       - name: Install Anvil ZKsync Manually
@@ -87,7 +87,7 @@ jobs:
             cat anvil-zksync.log
             exit 1
           fi
-        
+
       - name: Run rust tests
         run: cargo test -- --test-threads=1
         working-directory: packages/sdk-platforms/rust/zksync-sso
@@ -107,19 +107,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-        
+
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
 
       - name: Install Rust
         run: |
           rustup update stable && rustup default stable
-          rustup toolchain install nightly
+          rustup toolchain install stable
 
       - name: Run rustfmt
         run: |
-          rustup component add rustfmt --toolchain nightly
-          cargo +nightly fmt --all -- --check
+          rustup component add rustfmt --toolchain stable
+          cargo +stable fmt --all -- --check
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337
 
       - name: Install Foundry
@@ -197,7 +197,7 @@ jobs:
           rustup component add --toolchain 1.90.0-x86_64-unknown-linux-gnu clippy
           cargo clippy --all-targets -- -D warnings
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337
-        
+
       - name: Run rust tests
         run: cargo test
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337

@@ -4,7 +4,8 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(start)]
 pub fn init() {
     console_error_panic_hook::set_once();
-    console_log::init_with_level(log::Level::Info).expect("Failed to initialize logger");
+    console_log::init_with_level(log::Level::Info)
+        .expect("Failed to initialize logger");
 }
 
 #[wasm_bindgen]
@@ -32,7 +33,8 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 #[wasm_bindgen]
 pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, JsValue> {
     let hex = hex.strip_prefix("0x").unwrap_or(hex);
-    hex::decode(hex).map_err(|e| JsValue::from_str(&format!("Invalid hex: {}", e)))
+    hex::decode(hex)
+        .map_err(|e| JsValue::from_str(&format!("Invalid hex: {}", e)))
 }
 
 #[wasm_bindgen]
@@ -52,10 +54,7 @@ pub struct ZkSyncSsoError {
 impl ZkSyncSsoError {
     #[wasm_bindgen(constructor)]
     pub fn new(message: &str, kind: &str) -> Self {
-        Self {
-            message: message.to_string(),
-            kind: kind.to_string(),
-        }
+        Self { message: message.to_string(), kind: kind.to_string() }
     }
 
     #[wasm_bindgen(getter)]
@@ -182,10 +181,7 @@ pub struct SendCallsRequest {
 impl SendCallsRequest {
     #[wasm_bindgen(constructor)]
     pub fn new(account: &str, calls: Vec<Call>) -> Self {
-        Self {
-            account: account.to_string(),
-            calls,
-        }
+        Self { account: account.to_string(), calls }
     }
 
     #[wasm_bindgen(getter)]
@@ -203,6 +199,8 @@ impl SendCallsRequest {
 #[wasm_bindgen]
 pub struct Client {
     config: Config,
+    #[allow(dead_code)]
+    // Used in stub implementation, will be used when real implementation is added
     private_key: String,
 }
 
@@ -211,27 +209,34 @@ impl Client {
     #[wasm_bindgen(constructor)]
     pub fn new(config: Config, private_key: &str) -> Result<Client, JsValue> {
         // Basic validation
-        if !private_key.starts_with("0x") && private_key.len() != 64 && private_key.len() != 66 {
+        if !private_key.starts_with("0x")
+            && private_key.len() != 64
+            && private_key.len() != 66
+        {
             return Err(JsValue::from_str("Invalid private key format"));
         }
 
-        Ok(Client {
-            config,
-            private_key: private_key.to_string(),
-        })
+        Ok(Client { config, private_key: private_key.to_string() })
     }
 
     #[wasm_bindgen]
-    pub async fn send_user_operation(&self, request: SendCallsRequest) -> Result<String, JsValue> {
+    pub async fn send_user_operation(
+        &self,
+        request: SendCallsRequest,
+    ) -> Result<String, JsValue> {
         // This is a stub implementation that will be replaced with actual logic
         // once the core crate is working
-        console_log!("Sending user operation for account: {}", request.account());
+        console_log!(
+            "Sending user operation for account: {}",
+            request.account()
+        );
         console_log!("Number of calls: {}", request.calls().len());
         console_log!("RPC URL: {}", self.config.rpc_url());
         console_log!("Bundler URL: {}", self.config.bundler_url());
 
         // Return a mock transaction hash for now
-        Ok("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".to_string())
+        Ok("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+            .to_string())
     }
 
     #[wasm_bindgen(getter)]

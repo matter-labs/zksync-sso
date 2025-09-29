@@ -37,11 +37,11 @@ build-swift-framework:
 
 # Format code (check)
 fmt-check:
-    cargo +nightly fmt --all -- --check
+    cargo +stable fmt --all -- --check
 
 # Format code (apply changes)
 fmt:
-    cargo +nightly fmt --all
+    cargo +stable fmt --all
 
 # Lint code
 clippy:
@@ -53,7 +53,7 @@ clippy-fix:
 
 # Format and fix linting issues
 fix:
-    cargo +nightly fmt --all
+    cargo +stable fmt --all
     cargo clippy --fix --allow-dirty --allow-staged
-    cargo +nightly fmt --all
+    cargo +stable fmt --all
     cargo clippy --fix --allow-dirty --allow-staged
