@@ -1,42 +1,66 @@
 import type { CallData, ClientConfig, UserOperationRequest } from "./types";
 
-// WASM types - these will be properly typed when imported from bundler/node modules
-export interface WasmClient {
-  new(config: any, privateKey: string): any;
-  send_user_operation(request: any): Promise<string>;
-  config: any;
+// WASM-generated constructor types
+export interface WasmClientConstructor {
+  new(config: WasmConfigInstance, privateKey: string): WasmClientInstance;
 }
 
-export interface WasmConfig {
-  new(rpcUrl: string, bundlerUrl: string, contracts: any): any;
+export interface WasmConfigConstructor {
+  new(rpcUrl: string, bundlerUrl: string, contracts: WasmContractsInstance): WasmConfigInstance;
 }
 
-export interface WasmContracts {
-  new(entryPoint: string, accountFactory: string): any;
+export interface WasmContractsConstructor {
+  new(entryPoint: string, accountFactory: string): WasmContractsInstance;
 }
 
-export interface WasmCall {
-  new(to: string, data: string, value: string): any;
+export interface WasmCallConstructor {
+  new(to: string, data: string, value: string): WasmCallInstance;
 }
 
-export interface WasmSendCallsRequest {
-  new(account: string, calls: any[]): any;
+export interface WasmSendCallsRequestConstructor {
+  new(account: string, calls: WasmCallInstance[]): WasmSendCallsRequestInstance;
+}
+
+// WASM instance types
+export interface WasmClientInstance {
+  send_user_operation(request: WasmSendCallsRequestInstance): Promise<string>;
+  config: WasmConfigInstance;
+}
+
+export interface WasmConfigInstance {
+  // WASM config instance methods/properties
+  readonly __wasmConfigBrand: unique symbol;
+}
+
+export interface WasmContractsInstance {
+  // WASM contracts instance methods/properties
+  readonly __wasmContractsBrand: unique symbol;
+}
+
+export interface WasmCallInstance {
+  // WASM call instance methods/properties
+  readonly __wasmCallBrand: unique symbol;
+}
+
+export interface WasmSendCallsRequestInstance {
+  // WASM send calls request instance methods/properties
+  readonly __wasmSendCallsRequestBrand: unique symbol;
 }
 
 // These will be set by the bundler/node entry points
-let WasmClient: any;
-let WasmConfig: any;
-let WasmContracts: any;
-let WasmCall: any;
-let WasmSendCallsRequest: any;
+let WasmClient: WasmClientConstructor;
+let WasmConfig: WasmConfigConstructor;
+let WasmContracts: WasmContractsConstructor;
+let WasmCall: WasmCallConstructor;
+let WasmSendCallsRequest: WasmSendCallsRequestConstructor;
 
 // Function to initialize WASM bindings - called by bundler/node modules
 export function setWasmBindings(bindings: {
-  Client: any;
-  Config: any;
-  Contracts: any;
-  Call: any;
-  SendCallsRequest: any;
+  Client: WasmClientConstructor;
+  Config: WasmConfigConstructor;
+  Contracts: WasmContractsConstructor;
+  Call: WasmCallConstructor;
+  SendCallsRequest: WasmSendCallsRequestConstructor;
 }) {
   WasmClient = bindings.Client;
   WasmConfig = bindings.Config;
@@ -49,7 +73,7 @@ export function setWasmBindings(bindings: {
  * High-level TypeScript wrapper for the zkSync SSO ERC-4337 client
  */
 export class ZkSyncSsoClient {
-  private client: any;
+  private client: WasmClientInstance;
 
   /**
    * Create a new zkSync SSO client
@@ -99,7 +123,7 @@ export class ZkSyncSsoClient {
    * Get the underlying WASM client instance (for advanced use cases)
    * @returns The raw WASM client object
    */
-  getWasmClient(): any {
+  getWasmClient(): WasmClientInstance {
     return this.client;
   }
 }

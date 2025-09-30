@@ -60,7 +60,7 @@ async function testWebSDK() {
 
   try {
     // Import the web SDK (dynamic import for client-side only)
-    const { ZkSyncSsoClient } = await import("@zksync-sso/web-sdk/bundler");
+    const { ZkSyncSsoClient } = await import("zksync-sso-web-sdk/bundler");
 
     // Test basic configuration
     const config = {
@@ -76,8 +76,10 @@ async function testWebSDK() {
     const client = new ZkSyncSsoClient(config);
 
     testResult.value = "Web SDK client created successfully!";
+    // eslint-disable-next-line no-console
     console.log("zkSync SSO Web SDK client:", client);
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error("Web SDK test failed:", err);
     error.value = `Failed to test Web SDK: ${err.message}`;
   } finally {
@@ -90,9 +92,10 @@ onMounted(async () => {
   // Only run on client side
   if (import.meta.client) {
     try {
-      await import("@zksync-sso/web-sdk/bundler");
+      await import("zksync-sso-web-sdk/bundler");
       sdkLoaded.value = true;
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("Failed to load Web SDK:", err);
       error.value = `Failed to load Web SDK: ${err.message}`;
     }

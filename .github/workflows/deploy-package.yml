@@ -26,7 +26,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/Iron
-          cache: 'pnpm'
+          cache: "pnpm"
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
@@ -54,6 +63,9 @@ jobs:
       - name: Build the wagmi-connector package
         run: pnpm nx build connector-export
 
+      - name: Build the web SDK package
+        run: pnpm nx build web-sdk
+
       - name: Prepare package.json
         working-directory: packages/sdk
         run: node prepare-package.mjs
@@ -66,9 +78,15 @@ jobs:
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
 
+      - name: Prepare web SDK package.json
+        working-directory: packages/sdk-platforms/web
+        run: node prepare-package.mjs
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+
       - name: Create .npmrc for NPM
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
-        
+
       - name: Determine npm publish tag
         id: npm_tag
         run: |
@@ -79,7 +97,7 @@ jobs:
             TAG="latest"
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-      
+
       - name: Publish SDK to NPM
         working-directory: packages/sdk
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
@@ -87,7 +105,11 @@ jobs:
       - name: Publish wagmi connector to NPM
         working-directory: packages/connector-export
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
-    
+
+      - name: Publish web SDK to NPM
+        working-directory: packages/sdk-platforms/web
+        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
+
       - name: Create .npmrc for GitHub Packages
         run: |
           echo "@matter-labs:registry=https://npm.pkg.github.com" > ~/.npmrc
@@ -106,4 +128,11 @@ jobs:
         run: |
           # Update package name for GitHub Packages to be scoped to the organization
           npm pkg set name="@matter-labs/zksync-sso-wagmi-connector"
+          npm publish --registry=https://npm.pkg.github.com --tag ${{ steps.npm_tag.outputs.tag }}
+
+      - name: Publish web SDK to GitHub Packages
+        working-directory: packages/sdk-platforms/web
+        run: |
+          # Update package name for GitHub Packages to be scoped to the organization
+          npm pkg set name="@matter-labs/zksync-sso-web-sdk"
           npm publish --registry=https://npm.pkg.github.com --tag ${{ steps.npm_tag.outputs.tag }}

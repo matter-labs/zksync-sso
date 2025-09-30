@@ -1,4 +1,4 @@
-# @zksync-sso/web-sdk
+# zksync-sso-web-sdk
 
 WebAssembly-powered SDK for zkSync SSO ERC-4337 integration in web applications.
 
@@ -12,8 +12,16 @@ WebAssembly-powered SDK for zkSync SSO ERC-4337 integration in web applications.
 
 ## Installation
 
+### NPM
+
 ```bash
-npm install @zksync-sso/web-sdk
+npm install zksync-sso-web-sdk
+```
+
+### GitHub Packages
+
+```bash
+npm install @matter-labs/zksync-sso-web-sdk
 ```
 
 ## Usage
@@ -21,7 +29,11 @@ npm install @zksync-sso/web-sdk
 ### Basic Usage
 
 ```typescript
-import { ZkSyncSsoClient } from "@zksync-sso/web-sdk";
+// From NPM
+import { ZkSyncSsoClient } from "zksync-sso-web-sdk";
+
+// Or from GitHub Packages
+import { ZkSyncSsoClient } from "@matter-labs/zksync-sso-web-sdk";
 
 const config = {
   rpcUrl: "https://sepolia.era.zksync.dev",
@@ -54,14 +66,20 @@ console.log("User operation hash:", result);
 #### For Bundlers (Webpack, Vite, etc.)
 
 ```typescript
-import { ZkSyncSsoClient } from "@zksync-sso/web-sdk/bundler";
+// From NPM
+import { ZkSyncSsoClient } from "zksync-sso-web-sdk/bundler";
+// Or from GitHub Packages
+import { ZkSyncSsoClient } from "@matter-labs/zksync-sso-web-sdk/bundler";
 // Optimized for browser environments
 ```
 
 #### For Node.js
 
 ```typescript
-import { ZkSyncSsoClient } from "@zksync-sso/web-sdk/node";
+// From NPM
+import { ZkSyncSsoClient } from "zksync-sso-web-sdk/node";
+// Or from GitHub Packages
+import { ZkSyncSsoClient } from "@matter-labs/zksync-sso-web-sdk/node";
 // Optimized for Node.js environments  
 ```
 
@@ -73,7 +91,9 @@ import {
   ZkSyncSsoUtils,
   type ClientConfig,
   type UserOperationRequest 
-} from "@zksync-sso/web-sdk";
+} from "zksync-sso-web-sdk";
+// Or from GitHub Packages:
+// } from "@matter-labs/zksync-sso-web-sdk";
 
 // Utility functions
 const isValidAddress = ZkSyncSsoUtils.isValidAddress("0x...");
@@ -99,7 +119,7 @@ constructor(config: ClientConfig, privateKey: string)
 
 #### Methods
 
-##### sendUserOperation(request: UserOperationRequest): Promise<string>
+##### sendUserOperation(request: UserOperationRequest): Promise\<string\>
 
 Send a user operation to the bundler.
 

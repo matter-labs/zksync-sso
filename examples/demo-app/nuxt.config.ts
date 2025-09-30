@@ -1,4 +1,5 @@
 import { defineNuxtConfig } from "nuxt/config";
+import wasm from "vite-plugin-wasm";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -35,6 +36,10 @@ export default defineNuxtConfig({
     },
   },
   vite: {
+    plugins: [wasm()],
+    build: {
+      target: "esnext",
+    },
     css: {
       preprocessorOptions: {
         scss: {
