@@ -2,7 +2,7 @@
 <template>
   <div class="container mx-auto p-6">
     <h1 class="text-2xl font-bold mb-4">
-      zkSync SSO Web SDK Test
+      ZKSync SSO Web SDK Test
     </h1>
 
     <div class="bg-gray-100 p-4 rounded-lg mb-4">
@@ -10,7 +10,7 @@
         Web SDK Status
       </h2>
       <p class="text-sm text-gray-600 mb-2">
-        Testing WASM-based zkSync SSO ERC-4337 integration
+        Testing WASM-based ZKSync SSO ERC-4337 integration
       </p>
 
       <div class="space-y-2">
@@ -77,7 +77,7 @@ async function testWebSDK() {
 
     testResult.value = "Web SDK client created successfully!";
     // eslint-disable-next-line no-console
-    console.log("zkSync SSO Web SDK client:", client);
+    console.log("ZKSync SSO Web SDK client:", client);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("Web SDK test failed:", err);
