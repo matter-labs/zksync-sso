@@ -1,5 +1,5 @@
 use crate::erc4337::{
-    entry_point::PackedUserOperation,
+    entry_point::{EntryPoint, PackedUserOperation},
     user_operation::hash::{
         user_operation_hash::UserOperationHash, v08::pack::CodeReader,
     },
@@ -53,6 +53,16 @@ impl PackedUserOperationWrapper {
 
         Self(user_operation)
     }
+}
+
+pub async fn get_user_operation_hash_entry_point<P: Provider + Clone>(
+    user_operation: &PackedUserOperation,
+    entry_point: &Address,
+    provider: P,
+) -> eyre::Result<UserOperationHash> {
+    let entry_point = EntryPoint::new(*entry_point, provider.clone());
+    let hash = entry_point.getUserOpHash(user_operation.clone()).call().await?;
+    Ok(hash.into())
 }
 
 struct NoCodeReader;
