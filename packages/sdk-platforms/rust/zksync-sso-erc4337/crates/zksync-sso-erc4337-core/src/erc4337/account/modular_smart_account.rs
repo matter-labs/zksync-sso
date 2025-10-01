@@ -1,5 +1,6 @@
+pub mod deploy;
+pub mod send;
 pub mod signature;
-pub mod test;
 
 use alloy::sol;
 

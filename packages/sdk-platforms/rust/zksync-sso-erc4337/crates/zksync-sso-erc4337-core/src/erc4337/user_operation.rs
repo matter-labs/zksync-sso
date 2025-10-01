@@ -1,5 +1,6 @@
 use crate::erc4337::entry_point::PackedUserOperation;
 use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+use alloy::rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation;
 use serde::{Deserialize, Serialize};
 
 pub mod alloy_helpers;
@@ -76,6 +77,39 @@ impl From<UserOperationV08> for PackedUserOperation {
         to_packed_user_operation(user_operation)
     }
 }
+
+// impl From<UserOperationV08> for AlloyPackedUserOperation {
+//     fn from(user_operation: UserOperationV08) -> Self {
+//         // let contract_user_op = to_packed_user_operation(user_operation);
+//         // AlloyPackedUserOperation {
+//         //     sender: contract_user_op.sender,
+//         //     nonce: contract_user_op.nonce,
+//         //     factory: None,
+//         //     factory_data: None,
+//         //     call_data: contract_user_op.callData,
+//         //     call_gas_limit: contract_user_op.,
+//         //     verification_gas_limit: contract_user_op.verificationGasLimit,
+//         //     pre_verification_gas: contract_user_op.preVerificationGas,
+//         //     max_fee_per_gas: contract_user_op.maxFeePerGas,
+//         //     max_priority_fee_per_gas: contract_user_op.maxPriorityFeePerGas,
+//         //     signature: contract_user_op.signature,
+//         // }
+
+//         AlloyPackedUserOperation {
+//             sender: user_operation.sender,
+//             nonce: user_operation.nonce,
+//             factory: None,
+//             factory_data: None,
+//             call_data: user_operation.callData,
+//             call_gas_limit: user_operation.,
+//             verification_gas_limit: user_operation.verificationGasLimit,
+//             pre_verification_gas: user_operation.preVerificationGas,
+//             max_fee_per_gas: user_operation.maxFeePerGas,
+//             max_priority_fee_per_gas: user_operation.maxPriorityFeePerGas,
+//             signature: user_operation.signature,
+//         }
+//     }
+// }
 
 fn to_packed_user_operation(
     user_operation: UserOperationV08,
