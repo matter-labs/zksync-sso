@@ -1,7 +1,6 @@
-use alloy::signers::SignerSync;
 use alloy::{
     primitives::{Address, Bytes, FixedBytes},
-    signers::local::PrivateKeySigner,
+    signers::{SignerSync, local::PrivateKeySigner},
 };
 use eyre::Ok;
 use std::str::FromStr;
