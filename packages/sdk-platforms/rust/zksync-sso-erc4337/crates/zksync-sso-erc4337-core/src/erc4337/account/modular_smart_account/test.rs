@@ -69,7 +69,19 @@ pub async fn deploy_account_basic<P: Provider + Send + Sync + Clone>(
 ) -> eyre::Result<Address> {
     let factory = MSAFactory::new(factory_address, provider.clone());
 
-    let account_id = FixedBytes::<32>::default();
+    let random_id = {
+        use rand::{Rng, rng};
+
+        pub fn generate_random_id() -> [u8; 32] {
+            let mut random_bytes = [0u8; 32];
+            rng().fill(&mut random_bytes);
+            random_bytes
+        }
+
+        generate_random_id()
+    };
+
+    let account_id = FixedBytes::<32>::from_slice(&random_id);
 
     let (data, modules) = if let Some(signers) = eoa_signers {
         let eoa_signer_encoded =
@@ -87,23 +99,9 @@ pub async fn deploy_account_basic<P: Provider + Send + Sync + Clone>(
 
     let receipt = deploy_account.send().await?.get_receipt().await?;
 
-    dbg!("status: {}", receipt.status());
+    let address = get_account_created_address(&receipt)?;
 
-    dbg!("logs: {:?}", receipt.logs());
-
-    // let deploy_account =
-    //     factory.deployAccount(account_id, init_data).into_transaction_request();
-
-    // let receipt =
-    //     provider.send_transaction(deploy_account).await?.get_receipt().await?;
-
-    // dbg!("status: {}", receipt.status());
-
-    // let address = get_account_created_address(&receipt)?;
-
-    // Ok(address)
-
-    Ok(address!("0x416C42991d05b31E9A6dC209e91AD22b79D87Ae6"))
+    Ok(address)
 }
 
 pub fn get_account_created_address(
@@ -121,24 +119,6 @@ pub fn get_account_created_address(
     let address = Address::from_slice(&event[12..]);
     Ok(address)
 }
-
-pub fn get_account_address(
-    receipt: &TransactionReceipt,
-) -> eyre::Result<Address> {
-    // let topic = MSAFactory::AccountCreated::SIGNATURE_HASH;
-    // let log = receipt
-    //     .logs()
-    //     .iter()
-    //     .find(|log: &&alloy::rpc::types::Log| log.inner.topics()[0] == topic)
-    //     .ok_or_else(|| eyre!("AccountCreated event not found in logs"))?;
-    // let event = log.log_decode()?.inner.data;
-    // Ok(event)
-
-    let address =
-        receipt.contract_address().ok_or(eyre::eyre!("no contract address"))?;
-    Ok(address)
-}
-
 pub fn deploy_account_via_user_op() -> eyre::Result<()> {
     Ok(())
 }
@@ -167,19 +147,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_deploy_account_basic() -> eyre::Result<()> {
-        
-        // EOAKeyValidator: 0x34A1D3fff3958843C43aD80F30b94c510645C316
-        // SessionKeyValidator: 0xA8452Ec99ce0C64f20701dB7dD3abDb607c00496
-        // WebAuthnValidator: 0xDB8cFf278adCCF9E9b5da745B44E754fC4EE3C76
-        // GuardianExecutor: 0x62c20Aa1e0272312BC100b4e23B4DC1Ed96dD7D1
-        // ModularSmartAccount implementation: 0xDEb1E9a6Be7Baf84208BB6E10aC9F9bbE1D70809
-        // UpgradeableBeacon: 0xD718d5A27a29FF1cD22403426084bA0d479869a0
-        // MSAFactory: 0x416C42991d05b31E9A6dC209e91AD22b79D87Ae6
-        
+        // == Logs ==
+        //   EOAKeyValidator: 0x00427eDF0c3c3bd42188ab4C907759942Abebd93
+        //   SessionKeyValidator: 0x57eaa1Fd8d80135Db195B147a249aad777aD10f0
+        //   WebAuthnValidator: 0xF3F924c9bADF6891D3676cfe9bF72e2C78527E17
+        //   GuardianExecutor: 0x374ce0d25B00B909417d695237d06abFe4548eB1
+        //   ModularSmartAccount implementation: 0x5646c10bFa3fA97B72402D26Bc66fEc0dbAf99c8
+        //   UpgradeableBeacon: 0x7b1255B5DaBbBf84ADC423B8b6Ecd89F822A2f72
+        //   MSAFactory: 0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3
+        //   Initialized account: 0x6bf1C0c174e11B933e7d8940aFADf8BB7B8d421C
+
         let rpc_url = "http://localhost:8545".parse()?;
 
         let factory_address =
-            address!("0x416C42991d05b31E9A6dC209e91AD22b79D87Ae6");
+            address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
 
         let provider = {
             let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";

@@ -32,6 +32,9 @@ tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
+# Randomness
+rand.workspace = true
+
 [dev-dependencies]
 # Alloy
 alloy = { workspace = true, features = ["node-bindings"] }
