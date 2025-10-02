@@ -12,11 +12,11 @@ pub fn stub_signature(eoa_validator: Address) -> eyre::Result<Bytes> {
     let hash = FixedBytes::default();
     let private_key_hex = STUB_PRIVATE_KEY;
     let signature =
-        eoa_signer(private_key_hex.to_string(), eoa_validator, hash)?;
+        eoa_signature(private_key_hex.to_string(), eoa_validator, hash)?;
     Ok(signature)
 }
 
-pub fn eoa_signer(
+pub fn eoa_signature(
     private_key_hex: String,
     eoa_validator: Address,
     hash: FixedBytes<32>,
@@ -51,7 +51,7 @@ mod tests {
         let expected_signature_hex = "0x00427edf0c3c3bd42188ab4c907759942abebd93eeb7fc6f331132b807e452477a34e4d4106d17e77d8d0a76da66941b2b2fcc7c05b06eeffc84785ba872502f698c2d3e90d1cbddea31c98013145dcf7ccbb22d1c";
         let expected_signature = Bytes::from_str(expected_signature_hex)?;
         let signature =
-            eoa_signer(private_key_hex.to_string(), eoa_validator, hash)?;
+            eoa_signature(private_key_hex.to_string(), eoa_validator, hash)?;
 
         eyre::ensure!(
             signature == expected_signature,

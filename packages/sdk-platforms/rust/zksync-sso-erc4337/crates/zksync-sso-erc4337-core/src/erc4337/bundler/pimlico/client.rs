@@ -1,6 +1,7 @@
 use super::gas_price::GasPrice;
 use crate::{
     erc4337::bundler::{config::BundlerConfig, pimlico::estimate::Estimate},
+    erc4337::entry_point::PackedUserOperation,
     jsonrpc::{JSONRPCResponse, Request, Response},
 };
 use alloy::{
@@ -18,6 +19,55 @@ pub struct BundlerClient {
 impl BundlerClient {
     pub fn new(config: BundlerConfig) -> Self {
         Self { client: reqwest::Client::new(), config }
+    }
+
+    pub async fn send_user_operation(
+        &self,
+        entry_point_address: alloy::primitives::Address,
+        user_op: AlloyPackedUserOperation,
+    ) -> eyre::Result<String> {
+        let bundler_url = self.config.url().clone();
+
+        let user_op_value = serde_json::to_value(&user_op)?;
+
+        println!("\nuser_op_value: {}", user_op_value);
+
+        let entry_point_address_str = entry_point_address.to_string();
+
+        let entry_point_addr_param = entry_point_address_str.into();
+
+        println!("\nentry_point_addr_param: {}", entry_point_addr_param);
+
+        let params = vec![user_op_value, entry_point_addr_param];
+
+        println!("\nparams: {:#?}", params);
+
+        let send_body = crate::jsonrpc::Request {
+            jsonrpc: "2.0".into(),
+            id: 1,
+            method: "eth_sendUserOperation".into(),
+            params,
+        };
+
+        let response = self
+            .client
+            .post(bundler_url.as_str())
+            .json(&send_body)
+            .send()
+            .await?;
+
+        let response_text = response.text().await?;
+        println!("response_text: {:?}", response_text);
+
+        let raw_payload =
+            serde_json::from_str::<JSONRPCResponse<String>>(&response_text)?;
+        println!("raw_payload: {:?}", raw_payload);
+
+        let response: Response<String> = raw_payload.into();
+
+        let user_operation_hash = response?;
+
+        Ok(user_operation_hash.unwrap())
     }
 
     pub async fn estimate_user_operation_gas_price(

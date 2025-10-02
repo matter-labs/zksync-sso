@@ -1,20 +1,19 @@
 use crate::erc4337::{
     account::{
         erc7579::{account::Execution, calls::encode_calls},
-        modular_smart_account::signature::stub_signature,
+        modular_smart_account::signature::{eoa_signature, stub_signature},
     },
     bundler::pimlico::client::BundlerClient,
     entry_point::EntryPoint,
     user_operation::hash::v08::get_user_operation_hash_entry_point,
 };
 use alloy::{
-    primitives::{Address, Bytes},
+    primitives::{Address, Bytes, U256},
     providers::Provider,
     rpc::types::erc4337::{
         PackedUserOperation as AlloyPackedUserOperation, SendUserOperation,
     },
 };
-use alloy_provider::ext::Erc4337Api;
 
 pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     account: Address,
@@ -23,6 +22,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     calls: Vec<Execution>,
     bundler_client: BundlerClient,
     provider: P,
+    private_key_hex: String,
 ) -> eyre::Result<()> {
     let encoded_calls: Bytes = encode_calls(calls).into();
     // let user_op = {
@@ -98,27 +98,59 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     user_op.verification_gas_limit = estimated_gas.verificationGasLimit;
     user_op.pre_verification_gas = estimated_gas.preVerificationGas;
 
-    // let packed_user_op = EntryPoint::PackedUserOperation {
-    //     sender: user_op.sender,
-    //     nonce: user_op.nonce,
-    //     initCode: user_op.initCode,
-    //     callData: user_op.callData,
-    //     callGasLimit: user_op.callGasLimit,
-    //     verificationGasLimit: user_op.verificationGasLimit,
-    //     preVerificationGas: user_op.preVerificationGas,
-    //     maxFeePerGas: user_op.maxFeePerGas,
-    //     maxPriorityFeePerGas: user_op.maxPriorityFeePerGas,
-    //     paymasterAndData: user_op.paymasterAndData,
-    //     signature: user_op.signature,
-    // };
+    let packed_gas_limits: U256 =
+        ((user_op.verification_gas_limit << 128) | user_op.call_gas_limit);
 
-    // let hash =
-    //     get_user_operation_hash_entry_point(&user_op, &entry_point, provider)
-    //         .await?;
+    let gas_fees: U256 =
+        ((user_op.max_priority_fee_per_gas << 128) | user_op.max_fee_per_gas);
 
-    // dbg!(estimated_gas);
+    let packed_user_op = EntryPoint::PackedUserOperation {
+        sender: user_op.sender,
+        nonce: user_op.nonce,
+        initCode: Bytes::default(),
+        callData: user_op.call_data.clone(),
+        accountGasLimits: packed_gas_limits.to_le_bytes().into(),
+        preVerificationGas: user_op.pre_verification_gas,
+        gasFees: gas_fees.to_le_bytes().into(),
+        paymasterAndData: Bytes::default(),
+        signature: user_op.signature.clone(),
+    };
 
-    // let tx = provider.send_transaction(account, encoded_calls).await?;
+    let hash = get_user_operation_hash_entry_point(
+        &packed_user_op,
+        &entry_point,
+        provider,
+    )
+    .await?;
+
+    dbg!(hash);
+
+    let signature = eoa_signature(private_key_hex, eoa_validator, hash.0)?;
+    user_op.signature = signature;
+
+    let user_op_hash =
+        bundler_client.send_user_operation(entry_point, user_op).await?;
+    
+    // params: [
+    //     Object {
+    //         "callData": String("0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000"),
+    //         "callGasLimit": String("0x3fc3"),
+    //         "maxFeePerGas": String("0x0"),
+    //         "maxPriorityFeePerGas": String("0x0"),
+    //         "nonce": String("0x0"),
+    //         "preVerificationGas": String("0xbf1a"),
+    //         "sender": String("0x09b5508134a3a2e2a99e87f6cd433b6a3a1a7303"),
+    //         "signature": String("0x00427edf0c3c3bd42188ab4c907759942abebd9356b1b747b5973eb03e352cf88b70eb5be6cbfc78960e3ac674fb53a709a0baaa19b21dccbe806564e90901bea340116ad521eaed9e4fc660a74bb22a716e106f1c"),
+    //         "verificationGasLimit": String("0x1c6d1"),
+    //     },
+    //     String("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108"),
+    // ]
+
+    // response_text: "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"message\":\"UserOperation reverted with reason: AA24 signature error\",\"code\":-32500}}"
+    // raw_payload: JSONRPCResponse { jsonrpc: "2.0", id: 1, result: None, error: Some(ErrorPayload { message: "UserOperation reverted with reason: AA24 signature error", data: None, code: Some(-32500) }) }
+    // Error: ErrorPayload { message: UserOperation reverted with reason: AA24 signature error }
+    
+    dbg!(user_op_hash);
 
     Ok(())
 }
@@ -150,8 +182,9 @@ mod tests {
         let eoa_validator_address =
             address!("0x00427eDF0c3c3bd42188ab4C907759942Abebd93");
 
+        let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+
         let provider = {
-            let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
             let signer = PrivateKeySigner::from_str(&signer_private_key)?;
             let alloy_signer = signer.clone();
             let ethereum_wallet =
@@ -219,8 +252,11 @@ mod tests {
             calls,
             bundler_client,
             provider.clone(),
+            signer_private_key.to_string(),
         )
         .await?;
+
+        dbg!(response);
 
         Ok(())
     }
