@@ -1,0 +1,75 @@
+{
+  "name": "web-sdk",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/sdk-platforms/web/src",
+  "projectType": "library",
+  "tags": ["npm:public", "type:package", "platform:web", "scope:sdk"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "commands": [
+          "npm run build:wasm",
+          "npm run build:ts"
+        ],
+        "cwd": "{projectRoot}",
+        "parallel": false
+      }
+    },
+    "build:wasm": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/pkg-bundler", "{projectRoot}/pkg-node"],
+      "options": {
+        "command": "npm run build:wasm",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "build:ts": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build:wasm"],
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "command": "npm run build:ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["{projectRoot}/src/**/*.{ts,tsx}"]
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/coverage"],
+      "options": {
+        "command": "npm run test",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run typecheck",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run clean",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "publish:local": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build", "test"],
+      "options": {
+        "command": "npm pack",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}
