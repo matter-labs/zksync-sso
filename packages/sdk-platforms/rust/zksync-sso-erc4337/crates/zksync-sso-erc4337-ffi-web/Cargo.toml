@@ -16,6 +16,21 @@ crate-type = ["cdylib"]
 [dependencies]
 # Core dependency
 zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core" }
+
+# Uniffi for FFI bindings
+uniffi.workspace = true
+
+# Error handling
+thiserror.workspace = true
+
+# Logging/Tracing
+tracing.workspace = true
+
+# Async
+tokio.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+
 # Web-specific dependencies
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
