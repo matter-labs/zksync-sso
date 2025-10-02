@@ -1,6 +1,5 @@
 use crate::erc4337::entry_point::PackedUserOperation;
 use alloy::primitives::{Address, Bytes, FixedBytes, U256};
-use alloy::rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation;
 use serde::{Deserialize, Serialize};
 
 pub mod alloy_helpers;

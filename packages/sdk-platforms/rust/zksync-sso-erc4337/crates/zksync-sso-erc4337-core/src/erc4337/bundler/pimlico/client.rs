@@ -1,6 +1,14 @@
 use super::gas_price::GasPrice;
-use crate::erc4337::bundler::config::BundlerConfig;
+use crate::{
+    erc4337::bundler::{config::BundlerConfig, pimlico::estimate::Estimate},
+    jsonrpc::{JSONRPCResponse, Request, Response},
+};
+use alloy::{
+    primitives::Address,
+    rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
+};
 use eyre::Ok;
+use serde_json;
 
 pub struct BundlerClient {
     client: reqwest::Client,
@@ -18,9 +26,6 @@ impl BundlerClient {
         println!("estimate_user_operation_gas_price");
 
         let bundler_url = self.config.url().clone();
-
-        use crate::jsonrpc::{JSONRPCResponse, Request, Response};
-        use serde_json;
 
         let req_body = Request {
             jsonrpc: "2.0".into(),
@@ -50,22 +55,26 @@ impl BundlerClient {
 
         Ok(response_estimate)
     }
-    
-    pub async fn todo(
+
+    pub async fn estimate_user_operation_gas(
         &self,
-    ) -> eyre::Result<GasPrice> {
-        println!("estimate_user_operation_gas_price");
+        user_operation: &AlloyPackedUserOperation,
+        entry_point: &Address,
+    ) -> eyre::Result<Estimate> {
+        println!("eth_estimateUserOperationGas");
 
         let bundler_url = self.config.url().clone();
 
-        use crate::jsonrpc::{JSONRPCResponse, Request, Response};
-        use serde_json;
+        let params = vec![
+            serde_json::to_value(user_operation)?,
+            entry_point.to_string().into(),
+        ];
 
         let req_body = Request {
             jsonrpc: "2.0".into(),
             id: 1,
-            method: "pimlico_getUserOperationGasPrice".into(),
-            params: [] as [(); 0],
+            method: "eth_estimateUserOperationGas".into(),
+            params,
         };
         println!("req_body: {:?}", serde_json::to_string(&req_body)?);
 
@@ -75,14 +84,14 @@ impl BundlerClient {
             .json(&req_body)
             .send()
             .await?;
-        println!("pimlico_getUserOperationGasPrice post: {:?}", post);
+        println!("eth_estimateUserOperationGas post: {:?}", post);
         let res = post.text().await?;
-        println!("pimlico_getUserOperationGasPrice res: {:?}", res);
-        let v = serde_json::from_str::<JSONRPCResponse<GasPrice>>(&res)?;
+        println!("eth_estimateUserOperationGas res: {:?}", res);
+        let v = serde_json::from_str::<JSONRPCResponse<Estimate>>(&res)?;
 
-        println!("pimlico_getUserOperationGasPrice json: {:?}", v);
+        println!("eth_estimateUserOperationGas json: {:?}", v);
 
-        let response: Response<GasPrice> = v.into();
+        let response: Response<Estimate> = v.into();
 
         let response_estimate = response?;
         let response_estimate = response_estimate.unwrap();

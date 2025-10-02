@@ -1,18 +1,20 @@
-use crate::erc4337::account::modular_smart_account::signature::stub_signature;
-use crate::erc4337::user_operation::UserOperationV08;
 use crate::erc4337::{
-    account::erc7579::{account::Execution, calls::encode_calls},
+    account::{
+        erc7579::{account::Execution, calls::encode_calls},
+        modular_smart_account::signature::stub_signature,
+    },
     bundler::pimlico::client::BundlerClient,
+    entry_point::EntryPoint,
+    user_operation::hash::v08::get_user_operation_hash_entry_point,
 };
-use alloy::providers::ProviderBuilder;
-use alloy::rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation;
-use alloy::{primitives::Address, providers::Provider};
 use alloy::{
-    primitives::Bytes, rpc::types::erc4337::SendUserOperation,
-    signers::local::PrivateKeySigner,
+    primitives::{Address, Bytes},
+    providers::Provider,
+    rpc::types::erc4337::{
+        PackedUserOperation as AlloyPackedUserOperation, SendUserOperation,
+    },
 };
 use alloy_provider::ext::Erc4337Api;
-use std::str::FromStr;
 
 pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     account: Address,
@@ -33,7 +35,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     //     }
     // };
 
-    let estimated_gas = {
+    let (estimated_gas, mut user_op) = {
         let alloy_user_op = {
             let stub_sig = stub_signature(eoa_validator)?;
             AlloyPackedUserOperation {
@@ -54,26 +56,26 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
                 signature: stub_sig,
             }
         };
-        let send_user_op = SendUserOperation::EntryPointV07(alloy_user_op);
-        let bundler_provider = {
-            let rpc_url = "http://localhost:4337".parse().unwrap();
+        let send_user_op =
+            SendUserOperation::EntryPointV07(alloy_user_op.clone());
+        // let bundler_provider = {
+        //     let rpc_url = "http://localhost:4337".parse().unwrap();
 
-            let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-            let signer = PrivateKeySigner::from_str(&signer_private_key)?;
-            let alloy_signer = signer.clone();
-            let ethereum_wallet =
-                alloy::network::EthereumWallet::new(alloy_signer.clone());
+        //     let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+        //     let signer = PrivateKeySigner::from_str(&signer_private_key)?;
+        //     let alloy_signer = signer.clone();
+        //     let ethereum_wallet =
+        //         alloy::network::EthereumWallet::new(alloy_signer.clone());
 
-            let provider = ProviderBuilder::new()
-                .wallet(ethereum_wallet.clone())
-                .connect_http(rpc_url);
+        //     let provider = ProviderBuilder::new()
+        //         .wallet(ethereum_wallet.clone())
+        //         .connect_http(rpc_url);
 
-            provider
-        };
-
-        bundler_provider
-            .estimate_user_operation_gas(send_user_op, entry_point)
-            .await?
+        //     provider
+        // };
+        // bundler_provider
+        //     .estimate_user_operation_gas(send_user_op, entry_point)
+        //     .await?
         // Error: deserialization error: missing field `verificationGas` at line 1 column 158
         // {
         //     "preVerificationGas":"0xbf1a",
@@ -82,14 +84,39 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
         //     "paymasterVerificationGasLimit":"0x0",
         //     "paymasterPostOpGasLimit":"0x0"
         // }
-
         // Caused by:
         //     missing field `verificationGas` at line 1 column 158
+
+        let estimated_gas = bundler_client
+            .estimate_user_operation_gas(&alloy_user_op, &entry_point)
+            .await?;
+
+        (estimated_gas, alloy_user_op)
     };
 
-    dbg!(estimated_gas);
+    user_op.call_gas_limit = estimated_gas.callGasLimit;
+    user_op.verification_gas_limit = estimated_gas.verificationGasLimit;
+    user_op.pre_verification_gas = estimated_gas.preVerificationGas;
 
-    // bundler_client.estimate_user_operation_gas_price()
+    // let packed_user_op = EntryPoint::PackedUserOperation {
+    //     sender: user_op.sender,
+    //     nonce: user_op.nonce,
+    //     initCode: user_op.initCode,
+    //     callData: user_op.callData,
+    //     callGasLimit: user_op.callGasLimit,
+    //     verificationGasLimit: user_op.verificationGasLimit,
+    //     preVerificationGas: user_op.preVerificationGas,
+    //     maxFeePerGas: user_op.maxFeePerGas,
+    //     maxPriorityFeePerGas: user_op.maxPriorityFeePerGas,
+    //     paymasterAndData: user_op.paymasterAndData,
+    //     signature: user_op.signature,
+    // };
+
+    // let hash =
+    //     get_user_operation_hash_entry_point(&user_op, &entry_point, provider)
+    //         .await?;
+
+    // dbg!(estimated_gas);
 
     // let tx = provider.send_transaction(account, encoded_calls).await?;
 
