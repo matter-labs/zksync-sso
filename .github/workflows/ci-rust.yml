@@ -32,13 +32,13 @@ jobs:
 
       - name: Install Rust
         run: |
-          rustup update stable && rustup default stable
-          rustup toolchain install stable
+          rustup update nightly && rustup default nightly
+          rustup toolchain install nightly
 
       - name: Run rustfmt
         run: |
-          rustup component add rustfmt --toolchain stable
-          cargo +stable fmt --all -- --check
+          rustup component add rustfmt --toolchain nightly
+          cargo +nightly fmt --all -- --check
         working-directory: packages/sdk-platforms/rust/zksync-sso
 
       - name: Install Anvil ZKsync Manually
@@ -113,13 +113,13 @@ jobs:
 
       - name: Install Rust
         run: |
-          rustup update stable && rustup default stable
-          rustup toolchain install stable
+          rustup update nightly && rustup default nightly
+          rustup toolchain install nightly
 
       - name: Run rustfmt
         run: |
-          rustup component add rustfmt --toolchain stable
-          cargo +stable fmt --all -- --check
+          rustup component add rustfmt --toolchain nightly
+          cargo +nightly fmt --all -- --check
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337
 
       - name: Install Foundry

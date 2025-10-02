@@ -1,12 +1,12 @@
 # Format code (check)
 
 fmt-check:
-    cargo +stable fmt --all -- --check
+    cargo +nightly fmt --all -- --check
 
 ## Format code (apply changes)
 
 fmt:
-    cargo +stable fmt --all
+    cargo +nightly fmt --all
 
 ## Lint code
 
@@ -21,7 +21,7 @@ clippy-fix:
 ## Format and fix linting issues
 
 fix:
-    cargo +stable fmt --all
+    cargo +nightly fmt --all
     cargo clippy --fix --allow-dirty --allow-staged
-    cargo +stable fmt --all
+    cargo +nightly fmt --all
     cargo clippy --fix --allow-dirty --allow-staged
