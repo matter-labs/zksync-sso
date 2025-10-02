@@ -8,12 +8,13 @@ FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 RUN pnpm install --prod=false --frozen-lockfile
-# Build only the packages that oidc-server depends on (skip Rust packages)
+# Build packages in dependency order: circuits first, then contracts if needed, then SDK, then oidc-server
+RUN pnpm --filter=zksync-sso-circuits run build
+RUN pnpm --filter=zksync-sso-contracts run build
 RUN pnpm --filter=sdk run build
-RUN pnpm --filter=circuits run build
-RUN pnpm --filter=oidc-server run build
+RUN pnpm --filter=zksync-sso-oidc-server run build
 # Skip web SDK and other Rust packages that require wasm-pack/cargo
-RUN pnpm deploy --filter=oidc-server --prod /prod/oidc-server
+RUN pnpm deploy --filter=zksync-sso-oidc-server --prod /prod/oidc-server
 
 FROM base AS oidc-server
 COPY --from=build /prod/oidc-server /prod/oidc-server
