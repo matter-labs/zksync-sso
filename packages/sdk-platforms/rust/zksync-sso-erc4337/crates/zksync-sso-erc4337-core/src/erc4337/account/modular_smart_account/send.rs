@@ -1,14 +1,18 @@
+use std::{ops::Add, str::FromStr};
+
 use crate::erc4337::{
     account::{
         erc7579::{account::Execution, calls::encode_calls},
         modular_smart_account::signature::{eoa_signature, stub_signature},
     },
-    bundler::pimlico::client::BundlerClient,
+    bundler::pimlico::{client::BundlerClient, estimate::Estimate},
     entry_point::EntryPoint,
     user_operation::hash::v08::get_user_operation_hash_entry_point,
 };
 use alloy::{
-    primitives::{Address, Bytes, U256},
+    primitives::{
+        Address, Bytes, FixedBytes, U256, address, bytes, fixed_bytes,
+    },
     providers::Provider,
     rpc::types::erc4337::{
         PackedUserOperation as AlloyPackedUserOperation, SendUserOperation,
@@ -24,16 +28,24 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     provider: P,
     private_key_hex: String,
 ) -> eyre::Result<()> {
-    let encoded_calls: Bytes = encode_calls(calls).into();
-    // let user_op = {
-    //     let stub_sig = stub_signature(eoa_validator);
-    //     UserOperationV08 {
-    //         sender: account,
-    //         call_data: encoded_calls.clone().into(),
-    //         signature: Bytes::default(),
-    //         ..Default::default()
-    //     }
+    // {
+    //     let expected_account: Address =
+    //         address!("0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c");
+    //     eyre::ensure!(
+    //         account == expected_account,
+    //         "account should be: {expected_account}, received: {account}"
+    //     );
     // };
+
+    let encoded_calls: Bytes = encode_calls(calls).into();
+    let expected_encoded_calls_hex = "0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000";
+    let expected_encoded_calls = Bytes::from_str(expected_encoded_calls_hex)?;
+    eyre::ensure!(
+        encoded_calls == expected_encoded_calls,
+        "Encoded calls do not match expected, received: {:?}, expected: {:?}",
+        encoded_calls,
+        expected_encoded_calls,
+    );
 
     let (estimated_gas, mut user_op) = {
         let alloy_user_op = {
@@ -56,8 +68,8 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
                 signature: stub_sig,
             }
         };
-        let send_user_op =
-            SendUserOperation::EntryPointV07(alloy_user_op.clone());
+        // let send_user_op =
+        //     SendUserOperation::EntryPointV07(alloy_user_op.clone());
         // let bundler_provider = {
         //     let rpc_url = "http://localhost:4337".parse().unwrap();
 
@@ -87,9 +99,17 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
         // Caused by:
         //     missing field `verificationGas` at line 1 column 158
 
-        let estimated_gas = bundler_client
-            .estimate_user_operation_gas(&alloy_user_op, &entry_point)
-            .await?;
+        // let estimated_gas = bundler_client
+        //     .estimate_user_operation_gas(&alloy_user_op, &entry_point)
+        //     .await?;
+
+        let estimated_gas = Estimate {
+            preVerificationGas: U256::from(49186),
+            verificationGasLimit: U256::from(116433),
+            callGasLimit: U256::from(16323),
+            paymasterVerificationGasLimit: U256::from(0),
+            paymasterPostOpGasLimit: U256::from(0),
+        };
 
         (estimated_gas, alloy_user_op)
     };
@@ -97,6 +117,9 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     user_op.call_gas_limit = estimated_gas.callGasLimit;
     user_op.verification_gas_limit = estimated_gas.verificationGasLimit;
     user_op.pre_verification_gas = estimated_gas.preVerificationGas;
+
+    user_op.max_priority_fee_per_gas = U256::from(0x77359400);
+    user_op.max_fee_per_gas = U256::from(0x82e08afeu64);
 
     let packed_gas_limits: U256 =
         ((user_op.verification_gas_limit << 128) | user_op.call_gas_limit);
@@ -116,6 +139,83 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
         signature: user_op.signature.clone(),
     };
 
+    {
+        let expected_call_data = Bytes::from_str(
+            "0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000",
+        )?;
+        let call_data = user_op.clone().call_data;
+        eyre::ensure!(
+            call_data == expected_call_data,
+            "call_data should be: {expected_call_data}, received: {call_data}"
+        );
+    }
+
+    {
+        let expected_call_gas_limits: U256 = U256::from(0x3fc3);
+        let call_gas_limits: U256 = user_op.clone().call_gas_limit;
+        eyre::ensure!(
+            call_gas_limits == expected_call_gas_limits,
+            "call_gas_limits should be: {expected_call_gas_limits}, received: {call_gas_limits}"
+        );
+    };
+
+    {
+        let expected_verification_gas_limits: U256 = U256::from(0x1c6d1);
+        let verification_gas_limits: U256 =
+            user_op.clone().verification_gas_limit;
+        eyre::ensure!(
+            expected_verification_gas_limits == verification_gas_limits,
+            "verification gas limit should be: {expected_verification_gas_limits}, received: {verification_gas_limits}"
+        );
+    };
+
+    {
+        let expected_max_priority_fee_per_gas: U256 = U256::from(0x77359400);
+        let max_priority_fee_per_gas: U256 =
+            user_op.clone().max_priority_fee_per_gas;
+        eyre::ensure!(
+            max_priority_fee_per_gas == expected_max_priority_fee_per_gas,
+            "max_priority_fee_per_gas should be: {expected_max_priority_fee_per_gas}, received: {max_priority_fee_per_gas}"
+        );
+    };
+
+    {
+        let expected_max_fee_per_gas: U256 = U256::from(0x82e08afeu64);
+        let max_fee_per_gas: U256 = user_op.clone().max_fee_per_gas;
+        eyre::ensure!(
+            max_fee_per_gas == expected_max_fee_per_gas,
+            "max_fee_per_gas should be: {expected_max_fee_per_gas}, received: {max_fee_per_gas}"
+        );
+    };
+
+    {
+        let expected_nonce: U256 = U256::from(0x0);
+        let nonce: U256 = user_op.clone().nonce;
+        eyre::ensure!(
+            nonce == expected_nonce,
+            "nonce should be: {expected_nonce}, received: {nonce}"
+        );
+    };
+
+    {
+        let expected_pre_verification_gas: U256 = U256::from(0xc022);
+        let pre_verification_gas: U256 = user_op.clone().pre_verification_gas;
+        eyre::ensure!(
+            pre_verification_gas == expected_pre_verification_gas,
+            "pre_verification_gas should be: {expected_pre_verification_gas}, received: {pre_verification_gas}"
+        );
+    };
+
+    {
+        let expected_sender: Address =
+            address!("0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c");
+        let sender: Address = user_op.clone().sender;
+        eyre::ensure!(
+            sender == expected_sender,
+            "sender should be: {expected_sender}, received: {sender}"
+        );
+    };
+
     let hash = get_user_operation_hash_entry_point(
         &packed_user_op,
         &entry_point,
@@ -125,32 +225,58 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
 
     dbg!(hash);
 
+    {
+        let expected_hash: FixedBytes<32> = "0x9ceec43dc797fa8dee197ba919967bdc8ee34bda38d2464a2fde666ba85b509d".parse().unwrap();
+        eyre::ensure!(
+            hash.0 == expected_hash,
+            "hash should be: {expected_hash}, received: {}",
+            hash.0
+        );
+        // Error: hash should be: 0x9ceec43dc797fa8dee197ba919967bdc8ee34bda38d2464a2fde666ba85b509d,
+        //              received: 0xb64ba314b77db473c08bb44171ae71f2bd2fcbc51a302d8feba0a6e47c9adfa1
+    }
     let signature = eoa_signature(private_key_hex, eoa_validator, hash.0)?;
     user_op.signature = signature;
 
-    let user_op_hash =
-        bundler_client.send_user_operation(entry_point, user_op).await?;
-    
-    // params: [
-    //     Object {
-    //         "callData": String("0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000"),
-    //         "callGasLimit": String("0x3fc3"),
-    //         "maxFeePerGas": String("0x0"),
-    //         "maxPriorityFeePerGas": String("0x0"),
-    //         "nonce": String("0x0"),
-    //         "preVerificationGas": String("0xbf1a"),
-    //         "sender": String("0x09b5508134a3a2e2a99e87f6cd433b6a3a1a7303"),
-    //         "signature": String("0x00427edf0c3c3bd42188ab4c907759942abebd9356b1b747b5973eb03e352cf88b70eb5be6cbfc78960e3ac674fb53a709a0baaa19b21dccbe806564e90901bea340116ad521eaed9e4fc660a74bb22a716e106f1c"),
-    //         "verificationGasLimit": String("0x1c6d1"),
-    //     },
-    //     String("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108"),
-    // ]
+    {
+        let expected_signature: Bytes = bytes!(
+            "0x00427edf0c3c3bd42188ab4c907759942abebd939be194ec9c86d5d6e2ae115ce700496a0a02f324f281cb9e0ead1e1346dccf241bf51064257e4e6e99208a3d80ef752c2891b586d4862aaf2ef5fe2f94aecaef1b"
+        );
+        let signature: Bytes = user_op.clone().signature;
+        eyre::ensure!(
+            signature == expected_signature,
+            "signature should be: {expected_signature}, received: {signature}"
+        );
+    };
 
-    // response_text: "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"message\":\"UserOperation reverted with reason: AA24 signature error\",\"code\":-32500}}"
-    // raw_payload: JSONRPCResponse { jsonrpc: "2.0", id: 1, result: None, error: Some(ErrorPayload { message: "UserOperation reverted with reason: AA24 signature error", data: None, code: Some(-32500) }) }
-    // Error: ErrorPayload { message: UserOperation reverted with reason: AA24 signature error }
-    
-    dbg!(user_op_hash);
+    {
+        let expected_entry_point: Address =
+            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+        eyre::ensure!(
+            entry_point == expected_entry_point,
+            "entry_point should be: {expected_entry_point}, received: {entry_point}"
+        );
+    };
+
+    // sendUserOperation rpcParameters:  {
+    //   callData: '0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000',
+    //   callGasLimit: '0x3fc3',
+    //   maxFeePerGas: '0x82e08afe',
+    //   maxPriorityFeePerGas: '0x77359400',
+    //   nonce: '0x0',
+    //   paymasterPostOpGasLimit: '0x0',
+    //   paymasterVerificationGasLimit: '0x0',
+    //   preVerificationGas: '0xc022',
+    //   sender: '0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c',
+    //   signature: '0x00427edf0c3c3bd42188ab4c907759942abebd939be194ec9c86d5d6e2ae115ce700496a0a02f324f281cb9e0ead1e1346dccf241bf51064257e4e6e99208a3d80ef752c2891b586d4862aaf2ef5fe2f94aecaef1b',
+    //   verificationGasLimit: '0x1c6d1'
+    // }
+    // hash: 0x9ceec43dc797fa8dee197ba919967bdc8ee34bda38d2464a2fde666ba85b509d
+
+    // let user_op_hash =
+    //     bundler_client.send_user_operation(entry_point, user_op).await?;
+
+    // dbg!(user_op_hash);
 
     Ok(())
 }
@@ -169,9 +295,27 @@ mod tests {
     };
     use std::str::FromStr;
 
+    // target address: 0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c
+    // Encoded calls: 0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000
+    // Nonce: 0n
+    // Stub Signature: 0x00427edf0c3c3bd42188ab4c907759942abebd9345fc36e56c77a4ff2f9032d5346697bb6f71faccf6b2ce61f5511ad84db29ab20b72aec01a6bbc248622d6622855eb0561063f8ea99fca314bff4359697138d31c
+    // Encoded calls: 0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000
+    // User Op Signature: 0x00427edf0c3c3bd42188ab4c907759942abebd935114742920708302f55d0edc5911be9c3cd7907e12f10610185e4d92c54786b277ade7a5e05a548747b73456a4c7ef4eff133ed82798ae97cc3130fed4ce3ae81c
+    // hash: 0x487bd8cd1346043bd57470125cdaec591d5e27a6b50d90f3710d4210eed5a2a1
+
     #[tokio::test]
-    async fn test_send_transaction() -> eyre::Result<()> {
+    async fn test_send_transaction_contracts() -> eyre::Result<()> {
         let rpc_url = "http://localhost:8545".parse()?;
+
+        // == Logs ==
+        //   EOAKeyValidator: 0x00427eDF0c3c3bd42188ab4C907759942Abebd93
+        //   SessionKeyValidator: 0x57eaa1Fd8d80135Db195B147a249aad777aD10f0
+        //   WebAuthnValidator: 0xF3F924c9bADF6891D3676cfe9bF72e2C78527E17
+        //   GuardianExecutor: 0x374ce0d25B00B909417d695237d06abFe4548eB1
+        //   ModularSmartAccount implementation: 0x5646c10bFa3fA97B72402D26Bc66fEc0dbAf99c8
+        //   UpgradeableBeacon: 0x7b1255B5DaBbBf84ADC423B8b6Ecd89F822A2f72
+        //   MSAFactory: 0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3
+        //   Initialized account: 0x6bf1C0c174e11B933e7d8940aFADf8BB7B8d421C
 
         let factory_address =
             address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
@@ -182,7 +326,7 @@ mod tests {
         let eoa_validator_address =
             address!("0x00427eDF0c3c3bd42188ab4C907759942Abebd93");
 
-        let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
 
         let provider = {
             let signer = PrivateKeySigner::from_str(&signer_private_key)?;
@@ -197,22 +341,23 @@ mod tests {
             provider
         };
 
-        let signers =
-            vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
+        // let signers =
+        //     vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
 
-        let eoa_signers = EOASigners {
-            addresses: signers,
-            validator_address: eoa_validator_address,
-        };
+        // let eoa_signers = EOASigners {
+        //     addresses: signers,
+        //     validator_address: eoa_validator_address,
+        // };
 
-        let address = deploy_account_basic(
-            factory_address,
-            Some(eoa_signers),
-            provider.clone(),
-        )
-        .await?;
+        // let address = deploy_account_basic(
+        //     factory_address,
+        //     Some(eoa_signers),
+        //     provider.clone(),
+        // )
+        // .await?;
 
-        println!("Account deployed");
+        // println!("Account deployed");
+        let address = address!("0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c");
 
         let is_module_installed = is_module_installed(
             eoa_validator_address,
@@ -220,10 +365,11 @@ mod tests {
             provider.clone(),
         )
         .await?;
+
         eyre::ensure!(is_module_installed, "Module is not installed");
 
         let call = {
-            let target = address!("0x0000000000000000000000000000000000000000");
+            let target = address;
             let value = U256::from(1);
             let data = Bytes::default();
             Execution { target, value, data }
@@ -238,12 +384,12 @@ mod tests {
             BundlerClient::new(config)
         };
 
-        {
-            let fund_tx = TransactionRequest::default()
-                .to(address)
-                .value(U256::from(10000000000000000000u64));
-            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        }
+        // {
+        //     let fund_tx = TransactionRequest::default()
+        //         .to(address)
+        //         .value(U256::from(10000000000000000000u64));
+        //     _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
+        // }
 
         let response = send_transaction(
             address,
