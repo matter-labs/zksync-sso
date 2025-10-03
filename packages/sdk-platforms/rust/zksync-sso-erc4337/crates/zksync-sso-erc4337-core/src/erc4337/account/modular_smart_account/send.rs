@@ -1,5 +1,4 @@
-use std::{ops::Add, str::FromStr};
-
+use crate::erc4337::account::modular_smart_account::nonce::get_nonce;
 use crate::erc4337::{
     account::{
         erc7579::{account::Execution, calls::encode_calls},
@@ -38,21 +37,21 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     // };
 
     let encoded_calls: Bytes = encode_calls(calls).into();
-    let expected_encoded_calls_hex = "0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000";
-    let expected_encoded_calls = Bytes::from_str(expected_encoded_calls_hex)?;
-    eyre::ensure!(
-        encoded_calls == expected_encoded_calls,
-        "Encoded calls do not match expected, received: {:?}, expected: {:?}",
-        encoded_calls,
-        expected_encoded_calls,
-    );
+    // let expected_encoded_calls_hex = "0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000";
+    // let expected_encoded_calls = Bytes::from_str(expected_encoded_calls_hex)?;
+    // eyre::ensure!(
+    //     encoded_calls == expected_encoded_calls,
+    //     "Encoded calls do not match expected, received: {:?}, expected: {:?}",
+    //     encoded_calls,
+    //     expected_encoded_calls,
+    // );
 
     let (estimated_gas, mut user_op) = {
         let alloy_user_op = {
             let stub_sig = stub_signature(eoa_validator)?;
             AlloyPackedUserOperation {
                 sender: account,
-                nonce: Default::default(),
+                nonce: get_nonce(entry_point, account, &provider).await?,
                 paymaster: None,
                 paymaster_verification_gas_limit: None,
                 paymaster_data: None,
@@ -132,89 +131,89 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
         nonce: user_op.nonce,
         initCode: Bytes::default(),
         callData: user_op.call_data.clone(),
-        accountGasLimits: packed_gas_limits.to_le_bytes().into(),
+        accountGasLimits: packed_gas_limits.to_be_bytes().into(),
         preVerificationGas: user_op.pre_verification_gas,
-        gasFees: gas_fees.to_le_bytes().into(),
+        gasFees: gas_fees.to_be_bytes().into(),
         paymasterAndData: Bytes::default(),
         signature: user_op.signature.clone(),
     };
 
-    {
-        let expected_call_data = Bytes::from_str(
-            "0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000",
-        )?;
-        let call_data = user_op.clone().call_data;
-        eyre::ensure!(
-            call_data == expected_call_data,
-            "call_data should be: {expected_call_data}, received: {call_data}"
-        );
-    }
+    // {
+    //     let expected_call_data = Bytes::from_str(
+    //         "0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000",
+    //     )?;
+    //     let call_data = user_op.clone().call_data;
+    //     eyre::ensure!(
+    //         call_data == expected_call_data,
+    //         "call_data should be: {expected_call_data}, received: {call_data}"
+    //     );
+    // }
 
-    {
-        let expected_call_gas_limits: U256 = U256::from(0x3fc3);
-        let call_gas_limits: U256 = user_op.clone().call_gas_limit;
-        eyre::ensure!(
-            call_gas_limits == expected_call_gas_limits,
-            "call_gas_limits should be: {expected_call_gas_limits}, received: {call_gas_limits}"
-        );
-    };
+    // {
+    //     let expected_call_gas_limits: U256 = U256::from(0x3fc3);
+    //     let call_gas_limits: U256 = user_op.clone().call_gas_limit;
+    //     eyre::ensure!(
+    //         call_gas_limits == expected_call_gas_limits,
+    //         "call_gas_limits should be: {expected_call_gas_limits}, received: {call_gas_limits}"
+    //     );
+    // };
 
-    {
-        let expected_verification_gas_limits: U256 = U256::from(0x1c6d1);
-        let verification_gas_limits: U256 =
-            user_op.clone().verification_gas_limit;
-        eyre::ensure!(
-            expected_verification_gas_limits == verification_gas_limits,
-            "verification gas limit should be: {expected_verification_gas_limits}, received: {verification_gas_limits}"
-        );
-    };
+    // {
+    //     let expected_verification_gas_limits: U256 = U256::from(0x1c6d1);
+    //     let verification_gas_limits: U256 =
+    //         user_op.clone().verification_gas_limit;
+    //     eyre::ensure!(
+    //         expected_verification_gas_limits == verification_gas_limits,
+    //         "verification gas limit should be: {expected_verification_gas_limits}, received: {verification_gas_limits}"
+    //     );
+    // };
 
-    {
-        let expected_max_priority_fee_per_gas: U256 = U256::from(0x77359400);
-        let max_priority_fee_per_gas: U256 =
-            user_op.clone().max_priority_fee_per_gas;
-        eyre::ensure!(
-            max_priority_fee_per_gas == expected_max_priority_fee_per_gas,
-            "max_priority_fee_per_gas should be: {expected_max_priority_fee_per_gas}, received: {max_priority_fee_per_gas}"
-        );
-    };
+    // {
+    //     let expected_max_priority_fee_per_gas: U256 = U256::from(0x77359400);
+    //     let max_priority_fee_per_gas: U256 =
+    //         user_op.clone().max_priority_fee_per_gas;
+    //     eyre::ensure!(
+    //         max_priority_fee_per_gas == expected_max_priority_fee_per_gas,
+    //         "max_priority_fee_per_gas should be: {expected_max_priority_fee_per_gas}, received: {max_priority_fee_per_gas}"
+    //     );
+    // };
 
-    {
-        let expected_max_fee_per_gas: U256 = U256::from(0x82e08afeu64);
-        let max_fee_per_gas: U256 = user_op.clone().max_fee_per_gas;
-        eyre::ensure!(
-            max_fee_per_gas == expected_max_fee_per_gas,
-            "max_fee_per_gas should be: {expected_max_fee_per_gas}, received: {max_fee_per_gas}"
-        );
-    };
+    // {
+    //     let expected_max_fee_per_gas: U256 = U256::from(0x82e08afeu64);
+    //     let max_fee_per_gas: U256 = user_op.clone().max_fee_per_gas;
+    //     eyre::ensure!(
+    //         max_fee_per_gas == expected_max_fee_per_gas,
+    //         "max_fee_per_gas should be: {expected_max_fee_per_gas}, received: {max_fee_per_gas}"
+    //     );
+    // };
 
-    {
-        let expected_nonce: U256 = U256::from(0x0);
-        let nonce: U256 = user_op.clone().nonce;
-        eyre::ensure!(
-            nonce == expected_nonce,
-            "nonce should be: {expected_nonce}, received: {nonce}"
-        );
-    };
+    // {
+    //     let expected_nonce: U256 = U256::from(0x0);
+    //     let nonce: U256 = user_op.clone().nonce;
+    //     eyre::ensure!(
+    //         nonce == expected_nonce,
+    //         "nonce should be: {expected_nonce}, received: {nonce}"
+    //     );
+    // };
 
-    {
-        let expected_pre_verification_gas: U256 = U256::from(0xc022);
-        let pre_verification_gas: U256 = user_op.clone().pre_verification_gas;
-        eyre::ensure!(
-            pre_verification_gas == expected_pre_verification_gas,
-            "pre_verification_gas should be: {expected_pre_verification_gas}, received: {pre_verification_gas}"
-        );
-    };
+    // {
+    //     let expected_pre_verification_gas: U256 = U256::from(0xc022);
+    //     let pre_verification_gas: U256 = user_op.clone().pre_verification_gas;
+    //     eyre::ensure!(
+    //         pre_verification_gas == expected_pre_verification_gas,
+    //         "pre_verification_gas should be: {expected_pre_verification_gas}, received: {pre_verification_gas}"
+    //     );
+    // };
 
-    {
-        let expected_sender: Address =
-            address!("0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c");
-        let sender: Address = user_op.clone().sender;
-        eyre::ensure!(
-            sender == expected_sender,
-            "sender should be: {expected_sender}, received: {sender}"
-        );
-    };
+    // {
+    //     let expected_sender: Address =
+    //         address!("0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c");
+    //     let sender: Address = user_op.clone().sender;
+    //     eyre::ensure!(
+    //         sender == expected_sender,
+    //         "sender should be: {expected_sender}, received: {sender}"
+    //     );
+    // };
 
     let hash = get_user_operation_hash_entry_point(
         &packed_user_op,
@@ -225,29 +224,29 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
 
     dbg!(hash);
 
-    {
-        let expected_hash: FixedBytes<32> = "0x9ceec43dc797fa8dee197ba919967bdc8ee34bda38d2464a2fde666ba85b509d".parse().unwrap();
-        eyre::ensure!(
-            hash.0 == expected_hash,
-            "hash should be: {expected_hash}, received: {}",
-            hash.0
-        );
-        // Error: hash should be: 0x9ceec43dc797fa8dee197ba919967bdc8ee34bda38d2464a2fde666ba85b509d,
-        //              received: 0xb64ba314b77db473c08bb44171ae71f2bd2fcbc51a302d8feba0a6e47c9adfa1
-    }
+    // {
+    //     let expected_hash: FixedBytes<32> = "0x9ceec43dc797fa8dee197ba919967bdc8ee34bda38d2464a2fde666ba85b509d".parse().unwrap();
+    //     eyre::ensure!(
+    //         hash.0 == expected_hash,
+    //         "hash should be: {expected_hash}, received: {}",
+    //         hash.0
+    //     );
+    //     // Error: hash should be: 0x9ceec43dc797fa8dee197ba919967bdc8ee34bda38d2464a2fde666ba85b509d,
+    //     //              received: 0xb64ba314b77db473c08bb44171ae71f2bd2fcbc51a302d8feba0a6e47c9adfa1
+    // }
     let signature = eoa_signature(private_key_hex, eoa_validator, hash.0)?;
     user_op.signature = signature;
 
-    {
-        let expected_signature: Bytes = bytes!(
-            "0x00427edf0c3c3bd42188ab4c907759942abebd939be194ec9c86d5d6e2ae115ce700496a0a02f324f281cb9e0ead1e1346dccf241bf51064257e4e6e99208a3d80ef752c2891b586d4862aaf2ef5fe2f94aecaef1b"
-        );
-        let signature: Bytes = user_op.clone().signature;
-        eyre::ensure!(
-            signature == expected_signature,
-            "signature should be: {expected_signature}, received: {signature}"
-        );
-    };
+    // {
+    //     let expected_signature: Bytes = bytes!(
+    //         "0x00427edf0c3c3bd42188ab4c907759942abebd939be194ec9c86d5d6e2ae115ce700496a0a02f324f281cb9e0ead1e1346dccf241bf51064257e4e6e99208a3d80ef752c2891b586d4862aaf2ef5fe2f94aecaef1b"
+    //     );
+    //     let signature: Bytes = user_op.clone().signature;
+    //     eyre::ensure!(
+    //         signature == expected_signature,
+    //         "signature should be: {expected_signature}, received: {signature}"
+    //     );
+    // };
 
     {
         let expected_entry_point: Address =
@@ -273,10 +272,10 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     // }
     // hash: 0x9ceec43dc797fa8dee197ba919967bdc8ee34bda38d2464a2fde666ba85b509d
 
-    // let user_op_hash =
-    //     bundler_client.send_user_operation(entry_point, user_op).await?;
+    let user_op_hash =
+        bundler_client.send_user_operation(entry_point, user_op).await?;
 
-    // dbg!(user_op_hash);
+    dbg!(user_op_hash);
 
     Ok(())
 }
@@ -294,14 +293,6 @@ mod tests {
         signers::local::PrivateKeySigner,
     };
     use std::str::FromStr;
-
-    // target address: 0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c
-    // Encoded calls: 0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000
-    // Nonce: 0n
-    // Stub Signature: 0x00427edf0c3c3bd42188ab4c907759942abebd9345fc36e56c77a4ff2f9032d5346697bb6f71faccf6b2ce61f5511ad84db29ab20b72aec01a6bbc248622d6622855eb0561063f8ea99fca314bff4359697138d31c
-    // Encoded calls: 0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000
-    // User Op Signature: 0x00427edf0c3c3bd42188ab4c907759942abebd935114742920708302f55d0edc5911be9c3cd7907e12f10610185e4d92c54786b277ade7a5e05a548747b73456a4c7ef4eff133ed82798ae97cc3130fed4ce3ae81c
-    // hash: 0x487bd8cd1346043bd57470125cdaec591d5e27a6b50d90f3710d4210eed5a2a1
 
     #[tokio::test]
     async fn test_send_transaction_contracts() -> eyre::Result<()> {
@@ -341,23 +332,23 @@ mod tests {
             provider
         };
 
-        // let signers =
-        //     vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
+        let signers =
+            vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
 
-        // let eoa_signers = EOASigners {
-        //     addresses: signers,
-        //     validator_address: eoa_validator_address,
-        // };
+        let eoa_signers = EOASigners {
+            addresses: signers,
+            validator_address: eoa_validator_address,
+        };
 
-        // let address = deploy_account_basic(
-        //     factory_address,
-        //     Some(eoa_signers),
-        //     provider.clone(),
-        // )
-        // .await?;
+        let address = deploy_account_basic(
+            factory_address,
+            Some(eoa_signers),
+            provider.clone(),
+        )
+        .await?;
 
-        // println!("Account deployed");
-        let address = address!("0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c");
+        println!("Account deployed");
+        // let address = address!("0x6bf1c0c174e11b933e7d8940afadf8bb7b8d421c");
 
         let is_module_installed = is_module_installed(
             eoa_validator_address,
@@ -384,12 +375,12 @@ mod tests {
             BundlerClient::new(config)
         };
 
-        // {
-        //     let fund_tx = TransactionRequest::default()
-        //         .to(address)
-        //         .value(U256::from(10000000000000000000u64));
-        //     _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        // }
+        {
+            let fund_tx = TransactionRequest::default()
+                .to(address)
+                .value(U256::from(10000000000000000000u64));
+            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
+        }
 
         let response = send_transaction(
             address,
