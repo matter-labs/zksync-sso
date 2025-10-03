@@ -1,4 +1,4 @@
-use crate::erc4337::account::erc7579::account::IERC7579Account;
+use crate::erc4337::account::modular_smart_account::WebAuthnValidator;
 use crate::erc4337::{
     account::{
         erc7579::{account::Execution, calls::encode_calls},
@@ -9,7 +9,7 @@ use crate::erc4337::{
     entry_point::EntryPoint,
     user_operation::hash::v08::get_user_operation_hash_entry_point,
 };
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, Bytes, FixedBytes, U256, bytes};
 use alloy::rpc::types::TransactionReceipt;
 use alloy::{
     sol,
@@ -17,15 +17,15 @@ use alloy::{
 };
 use alloy_provider::Provider;
 
-pub fn add_module_call_data(
-    module: Address,
-    module_type_id: u8,
-    init_data: Bytes,
+pub fn add_passkey_call_data(
+    credential_id: Bytes,
+    passkey: [FixedBytes<32>; 2],
+    origin_domain: String,
 ) -> Bytes {
-    IERC7579Account::installModuleCall {
-        moduleTypeId: U256::from(module_type_id),
-        module,
-        initData: init_data,
+    WebAuthnValidator::addValidationKeyCall {
+        credentialId: credential_id,
+        newKey: passkey,
+        originDomain: origin_domain,
     }
     .abi_encode()
     .into()
@@ -34,12 +34,13 @@ pub fn add_module_call_data(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::erc4337::account::erc7579::add_module::add_module_call_data;
     use crate::erc4337::account::modular_smart_account::deploy::{
         EOASigners, deploy_account_basic, is_module_installed,
     };
     use crate::erc4337::account::modular_smart_account::send::send_transaction_eoa;
     use alloy::{
-        primitives::{Bytes, U256, address},
+        primitives::{Bytes, U256, address, bytes, fixed_bytes},
         providers::ProviderBuilder,
         rpc::types::TransactionRequest,
         signers::local::PrivateKeySigner,
@@ -47,18 +48,8 @@ mod tests {
     use std::str::FromStr;
 
     #[tokio::test]
-    async fn test_add_module() -> eyre::Result<()> {
+    async fn test_add_passkey() -> eyre::Result<()> {
         let rpc_url = "http://localhost:8545".parse()?;
-
-        // == Logs ==
-        //   EOAKeyValidator: 0x00427eDF0c3c3bd42188ab4C907759942Abebd93
-        //   SessionKeyValidator: 0x57eaa1Fd8d80135Db195B147a249aad777aD10f0
-        //   WebAuthnValidator: 0xF3F924c9bADF6891D3676cfe9bF72e2C78527E17
-        //   GuardianExecutor: 0x374ce0d25B00B909417d695237d06abFe4548eB1
-        //   ModularSmartAccount implementation: 0x5646c10bFa3fA97B72402D26Bc66fEc0dbAf99c8
-        //   UpgradeableBeacon: 0x7b1255B5DaBbBf84ADC423B8b6Ecd89F822A2f72
-        //   MSAFactory: 0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3
-        //   Initialized account: 0x6bf1C0c174e11B933e7d8940aFADf8BB7B8d421C
 
         let factory_address =
             address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
@@ -140,7 +131,7 @@ mod tests {
             eoa_validator_address,
             entry_point_address,
             call_data,
-            bundler_client,
+            bundler_client.clone(),
             provider.clone(),
             signer_private_key.to_string(),
         )
@@ -154,6 +145,33 @@ mod tests {
             is_web_authn_module_installed,
             "is_web_authn_module is not installed"
         );
+
+        let credential_id = bytes!("0x2868baa08431052f6c7541392a458f64");
+        let passkey = [
+            fixed_bytes!(
+                "0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40"
+            ),
+            fixed_bytes!(
+                "0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501"
+            ),
+        ];
+        let origin_domain = "https://example.com".to_string();
+        let passkey_call_data =
+            add_passkey_call_data(credential_id, passkey, origin_domain);
+
+        // Send transaction to add passkey
+        let _ = send_transaction_eoa(
+            address,
+            eoa_validator_address,
+            entry_point_address,
+            passkey_call_data,
+            bundler_client,
+            provider.clone(),
+            signer_private_key.to_string(),
+        )
+        .await?;
+
+        println!("Passkey successfully added");
 
         Ok(())
     }

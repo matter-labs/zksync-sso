@@ -5,6 +5,7 @@ pub mod erc7702;
 pub mod error;
 pub mod jsonrpc;
 pub mod result;
+pub mod utils;
 
 #[cfg(test)]
 pub mod test_utils;

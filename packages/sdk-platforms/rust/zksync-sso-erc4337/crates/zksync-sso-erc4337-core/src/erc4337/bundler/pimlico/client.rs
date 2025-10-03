@@ -1,6 +1,10 @@
-use super::gas_price::GasPrice;
+use crate::erc4337::bundler::models::receipt::UserOperationReceipt;
+use crate::erc4337::bundler::pimlico::gas_price::GasPrice;
 use crate::{
-    erc4337::bundler::{config::BundlerConfig, pimlico::estimate::Estimate},
+    erc4337::bundler::{
+        client::BundlerClient as BaseClient, config::BundlerConfig,
+        models::estimate::Estimate,
+    },
     erc4337::entry_point::PackedUserOperation,
     jsonrpc::{JSONRPCResponse, Request, Response},
 };
@@ -11,15 +15,28 @@ use alloy::{
 use eyre::Ok;
 use serde_json;
 
+#[derive(Clone)]
 pub struct BundlerClient {
     client: reqwest::Client,
+    base_client: BaseClient,
     pub(crate) config: BundlerConfig,
 }
 
 impl BundlerClient {
     pub fn new(config: BundlerConfig) -> Self {
-        Self { client: reqwest::Client::new(), config }
+        Self {
+            client: reqwest::Client::new(),
+            base_client: BaseClient::new(config.clone()),
+            config,
+        }
     }
+
+    // pub async fn get_user_operation_receipt(
+    //     &self,
+    //     user_op_hash: String,
+    // ) -> eyre::Result<Option<UserOperationReceipt>> {
+    //     self.base_client.get_user_operation_receipt(user_op_hash).await
+    // }
 
     pub async fn get_user_operation_receipt(
         &self,

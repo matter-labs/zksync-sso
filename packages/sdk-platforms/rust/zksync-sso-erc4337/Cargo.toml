@@ -80,6 +80,14 @@ url = "2.5.4"
 # Randomness
 rand = "0.9"
 
+# DER
+der = { version = "0.7", features = ["alloc"] }
+der_derive = "0.7"
+
+# Base64
+base64-url = "3.0.0"
+base64 = "0.21"
+
 # Test utils
 wiremock = "0.6"
 tempfile = "3"

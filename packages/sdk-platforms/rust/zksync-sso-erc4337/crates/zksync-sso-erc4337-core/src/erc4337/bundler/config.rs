@@ -1,3 +1,4 @@
+#[derive(Debug, Clone)]
 pub struct BundlerConfig {
     pub(crate) url: String,
 }
