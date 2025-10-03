@@ -1,5 +1,5 @@
 pub struct BundlerConfig {
-    url: String,
+    pub(crate) url: String,
 }
 
 impl BundlerConfig {

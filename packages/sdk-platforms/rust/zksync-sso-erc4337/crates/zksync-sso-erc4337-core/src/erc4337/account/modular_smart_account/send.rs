@@ -17,12 +17,18 @@ use alloy::{
         PackedUserOperation as AlloyPackedUserOperation, SendUserOperation,
     },
 };
+use alloy::{
+    providers::ProviderBuilder, rpc::types::TransactionRequest,
+    signers::local::PrivateKeySigner,
+};
+use alloy_provider::ext::Erc4337Api;
+use std::str::FromStr;
 
 pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     account: Address,
     eoa_validator: Address,
     entry_point: Address,
-    calls: Vec<Execution>,
+    call_data: Bytes,
     bundler_client: BundlerClient,
     provider: P,
     private_key_hex: String,
@@ -36,7 +42,6 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     //     );
     // };
 
-    let encoded_calls: Bytes = encode_calls(calls).into();
     // let expected_encoded_calls_hex = "0xe9ae5c530100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000006bf1c0c174e11b933e7d8940afadf8bb7b8d421c000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000";
     // let expected_encoded_calls = Bytes::from_str(expected_encoded_calls_hex)?;
     // eyre::ensure!(
@@ -63,7 +68,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
                 verification_gas_limit: Default::default(),
                 factory: None,
                 factory_data: None,
-                call_data: encoded_calls,
+                call_data: call_data,
                 signature: stub_sig,
             }
         };
@@ -98,17 +103,17 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
         // Caused by:
         //     missing field `verificationGas` at line 1 column 158
 
-        // let estimated_gas = bundler_client
-        //     .estimate_user_operation_gas(&alloy_user_op, &entry_point)
-        //     .await?;
+        let estimated_gas = bundler_client
+            .estimate_user_operation_gas(&alloy_user_op, &entry_point)
+            .await?;
 
-        let estimated_gas = Estimate {
-            preVerificationGas: U256::from(49186),
-            verificationGasLimit: U256::from(116433),
-            callGasLimit: U256::from(16323),
-            paymasterVerificationGasLimit: U256::from(0),
-            paymasterPostOpGasLimit: U256::from(0),
-        };
+        // let estimated_gas = Estimate {
+        //     preVerificationGas: U256::from(49186),
+        //     verificationGasLimit: U256::from(116433),
+        //     callGasLimit: U256::from(16323),
+        //     paymasterVerificationGasLimit: U256::from(0),
+        //     paymasterPostOpGasLimit: U256::from(0),
+        // };
 
         (estimated_gas, alloy_user_op)
     };
@@ -275,7 +280,14 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     let user_op_hash =
         bundler_client.send_user_operation(entry_point, user_op).await?;
 
-    dbg!(user_op_hash);
+    dbg!(user_op_hash.clone());
+
+    // get_user_operation_receipt
+    tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
+
+    _ = bundler_client.get_user_operation_receipt(user_op_hash).await?;
+
+    // response_text: "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"userOpHash\":\"0x8da0baf4f6168c4c275b257424e08a68b69f7cf1bf5e70e8f671be5804c68625\",\"entryPoint\":\"0x4337084d9e255ff0702461cf8895ce9e3b5ff108\",\"sender\":\"0xDb95C59A5304D296E3F9A647E508046f8A8B5a37\",\"nonce\":\"0x0\",\"actualGasUsed\":\"0x243ec\",\"actualGasCost\":\"0x10e26ec717d08\",\"success\":true,\"logs\":[],\"receipt\":{\"transactionHash\":\"0xb8c390ae0f08bd1264e70f35b3cc09b6fc224ab05fb65e384528388337bd8ad7\",\"transactionIndex\":\"0x0\",\"blockHash\":\"0x40338d3d31372242b051f3cd6aac656f8e7c4a32b8de5dc69588c80ffce18fd0\",\"blockNumber\":\"0x166887c\",\"from\":\"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\",\"to\":\"0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108\",\"cumulativeGasUsed\":\"0x25e97\",\"gasUsed\":\"0x25e97\",\"contractAddress\":null,\"logs\":[{\"logIndex\":\"0x0\",\"transactionIndex\":\"0x0\",\"transactionHash\":\"0xb8c390ae0f08bd1264e70f35b3cc09b6fc224ab05fb65e384528388337bd8ad7\",\"blockHash\":\"0x40338d3d31372242b051f3cd6aac656f8e7c4a32b8de5dc69588c80ffce18fd0\",\"blockNumber\":\"0x166887c\",\"address\":\"0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108\",\"data\":\"0x00000000000000000000000000000000000000000000000000016b57cd1f4494\",\"topics\":[\"0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4\",\"0x000000000000000000000000db95c59a5304d296e3f9a647e508046f8a8b5a37\"]},{\"logIndex\":\"0x1\",\"transactionIndex\":\"0x0\",\"transactionHash\":\"0xb8c390ae0f08bd1264e70f35b3cc09b6fc224ab05fb65e384528388337bd8ad7\",\"blockHash\":\"0x40338d3d31372242b051f3cd6aac656f8e7c4a32b8de5dc69588c80ffce18fd0\",\"blockNumber\":\"0x166887c\",\"address\":\"0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108\",\"data\":\"0x\",\"topics\":[\"0xbb47ee3e183a558b1a2ff0874b079f3fc5478b7454eacf2bfc5af2ff5878f972\"]},{\"logIndex\":\"0x2\",\"transactionIndex\":\"0x0\",\"transactionHash\":\"0xb8c390ae0f08bd1264e70f35b3cc09b6fc224ab05fb65e384528388337bd8ad7\",\"blockHash\":\"0x40338d3d31372242b051f3cd6aac656f8e7c4a32b8de5dc69588c80ffce18fd0\",\"blockNumber\":\"0x166887c\",\"address\":\"0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108\",\"data\":\"0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000010e26ec717d0800000000000000000000000000000000000000000000000000000000000243ec\",\"topics\":[\"0x49628fd1471006c1482da88028e9ce4dbb080b815c9b0344d39e5a8e6ec1419f\",\"0x8da0baf4f6168c4c275b257424e08a68b69f7cf1bf5e70e8f671be5804c68625\",\"0x000000000000000000000000db95c59a5304d296e3f9a647e508046f8a8b5a37\",\"0x0000000000000000000000000000000000000000000000000000000000000000\"]}],\"logsBloom\":\"0x00000000020000000000000000000000000000000000000008000000000000000008000000000000000000010000000000000000000000000000020000000000000000000000000000000000000002000000000000000000000000000000200000000000020000000000000000000800000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000080000000000000000000000002000000000000020000000010000001000000000000000000000000200000000010000020000040000000000000000000000000000000000000000000000000800000000000\",\"status\":\"0x1\",\"effectiveGasPrice\":\"0x3ba6a426\"}}}"
 
     Ok(())
 }
@@ -382,11 +394,12 @@ mod tests {
             _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
         }
 
+        let encoded_calls: Bytes = encode_calls(calls).into();
         let response = send_transaction(
             address,
             eoa_validator_address,
             entry_point_address,
-            calls,
+            encoded_calls,
             bundler_client,
             provider.clone(),
             signer_private_key.to_string(),
