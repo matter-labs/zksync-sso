@@ -21,6 +21,25 @@ pub fn add_passkey_call_data(
     credential_id: Bytes,
     passkey: [FixedBytes<32>; 2],
     origin_domain: String,
+    webauthn_validator: Address,
+) -> Bytes {
+    let add_validation_key_call_data =
+        add_validation_key_call_data(credential_id, passkey, origin_domain);
+    let call = {
+        let target = webauthn_validator;
+        let value = U256::from(0);
+        let data = add_validation_key_call_data;
+        Execution { target, value, data }
+    };
+
+    let calls = vec![call];
+    encode_calls(calls).into()
+}
+
+fn add_validation_key_call_data(
+    credential_id: Bytes,
+    passkey: [FixedBytes<32>; 2],
+    origin_domain: String,
 ) -> Bytes {
     WebAuthnValidator::addValidationKeyCall {
         credentialId: credential_id,
@@ -156,8 +175,12 @@ mod tests {
             ),
         ];
         let origin_domain = "https://example.com".to_string();
-        let passkey_call_data =
-            add_passkey_call_data(credential_id, passkey, origin_domain);
+        let passkey_call_data = add_passkey_call_data(
+            credential_id,
+            passkey,
+            origin_domain,
+            webauthn_module,
+        );
 
         // Send transaction to add passkey
         let _ = send_transaction_eoa(

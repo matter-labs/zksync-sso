@@ -31,12 +31,12 @@ impl BundlerClient {
         }
     }
 
-    // pub async fn get_user_operation_receipt(
-    //     &self,
-    //     user_op_hash: String,
-    // ) -> eyre::Result<Option<UserOperationReceipt>> {
-    //     self.base_client.get_user_operation_receipt(user_op_hash).await
-    // }
+    pub async fn get_user_operation_receipt_base(
+        &self,
+        user_op_hash: String,
+    ) -> eyre::Result<Option<UserOperationReceipt>> {
+        self.base_client.get_user_operation_receipt(user_op_hash).await
+    }
 
     pub async fn get_user_operation_receipt(
         &self,

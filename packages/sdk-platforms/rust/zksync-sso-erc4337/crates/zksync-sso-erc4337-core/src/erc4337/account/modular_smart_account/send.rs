@@ -181,16 +181,6 @@ mod tests {
     async fn test_send_transaction_contracts() -> eyre::Result<()> {
         let rpc_url = "http://localhost:8545".parse()?;
 
-        // == Logs ==
-        //   EOAKeyValidator: 0x00427eDF0c3c3bd42188ab4C907759942Abebd93
-        //   SessionKeyValidator: 0x57eaa1Fd8d80135Db195B147a249aad777aD10f0
-        //   WebAuthnValidator: 0xF3F924c9bADF6891D3676cfe9bF72e2C78527E17
-        //   GuardianExecutor: 0x374ce0d25B00B909417d695237d06abFe4548eB1
-        //   ModularSmartAccount implementation: 0x5646c10bFa3fA97B72402D26Bc66fEc0dbAf99c8
-        //   UpgradeableBeacon: 0x7b1255B5DaBbBf84ADC423B8b6Ecd89F822A2f72
-        //   MSAFactory: 0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3
-        //   Initialized account: 0x6bf1C0c174e11B933e7d8940aFADf8BB7B8d421C
-
         let factory_address =
             address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
 
