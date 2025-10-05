@@ -5002,14 +5002,21 @@ dependencies = [
 name = "zksync-sso-erc4337-web-ffi"
 version = "0.0.1"
 dependencies = [
+ "async-trait",
  "console_error_panic_hook",
  "console_log",
+ "futures",
  "hex",
  "js-sys",
  "log",
  "serde",
  "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uniffi",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+ "zksync-sso-erc4337-core",
 ]
