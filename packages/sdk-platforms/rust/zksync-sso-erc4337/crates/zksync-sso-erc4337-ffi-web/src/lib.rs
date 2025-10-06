@@ -210,8 +210,7 @@ impl Client {
     pub fn new(config: Config, private_key: &str) -> Result<Client, JsValue> {
         // Basic validation
         if !private_key.starts_with("0x")
-            && private_key.len() != 64
-            && private_key.len() != 66
+            || (private_key.len() != 64 && private_key.len() != 66)
         {
             return Err(JsValue::from_str("Invalid private key format"));
         }
