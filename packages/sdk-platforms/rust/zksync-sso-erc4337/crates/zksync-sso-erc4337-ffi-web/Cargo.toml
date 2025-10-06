@@ -14,8 +14,8 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core dependency
-zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core" }
+# Core dependency removed temporarily for WASM compatibility
+# zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core" }
 
 # Uniffi for FFI bindings
 uniffi.workspace = true
@@ -26,8 +26,7 @@ thiserror.workspace = true
 # Logging/Tracing
 tracing.workspace = true
 
-# Async
-tokio.workspace = true
+# Async - Use only wasm-bindgen-futures for WASM compatibility 
 async-trait.workspace = true
 futures.workspace = true
 
@@ -42,6 +41,7 @@ log.workspace = true
 
 # Additional dependencies for WASM
 hex = "0.4"
+getrandom = { workspace = true }
 
 # Serialization (optional, for future use)
 serde = { workspace = true, optional = true }

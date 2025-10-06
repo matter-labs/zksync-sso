@@ -43,6 +43,15 @@ jobs:
           node-version: lts/Iron
           cache: pnpm
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
       - name: Install zksync-foundry
         run: |
           wget -qc https://github.com/matter-labs/foundry-zksync/releases/download/nightly/foundry_nightly_linux_amd64.tar.gz -O - | tar -xz
@@ -70,8 +79,8 @@ jobs:
 
       - name: Build SDK
         run: |
-
           pnpm nx build sdk
+          pnpm nx build web-sdk
           pnpm nx build connector-export
           pnpm nx build demo-app
 
