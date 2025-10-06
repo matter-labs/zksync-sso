@@ -43,6 +43,14 @@ jobs:
           node-version: lts/Iron
           cache: pnpm
 
+      - name: Install zksync-foundry
+        run: |
+          wget -qc https://github.com/matter-labs/foundry-zksync/releases/download/nightly/foundry_nightly_linux_amd64.tar.gz -O - | tar -xz
+          ./forge -V && ./cast -V
+          sudo mv ./forge /usr/local/bin/
+          sudo mv ./cast /usr/local/bin/
+          forge -V && cast -V
+
       # Install dependencies for repo
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
@@ -66,14 +74,6 @@ jobs:
           pnpm nx build sdk
           pnpm nx build connector-export
           pnpm nx build demo-app
-
-      - name: Install zksync-foundry
-        run: |
-          wget -qc https://github.com/matter-labs/foundry-zksync/releases/download/nightly/foundry_nightly_linux_amd64.tar.gz -O - | tar -xz
-          ./forge -V && ./cast -V
-          sudo mv ./forge /usr/local/bin/
-          sudo mv ./cast /usr/local/bin/
-          forge -V && cast -V
 
       - name: Deploy Demo-App contracts
         run: pnpm nx deploy-contracts demo-app
