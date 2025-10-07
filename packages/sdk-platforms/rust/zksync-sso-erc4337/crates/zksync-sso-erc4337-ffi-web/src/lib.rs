@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use zksync_sso_erc4337_core::{
-    chain::{Chain, id::ChainId},
+    chain::{id::ChainId, Chain},
     config::contracts::Contracts as CoreContracts,
 };
 
@@ -41,19 +41,31 @@ pub fn get_ethereum_sepolia_info() -> String {
     let chain = Chain::ETHEREUM_SEPOLIA_V07;
     format!(
         "Chain: {}, ID: {}, Entry Point Version: {:?}, CAIP-2: {}",
-        chain.name, chain.id, chain.entry_point_version, chain.caip2_identifier()
+        chain.name,
+        chain.id,
+        chain.entry_point_version,
+        chain.caip2_identifier()
     )
 }
 
 /// Parse contract addresses from strings
 #[wasm_bindgen]
-pub fn parse_contract_addresses(entry_point: &str, account_factory: &str) -> Result<String, JsValue> {
-    match CoreContracts::from_string(entry_point.to_string(), account_factory.to_string()) {
+pub fn parse_contract_addresses(
+    entry_point: &str,
+    account_factory: &str,
+) -> Result<String, JsValue> {
+    match CoreContracts::from_string(
+        entry_point.to_string(),
+        account_factory.to_string(),
+    ) {
         Ok(contracts) => Ok(format!(
             "Entry Point: {:?}, Account Factory: {:?}",
             contracts.entry_point, contracts.account_factory
         )),
-        Err(e) => Err(JsValue::from_str(&format!("Failed to parse addresses: {:?}", e))),
+        Err(e) => Err(JsValue::from_str(&format!(
+            "Failed to parse addresses: {:?}",
+            e
+        ))),
     }
 }
 
