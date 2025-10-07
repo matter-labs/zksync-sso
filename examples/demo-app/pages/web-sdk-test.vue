@@ -73,7 +73,9 @@ async function testWebSDK() {
     };
 
     // Create client instance (this will use stub implementation for now)
-    const client = new ZkSyncSsoClient(config);
+    // For demo purposes, use a dummy private key (DO NOT use in production)
+    const dummyPrivateKey = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const client = new ZkSyncSsoClient(config, dummyPrivateKey);
 
     testResult.value = "Web SDK client created successfully!";
     // eslint-disable-next-line no-console
