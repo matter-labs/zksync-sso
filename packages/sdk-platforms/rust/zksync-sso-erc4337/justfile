@@ -1,25 +1,20 @@
 # Format code (check)
-
 fmt-check:
     cargo +nightly fmt --all -- --check
 
 # Format code (apply changes)
-
 fmt:
     cargo +nightly fmt --all
 
 # Lint code
-
 clippy:
     cargo clippy --all-targets -- -D warnings
 
 # Lint code with auto-fix
-
 clippy-fix:
     cargo clippy --fix --allow-dirty --allow-staged
 
 # Format and fix linting issues
-
 fix:
     cargo +nightly fmt --all
     cargo clippy --fix --allow-dirty --allow-staged

@@ -1,39 +1,50 @@
 # zksync-sso-web-sdk
 
+**⚠️ WORK IN PROGRESS**: This package is currently under active
+development and not yet ready for production use.
+
 WebAssembly-powered SDK for zkSync SSO ERC-4337 integration in web applications.
 
-## Features
+## Current Status
 
-- 🚀 **High Performance**: Built with Rust and WebAssembly for optimal performance
-- 🌐 **Universal**: Works in both browsers and Node.js environments
-- 🔒 **Type Safe**: Full TypeScript support with comprehensive type definitions
-- 📦 **Multiple Entry Points**: Optimized builds for different environments
-- 🛠 **ERC-4337 Ready**: Full support for account abstraction and user operations
+This package provides TypeScript bindings for a
+Rust/WebAssembly implementation of zkSync SSO ERC-4337 functionality.
+
+**What's Working:**
+
+- ✅ WASM module builds successfully
+- ✅ TypeScript client wrapper
+- ✅ Basic type definitions
+- ✅ Multiple platform targets (bundler, Node.js)
+
+**What's Not Yet Implemented:**
+
+- ⏳ Actual user operation submission (currently returns mock hash)
+- ⏳ Integration with bundler APIs
+- ⏳ Transaction signing
+- ⏳ Gas estimation
+- ⏳ Account deployment
+- ⏳ Error handling and validation
+
+The current implementation is a **stub**
+that demonstrates the architecture but does not yet perform real ERC-4337 operations.
 
 ## Installation
 
-### NPM
+**Not yet published to NPM.** This is a development package.
+
+To build locally:
 
 ```bash
-npm install zksync-sso-web-sdk
+cd packages/sdk-platforms/web
+npm install
+npm run build
 ```
 
-### GitHub Packages
-
-```bash
-npm install @matter-labs/zksync-sso-web-sdk
-```
-
-## Usage
-
-### Basic Usage
+## Usage Example
 
 ```typescript
-// From NPM
-import { ZkSyncSsoClient } from "zksync-sso-web-sdk";
-
-// Or from GitHub Packages
-import { ZkSyncSsoClient } from "@matter-labs/zksync-sso-web-sdk";
+import { ZkSyncSsoClient } from "./packages/sdk-platforms/web/dist/index.js";
 
 const config = {
   rpcUrl: "https://sepolia.era.zksync.dev",
@@ -46,62 +57,20 @@ const config = {
 
 const client = new ZkSyncSsoClient(config, "0x1234..."); // Your private key
 
-// Send a user operation
+// Note: This currently returns a mock hash, not a real transaction
 const result = await client.sendUserOperation({
-  account: "0xabc...", // Smart contract account address
+  account: "0xabc...",
   calls: [
     {
       to: "0xdef...",
-      data: "0x...", 
-      value: "1000000000000000000", // 1 ETH in wei
+      data: "0x...",
+      value: "1000000000000000000",
     },
   ],
 });
 
-console.log("User operation hash:", result);
-```
-
-### Environment-Specific Usage
-
-#### For Bundlers (Webpack, Vite, etc.)
-
-```typescript
-// From NPM
-import { ZkSyncSsoClient } from "zksync-sso-web-sdk/bundler";
-// Or from GitHub Packages
-import { ZkSyncSsoClient } from "@matter-labs/zksync-sso-web-sdk/bundler";
-// Optimized for browser environments
-```
-
-#### For Node.js
-
-```typescript
-// From NPM
-import { ZkSyncSsoClient } from "zksync-sso-web-sdk/node";
-// Or from GitHub Packages
-import { ZkSyncSsoClient } from "@matter-labs/zksync-sso-web-sdk/node";
-// Optimized for Node.js environments  
-```
-
-### Advanced Usage
-
-```typescript
-import { 
-  ZkSyncSsoClient, 
-  ZkSyncSsoUtils,
-  type ClientConfig,
-  type UserOperationRequest 
-} from "zksync-sso-web-sdk";
-// Or from GitHub Packages:
-// } from "@matter-labs/zksync-sso-web-sdk";
-
-// Utility functions
-const isValidAddress = ZkSyncSsoUtils.isValidAddress("0x...");
-const bytes = ZkSyncSsoUtils.hexToBytes("0xdeadbeef");
-const hex = ZkSyncSsoUtils.bytesToHex(new Uint8Array([1, 2, 3]));
-
-// Access the underlying WASM client for advanced features
-const wasmClient = client.getWasmClient();
+console.log("Mock hash:", result);
+// Outputs: "0x1234567890abcdef..."
 ```
 
 ## API Reference
@@ -114,17 +83,14 @@ const wasmClient = client.getWasmClient();
 constructor(config: ClientConfig, privateKey: string)
 ```
 
-- `config`: Client configuration object
-- `privateKey`: Private key for signing (hex string with or without 0x prefix)
+Creates a client instance (currently stub implementation).
 
 #### Methods
 
 ##### sendUserOperation(request: UserOperationRequest): Promise\<string\>
 
-Send a user operation to the bundler.
-
-- `request`: User operation request containing account and calls
-- Returns: Promise resolving to the user operation hash
+**⚠️ Stub Implementation**: Currently logs the request
+and returns a mock transaction hash.
 
 ### Types
 
@@ -154,9 +120,9 @@ interface UserOperationRequest {
 
 ```typescript
 interface CallData {
-  to: string;      // Target contract address
-  data: string;    // Transaction data (hex string)
-  value: string;   // ETH value to send (in wei as string)
+  to: string;
+  data: string;
+  value: string;
 }
 ```
 
@@ -167,53 +133,40 @@ interface CallData {
 - Node.js 18+
 - Rust toolchain with `wasm32-unknown-unknown` target
 - `wasm-pack` CLI tool
+- Foundry (for building ERC-4337 contracts)
 
 ### Build Steps
 
 ```bash
-# Install dependencies
+# Build ERC-4337 contracts first (required for WASM compilation)
+cd packages/erc4337-contracts
+forge soldeer install
+forge build
+
+# Build WASM modules and TypeScript
+cd ../sdk-platforms/web
 npm install
-
-# Build WASM modules
-npm run build:wasm
-
-# Build TypeScript
-npm run build:ts
-
-# Or build everything
 npm run build
 ```
 
-### Development
+## Development Roadmap
 
-```bash
-# Watch TypeScript changes
-npm run dev
-
-# Run tests
-npm run test
-
-# Type checking
-npm run typecheck
-
-# Linting
-npm run lint
-```
-
-## Contributing
-
-Please read our [Contributing Guide](../../../CONTRIBUTING.md)
-for details on our code of conduct and the process for submitting
-pull requests.
-
-## License
-
-This project is licensed under the
-Apache License 2.0 - see the [LICENSE](../../../LICENSE-APACHE)
-file for details.
+- [ ] Implement actual bundler communication
+- [ ] Add transaction signing with private key
+- [ ] Implement gas estimation
+- [ ] Add account deployment support
+- [ ] Proper error handling
+- [ ] Add comprehensive tests
+- [ ] Add documentation
+- [ ] Publish to NPM
 
 ## Related Packages
 
-- [`@zksync-sso/sdk`](../../sdk/) - Main TypeScript SDK
+- [`@zksync-sso/sdk`](../../sdk/) - Main TypeScript SDK (production-ready)
 - [`@zksync-sso/contracts`](../../contracts/) - Smart contracts
-- [`@zksync-sso/circuits`](../../circuits/) - Zero-knowledge circuits
+- [`zksync-sso-erc4337-core`](../rust/zksync-sso-erc4337/) - Rust core library
+
+## License
+
+Apache License 2.0 - see the [LICENSE](../../../LICENSE-APACHE) file for
+details.
