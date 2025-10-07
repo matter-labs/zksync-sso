@@ -7,19 +7,18 @@ license.workspace = true
 repository.workspace = true
 description = "WebAssembly FFI bindings for zkSync SSO ERC-4337"
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core dependency
-zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core" }
+# Core dependency - exclude tokio-runtime for WASM compatibility
+zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core", default-features = false }
 
 # Uniffi for FFI bindings
 uniffi.workspace = true
-
-# Serialization
-serde.workspace = true
-serde_json.workspace = true
 
 # Error handling
 thiserror.workspace = true
@@ -27,8 +26,7 @@ thiserror.workspace = true
 # Logging/Tracing
 tracing.workspace = true
 
-# Async
-tokio.workspace = true
+# Async - Use only wasm-bindgen-futures for WASM compatibility 
 async-trait.workspace = true
 futures.workspace = true
 
@@ -40,3 +38,15 @@ web-sys.workspace = true
 console_error_panic_hook.workspace = true
 console_log.workspace = true
 log.workspace = true
+
+# Additional dependencies for WASM
+hex = "0.4"
+getrandom = { workspace = true }
+
+# Serialization (optional, for future use)
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+[features]
+default = []
+serde = ["dep:serde", "dep:serde_json"]
