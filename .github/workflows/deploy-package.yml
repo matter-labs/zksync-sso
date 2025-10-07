@@ -37,6 +37,9 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1.4.0
+
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
@@ -48,6 +51,15 @@ jobs:
       - name: Build contracts
         run: pnpm build
         working-directory: packages/contracts
+
+      # Web SDK depends on ERC-4337 contracts for WASM build
+      - name: Install ERC-4337 contract dependencies
+        run: forge soldeer install
+        working-directory: packages/erc4337-contracts
+
+      - name: Build ERC-4337 contracts
+        run: forge build
+        working-directory: packages/erc4337-contracts
 
       # Local node to have target for deploy
       - name: Era Test Node Action

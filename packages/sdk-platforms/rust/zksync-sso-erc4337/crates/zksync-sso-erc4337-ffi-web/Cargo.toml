@@ -14,8 +14,8 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core dependency removed temporarily for WASM compatibility
-# zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core" }
+# Core dependency - exclude tokio-runtime for WASM compatibility
+zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core", default-features = false }
 
 # Uniffi for FFI bindings
 uniffi.workspace = true

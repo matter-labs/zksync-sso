@@ -5,14 +5,14 @@ permissions:
 on:
   push:
     paths:
-      - 'packages/contracts/**'
-      - 'packages/sdk-platforms/rust/**'
-      - '.github/workflows/ci-rust.yml'
+      - "packages/contracts/**"
+      - "packages/sdk-platforms/rust/**"
+      - ".github/workflows/ci-rust.yml"
   pull_request:
     paths:
-      - 'packages/contracts/**'
-      - 'packages/sdk-platforms/rust/**'
-      - '.github/workflows/ci-rust.yml'
+      - "packages/contracts/**"
+      - "packages/sdk-platforms/rust/**"
+      - ".github/workflows/ci-rust.yml"
 
 jobs:
   rust-sdk:
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-        
+
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
 
@@ -87,7 +87,7 @@ jobs:
             cat anvil-zksync.log
             exit 1
           fi
-        
+
       - name: Run rust tests
         run: cargo test -- --test-threads=1
         working-directory: packages/sdk-platforms/rust/zksync-sso
@@ -107,7 +107,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-        
+
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
 
@@ -197,7 +197,98 @@ jobs:
           rustup component add --toolchain 1.90.0-x86_64-unknown-linux-gnu clippy
           cargo clippy --all-targets -- -D warnings
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337
-        
+
       - name: Run rust tests
         run: cargo test
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337
+
+  rust-sdk-erc4337-wasm:
+    name: Rust ERC-4337 WASM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.4
+
+      - name: Install Rust with WASM target
+        run: |
+          rustup update stable && rustup default stable
+          rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1.4.0
+
+      - name: Install dependencies
+        run: forge soldeer install
+        working-directory: packages/erc4337-contracts
+
+      - name: Build ERC-4337 contracts
+        run: forge build
+        working-directory: packages/erc4337-contracts
+
+      - name: Verify ERC-4337 contract ABIs exist
+        run: |
+          set -euo pipefail
+          missing=()
+          files=(
+            "out/IERC7579Account.sol/IERC7579Account.json"
+            "out/SimpleAccountFactory.sol/SimpleAccountFactory.json"
+            "out/SimpleAccount.sol/SimpleAccount.json"
+            "out/EntryPoint.sol/EntryPoint.json"
+          )
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then
+              missing+=("$f")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing expected ABI JSON files:" >&2
+            for m in "${missing[@]}"; do echo " - $m" >&2; done
+            echo "\nAvailable JSON files under out/:" >&2
+            find out -maxdepth 2 -type f -name '*.json' | sort || true
+            exit 1
+          fi
+        working-directory: packages/erc4337-contracts
+
+      - name: Build WASM module (web target)
+        run: wasm-pack build --target web
+        working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-ffi-web
+
+      - name: Build WASM module (bundler target)
+        run: wasm-pack build --target bundler
+        working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-ffi-web
+
+      - name: Build WASM module (nodejs target)
+        run: wasm-pack build --target nodejs
+        working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-ffi-web
+
+      - name: Verify WASM artifacts
+        run: |
+          set -euo pipefail
+          missing=()
+          files=(
+            "pkg/zksync_sso_erc4337_web_ffi_bg.wasm"
+            "pkg/zksync_sso_erc4337_web_ffi.js"
+            "pkg/zksync_sso_erc4337_web_ffi.d.ts"
+            "pkg/package.json"
+          )
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then
+              missing+=("$f")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing expected WASM artifacts:" >&2
+            for m in "${missing[@]}"; do echo " - $m" >&2; done
+            exit 1
+          fi
+          echo "✅ All WASM artifacts generated successfully"
+          # Show WASM file size
+          ls -lh pkg/zksync_sso_erc4337_web_ffi_bg.wasm
+        working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-ffi-web

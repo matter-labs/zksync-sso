@@ -1,4 +1,8 @@
 use wasm_bindgen::prelude::*;
+use zksync_sso_erc4337_core::{
+    chain::{Chain, id::ChainId},
+    config::contracts::Contracts as CoreContracts,
+};
 
 // Initialize logging and panic hook for WASM
 #[wasm_bindgen(start)]
@@ -22,6 +26,35 @@ macro_rules! console_log {
 #[wasm_bindgen]
 pub fn greet(name: &str) -> String {
     format!("Hello, {}! WASM is working.", name)
+}
+
+/// Test function using core crate - get chain info
+#[wasm_bindgen]
+pub fn get_chain_info(chain_id: u64) -> String {
+    let chain = Chain::from(ChainId::from(chain_id));
+    format!("Chain ID: {}, CAIP-2: {}", chain.id, chain.caip2_identifier())
+}
+
+/// Test function using core crate - get Ethereum Sepolia chain info
+#[wasm_bindgen]
+pub fn get_ethereum_sepolia_info() -> String {
+    let chain = Chain::ETHEREUM_SEPOLIA_V07;
+    format!(
+        "Chain: {}, ID: {}, Entry Point Version: {:?}, CAIP-2: {}",
+        chain.name, chain.id, chain.entry_point_version, chain.caip2_identifier()
+    )
+}
+
+/// Parse contract addresses from strings
+#[wasm_bindgen]
+pub fn parse_contract_addresses(entry_point: &str, account_factory: &str) -> Result<String, JsValue> {
+    match CoreContracts::from_string(entry_point.to_string(), account_factory.to_string()) {
+        Ok(contracts) => Ok(format!(
+            "Entry Point: {:?}, Account Factory: {:?}",
+            contracts.entry_point, contracts.account_factory
+        )),
+        Err(e) => Err(JsValue::from_str(&format!("Failed to parse addresses: {:?}", e))),
+    }
 }
 
 // Utility functions
