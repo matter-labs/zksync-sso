@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use zksync_sso_erc4337_core::{
-    chain::{id::ChainId, Chain},
+    chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
 };
 
