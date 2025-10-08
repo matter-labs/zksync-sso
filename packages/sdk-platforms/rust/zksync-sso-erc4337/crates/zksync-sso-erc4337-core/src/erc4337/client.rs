@@ -4,10 +4,11 @@ use crate::{
     result::Result,
 };
 use alloy::{
-    primitives::Bytes, providers::Provider,
-    rpc::types::erc4337::SendUserOperation, signers::local::PrivateKeySigner,
+    primitives::Bytes,
+    providers::{Provider, ext::Erc4337Api},
+    rpc::types::erc4337::SendUserOperation,
+    signers::local::PrivateKeySigner,
 };
-use alloy_provider::ext::Erc4337Api;
 
 #[cfg(test)]
 pub mod test_utils;
@@ -62,7 +63,11 @@ mod tests {
         let contracts = Contracts::new(
             Address::from_str("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")
                 .unwrap(),
-            Address::from_str("0x9406Cc6185a346906296840746125a0E44976454")
+            Address::from_str("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")
+                .unwrap(),
+            Address::from_str("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")
+                .unwrap(),
+            Address::from_str("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")
                 .unwrap(),
         );
 

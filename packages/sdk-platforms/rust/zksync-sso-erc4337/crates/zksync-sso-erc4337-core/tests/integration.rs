@@ -22,6 +22,8 @@ async fn test_integration() -> eyre::Result<()> {
     let contracts = Contracts::new(
         Address::from_str("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")?, // EntryPoint v0.7
         Address::from_str("0x9406Cc6185a346906296840746125a0E44976454")?, // AccountFactory placeholder
+        Address::from_str("0x9406Cc6185a346906296840746125a0E44976454")?, // EOAValidator placeholder
+        Address::from_str("0x9406Cc6185a346906296840746125a0E44976454")?, // WebAuthnValidator placeholder
     );
 
     // Anvil

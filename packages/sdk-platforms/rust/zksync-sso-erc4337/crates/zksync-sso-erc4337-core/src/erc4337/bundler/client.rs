@@ -1,24 +1,21 @@
+use super::{
+    Bundler,
+    config::BundlerConfig,
+    models::{estimate::Estimate, receipt::UserOperationReceipt},
+};
 use crate::{
-    erc4337::bundler::{
-        Bundler,
-        config::BundlerConfig,
-        models::{estimate::Estimate, receipt::UserOperationReceipt},
-        pimlico::gas_price::GasPrice,
-    },
+    erc4337::user_operation::UserOperationV08,
     jsonrpc::{JSONRPCResponse, Request, Response},
 };
 use alloy::{
     primitives::Address,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
 };
-use async_trait::async_trait;
-use eyre::Ok;
-use serde_json;
 
 #[derive(Clone)]
 pub struct BundlerClient {
     client: reqwest::Client,
-    pub(crate) config: BundlerConfig,
+    config: BundlerConfig,
 }
 
 impl BundlerClient {
@@ -75,55 +72,22 @@ impl BundlerClient {
         Ok(user_operation_hash.unwrap())
     }
 
-    pub async fn estimate_user_operation_gas_price(
-        &self,
-    ) -> eyre::Result<GasPrice> {
-        println!("estimate_user_operation_gas_price");
-
-        let bundler_url = self.config.url().clone();
-
-        let req_body = Request {
-            jsonrpc: "2.0".into(),
-            id: 1,
-            method: "pimlico_getUserOperationGasPrice".into(),
-            params: [] as [(); 0],
-        };
-        println!("req_body: {:?}", serde_json::to_string(&req_body)?);
-
-        let post = self
-            .client
-            .post(bundler_url.as_str())
-            .json(&req_body)
-            .send()
-            .await?;
-        println!("pimlico_getUserOperationGasPrice post: {:?}", post);
-        let res = post.text().await?;
-        println!("pimlico_getUserOperationGasPrice res: {:?}", res);
-        let v = serde_json::from_str::<JSONRPCResponse<GasPrice>>(&res)?;
-
-        println!("pimlico_getUserOperationGasPrice json: {:?}", v);
-
-        let response: Response<GasPrice> = v.into();
-
-        let response_estimate = response?;
-        let response_estimate = response_estimate.unwrap();
-
-        Ok(response_estimate)
-    }
-
     pub async fn estimate_user_operation_gas(
         &self,
-        user_operation: &AlloyPackedUserOperation,
-        entry_point: &Address,
+        entry_point_address: Address,
+        user_op: UserOperationV08,
     ) -> eyre::Result<Estimate> {
-        println!("eth_estimateUserOperationGas");
+        println!("user_op: {:?}", user_op);
 
         let bundler_url = self.config.url().clone();
 
-        let params = vec![
-            serde_json::to_value(user_operation)?,
-            entry_point.to_string().into(),
-        ];
+        use crate::jsonrpc::{JSONRPCResponse, Request, Response};
+        use serde_json;
+
+        let value = serde_json::to_value(&user_op).unwrap();
+
+        let params: Vec<serde_json::Value> =
+            vec![value, entry_point_address.to_string().into()];
 
         let req_body = Request {
             jsonrpc: "2.0".into(),
@@ -149,61 +113,54 @@ impl BundlerClient {
         let response: Response<Estimate> = v.into();
 
         let response_estimate = response?;
-        let response_estimate = response_estimate.unwrap();
+
+        Ok(response_estimate.unwrap())
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[async_trait::async_trait]
+impl Bundler for BundlerClient {
+    async fn get_user_operation_receipt(
+        &self,
+        hash: String,
+    ) -> eyre::Result<Option<UserOperationReceipt>> {
+        let bundler_url = self.config.url().clone();
+
+        let hash_value = serde_json::to_value(&hash)?;
+
+        let send_body = Request {
+            jsonrpc: "2.0".into(),
+            id: 1,
+            method: "eth_getUserOperationReceipt".into(),
+            params: vec![hash_value],
+        };
+
+        let response = self
+            .client
+            .post(bundler_url.as_str())
+            .json(&send_body)
+            .send()
+            .await?;
+
+        let response_text = response.text().await?;
+        println!("response_text: {:?}", response_text);
+        let raw_payload = serde_json::from_str::<
+            JSONRPCResponse<UserOperationReceipt>,
+        >(&response_text)?;
+
+        println!("raw_payload: {:?}", raw_payload);
+
+        let response: Response<UserOperationReceipt> = raw_payload.into();
+
+        let response_estimate = response?;
 
         Ok(response_estimate)
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-#[async_trait]
-impl Bundler for BundlerClient {
-    async fn get_user_operation_receipt(
-        &self,
-        hash: String,
-    ) -> eyre::Result<Option<UserOperationReceipt>> {
-        let bundler_url = self.config.url().clone();
-
-        let user_op_hash_param: serde_json::Value = hash.into();
-
-        println!("user_op_hash_param: {}", user_op_hash_param);
-
-        let params = vec![user_op_hash_param];
-
-        println!("\nparams: {:#?}", params);
-
-        let send_body = crate::jsonrpc::Request {
-            jsonrpc: "2.0".into(),
-            id: 1,
-            method: "eth_getUserOperationReceipt".into(),
-            params,
-        };
-
-        let response = self
-            .client
-            .post(bundler_url.as_str())
-            .json(&send_body)
-            .send()
-            .await?;
-
-        let response_text = response.text().await?;
-        println!("response_text: {:?}", response_text);
-
-        let raw_payload = serde_json::from_str::<
-            JSONRPCResponse<UserOperationReceipt>,
-        >(&response_text)?;
-        println!("raw_payload: {:?}", raw_payload);
-
-        let response: Response<UserOperationReceipt> = raw_payload.into();
-
-        let user_operation_receipt = response?;
-
-        Ok(user_operation_receipt)
-    }
-}
-
 #[cfg(target_arch = "wasm32")]
-#[async_trait(?Send)]
+#[async_trait::async_trait(?Send)]
 impl Bundler for BundlerClient {
     async fn get_user_operation_receipt(
         &self,
@@ -211,19 +168,13 @@ impl Bundler for BundlerClient {
     ) -> eyre::Result<Option<UserOperationReceipt>> {
         let bundler_url = self.config.url().clone();
 
-        let user_op_hash_param: serde_json::Value = hash.into();
+        let hash_value = serde_json::to_value(&hash)?;
 
-        println!("user_op_hash_param: {}", user_op_hash_param);
-
-        let params = vec![user_op_hash_param];
-
-        println!("\nparams: {:#?}", params);
-
-        let send_body = crate::jsonrpc::Request {
+        let send_body = Request {
             jsonrpc: "2.0".into(),
             id: 1,
             method: "eth_getUserOperationReceipt".into(),
-            params,
+            params: vec![hash_value],
         };
 
         let response = self
@@ -235,27 +186,28 @@ impl Bundler for BundlerClient {
 
         let response_text = response.text().await?;
         println!("response_text: {:?}", response_text);
-
         let raw_payload = serde_json::from_str::<
             JSONRPCResponse<UserOperationReceipt>,
         >(&response_text)?;
+
         println!("raw_payload: {:?}", raw_payload);
 
         let response: Response<UserOperationReceipt> = raw_payload.into();
 
-        let user_operation_receipt = response?;
+        let response_estimate = response?;
 
-        Ok(user_operation_receipt)
+        Ok(response_estimate)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        super::gas_price::{GasPrice, GasPriceItem},
-        *,
+    use super::*;
+    use crate::erc4337::{
+        bundler::models::{estimate::Estimate, receipt::UserOperationReceipt},
+        user_operation::UserOperationV08,
     };
-    use alloy::primitives::U256;
+    use alloy::primitives::{Address, Bytes, U256, address};
     use eyre::ensure;
 
     pub async fn setup_gas_estimation_bundler_mock()
@@ -267,34 +219,24 @@ mod tests {
 
         let mock_server = MockServer::start().await;
 
-        let url = mock_server.uri().to_string();
-
         let expected_request_body = serde_json::json!({
             "id": 1,
             "jsonrpc": "2.0",
-            "method": "pimlico_getUserOperationGasPrice",
-            "params": [],
+            "method": "eth_estimateUserOperationGas",
         });
 
-        let response_gas_price = GasPrice {
-            slow: GasPriceItem {
-                max_fee_per_gas: U256::from(100000),
-                max_priority_fee_per_gas: U256::from(100000),
-            },
-            standard: GasPriceItem {
-                max_fee_per_gas: U256::from(100000),
-                max_priority_fee_per_gas: U256::from(100000),
-            },
-            fast: GasPriceItem {
-                max_fee_per_gas: U256::from(100000),
-                max_priority_fee_per_gas: U256::from(100000),
-            },
+        let response_estimate = Estimate {
+            pre_verification_gas: U256::from(100000),
+            verification_gas_limit: U256::from(100000),
+            call_gas_limit: U256::from(100000),
+            paymaster_verification_gas_limit: None,
+            paymaster_post_op_gas_limit: None,
         };
 
         let response_body = serde_json::json!({
             "id": 1,
             "jsonrpc": "2.0",
-            "result": response_gas_price,
+            "result": response_estimate,
         });
 
         let response = ResponseTemplate::new(200).set_body_json(response_body);
@@ -308,19 +250,109 @@ mod tests {
             .mount(&mock_server)
             .await;
 
-        let bundler_client = BundlerClient::new(BundlerConfig::new(url));
+        let bundler_client = BundlerClient::new(BundlerConfig::new(
+            mock_server.uri().to_string(),
+        ));
 
         Ok(bundler_client)
     }
 
     #[tokio::test]
-    async fn test_estimate_user_operation_gas_price() -> eyre::Result<()> {
+    #[ignore = "needs local infrastructure to be running"]
+    async fn test_estimate_gas() -> eyre::Result<()> {
+        let sender = address!("0x5FbDB2315678afecb367f032d93F642f64180aa3");
+
+        let entry_point_address =
+            address!("0x5FbDB2315678afecb367f032d93F642f64180aa3");
+
         let bundler_client = setup_gas_estimation_bundler_mock().await?;
 
-        let gas_price =
-            bundler_client.estimate_user_operation_gas_price().await?;
+        let user_op = {
+            let nonce: U256 = U256::from(0);
+            let factory: Address = Address::ZERO;
+            let factory_data: Bytes = Bytes::new();
+            let call_data: Bytes = Bytes::new();
+            let call_gas_limit: U256 = U256::from(100000);
+            let verification_gas_limit: U256 = U256::from(100000);
+            let pre_verification_gas: U256 = U256::from(100000);
+            let max_fee_per_gas: U256 = U256::from(100000);
+            let max_priority_fee_per_gas: U256 = U256::from(100000);
+            let paymaster: Option<Address> = None;
+            let paymaster_data: Option<Bytes> = None;
+            let signature: Bytes = Bytes::new();
 
-        ensure!(gas_price.fast.max_fee_per_gas.to_string() == "100000");
+            UserOperationV08 {
+                sender,
+                nonce,
+                factory: factory.into(),
+                factory_data: factory_data.into(),
+                call_data,
+                call_gas_limit,
+                verification_gas_limit,
+                paymaster_post_op_gas_limit: Some(U256::from(100000)),
+                paymaster_verification_gas_limit: Some(U256::from(100000)),
+                pre_verification_gas,
+                max_fee_per_gas,
+                max_priority_fee_per_gas,
+                paymaster,
+                paymaster_data,
+                authorization: None,
+                signature,
+            }
+        };
+
+        let estimate_result = bundler_client
+            .estimate_user_operation_gas(entry_point_address, user_op)
+            .await?;
+
+        ensure!(estimate_result.call_gas_limit == U256::from(100000));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get_user_operation_receipt() -> eyre::Result<()> {
+        use wiremock::{
+            Mock, MockServer, ResponseTemplate,
+            matchers::{method, path},
+        };
+
+        let mock_server = MockServer::start().await;
+
+        let expected_request_body = serde_json::json!({
+            "id": 1,
+            "jsonrpc": "2.0",
+            "method": "eth_getUserOperationReceipt",
+        });
+
+        let user_operation_hash = "0x93c06f3f5909cc2b192713ed9bf93e3e1fde4b22fcd2466304fa404f9b80ff90".to_string();
+
+        let response_payload = UserOperationReceipt::mock();
+
+        let response_body = serde_json::json!({
+            "id": 1,
+            "jsonrpc": "2.0",
+            "result": response_payload,
+        });
+
+        let response = ResponseTemplate::new(200).set_body_json(response_body);
+        use wiremock::matchers::body_partial_json;
+        Mock::given(method("POST"))
+            .and(path("/"))
+            .and(body_partial_json(&expected_request_body))
+            .respond_with(response)
+            .mount(&mock_server)
+            .await;
+
+        let bundler_client = BundlerClient::new(BundlerConfig::new(
+            mock_server.uri().to_string(),
+        ));
+
+        let receipt = bundler_client
+            .get_user_operation_receipt(user_operation_hash.clone())
+            .await?;
+
+        assert_eq!(receipt, Some(response_payload));
 
         Ok(())
     }

@@ -35,6 +35,18 @@ enum Commands {
             default_value = "0x9406Cc6185a346906296840746125a0E44976454"
         )]
         account_factory_address: String,
+
+        #[arg(
+            long,
+            default_value = "0x9406Cc6185a346906296840746125a0E44976454"
+        )]
+        webauthn_validator_address: String,
+
+        #[arg(
+            long,
+            default_value = "0x9406Cc6185a346906296840746125a0E44976454"
+        )]
+        eoa_validator_address: String,
     },
 }
 
@@ -45,6 +57,8 @@ async fn handle_command(command: Commands) -> eyre::Result<()> {
             bundler_url,
             entry_point_address,
             account_factory_address,
+            webauthn_validator_address,
+            eoa_validator_address,
         } => {
             let config = CoreConfig::new(
                 rpc_url.parse()?,
@@ -52,6 +66,8 @@ async fn handle_command(command: Commands) -> eyre::Result<()> {
                 CoreContracts::from_string(
                     entry_point_address,
                     account_factory_address,
+                    webauthn_validator_address,
+                    eoa_validator_address,
                 )?,
             );
 
