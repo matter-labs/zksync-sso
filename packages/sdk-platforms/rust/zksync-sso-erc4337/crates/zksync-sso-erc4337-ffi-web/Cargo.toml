@@ -47,6 +47,10 @@ getrandom = { version = "0.2", features = ["js"] }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 
+# Explicitly add getrandom v0.2 with js feature for WASM (used by rand 0.8 from alloy)
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
 [features]
 default = []
 serde = ["dep:serde", "dep:serde_json"]
