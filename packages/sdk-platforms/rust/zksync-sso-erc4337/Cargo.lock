@@ -5107,6 +5107,7 @@ dependencies = [
  "alloy",
  "alloy-json-rpc",
  "alloy-provider",
+ "alloy-rpc-client",
  "alloy-transport",
  "alloy-transport-http",
  "async-trait",

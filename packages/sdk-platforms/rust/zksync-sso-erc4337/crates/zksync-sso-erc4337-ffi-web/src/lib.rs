@@ -1,12 +1,17 @@
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::future_to_promise;
 use zksync_sso_erc4337_core::{
     chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
     erc4337::entry_point::version::EntryPointVersion,
 };
-use alloy::primitives::keccak256;
+use alloy::primitives::{keccak256, Address, FixedBytes, Bytes};
+use alloy_rpc_client::RpcClient;
 
+// WASM transport is implemented but not yet fully integrated with Alloy's Provider trait
+// For now, we expose offline computation functions
 mod wasm_transport;
+use wasm_transport::WasmHttpTransport;
 
 // Initialize logging and panic hook for WASM
 #[wasm_bindgen(start)]
@@ -54,6 +59,38 @@ pub fn get_ethereum_sepolia_info() -> String {
         chain.entry_point_version,
         chain.caip2_identifier()
     )
+}
+
+/// Test function to verify HTTP transport with reqwasm
+/// Makes a simple eth_chainId RPC call to verify the transport works
+#[wasm_bindgen]
+pub fn test_http_transport(rpc_url: String) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Creating WASM HTTP transport for: {}", rpc_url);
+        
+        // Create transport
+        let transport = WasmHttpTransport::new(rpc_url);
+        
+        console_log!("Creating RPC client with transport");
+        
+        // Create RPC client with our custom transport
+        let client = RpcClient::new(transport, false);
+        
+        console_log!("Making eth_chainId request...");
+        
+        // Make a proper eth_chainId request using Alloy's RPC client
+        match client.request("eth_chainId", ()).await {
+            Ok(chain_id) => {
+                let result: String = chain_id;
+                console_log!("Got chain ID: {}", result);
+                Ok(JsValue::from_str(&format!("Success! Chain ID: {}", result)))
+            }
+            Err(e) => {
+                console_log!("Request failed: {}", e);
+                Ok(JsValue::from_str(&format!("RPC request failed: {}", e)))
+            }
+        }
+    })
 }
 
 /// Parse contract addresses from strings
@@ -111,6 +148,102 @@ pub fn compute_account_id(user_id: &str) -> String {
     let salt = hex::encode(user_id);
     let salt_hash = keccak256(salt);
     format!("0x{}", hex::encode(salt_hash))
+}
+
+/// Compute the smart account address (offline, without RPC calls)
+/// This requires knowing the bytecode hash and proxy address upfront
+/// 
+/// # Parameters
+/// - `user_id`: The unique user identifier
+/// - `deploy_wallet_address`: The address of the wallet deploying the account (hex string)
+/// - `account_factory`: The address of the AAFactory contract (hex string)  
+/// - `bytecode_hash`: The beacon proxy bytecode hash (hex string, 32 bytes)
+/// - `proxy_address`: The encoded beacon address (hex string)
+/// 
+/// # Returns
+/// The computed smart account address as a hex string
+#[wasm_bindgen]
+pub fn compute_smart_account_address(
+    user_id: &str,
+    deploy_wallet_address: &str,
+    account_factory: &str,
+    bytecode_hash: &str,
+    proxy_address: &str,
+) -> Result<String, JsValue> {
+    console_log!("Computing smart account address for user: {}", user_id);
+    
+    // Parse addresses
+    let factory_addr: Address = account_factory
+        .parse()
+        .map_err(|e| JsValue::from_str(&format!("Invalid factory address: {}", e)))?;
+    
+    let deploy_wallet_addr: Address = deploy_wallet_address
+        .parse()
+        .map_err(|e| JsValue::from_str(&format!("Invalid wallet address: {}", e)))?;
+    
+    // Parse bytecode hash
+    let bytecode_hash_hex = bytecode_hash.strip_prefix("0x").unwrap_or(bytecode_hash);
+    let bytecode_hash_bytes = hex::decode(bytecode_hash_hex)
+        .map_err(|e| JsValue::from_str(&format!("Invalid bytecode hash: {}", e)))?;
+    let bytecode_hash = FixedBytes::<32>::from_slice(&bytecode_hash_bytes);
+    
+    // Parse proxy address
+    let proxy_hex = proxy_address.strip_prefix("0x").unwrap_or(proxy_address);
+    let proxy_bytes = hex::decode(proxy_hex)
+        .map_err(|e| JsValue::from_str(&format!("Invalid proxy address: {}", e)))?;
+    let proxy_address = Bytes::from(proxy_bytes);
+    
+    // Get account ID hash
+    let salt = hex::encode(user_id);
+    let account_id_hash = keccak256(salt);
+    console_log!("Account ID hash: 0x{}", hex::encode(account_id_hash));
+    
+    // Compute unique salt
+    let wallet_address_bytes = deploy_wallet_addr.0.to_vec();
+    let mut concatenated_bytes = Vec::new();
+    concatenated_bytes.extend(account_id_hash.to_vec());
+    concatenated_bytes.extend(wallet_address_bytes);
+    let unique_salt = keccak256(concatenated_bytes);
+    console_log!("Unique salt: 0x{}", hex::encode(unique_salt));
+    
+    // Compute CREATE2 address
+    let address = compute_create2_address(
+        factory_addr,
+        bytecode_hash,
+        unique_salt,
+        proxy_address,
+    );
+    
+    console_log!("Computed address: 0x{}", hex::encode(address));
+    Ok(format!("0x{}", hex::encode(address)))
+}
+
+/// Compute CREATE2 address (zkSync version)
+/// This is the zkSync-specific CREATE2 computation
+fn compute_create2_address(
+    deployer: Address,
+    bytecode_hash: FixedBytes<32>,
+    salt: FixedBytes<32>,
+    input: Bytes,
+) -> Address {
+    // zkSync CREATE2 formula:
+    // keccak256(0xff ++ deployer ++ salt ++ keccak256(bytecode_hash ++ input_hash))
+    
+    let input_hash = keccak256(&input);
+    
+    let mut bytecode_and_input = Vec::new();
+    bytecode_and_input.extend(bytecode_hash.as_slice());
+    bytecode_and_input.extend(input_hash.as_slice());
+    let bytecode_input_hash = keccak256(bytecode_and_input);
+    
+    let mut create2_input = Vec::new();
+    create2_input.push(0xff);
+    create2_input.extend(deployer.as_slice());
+    create2_input.extend(salt.as_slice());
+    create2_input.extend(bytecode_input_hash.as_slice());
+    
+    let hash = keccak256(create2_input);
+    Address::from_slice(&hash[12..])
 }
 
 // Error type for WASM

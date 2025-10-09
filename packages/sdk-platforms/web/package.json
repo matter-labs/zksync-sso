@@ -27,7 +27,9 @@
   ],
   "scripts": {
     "build": "npm run build:wasm && npm run build:ts",
-    "build:wasm": "RUSTFLAGS='--cfg getrandom_backend=\"wasm_js\"' wasm-pack build ../rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-ffi-web --target bundler --out-dir ../../../../web/pkg-bundler && RUSTFLAGS='--cfg getrandom_backend=\"wasm_js\"' wasm-pack build ../rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-ffi-web --target nodejs --out-dir ../../../../web/pkg-node",
+    "build:wasm": "npm run build:wasm:bndr && npm run build:wasm:node",
+    "build:wasm:bndr": "RUSTFLAGS='--cfg getrandom_backend=\"wasm_js\"' wasm-pack build ../rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-ffi-web --target bundler --out-dir ../../../../web/pkg-bundler",
+    "build:wasm:node": "RUSTFLAGS='--cfg getrandom_backend=\"wasm_js\"' wasm-pack build ../rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-ffi-web --target nodejs --out-dir ../../../../web/pkg-node",
     "build:ts": "tsc && rollup -c",
     "clean": "rm -rf dist/ pkg-bundler/ pkg-node/",
     "dev": "tsc --watch",

@@ -13,6 +13,8 @@ export const {
   get_ethereum_sepolia_info,
   parse_contract_addresses,
   compute_account_id,
+  compute_smart_account_address,
+  test_http_transport,
   Client,
   Config,
   Contracts,

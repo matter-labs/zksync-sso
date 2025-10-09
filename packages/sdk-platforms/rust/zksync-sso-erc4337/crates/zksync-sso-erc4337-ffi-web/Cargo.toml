@@ -23,6 +23,7 @@ alloy-provider.workspace = true
 alloy-transport = "1.0"
 alloy-transport-http = "1.0"
 alloy-json-rpc = "1.0"
+alloy-rpc-client = "1.0"
 
 # WASM HTTP client
 reqwasm = "0.5"
