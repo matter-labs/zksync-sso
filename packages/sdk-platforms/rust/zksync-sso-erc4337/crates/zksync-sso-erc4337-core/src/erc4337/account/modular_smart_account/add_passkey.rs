@@ -66,7 +66,7 @@ fn add_validation_key_call_data(passkey: PasskeyPayload) -> Bytes {
 
     WebAuthnValidator::addValidationKeyCall {
         credentialId: credential_id,
-        rawPublicKey: new_key,
+        newKey: new_key,
         originDomain: origin_domain,
     }
     .abi_encode()

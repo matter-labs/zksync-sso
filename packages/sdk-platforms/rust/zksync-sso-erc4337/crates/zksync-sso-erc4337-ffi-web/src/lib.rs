@@ -3,6 +3,7 @@ use zksync_sso_erc4337_core::{
     chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
 };
+use alloy::primitives::keccak256;
 
 // Initialize logging and panic hook for WASM
 #[wasm_bindgen(start)]
@@ -92,6 +93,15 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, JsValue> {
 #[wasm_bindgen]
 pub fn console_log_from_rust(message: &str) {
     console_log!("{}", message);
+}
+
+/// Compute account ID from user ID (same logic as get_account_id_by_user_id in SDK)
+/// This is used to generate a unique identifier for smart accounts
+#[wasm_bindgen]
+pub fn compute_account_id(user_id: &str) -> String {
+    let salt = hex::encode(user_id);
+    let salt_hash = keccak256(salt);
+    format!("0x{}", hex::encode(salt_hash))
 }
 
 // Error type for WASM

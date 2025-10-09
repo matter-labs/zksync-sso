@@ -9,6 +9,10 @@ import { setWasmBindings } from "./client";
 // Re-export WASM functions
 export const {
   greet,
+  get_chain_info,
+  get_ethereum_sepolia_info,
+  parse_contract_addresses,
+  compute_account_id,
   Client,
   Config,
   Contracts,
