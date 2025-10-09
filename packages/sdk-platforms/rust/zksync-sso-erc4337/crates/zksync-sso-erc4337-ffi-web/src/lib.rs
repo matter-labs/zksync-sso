@@ -64,7 +64,10 @@ pub fn parse_contract_addresses(
     ) {
         Ok(contracts) => Ok(format!(
             "Entry Point: {:?}, Account Factory: {:?}, WebAuthn Validator: {:?}, EOA Validator: {:?}",
-            contracts.entry_point, contracts.account_factory, contracts.webauthn_validator, contracts.eoa_validator
+            contracts.entry_point,
+            contracts.account_factory,
+            contracts.webauthn_validator,
+            contracts.eoa_validator
         )),
         Err(e) => Err(JsValue::from_str(&format!(
             "Failed to parse addresses: {:?}",
