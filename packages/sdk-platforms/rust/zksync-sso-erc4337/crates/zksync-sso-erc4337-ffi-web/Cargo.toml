@@ -17,6 +17,9 @@ crate-type = ["cdylib"]
 # Core dependency - exclude tokio-runtime for WASM compatibility
 zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core", default-features = false }
 
+# Alloy for primitives (keccak256, hex encoding)
+alloy.workspace = true
+
 # Uniffi for FFI bindings
 uniffi.workspace = true
 
