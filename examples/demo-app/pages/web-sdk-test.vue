@@ -78,11 +78,153 @@
         </div>
       </div>
     </div>
+
+    <!-- HTTP Transport Test -->
+    <div class="bg-purple-50 p-4 rounded-lg mb-4 border border-purple-200">
+      <h2 class="text-lg font-semibold mb-3 text-purple-800">
+        Test HTTP Transport (reqwasm)
+      </h2>
+      <p class="text-sm text-gray-600 mb-4">
+        Test that reqwasm can make HTTP calls from WASM. This makes a simple eth_chainId RPC call.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">RPC URL:</label>
+          <input
+            v-model="httpTestParams.rpcUrl"
+            type="text"
+            placeholder="https://..."
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+          >
+        </div>
+
+        <button
+          :disabled="loading || !sdkLoaded || !httpTestParams.rpcUrl"
+          class="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
+          @click="testHttpTransport"
+        >
+          {{ loading ? 'Testing...' : 'Test HTTP Transport' }}
+        </button>
+      </div>
+
+      <!-- HTTP Test Result -->
+      <div
+        v-if="httpTestResult"
+        class="mt-4 p-3 bg-white rounded border border-purple-300"
+      >
+        <strong class="text-sm">Result:</strong>
+        <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">
+          {{ httpTestResult }}
+        </code>
+      </div>
+
+      <div
+        v-if="httpTestError"
+        class="mt-4 p-3 bg-red-50 rounded border border-red-300"
+      >
+        <strong class="text-sm text-red-800">Error:</strong>
+        <p class="text-xs text-red-600 mt-1">
+          {{ httpTestError }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Address Computation Testing -->
+    <div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
+      <h2 class="text-lg font-semibold mb-3 text-blue-800">
+        Test Smart Account Address Computation
+      </h2>
+      <p class="text-sm text-gray-600 mb-4">
+        Test the offline CREATE2 address computation. You'll need to provide the contract parameters from your deployed contracts.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">User ID:</label>
+          <input
+            v-model="addressParams.userId"
+            type="text"
+            placeholder="e.g., unique-id"
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Deploy Wallet Address:</label>
+          <input
+            v-model="addressParams.deployWallet"
+            type="text"
+            placeholder="0x..."
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Account Factory Address:</label>
+          <input
+            v-model="addressParams.factory"
+            type="text"
+            placeholder="0x..."
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Bytecode Hash (32 bytes hex with 0x):</label>
+          <input
+            v-model="addressParams.bytecodeHash"
+            type="text"
+            placeholder="0x..."
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Proxy Address (encoded beacon, hex with 0x):</label>
+          <input
+            v-model="addressParams.proxyAddress"
+            type="text"
+            placeholder="0x..."
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+          >
+        </div>
+
+        <button
+          :disabled="loading || !sdkLoaded || !isAddressParamsValid"
+          class="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          @click="computeAddress"
+        >
+          {{ loading ? 'Computing...' : 'Compute Smart Account Address' }}
+        </button>
+      </div>
+
+      <!-- Computed Address Result -->
+      <div
+        v-if="computedAddress"
+        class="mt-4 p-3 bg-white rounded border border-blue-300"
+      >
+        <strong class="text-sm">Computed Address:</strong>
+        <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">
+          {{ computedAddress }}
+        </code>
+      </div>
+
+      <div
+        v-if="addressComputeError"
+        class="mt-4 p-3 bg-red-50 rounded border border-red-300"
+      >
+        <strong class="text-sm text-red-800">Error:</strong>
+        <p class="text-xs text-red-600 mt-1">
+          {{ addressComputeError }}
+        </p>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 
 // Reactive state
 const sdkLoaded = ref(false);
@@ -90,6 +232,37 @@ const testResult = ref("");
 const error = ref("");
 const loading = ref(false);
 const deploymentResult = ref(null);
+
+// HTTP transport test parameters
+const httpTestParams = ref({
+  rpcUrl: "https://sepolia.era.zksync.dev",
+});
+const httpTestResult = ref("");
+const httpTestError = ref("");
+
+// Address computation parameters
+const addressParams = ref({
+  userId: "unique-id",
+  deployWallet: "",
+  factory: "",
+  bytecodeHash: "",
+  proxyAddress: "",
+});
+
+const computedAddress = ref("");
+const addressComputeError = ref("");
+
+// Computed property to check if all address params are valid
+const isAddressParamsValid = computed(() => {
+  const params = addressParams.value;
+  return (
+    params.userId.length > 0
+    && params.deployWallet.startsWith("0x") && params.deployWallet.length === 42
+    && params.factory.startsWith("0x") && params.factory.length === 42
+    && params.bytecodeHash.startsWith("0x") && params.bytecodeHash.length === 66
+    && params.proxyAddress.startsWith("0x") && params.proxyAddress.length > 2
+  );
+});
 
 // Test the web SDK
 async function testWebSDK() {
@@ -179,6 +352,31 @@ async function deployAccount() {
     // eslint-disable-next-line no-console
     console.error("Account deployment failed:", err);
     error.value = `Failed to deploy account: ${err.message}`;
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Test HTTP transport with reqwasm
+async function testHttpTransport() {
+  loading.value = true;
+  httpTestError.value = "";
+  httpTestResult.value = "";
+
+  try {
+    // Import the test function
+    const { test_http_transport } = await import("zksync-sso-web-sdk/bundler");
+
+    // Call the WASM function
+    const result = await test_http_transport(httpTestParams.value.rpcUrl);
+
+    httpTestResult.value = result;
+    // eslint-disable-next-line no-console
+    console.log("HTTP transport test result:", result);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("HTTP transport test failed:", err);
+    httpTestError.value = `Failed to test HTTP transport: ${err.message}`;
   } finally {
     loading.value = false;
   }
