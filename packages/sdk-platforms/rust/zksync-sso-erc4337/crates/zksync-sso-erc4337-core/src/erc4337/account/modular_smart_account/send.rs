@@ -9,7 +9,7 @@ use crate::erc4337::{
     user_operation::hash::v08::get_user_operation_hash_entry_point,
 };
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes, U256, address},
+    primitives::{Address, Bytes, FixedBytes, U256, Uint, address},
     providers::Provider,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
 };
@@ -39,6 +39,7 @@ pub async fn send_transaction_eoa<P: Provider + Send + Sync + Clone>(
         account,
         entry_point,
         call_data,
+        None,
         bundler_client,
         provider,
         signer,
@@ -50,16 +51,21 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     account: Address,
     entry_point: Address,
     call_data: Bytes,
+    nonce_key: Option<Uint<192, 3>>,
     bundler_client: BundlerClient,
     provider: P,
     signer: Signer,
 ) -> eyre::Result<()> {
+    let nonce_key = nonce_key.unwrap_or_else(|| Uint::from(0));
+
+    let nonce = get_nonce(entry_point, account, nonce_key, &provider).await?;
+
     let (estimated_gas, mut user_op) = {
         let alloy_user_op = {
             let stub_sig = signer.stub_signature;
             AlloyPackedUserOperation {
                 sender: account,
-                nonce: get_nonce(entry_point, account, &provider).await?,
+                nonce,
                 paymaster: None,
                 paymaster_verification_gas_limit: None,
                 paymaster_data: None,
@@ -84,7 +90,8 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     };
 
     user_op.call_gas_limit = estimated_gas.call_gas_limit;
-    user_op.verification_gas_limit = estimated_gas.verification_gas_limit;
+    user_op.verification_gas_limit =
+        (estimated_gas.verification_gas_limit * U256::from(6)) / U256::from(5);
     user_op.pre_verification_gas = estimated_gas.pre_verification_gas;
 
     user_op.max_priority_fee_per_gas = U256::from(0x77359400);
@@ -196,6 +203,7 @@ mod tests {
         let address = deploy_account(
             factory_address,
             Some(eoa_signers),
+            None,
             provider.clone(),
         )
         .await?;

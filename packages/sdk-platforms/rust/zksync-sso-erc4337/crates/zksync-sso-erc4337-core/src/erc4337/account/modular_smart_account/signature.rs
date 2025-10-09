@@ -1,6 +1,11 @@
+use crate::erc4337::account::modular_smart_account::session::SessionLib::{
+    SessionSpec, UsageLimit,
+};
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes},
+    dyn_abi::SolType,
+    primitives::{Address, Bytes, FixedBytes, Uint},
     signers::{SignerSync, local::PrivateKeySigner},
+    sol,
 };
 use eyre::Ok;
 use std::str::FromStr;
@@ -24,20 +29,65 @@ pub fn stub_signature_passkey(eoa_validator: Address) -> eyre::Result<Bytes> {
     Ok(signature)
 }
 
+pub fn eoa_sign(
+    private_key_hex: &str,
+    hash: FixedBytes<32>,
+) -> eyre::Result<Bytes> {
+    let signer = PrivateKeySigner::from_str(private_key_hex)?;
+    let signature = signer.sign_hash_sync(&hash)?;
+    let signature_bytes = signature.as_bytes();
+    Ok(signature_bytes.into())
+}
+
 pub fn eoa_signature(
     private_key_hex: &str,
     eoa_validator: Address,
     hash: FixedBytes<32>,
 ) -> eyre::Result<Bytes> {
     let eoa_validator_bytes = eoa_validator.0.to_vec();
-    let signer = PrivateKeySigner::from_str(private_key_hex).unwrap();
-    let signature = signer.sign_hash_sync(&hash)?;
-    let signature_bytes = signature.as_bytes();
+    let signature_bytes = eoa_sign(private_key_hex, hash)?;
     let mut result = vec![0u8; 85];
     result[0..20].copy_from_slice(&eoa_validator_bytes);
     result[20..].copy_from_slice(&signature_bytes);
     let bytes = Bytes::from(result);
     Ok(bytes)
+}
+
+fn get_period_id(limit: &UsageLimit) -> Uint<48, 1> {
+    let current_timestamp = Uint::<48, 1>::from(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs(),
+    );
+
+    if limit.limitType == 2 {
+        current_timestamp / limit.period
+    } else {
+        Uint::from(0)
+    }
+}
+
+pub fn session_signature(
+    private_key_hex: &str,
+    session_validator: Address,
+    session_spec: &SessionSpec,
+    hash: FixedBytes<32>,
+) -> eyre::Result<Bytes> {
+    let session_validator_bytes = session_validator.0.to_vec();
+    let signature_bytes = eoa_sign(private_key_hex, hash)?;
+
+    type SessionSignature = sol! { tuple(bytes, SessionSpec, uint48[]) };
+
+    let period_ids = vec![get_period_id(&session_spec.feeLimit), Uint::from(0)];
+
+    let fat_signature = SessionSignature::abi_encode_params(&(
+        signature_bytes,
+        session_spec.clone(),
+        period_ids,
+    ));
+    let bytes = [session_validator_bytes, fat_signature].concat();
+    Ok(bytes.into())
 }
 
 #[cfg(test)]

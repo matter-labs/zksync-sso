@@ -7,15 +7,21 @@ use crate::erc4337::{
     signer::Signer,
 };
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes, U256},
+    primitives::{Address, Bytes, U256},
     providers::Provider,
+    sol,
     sol_types::SolCall,
 };
 
-pub struct PasskeyPayload {
-    pub credential_id: Bytes,
-    pub passkey: [FixedBytes<32>; 2],
-    pub origin_domain: String,
+sol! {
+    #[derive(Debug, Default)]
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    struct PasskeyPayload {
+        bytes credential_id;
+        bytes32[2] passkey;
+        string origin_domain;
+    }
 }
 
 pub async fn add_passkey<P: Provider + Send + Sync + Clone>(
@@ -33,6 +39,7 @@ pub async fn add_passkey<P: Provider + Send + Sync + Clone>(
         account_address,
         entry_point_address,
         call_data,
+        None,
         bundler_client,
         provider.clone(),
         signer,
@@ -90,7 +97,7 @@ mod tests {
         signer::Signer,
     };
     use alloy::{
-        primitives::{U256, address, bytes, fixed_bytes},
+        primitives::{FixedBytes, U256, address, bytes, fixed_bytes},
         providers::{Provider, ProviderBuilder},
         rpc::types::TransactionRequest,
         signers::local::PrivateKeySigner,
@@ -138,6 +145,7 @@ mod tests {
         let address = deploy_account(
             factory_address,
             Some(eoa_signers),
+            None,
             provider.clone(),
         )
         .await?;
