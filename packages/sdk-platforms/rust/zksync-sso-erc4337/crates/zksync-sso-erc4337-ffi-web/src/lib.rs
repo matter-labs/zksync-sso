@@ -6,6 +6,8 @@ use zksync_sso_erc4337_core::{
 };
 use alloy::primitives::keccak256;
 
+mod wasm_transport;
+
 // Initialize logging and panic hook for WASM
 #[wasm_bindgen(start)]
 pub fn init() {
