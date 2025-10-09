@@ -8,8 +8,8 @@ use zksync_sso_erc4337_core::{
 #[wasm_bindgen(start)]
 pub fn init() {
     console_error_panic_hook::set_once();
-    console_log::init_with_level(log::Level::Info)
-        .expect("Failed to initialize logger");
+    // Ignore errors if logger is already initialized
+    let _ = console_log::init_with_level(log::Level::Info);
 }
 
 #[wasm_bindgen]
