@@ -1,5 +1,7 @@
 use crate::erc4337::account::modular_smart_account::{
-    IMSA::initializeAccountCall, MSAFactory, MSAFactory::deployAccountCall,
+    IMSA::initializeAccountCall,
+    MSAFactory::{self, deployAccountCall},
+    add_passkey::PasskeyPayload,
 };
 use alloy::{
     primitives::{Address, Bytes, FixedBytes},
@@ -8,7 +10,6 @@ use alloy::{
     sol,
     sol_types::{SolCall, SolEvent, SolValue},
 };
-use eyre::{self, Ok};
 
 pub struct MSAInitializeAccount(initializeAccountCall);
 
@@ -49,9 +50,15 @@ pub struct EOASigners {
     pub validator_address: Address,
 }
 
+pub struct WebauthNSigner {
+    pub passkey: PasskeyPayload,
+    pub validator_address: Address,
+}
+
 pub async fn deploy_account<P: Provider + Send + Sync + Clone>(
     factory_address: Address,
     eoa_signers: Option<EOASigners>,
+    webauthn_signer: Option<WebauthNSigner>,
     provider: P,
 ) -> eyre::Result<Address> {
     let factory = MSAFactory::new(factory_address, provider.clone());
@@ -70,7 +77,7 @@ pub async fn deploy_account<P: Provider + Send + Sync + Clone>(
 
     let account_id = FixedBytes::<32>::from_slice(&random_id);
 
-    let (data, modules) = if let Some(signers) = eoa_signers {
+    let (mut data, mut modules) = if let Some(signers) = eoa_signers {
         let eoa_signer_encoded =
             encode_signers_params(signers.addresses).into();
         let modules = vec![signers.validator_address];
@@ -78,6 +85,13 @@ pub async fn deploy_account<P: Provider + Send + Sync + Clone>(
     } else {
         (vec![], vec![])
     };
+
+    if let Some(webauthn_signer) = webauthn_signer {
+        let webauthn_signer_encoded =
+            webauthn_signer.passkey.abi_encode_params().into();
+        modules.push(webauthn_signer.validator_address);
+        data.push(webauthn_signer_encoded);
+    }
 
     let init_data: Bytes =
         MSAInitializeAccount::new(modules, data).encode().into();
@@ -136,7 +150,8 @@ mod tests {
         };
 
         let _address =
-            deploy_account(factory_address, None, provider.clone()).await?;
+            deploy_account(factory_address, None, None, provider.clone())
+                .await?;
 
         Ok(())
     }
@@ -175,6 +190,7 @@ mod tests {
         let address = deploy_account(
             factory_address,
             Some(eoa_signers),
+            None,
             provider.clone(),
         )
         .await?;

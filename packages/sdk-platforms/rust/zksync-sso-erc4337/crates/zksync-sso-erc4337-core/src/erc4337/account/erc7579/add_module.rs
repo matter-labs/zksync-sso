@@ -31,6 +31,7 @@ pub async fn add_module<P: Provider + Send + Sync + Clone>(
         account_address,
         entry_point_address,
         call_data,
+        None,
         bundler_client,
         provider.clone(),
         signer,
@@ -117,6 +118,7 @@ mod tests {
         let account_address = deploy_account(
             factory_address,
             Some(eoa_signers),
+            None,
             provider.clone(),
         )
         .await?;
