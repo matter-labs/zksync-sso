@@ -37,13 +37,6 @@ serde_json.workspace = true
 # Randomness
 rand.workspace = true
 
-# Explicitly add getrandom v0.2 with js feature for WASM (used by rand 0.8 from alloy)
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
-wasm-bindgen-futures = "0.4"
-js-sys = "0.3"
-web-sys = { version = "0.3", features = ["Window"] }
-
 # DER
 der.workspace = true
 der_derive.workspace = true
