@@ -9,8 +9,12 @@ const config: HardhatUserConfig = {
       isSystem: false,
     },
   },
-  defaultNetwork: "zkSyncTestnet",
+  defaultNetwork: "anvil",
   networks: {
+    anvil: {
+      url: "http://localhost:8546",
+      chainId: 9,
+    },
     zkSyncTestnet: {
       url: "http://localhost:8011",
       ethNetwork: "http://localhost:8545",

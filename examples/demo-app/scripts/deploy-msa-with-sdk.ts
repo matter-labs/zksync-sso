@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configuration
-const RPC_URL = process.env.RPC_URL || "http://localhost:8011";
+const RPC_URL = process.env.RPC_URL || "http://localhost:8546";
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110";
 
 // Contract artifacts path (absolute)

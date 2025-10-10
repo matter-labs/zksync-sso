@@ -321,7 +321,7 @@ async function deployAccount() {
 
     // Load factory address from deployed contracts
     let factoryAddress = "0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3"; // Default fallback
-    let rpcUrl = "http://localhost:8011"; // Default to local node
+    let rpcUrl = "http://localhost:8546"; // Default to Anvil
 
     try {
       // Try to load contracts.json if it exists
@@ -346,9 +346,12 @@ async function deployAccount() {
     const eoaSignersAddresses = null;
     const eoaValidatorAddress = null;
 
-    // For local testing, use the default rich wallet private key
-    // In production, this would come from MetaMask or another wallet provider
-    const deployerPrivateKey = "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110";
+    // Use the appropriate private key based on the network
+    // zkSync (port 8011): 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110
+    // Anvil (port 8546): 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+    const deployerPrivateKey = rpcUrl.includes("8546")
+      ? "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" // Anvil default account #0
+      : "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"; // zkSync rich wallet
 
     // eslint-disable-next-line no-console
     console.log("Deploying account...");
