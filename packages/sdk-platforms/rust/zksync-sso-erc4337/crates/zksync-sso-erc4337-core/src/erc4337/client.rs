@@ -51,7 +51,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::contracts::Contracts;
+    use crate::{
+        chain::{Chain, id::ChainId},
+        config::contracts::Contracts,
+        erc4337::entry_point::version::EntryPointVersion,
+    };
     use alloy::{
         primitives::{Address, Bytes, U256},
         providers::ProviderBuilder,
@@ -69,11 +73,20 @@ mod tests {
                 .unwrap(),
             Address::from_str("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")
                 .unwrap(),
+            Address::from_str("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")
+                .unwrap(),
+        );
+
+        let chain = Chain::new(
+            ChainId::ETHEREUM_MAINNET,
+            EntryPointVersion::V07,
+            "Mainnet".to_string(),
         );
 
         Config::new(
             "http://localhost:8545".parse().unwrap(),
             "http://localhost:4337".parse().unwrap(),
+            chain,
             contracts,
         )
     }

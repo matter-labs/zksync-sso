@@ -1,49 +1,28 @@
+pub mod id;
+
 use crate::{
     chain::id::ChainId, erc4337::entry_point::version::EntryPointVersion,
 };
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-pub mod id;
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub struct Chain {
     pub id: ChainId,
     pub entry_point_version: EntryPointVersion,
-    pub name: &'static str,
+    pub name: String,
 }
 
 impl Chain {
     pub fn new(
         id: ChainId,
         entry_point_version: EntryPointVersion,
-        name: &'static str,
+        name: String,
     ) -> Self {
         Self { id, entry_point_version, name }
     }
-
-    pub const ETHEREUM_MAINNET_V07: Self = Self {
-        id: ChainId::ETHEREUM_MAINNET,
-        entry_point_version: EntryPointVersion::V07,
-        name: "Ethereum Mainnet",
-    };
-
-    pub const ETHEREUM_SEPOLIA_V07: Self = Self {
-        id: ChainId::ETHEREUM_SEPOLIA,
-        entry_point_version: EntryPointVersion::V07,
-        name: "Ethereum Sepolia",
-    };
-
-    pub const BASE_SEPOLIA_V07: Self = Self {
-        id: ChainId::BASE_SEPOLIA,
-        entry_point_version: EntryPointVersion::V07,
-        name: "Base Sepolia",
-    };
-
-    pub const LOCAL_ETHEREUM_SEPOLIA_V07: Self = Self {
-        id: ChainId::LOCAL_FOUNDRY_ETHEREUM_SEPOLIA,
-        entry_point_version: EntryPointVersion::V07,
-        name: "Local Ethereum Sepolia",
-    };
 }
 
 impl Chain {
@@ -57,7 +36,7 @@ impl From<ChainId> for Chain {
         Self {
             id: chain_id,
             entry_point_version: EntryPointVersion::V07,
-            name: "",
+            name: "".to_string(),
         }
     }
 }

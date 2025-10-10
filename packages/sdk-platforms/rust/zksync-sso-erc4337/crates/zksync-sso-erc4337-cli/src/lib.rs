@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
-use zksync_sso_erc4337_core::config::{
-    Config as CoreConfig, contracts::Contracts as CoreContracts,
+use zksync_sso_erc4337_core::{
+    chain::{Chain as CoreChain, id::ChainId as CoreChainId},
+    config::{Config as CoreConfig, contracts::Contracts as CoreContracts},
+    erc4337::entry_point::version::EntryPointVersion,
 };
 
 #[derive(Parser)]
@@ -47,6 +49,12 @@ enum Commands {
             default_value = "0x9406Cc6185a346906296840746125a0E44976454"
         )]
         eoa_validator_address: String,
+
+        #[arg(
+            long,
+            default_value = "0x9406Cc6185a346906296840746125a0E44976454"
+        )]
+        session_validator_address: String,
     },
 }
 
@@ -59,15 +67,22 @@ async fn handle_command(command: Commands) -> eyre::Result<()> {
             account_factory_address,
             webauthn_validator_address,
             eoa_validator_address,
+            session_validator_address,
         } => {
             let config = CoreConfig::new(
                 rpc_url.parse()?,
                 bundler_url.parse()?,
+                CoreChain::new(
+                    CoreChainId::ETHEREUM_MAINNET,
+                    EntryPointVersion::V08,
+                    "Mainnet".to_string(),
+                ),
                 CoreContracts::from_string(
                     entry_point_address,
                     account_factory_address,
                     webauthn_validator_address,
                     eoa_validator_address,
+                    session_validator_address.to_string(),
                 )?,
             );
 
