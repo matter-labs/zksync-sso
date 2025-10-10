@@ -4,9 +4,17 @@ use zksync_sso_erc4337_core::{
     chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
     erc4337::entry_point::version::EntryPointVersion,
+    erc4337::account::modular_smart_account::{
+        MSAFactory,
+        deploy::{MSAInitializeAccount, EOASigners as CoreEOASigners},
+    },
 };
 use alloy::primitives::{keccak256, Address, FixedBytes, Bytes};
 use alloy_rpc_client::RpcClient;
+use alloy::providers::ProviderBuilder;
+use alloy::sol_types::SolEvent;
+use alloy::signers::local::PrivateKeySigner;
+use alloy::network::EthereumWallet;
 
 // WASM transport is implemented but not yet fully integrated with Alloy's Provider trait
 // For now, we expose offline computation functions
@@ -88,6 +96,170 @@ pub fn test_http_transport(rpc_url: String) -> js_sys::Promise {
             Err(e) => {
                 console_log!("Request failed: {}", e);
                 Ok(JsValue::from_str(&format!("RPC request failed: {}", e)))
+            }
+        }
+    })
+}
+
+/// Deploy a smart account using the factory
+/// 
+/// # Arguments
+/// * `rpc_url` - The RPC endpoint URL
+/// * `factory_address` - The address of the MSA factory contract
+/// * `user_id` - A unique identifier for the user (will be hashed to create account_id)
+/// * `deployer_private_key` - Private key of the account that will pay for deployment (0x-prefixed hex string)
+/// * `eoa_signers_addresses` - Optional array of EOA signer addresses (as hex strings)
+/// * `eoa_validator_address` - Optional EOA validator module address (required if eoa_signers_addresses is provided)
+///
+/// # Returns
+/// Promise that resolves to the deployed account address as a hex string
+#[wasm_bindgen]
+pub fn deploy_account(
+    rpc_url: String,
+    factory_address: String,
+    user_id: String,
+    deployer_private_key: String,
+    eoa_signers_addresses: Option<Vec<String>>,
+    eoa_validator_address: Option<String>,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Starting account deployment...");
+        console_log!("  RPC URL: {}", rpc_url);
+        console_log!("  Factory: {}", factory_address);
+        console_log!("  User ID: {}", user_id);
+        
+        // Parse factory address
+        let factory_addr = match factory_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid factory address: {}", e)));
+            }
+        };
+        
+        // Parse deployer private key
+        let deployer_key = match deployer_private_key.trim_start_matches("0x").parse::<PrivateKeySigner>() {
+            Ok(signer) => signer,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid deployer private key: {}", e)));
+            }
+        };
+        
+        let deployer_wallet = EthereumWallet::from(deployer_key);
+        console_log!("  Deployer address: {:?}", deployer_wallet.default_signer().address());
+        
+        // Create transport and provider with wallet
+        let transport = WasmHttpTransport::new(rpc_url);
+        let client = RpcClient::new(transport.clone(), false);
+        let provider = ProviderBuilder::new()
+            .wallet(deployer_wallet)
+            .connect_client(client);
+        
+        // Compute account ID from user ID
+        let account_id = compute_account_id(&user_id);
+        let account_id_bytes = match hex::decode(account_id.trim_start_matches("0x")) {
+            Ok(bytes) => {
+                if bytes.len() != 32 {
+                    return Ok(JsValue::from_str(&format!("Invalid account ID length: expected 32 bytes, got {}", bytes.len())));
+                }
+                FixedBytes::<32>::from_slice(&bytes)
+            }
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Failed to decode account ID: {}", e)));
+            }
+        };
+        
+        console_log!("  Account ID: 0x{}", hex::encode(account_id_bytes));
+        
+        // Parse EOA signers if provided
+        let eoa_signers = match (eoa_signers_addresses, eoa_validator_address) {
+            (Some(addresses), Some(validator)) => {
+                console_log!("  Parsing EOA signers: {} addresses", addresses.len());
+                let mut parsed_addresses = Vec::new();
+                for addr_str in addresses {
+                    match addr_str.parse::<Address>() {
+                        Ok(addr) => parsed_addresses.push(addr),
+                        Err(e) => {
+                            return Ok(JsValue::from_str(&format!("Invalid EOA signer address '{}': {}", addr_str, e)));
+                        }
+                    }
+                }
+                
+                let validator_addr = match validator.parse::<Address>() {
+                    Ok(addr) => addr,
+                    Err(e) => {
+                        return Ok(JsValue::from_str(&format!("Invalid validator address: {}", e)));
+                    }
+                };
+                
+                Some(CoreEOASigners {
+                    addresses: parsed_addresses,
+                    validator_address: validator_addr,
+                })
+            }
+            (None, None) => None,
+            _ => {
+                return Ok(JsValue::from_str("Both eoa_signers_addresses and eoa_validator_address must be provided together"));
+            }
+        };
+        
+        // Prepare init data
+        let (data, modules) = if let Some(signers) = eoa_signers {
+            console_log!("  Encoding {} EOA signers", signers.addresses.len());
+            use alloy::sol_types::SolValue;
+            use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::SignersParams;
+            
+            let eoa_signer_encoded = SignersParams { signers: signers.addresses.to_vec() }
+                .abi_encode_params()
+                .into();
+            let modules = vec![signers.validator_address];
+            (vec![eoa_signer_encoded], modules)
+        } else {
+            console_log!("  No EOA signers, deploying empty account");
+            (vec![], vec![])
+        };
+        
+        let init_data: Bytes = MSAInitializeAccount::new(modules, data).encode().into();
+        console_log!("  Init data length: {} bytes", init_data.len());
+        
+        // Create factory instance and deploy
+        let factory = MSAFactory::new(factory_addr, provider);
+        
+        console_log!("  Calling factory.deployAccount...");
+        let deploy_call = factory.deployAccount(account_id_bytes, init_data);
+        
+        match deploy_call.send().await {
+            Ok(pending_tx) => {
+                console_log!("  Transaction sent, waiting for receipt...");
+                match pending_tx.get_receipt().await {
+                    Ok(receipt) => {
+                        console_log!("  Transaction mined!");
+                        
+                        // Extract account address from AccountCreated event
+                        let topic = MSAFactory::AccountCreated::SIGNATURE_HASH;
+                        let log = receipt
+                            .logs()
+                            .iter()
+                            .find(|log| log.inner.topics()[0] == topic);
+                        
+                        if let Some(log) = log {
+                            let event = log.inner.topics()[1];
+                            let address = Address::from_slice(&event[12..]);
+                            let address_str = format!("0x{:x}", address);
+                            console_log!("  Deployed account address: {}", address_str);
+                            Ok(JsValue::from_str(&address_str))
+                        } else {
+                            Ok(JsValue::from_str("Account deployed but AccountCreated event not found in logs"))
+                        }
+                    }
+                    Err(e) => {
+                        console_log!("  Error getting receipt: {}", e);
+                        Ok(JsValue::from_str(&format!("Failed to get transaction receipt: {}", e)))
+                    }
+                }
+            }
+            Err(e) => {
+                console_log!("  Error sending transaction: {}", e);
+                Ok(JsValue::from_str(&format!("Failed to send deployment transaction: {}", e)))
             }
         }
     })

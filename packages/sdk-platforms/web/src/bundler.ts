@@ -15,6 +15,7 @@ export const {
   compute_account_id,
   compute_smart_account_address,
   test_http_transport,
+  deploy_account,
   Client,
   Config,
   Contracts,
