@@ -2,11 +2,11 @@
   "rpcUrl": "http://localhost:8011",
   "chainId": 260,
   "deployer": "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
-  "eoaValidator": "0x7AddC93ED39C4c64dffB478999B45f5a40619C23",
-  "sessionValidator": "0x13706Afd344d905BB9Cb50752065a67Fa8d09c70",
-  "webauthnValidator": "0xb47A53D7f201A7F4CA6FDBd1Efb083A041713101",
+  "eoaValidator": "",
+  "sessionValidator": "",
+  "webauthnValidator": "",
   "guardianExecutor": "",
-  "accountImplementation": "0xd5608cEC132ED4875D19f8d815EC2ac58498B4E5",
-  "beacon": "0x5A6be02aC21339d38cF0682A77bb24D858902246",
-  "factory": "0xE13BFf7F138853F7c33e6824Ea102D8b5cFe6bC8"
+  "accountImplementation": "",
+  "beacon": "",
+  "factory": ""
 }
