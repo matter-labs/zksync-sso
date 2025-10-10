@@ -309,7 +309,7 @@ async function deployAccount() {
 
   try {
     // Import the web SDK - destructure the WASM functions we need
-    const { greet, get_ethereum_sepolia_info, compute_account_id } = await import("zksync-sso-web-sdk/bundler");
+    const { deploy_account, compute_account_id } = await import("zksync-sso-web-sdk/bundler");
 
     // Generate a user ID (in real app, this would be from authentication)
     const userId = "demo-user-" + Date.now();
@@ -319,35 +319,76 @@ async function deployAccount() {
     // eslint-disable-next-line no-console
     console.log("Computed account ID:", accountId);
 
-    // Call the deployment helper functions from WASM
-    // For now, we'll simulate the deployment since the full implementation isn't complete
-    const mockDeployment = {
+    // Load factory address from deployed contracts
+    let factoryAddress = "0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3"; // Default fallback
+    let rpcUrl = "http://localhost:8011"; // Default to local node
+
+    try {
+      // Try to load contracts.json if it exists
+      const response = await fetch("/contracts.json");
+      if (response.ok) {
+        const contracts = await response.json();
+        factoryAddress = contracts.factory;
+        rpcUrl = contracts.rpcUrl;
+        // eslint-disable-next-line no-console
+        console.log("Loaded factory address from contracts.json:", factoryAddress);
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn("contracts.json not found, using default factory address");
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("Failed to load contracts.json, using default factory address:", err);
+    }
+
+    // Optional: Add EOA signers for additional security
+    // For now, deploying without EOA signers (passkey/WebAuthn only)
+    const eoaSignersAddresses = null;
+    const eoaValidatorAddress = null;
+
+    // For local testing, use the default rich wallet private key
+    // In production, this would come from MetaMask or another wallet provider
+    const deployerPrivateKey = "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110";
+
+    // eslint-disable-next-line no-console
+    console.log("Deploying account...");
+    // eslint-disable-next-line no-console
+    console.log("  RPC URL:", rpcUrl);
+    // eslint-disable-next-line no-console
+    console.log("  Factory:", factoryAddress);
+    // eslint-disable-next-line no-console
+    console.log("  User ID:", userId);
+
+    // Call the deployment function
+    const deployedAddress = await deploy_account(
+      rpcUrl,
+      factoryAddress,
+      userId,
+      deployerPrivateKey,
+      eoaSignersAddresses,
+      eoaValidatorAddress,
+    );
+
+    // eslint-disable-next-line no-console
+    console.log("Account deployed at:", deployedAddress);
+
+    // TODO: Get actual transaction hash from deployment
+    // For now, we'll use a placeholder
+    const txHash = "0x" + Array.from({ length: 64 }, () =>
+      Math.floor(Math.random() * 16).toString(16),
+    ).join("");
+
+    // Display the deployment result
+    deploymentResult.value = {
       userId,
       accountId,
-      address: "0x" + Array.from({ length: 40 }, () =>
-        Math.floor(Math.random() * 16).toString(16),
-      ).join(""),
-      txHash: "0x" + Array.from({ length: 64 }, () =>
-        Math.floor(Math.random() * 16).toString(16),
-      ).join(""),
+      address: deployedAddress,
+      txHash,
     };
-
-    // Test if we can call WASM functions
-    const greeting = greet("Account Deployer");
-    // eslint-disable-next-line no-console
-    console.log("WASM greeting:", greeting);
-
-    // Test chain info
-    const chainInfo = get_ethereum_sepolia_info();
-    // eslint-disable-next-line no-console
-    console.log("Chain info:", chainInfo);
-
-    // Display the mock deployment result
-    deploymentResult.value = mockDeployment;
-    testResult.value = "Account deployment initiated (mock)";
+    testResult.value = "Account deployed successfully!";
 
     // eslint-disable-next-line no-console
-    console.log("Account deployment result:", mockDeployment);
+    console.log("Account deployment result:", deploymentResult.value);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("Account deployment failed:", err);
