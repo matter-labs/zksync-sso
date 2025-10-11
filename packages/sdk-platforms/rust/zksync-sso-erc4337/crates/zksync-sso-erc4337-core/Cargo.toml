@@ -20,20 +20,40 @@ eyre.workspace = true
 
 # Logging/Tracing
 tracing.workspace = true
+log.workspace = true
 
 # HTTP
 url.workspace = true
 reqwest.workspace = true
 
-# Async (optional for WASM compatibility)
-tokio = { workspace = true, optional = true }
+# Async
+tokio = { workspace = true, optional = true }  # optional for WASM compatibility
+async-trait.workspace = true
 
 # Serialization/Deserialization
 serde.workspace = true
 serde_json.workspace = true
 
+# Randomness
+rand.workspace = true
+
+# DER
+der.workspace = true
+der_derive.workspace = true
+
+# Base64
+base64-url.workspace = true
+base64.workspace = true
+
+# Explicitly add getrandom v0.2 with js feature for WASM (used by rand 0.8 from alloy)
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["Window"] }
+
 [features]
-default = []
+default = ["tokio-runtime"]
 tokio-runtime = ["tokio"]
 
 [dev-dependencies]

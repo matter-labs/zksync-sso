@@ -53,10 +53,14 @@ pub fn get_ethereum_sepolia_info() -> String {
 pub fn parse_contract_addresses(
     entry_point: &str,
     account_factory: &str,
+    webauthn_validator: &str,
+    eoa_validator: &str,
 ) -> Result<String, JsValue> {
     match CoreContracts::from_string(
         entry_point.to_string(),
         account_factory.to_string(),
+        webauthn_validator.to_string(),
+        eoa_validator.to_string(),
     ) {
         Ok(contracts) => Ok(format!(
             "Entry Point: {:?}, Account Factory: {:?}",

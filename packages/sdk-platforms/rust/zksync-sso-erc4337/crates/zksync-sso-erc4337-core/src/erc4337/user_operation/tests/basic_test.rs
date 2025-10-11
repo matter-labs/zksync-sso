@@ -5,8 +5,8 @@ use crate::erc4337::{
 use alloy::{
     node_bindings::Anvil,
     primitives::{Address, Bytes, FixedBytes, U256, address},
+    providers::ProviderBuilder,
 };
-use alloy_provider::ProviderBuilder;
 use std::str::FromStr;
 
 impl PackedUserOperationWrapperV07 {

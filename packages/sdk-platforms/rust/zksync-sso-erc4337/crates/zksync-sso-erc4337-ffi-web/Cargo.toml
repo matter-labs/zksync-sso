@@ -26,7 +26,7 @@ thiserror.workspace = true
 # Logging/Tracing
 tracing.workspace = true
 
-# Async - Use only wasm-bindgen-futures for WASM compatibility 
+# Async - Use only wasm-bindgen-futures for WASM compatibility
 async-trait.workspace = true
 futures.workspace = true
 
@@ -41,7 +41,7 @@ log.workspace = true
 
 # Additional dependencies for WASM
 hex = "0.4"
-getrandom = { workspace = true }
+getrandom = { version = "0.2", features = ["js"] }
 
 # Serialization (optional, for future use)
 serde = { workspace = true, optional = true }
