@@ -1,7 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 pub const ENTRYPOINT_V07_TYPE: &str = "v0.7";
 pub const ENTRYPOINT_V08_TYPE: &str = "v0.8";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub enum EntryPointVersion {
     V07,
     V08,
