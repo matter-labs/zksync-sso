@@ -1,15 +1,31 @@
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::future_to_promise;
 use zksync_sso_erc4337_core::{
     chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
+    erc4337::account::modular_smart_account::{
+        MSAFactory,
+        deploy::{MSAInitializeAccount, EOASigners as CoreEOASigners},
+    },
 };
+use alloy::primitives::{keccak256, Address, FixedBytes, Bytes};
+use alloy_rpc_client::RpcClient;
+use alloy::providers::ProviderBuilder;
+use alloy::sol_types::SolEvent;
+use alloy::signers::local::PrivateKeySigner;
+use alloy::network::EthereumWallet;
+
+// WASM transport is implemented but not yet fully integrated with Alloy's Provider trait
+// For now, we expose offline computation functions
+mod wasm_transport;
+use wasm_transport::WasmHttpTransport;
 
 // Initialize logging and panic hook for WASM
 #[wasm_bindgen(start)]
 pub fn init() {
     console_error_panic_hook::set_once();
-    console_log::init_with_level(log::Level::Info)
-        .expect("Failed to initialize logger");
+    // Ignore errors if logger is already initialized
+    let _ = console_log::init_with_level(log::Level::Info);
 }
 
 #[wasm_bindgen]
@@ -48,6 +64,202 @@ pub fn get_ethereum_sepolia_info() -> String {
     )
 }
 
+/// Test function to verify HTTP transport with reqwasm
+/// Makes a simple eth_chainId RPC call to verify the transport works
+#[wasm_bindgen]
+pub fn test_http_transport(rpc_url: String) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Creating WASM HTTP transport for: {}", rpc_url);
+        
+        // Create transport
+        let transport = WasmHttpTransport::new(rpc_url);
+        
+        console_log!("Creating RPC client with transport");
+        
+        // Create RPC client with our custom transport
+        let client = RpcClient::new(transport, false);
+        
+        console_log!("Making eth_chainId request...");
+        
+        // Make a proper eth_chainId request using Alloy's RPC client
+        match client.request("eth_chainId", ()).await {
+            Ok(chain_id) => {
+                let result: String = chain_id;
+                console_log!("Got chain ID: {}", result);
+                Ok(JsValue::from_str(&format!("Success! Chain ID: {}", result)))
+            }
+            Err(e) => {
+                console_log!("Request failed: {}", e);
+                Ok(JsValue::from_str(&format!("RPC request failed: {}", e)))
+            }
+        }
+    })
+}
+
+/// Deploy a smart account using the factory
+/// 
+/// # Arguments
+/// * `rpc_url` - The RPC endpoint URL
+/// * `factory_address` - The address of the MSA factory contract
+/// * `user_id` - A unique identifier for the user (will be hashed to create account_id)
+/// * `deployer_private_key` - Private key of the account that will pay for deployment (0x-prefixed hex string)
+/// * `eoa_signers_addresses` - Optional array of EOA signer addresses (as hex strings)
+/// * `eoa_validator_address` - Optional EOA validator module address (required if eoa_signers_addresses is provided)
+///
+/// # Returns
+/// Promise that resolves to the deployed account address as a hex string
+#[wasm_bindgen]
+pub fn deploy_account(
+    rpc_url: String,
+    factory_address: String,
+    user_id: String,
+    deployer_private_key: String,
+    eoa_signers_addresses: Option<Vec<String>>,
+    eoa_validator_address: Option<String>,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Starting account deployment...");
+        console_log!("  RPC URL: {}", rpc_url);
+        console_log!("  Factory: {}", factory_address);
+        console_log!("  User ID: {}", user_id);
+        
+        // Parse factory address
+        let factory_addr = match factory_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid factory address: {}", e)));
+            }
+        };
+        
+        // Parse deployer private key
+        let deployer_key = match deployer_private_key.trim_start_matches("0x").parse::<PrivateKeySigner>() {
+            Ok(signer) => signer,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid deployer private key: {}", e)));
+            }
+        };
+        
+        let deployer_wallet = EthereumWallet::from(deployer_key);
+        console_log!("  Deployer address: {:?}", deployer_wallet.default_signer().address());
+        
+        // Create transport and provider with wallet
+        let transport = WasmHttpTransport::new(rpc_url);
+        let client = RpcClient::new(transport.clone(), false);
+        let provider = ProviderBuilder::new()
+            .wallet(deployer_wallet)
+            .connect_client(client);
+        
+        // Compute account ID from user ID
+        let account_id = compute_account_id(&user_id);
+        let account_id_bytes = match hex::decode(account_id.trim_start_matches("0x")) {
+            Ok(bytes) => {
+                if bytes.len() != 32 {
+                    return Ok(JsValue::from_str(&format!("Invalid account ID length: expected 32 bytes, got {}", bytes.len())));
+                }
+                FixedBytes::<32>::from_slice(&bytes)
+            }
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Failed to decode account ID: {}", e)));
+            }
+        };
+        
+        console_log!("  Account ID: 0x{}", hex::encode(account_id_bytes));
+        
+        // Parse EOA signers if provided
+        let eoa_signers = match (eoa_signers_addresses, eoa_validator_address) {
+            (Some(addresses), Some(validator)) => {
+                console_log!("  Parsing EOA signers: {} addresses", addresses.len());
+                let mut parsed_addresses = Vec::new();
+                for addr_str in addresses {
+                    match addr_str.parse::<Address>() {
+                        Ok(addr) => parsed_addresses.push(addr),
+                        Err(e) => {
+                            return Ok(JsValue::from_str(&format!("Invalid EOA signer address '{}': {}", addr_str, e)));
+                        }
+                    }
+                }
+                
+                let validator_addr = match validator.parse::<Address>() {
+                    Ok(addr) => addr,
+                    Err(e) => {
+                        return Ok(JsValue::from_str(&format!("Invalid validator address: {}", e)));
+                    }
+                };
+                
+                Some(CoreEOASigners {
+                    addresses: parsed_addresses,
+                    validator_address: validator_addr,
+                })
+            }
+            (None, None) => None,
+            _ => {
+                return Ok(JsValue::from_str("Both eoa_signers_addresses and eoa_validator_address must be provided together"));
+            }
+        };
+        
+        // Prepare init data
+        let (data, modules) = if let Some(signers) = eoa_signers {
+            console_log!("  Encoding {} EOA signers", signers.addresses.len());
+            use alloy::sol_types::SolValue;
+            use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::SignersParams;
+            
+            let eoa_signer_encoded = SignersParams { signers: signers.addresses.to_vec() }
+                .abi_encode_params()
+                .into();
+            let modules = vec![signers.validator_address];
+            (vec![eoa_signer_encoded], modules)
+        } else {
+            console_log!("  No EOA signers, deploying empty account");
+            (vec![], vec![])
+        };
+        
+        let init_data: Bytes = MSAInitializeAccount::new(modules, data).encode().into();
+        console_log!("  Init data length: {} bytes", init_data.len());
+        
+        // Create factory instance and deploy
+        let factory = MSAFactory::new(factory_addr, provider);
+        
+        console_log!("  Calling factory.deployAccount...");
+        let deploy_call = factory.deployAccount(account_id_bytes, init_data);
+        
+        match deploy_call.send().await {
+            Ok(pending_tx) => {
+                console_log!("  Transaction sent, waiting for receipt...");
+                match pending_tx.get_receipt().await {
+                    Ok(receipt) => {
+                        console_log!("  Transaction mined!");
+                        
+                        // Extract account address from AccountCreated event
+                        let topic = MSAFactory::AccountCreated::SIGNATURE_HASH;
+                        let log = receipt
+                            .logs()
+                            .iter()
+                            .find(|log| log.inner.topics()[0] == topic);
+                        
+                        if let Some(log) = log {
+                            let event = log.inner.topics()[1];
+                            let address = Address::from_slice(&event[12..]);
+                            let address_str = format!("0x{:x}", address);
+                            console_log!("  Deployed account address: {}", address_str);
+                            Ok(JsValue::from_str(&address_str))
+                        } else {
+                            Ok(JsValue::from_str("Account deployed but AccountCreated event not found in logs"))
+                        }
+                    }
+                    Err(e) => {
+                        console_log!("  Error getting receipt: {}", e);
+                        Ok(JsValue::from_str(&format!("Failed to get transaction receipt: {}", e)))
+                    }
+                }
+            }
+            Err(e) => {
+                console_log!("  Error sending transaction: {}", e);
+                Ok(JsValue::from_str(&format!("Failed to send deployment transaction: {}", e)))
+            }
+        }
+    })
+}
+
 /// Parse contract addresses from strings
 #[wasm_bindgen]
 pub fn parse_contract_addresses(
@@ -63,8 +275,11 @@ pub fn parse_contract_addresses(
         eoa_validator.to_string(),
     ) {
         Ok(contracts) => Ok(format!(
-            "Entry Point: {:?}, Account Factory: {:?}",
-            contracts.entry_point, contracts.account_factory
+            "Entry Point: {:?}, Account Factory: {:?}, WebAuthn Validator: {:?}, EOA Validator: {:?}",
+            contracts.entry_point,
+            contracts.account_factory,
+            contracts.webauthn_validator,
+            contracts.eoa_validator
         )),
         Err(e) => Err(JsValue::from_str(&format!(
             "Failed to parse addresses: {:?}",
@@ -89,6 +304,111 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, JsValue> {
 #[wasm_bindgen]
 pub fn console_log_from_rust(message: &str) {
     console_log!("{}", message);
+}
+
+/// Compute account ID from user ID (same logic as get_account_id_by_user_id in SDK)
+/// This is used to generate a unique identifier for smart accounts
+#[wasm_bindgen]
+pub fn compute_account_id(user_id: &str) -> String {
+    let salt = hex::encode(user_id);
+    let salt_hash = keccak256(salt);
+    format!("0x{}", hex::encode(salt_hash))
+}
+
+/// Compute the smart account address (offline, without RPC calls)
+/// This requires knowing the bytecode hash and proxy address upfront
+/// 
+/// # Parameters
+/// - `user_id`: The unique user identifier
+/// - `deploy_wallet_address`: The address of the wallet deploying the account (hex string)
+/// - `account_factory`: The address of the AAFactory contract (hex string)  
+/// - `bytecode_hash`: The beacon proxy bytecode hash (hex string, 32 bytes)
+/// - `proxy_address`: The encoded beacon address (hex string)
+/// 
+/// # Returns
+/// The computed smart account address as a hex string
+#[wasm_bindgen]
+pub fn compute_smart_account_address(
+    user_id: &str,
+    deploy_wallet_address: &str,
+    account_factory: &str,
+    bytecode_hash: &str,
+    proxy_address: &str,
+) -> Result<String, JsValue> {
+    console_log!("Computing smart account address for user: {}", user_id);
+    
+    // Parse addresses
+    let factory_addr: Address = account_factory
+        .parse()
+        .map_err(|e| JsValue::from_str(&format!("Invalid factory address: {}", e)))?;
+    
+    let deploy_wallet_addr: Address = deploy_wallet_address
+        .parse()
+        .map_err(|e| JsValue::from_str(&format!("Invalid wallet address: {}", e)))?;
+    
+    // Parse bytecode hash
+    let bytecode_hash_hex = bytecode_hash.strip_prefix("0x").unwrap_or(bytecode_hash);
+    let bytecode_hash_bytes = hex::decode(bytecode_hash_hex)
+        .map_err(|e| JsValue::from_str(&format!("Invalid bytecode hash: {}", e)))?;
+    let bytecode_hash = FixedBytes::<32>::from_slice(&bytecode_hash_bytes);
+    
+    // Parse proxy address
+    let proxy_hex = proxy_address.strip_prefix("0x").unwrap_or(proxy_address);
+    let proxy_bytes = hex::decode(proxy_hex)
+        .map_err(|e| JsValue::from_str(&format!("Invalid proxy address: {}", e)))?;
+    let proxy_address = Bytes::from(proxy_bytes);
+    
+    // Get account ID hash
+    let salt = hex::encode(user_id);
+    let account_id_hash = keccak256(salt);
+    console_log!("Account ID hash: 0x{}", hex::encode(account_id_hash));
+    
+    // Compute unique salt
+    let wallet_address_bytes = deploy_wallet_addr.0.to_vec();
+    let mut concatenated_bytes = Vec::new();
+    concatenated_bytes.extend(account_id_hash.to_vec());
+    concatenated_bytes.extend(wallet_address_bytes);
+    let unique_salt = keccak256(concatenated_bytes);
+    console_log!("Unique salt: 0x{}", hex::encode(unique_salt));
+    
+    // Compute CREATE2 address
+    let address = compute_create2_address(
+        factory_addr,
+        bytecode_hash,
+        unique_salt,
+        proxy_address,
+    );
+    
+    console_log!("Computed address: 0x{}", hex::encode(address));
+    Ok(format!("0x{}", hex::encode(address)))
+}
+
+/// Compute CREATE2 address (zkSync version)
+/// This is the zkSync-specific CREATE2 computation
+fn compute_create2_address(
+    deployer: Address,
+    bytecode_hash: FixedBytes<32>,
+    salt: FixedBytes<32>,
+    input: Bytes,
+) -> Address {
+    // zkSync CREATE2 formula:
+    // keccak256(0xff ++ deployer ++ salt ++ keccak256(bytecode_hash ++ input_hash))
+    
+    let input_hash = keccak256(&input);
+    
+    let mut bytecode_and_input = Vec::new();
+    bytecode_and_input.extend(bytecode_hash.as_slice());
+    bytecode_and_input.extend(input_hash.as_slice());
+    let bytecode_input_hash = keccak256(bytecode_and_input);
+    
+    let mut create2_input = Vec::new();
+    create2_input.push(0xff);
+    create2_input.extend(deployer.as_slice());
+    create2_input.extend(salt.as_slice());
+    create2_input.extend(bytecode_input_hash.as_slice());
+    
+    let hash = keccak256(create2_input);
+    Address::from_slice(&hash[12..])
 }
 
 // Error type for WASM

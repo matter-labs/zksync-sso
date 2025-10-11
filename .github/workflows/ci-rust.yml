@@ -173,8 +173,6 @@ jobs:
           missing=()
           files=(
             "out/IERC7579Account.sol/IERC7579Account.json"
-            "out/SimpleAccountFactory.sol/SimpleAccountFactory.json"
-            "out/SimpleAccount.sol/SimpleAccount.json"
             "out/EntryPoint.sol/EntryPoint.json"
           )
           for f in "${files[@]}"; do
@@ -238,8 +236,6 @@ jobs:
           missing=()
           files=(
             "out/IERC7579Account.sol/IERC7579Account.json"
-            "out/SimpleAccountFactory.sol/SimpleAccountFactory.json"
-            "out/SimpleAccount.sol/SimpleAccount.json"
             "out/EntryPoint.sol/EntryPoint.json"
           )
           for f in "${files[@]}"; do

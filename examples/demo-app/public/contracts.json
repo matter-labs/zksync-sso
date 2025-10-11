@@ -1,0 +1,12 @@
+{
+  "rpcUrl": "http://localhost:8011",
+  "chainId": 260,
+  "deployer": "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
+  "eoaValidator": "",
+  "sessionValidator": "",
+  "webauthnValidator": "",
+  "guardianExecutor": "",
+  "accountImplementation": "",
+  "beacon": "",
+  "factory": ""
+}
