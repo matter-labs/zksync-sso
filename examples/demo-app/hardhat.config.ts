@@ -12,13 +12,8 @@ const config: HardhatUserConfig = {
   defaultNetwork: "anvil",
   networks: {
     anvil: {
-      url: "http://localhost:8546",
-      chainId: 9,
-    },
-    zkSyncTestnet: {
-      url: "http://localhost:8011",
-      ethNetwork: "http://localhost:8545",
-      zksync: true,
+      url: "http://localhost:8545",
+      chainId: 31337,
     },
   },
   solidity: {

@@ -4,8 +4,8 @@ set -e
 # Configuration
 DEPLOYER_ADDRESS="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-RPC_URL="http://localhost:8546"
-CHAIN_ID=9
+RPC_URL="http://localhost:8545"
+CHAIN_ID=31337
 CONTRACTS_DIR="/home/colinbellmore/Documents/zksync-sso/packages/erc4337-contracts"
 
 echo "🚀 Deploying MSA Factory and modules to Anvil (standard EVM)..."
