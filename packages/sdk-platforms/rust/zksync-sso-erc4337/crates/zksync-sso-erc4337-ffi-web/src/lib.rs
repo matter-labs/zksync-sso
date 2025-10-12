@@ -9,7 +9,7 @@ use zksync_sso_erc4337_core::{
         deploy::{MSAInitializeAccount, EOASigners as CoreEOASigners},
     },
 };
-use alloy::primitives::{keccak256, Address, FixedBytes, Bytes};
+use alloy::primitives::{keccak256, Address, FixedBytes, Bytes, U256};
 use alloy_rpc_client::RpcClient;
 use alloy::providers::ProviderBuilder;
 use alloy::sol_types::SolEvent;
@@ -260,6 +260,162 @@ pub fn deploy_account(
             Err(e) => {
                 console_log!("  Error sending transaction: {}", e);
                 Ok(JsValue::from_str(&format!("Failed to send deployment transaction: {}", e)))
+            }
+        }
+    })
+}
+
+/// Send a transaction from a smart account using EOA validator
+/// 
+/// # Arguments
+/// * `rpc_url` - The RPC endpoint URL
+/// * `bundler_url` - The bundler endpoint URL (e.g., "http://localhost:4337")
+/// * `account_address` - The deployed smart account address
+/// * `entry_point_address` - The EntryPoint contract address
+/// * `eoa_validator_address` - The EOA validator module address
+/// * `eoa_private_key` - Private key of the EOA signer (0x-prefixed hex string)
+/// * `to_address` - The recipient address for the transaction
+/// * `value` - The amount to send (as string, e.g., "1000000000000000000" for 1 ETH)
+/// * `data` - Optional calldata as hex string (default: "0x" for simple transfer)
+///
+/// # Returns
+/// Promise that resolves when the UserOperation is confirmed
+#[wasm_bindgen]
+pub fn send_transaction_eoa(
+    rpc_url: String,
+    bundler_url: String,
+    account_address: String,
+    entry_point_address: String,
+    eoa_validator_address: String,
+    eoa_private_key: String,
+    to_address: String,
+    value: String,
+    data: Option<String>,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Starting EOA transaction...");
+        console_log!("  Account: {}", account_address);
+        console_log!("  To: {}", to_address);
+        console_log!("  Value: {}", value);
+        console_log!("  Bundler: {}", bundler_url);
+        
+        // Parse addresses
+        let account = match account_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid account address: {}", e)));
+            }
+        };
+        
+        let entry_point = match entry_point_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid entry point address: {}", e)));
+            }
+        };
+        
+        let eoa_validator = match eoa_validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid EOA validator address: {}", e)));
+            }
+        };
+        
+        let to = match to_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid to address: {}", e)));
+            }
+        };
+        
+        // Parse value
+        let value_u256 = match value.parse::<U256>() {
+            Ok(v) => v,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid value: {}", e)));
+            }
+        };
+        
+        // Parse data
+        let data_bytes = match data {
+            Some(d) => {
+                let hex_str = d.trim_start_matches("0x");
+                match hex::decode(hex_str) {
+                    Ok(bytes) => Bytes::from(bytes),
+                    Err(e) => {
+                        return Ok(JsValue::from_str(&format!("Invalid data hex: {}", e)));
+                    }
+                }
+            }
+            None => Bytes::default(),
+        };
+        
+        console_log!("  Parsed addresses and values successfully");
+        
+        // Parse EOA private key
+        let eoa_key = match eoa_private_key.trim_start_matches("0x").parse::<PrivateKeySigner>() {
+            Ok(signer) => signer,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid EOA private key: {}", e)));
+            }
+        };
+        
+        let eoa_wallet = EthereumWallet::from(eoa_key);
+        console_log!("  EOA signer address: {:?}", eoa_wallet.default_signer().address());
+        
+        // Create transport and provider
+        let transport = WasmHttpTransport::new(rpc_url.clone());
+        let client = RpcClient::new(transport.clone(), false);
+        let provider = ProviderBuilder::new()
+            .wallet(eoa_wallet)
+            .connect_client(client);
+        
+        console_log!("  Created provider and transport");
+        
+        // Create bundler client
+        let bundler_client = {
+            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
+            let config = BundlerConfig::new(bundler_url);
+            zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
+        };
+        
+        console_log!("  Created bundler client");
+        
+        // Encode the execution call
+        use zksync_sso_erc4337_core::erc4337::account::erc7579::{
+            Execution, calls::encode_calls,
+        };
+        
+        let call = Execution {
+            target: to,
+            value: value_u256,
+            data: data_bytes,
+        };
+        
+        let calls = vec![call];
+        let encoded_calls: Bytes = encode_calls(calls).into();
+        
+        console_log!("  Encoded call data");
+        
+        // Send transaction using core implementation
+        match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::send::send_transaction_eoa(
+            account,
+            eoa_validator,
+            entry_point,
+            encoded_calls,
+            bundler_client,
+            provider,
+            eoa_private_key,
+        )
+        .await
+        {
+            Ok(_) => {
+                console_log!("  Transaction sent successfully!");
+                Ok(JsValue::from_str("Transaction sent successfully"))
+            }
+            Err(e) => {
+                console_log!("  Error sending transaction: {}", e);
+                Ok(JsValue::from_str(&format!("Failed to send transaction: {}", e)))
             }
         }
     })

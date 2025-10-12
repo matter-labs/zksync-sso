@@ -601,80 +601,65 @@ async function sendFromSmartAccount() {
   txResult.value = "";
 
   try {
-    // Import ethers and alloy for contract interaction
-    const { ethers } = await import("ethers");
+    // Import the WASM function
+    const { send_transaction_eoa } = await import("zksync-sso-web-sdk/bundler");
 
     // Load contracts.json
     const response = await fetch("/contracts.json");
     const contracts = await response.json();
     const rpcUrl = contracts.rpcUrl;
+    const bundlerUrl = contracts.bundlerUrl || "http://localhost:4337"; // Default bundler URL
+    const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
+    const eoaValidatorAddress = contracts.eoaValidator;
+
+    // EOA signer private key (Anvil account #1) - this will sign the UserOperation
+    const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
     // eslint-disable-next-line no-console
-    console.log("Sending transaction from smart account...");
+    console.log("Sending transaction from smart account using ERC-4337...");
     // eslint-disable-next-line no-console
-    console.log("  From (Smart Account):", deploymentResult.value.address);
+    console.log("  Smart Account:", deploymentResult.value.address);
     // eslint-disable-next-line no-console
     console.log("  To:", txParams.value.to);
     // eslint-disable-next-line no-console
     console.log("  Amount:", txParams.value.amount, "ETH");
-
-    // Create provider
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
-
-    // EOA signer private key (Anvil account #1) - this will sign on behalf of the smart account
-    const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-    const eoaSigner = new ethers.Wallet(eoaSignerPrivateKey, provider);
-
     // eslint-disable-next-line no-console
-    console.log("  EOA Signer:", eoaSigner.address);
+    console.log("  Bundler URL:", bundlerUrl);
+    // eslint-disable-next-line no-console
+    console.log("  EntryPoint:", entryPointAddress);
+    // eslint-disable-next-line no-console
+    console.log("  EOA Validator:", eoaValidatorAddress);
 
-    // Convert amount to wei
-    const amountWei = ethers.parseEther(txParams.value.amount);
+    // Convert amount to wei (as string)
+    const amountWei = (BigInt(parseFloat(txParams.value.amount) * 1e18)).toString();
 
-    // Get the ModularSmartAccount ABI for execute function (ERC7579 standard)
-    // The execute function takes a mode (bytes32) and executionCalldata (bytes)
-    // Mode encoding: [callType (1 byte) | execType (1 byte) | unused (4 bytes) | selector (4 bytes) | payload (22 bytes)]
-    // CallType: 0x00 = SINGLE, 0x01 = BATCH
-    // ExecType: 0x00 = DEFAULT (revert on failure), 0x01 = TRY (continue on failure)
-
-    const accountAbi = [
-      "function execute(bytes32 mode, bytes calldata executionCalldata) external payable",
-    ];
-
-    // Create contract instance
-    const smartAccount = new ethers.Contract(
-      deploymentResult.value.address,
-      accountAbi,
-      eoaSigner,
+    console.log("transaction",
+      rpcUrl,
+      bundlerUrl,
+      deploymentResult.value.address, // account address
+      entryPointAddress,
+      eoaValidatorAddress,
+      eoaSignerPrivateKey,
+      txParams.value.to, // recipient
+      amountWei,
+    );
+    // Call the WASM function to send transaction via ERC-4337
+    const result = await send_transaction_eoa(
+      rpcUrl,
+      bundlerUrl,
+      deploymentResult.value.address, // account address
+      entryPointAddress,
+      eoaValidatorAddress,
+      eoaSignerPrivateKey,
+      txParams.value.to, // recipient
+      amountWei, // value as string
+      "", // data (null for simple transfer)
     );
 
     // eslint-disable-next-line no-console
-    console.log("  Calling execute function on smart account...");
+    console.log("  UserOperation result:", result);
 
-    // Encode the mode for SINGLE execution with DEFAULT exec type
-    // CALLTYPE_SINGLE = 0x00, EXECTYPE_DEFAULT = 0x00
-    const mode = "0x0000000000000000000000000000000000000000000000000000000000000000";
-
-    // Encode the execution data: (target, value, callData)
-    // For a simple ETH transfer, callData is empty (0x)
-    const executionCalldata = ethers.AbiCoder.defaultAbiCoder().encode(
-      ["address", "uint256", "bytes"],
-      [txParams.value.to, amountWei, "0x"],
-    );
-
-    // Call execute function
-    const tx = await smartAccount.execute(mode, executionCalldata);
-
-    // eslint-disable-next-line no-console
-    console.log("  Transaction sent:", tx.hash);
-
-    // Wait for confirmation
-    const receipt = await tx.wait();
-
-    // eslint-disable-next-line no-console
-    console.log("  Transaction confirmed in block:", receipt.blockNumber);
-
-    txResult.value = tx.hash;
+    txResult.value = result;
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("Transaction failed:", err);
