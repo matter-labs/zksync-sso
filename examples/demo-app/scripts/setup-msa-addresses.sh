@@ -2,7 +2,7 @@
 set -e
 
 # Configuration
-RPC_URL="http://localhost:8011"
+RPC_URL="http://localhost:8456"
 DEPLOYER="0x36615Cf349d7F6344891B1e7CA7C72883F5dc049"
 
 echo "🚀 Setting up MSA Factory addresses for demo-app..."

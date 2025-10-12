@@ -1,12 +1,12 @@
 {
-  "rpcUrl": "http://localhost:8011",
-  "chainId": 260,
-  "deployer": "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
-  "eoaValidator": "",
-  "sessionValidator": "",
-  "webauthnValidator": "",
+  "rpcUrl": "http://localhost:8545",
+  "chainId": 31337,
+  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "eoaValidator": "0x66713e76897CdC363dF358C853df5eE5831c3E5a",
+  "sessionValidator": "0x6384D5F8999EaAC8bcCfae137D4e535075b47494",
+  "webauthnValidator": "0x7fAB7AEAB965240986e42729210Cf6E9Fdf26A5f",
   "guardianExecutor": "",
-  "accountImplementation": "",
-  "beacon": "",
-  "factory": ""
+  "accountImplementation": "0x7b506952142c6B85ca370d79e0094DCD29C0b6a7",
+  "beacon": "0x35F418A6EEba1fA907900fF92245ddc99C468DFf",
+  "factory": "0xdf5Ae966f5ac119c53378473E430Dd34304107c1"
 }
