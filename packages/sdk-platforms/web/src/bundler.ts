@@ -16,6 +16,7 @@ export const {
   compute_smart_account_address,
   test_http_transport,
   deploy_account,
+  send_transaction_eoa,
   Client,
   Config,
   Contracts,
