@@ -35,7 +35,7 @@ echo ""
 
 cd $ERC4337_CONTRACTS_PATH
 
-# Run the forge deployment script with zkSync flag
+# Run the forge deployment script with ZKSync flag
 echo "Deploying MSA Factory and modules..."
 PRIVATE_KEY="$PRIVATE_KEY" forge script "$SCRIPT_PATH" \
   --sig 'run()' \
