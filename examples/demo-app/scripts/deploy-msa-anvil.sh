@@ -1,12 +1,17 @@
 #!/bin/bash
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Navigate to the workspace root (3 levels up from scripts/)
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
 # Configuration
 DEPLOYER_ADDRESS="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 RPC_URL="http://localhost:8545"
 CHAIN_ID=31337
-CONTRACTS_DIR="/home/colinbellmore/Documents/zksync-sso/packages/erc4337-contracts"
+CONTRACTS_DIR="$WORKSPACE_ROOT/packages/erc4337-contracts"
 
 echo "🚀 Deploying MSA Factory and modules to Anvil (standard EVM)..."
 echo ""
@@ -130,7 +135,7 @@ echo "✅ MSAFactory: $FACTORY"
 # Create contracts-anvil.json
 echo ""
 echo "💾 Creating contracts-anvil.json..."
-cd /home/colinbellmore/Documents/zksync-sso/examples/demo-app
+cd "$WORKSPACE_ROOT/examples/demo-app"
 
 cat > contracts-anvil.json << EOF
 {
