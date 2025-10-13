@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Navigate to the workspace root (3 levels up from scripts/)
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
 # Configuration
 RPC_URL="http://localhost:8456"
 PRIVATE_KEY="0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"
@@ -11,7 +16,7 @@ echo "📍 Deployer: $DEPLOYER"
 echo "🌐 RPC URL: $RPC_URL"
 
 # Get contract artifacts
-CONTRACTS_DIR="/home/colinbellmore/Documents/zksync-sso/packages/erc4337-contracts"
+CONTRACTS_DIR="$WORKSPACE_ROOT/packages/erc4337-contracts"
 
 # Deploy EOAKeyValidator implementation
 echo ""
