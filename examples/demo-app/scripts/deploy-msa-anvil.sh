@@ -21,116 +21,47 @@ echo ""
 
 cd "$CONTRACTS_DIR"
 
-# Helper function to extract deployed address from forge create output
-extract_address() {
-  grep "Deployed to:" | awk '{print $3}'
-}
+# Build contracts first to ensure everything is compiled
+echo "🔨 Building contracts..."
+forge build
 
-# Deploy EOAKeyValidator
-echo "📦 [1/12] Deploying EOAKeyValidator implementation..."
-EOA_IMPL=$(forge create src/modules/EOAKeyValidator.sol:EOAKeyValidator \
-  --private-key "$PRIVATE_KEY" \
+# Use Forge script to deploy all contracts
+echo ""
+echo "📦 Deploying contracts using Forge script..."
+DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:Deploy \
   --rpc-url "$RPC_URL" \
-  --broadcast 2>&1 | extract_address)
-echo "✅ EOAKeyValidator impl: $EOA_IMPL"
-
-echo "📦 [2/12] Deploying EOAKeyValidator proxy..."
-EOA_VALIDATOR=$(forge create dependencies/@openzeppelin-contracts-5.4.0/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy \
   --private-key "$PRIVATE_KEY" \
   --broadcast \
-  --rpc-url "$RPC_URL" \
-  --constructor-args "$EOA_IMPL" "$DEPLOYER_ADDRESS" "0x" 2>&1 | extract_address)
-echo "✅ EOAKeyValidator: $EOA_VALIDATOR"
+  -vvv 2>&1)
 
-# Deploy SessionKeyValidator
+echo "$DEPLOY_OUTPUT"
+
+# Extract addresses from the deployment output
+EOA_VALIDATOR=$(echo "$DEPLOY_OUTPUT" | grep "EOAKeyValidator:" | awk '{print $2}')
+SESSION_VALIDATOR=$(echo "$DEPLOY_OUTPUT" | grep "SessionKeyValidator:" | awk '{print $2}')
+WEBAUTHN_VALIDATOR=$(echo "$DEPLOY_OUTPUT" | grep "WebAuthnValidator:" | awk '{print $2}')
+GUARDIAN_EXECUTOR=$(echo "$DEPLOY_OUTPUT" | grep "GuardianExecutor:" | awk '{print $2}')
+ACCOUNT_IMPL=$(echo "$DEPLOY_OUTPUT" | grep "ModularSmartAccount implementation:" | awk '{print $3}')
+BEACON=$(echo "$DEPLOY_OUTPUT" | grep "UpgradeableBeacon:" | awk '{print $2}')
+FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MSAFactory:" | awk '{print $2}')
+
+# Verify all addresses were extracted
+if [ -z "$EOA_VALIDATOR" ] || [ -z "$SESSION_VALIDATOR" ] || [ -z "$WEBAUTHN_VALIDATOR" ] || \
+   [ -z "$GUARDIAN_EXECUTOR" ] || [ -z "$ACCOUNT_IMPL" ] || [ -z "$BEACON" ] || [ -z "$FACTORY" ]; then
+  echo "❌ Failed to extract all contract addresses from deployment output"
+  echo "Please check the deployment logs above"
+  exit 1
+fi
+
 echo ""
-echo "📦 [3/12] Deploying SessionKeyValidator implementation..."
-SESSION_IMPL=$(forge create src/modules/SessionKeyValidator.sol:SessionKeyValidator \
-  --private-key "$PRIVATE_KEY" \
-  --rpc-url "$RPC_URL" \
-  --broadcast 2>&1 | extract_address)
-echo "✅ SessionKeyValidator impl: $SESSION_IMPL"
-
-echo "📦 [4/12] Deploying SessionKeyValidator proxy..."
-SESSION_VALIDATOR=$(forge create dependencies/@openzeppelin-contracts-5.4.0/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy \
-  --private-key "$PRIVATE_KEY" \
-  --broadcast \
-  --rpc-url "$RPC_URL" \
-  --constructor-args "$SESSION_IMPL" "$DEPLOYER_ADDRESS" "0x" 2>&1 | extract_address)
-echo "✅ SessionKeyValidator: $SESSION_VALIDATOR"
-
-# Deploy WebAuthnValidator
-echo ""
-echo "📦 [5/12] Deploying WebAuthnValidator implementation..."
-WEBAUTHN_IMPL=$(forge create src/modules/WebAuthnValidator.sol:WebAuthnValidator \
-  --private-key "$PRIVATE_KEY" \
-  --rpc-url "$RPC_URL" \
-  --broadcast 2>&1 | extract_address)
-echo "✅ WebAuthnValidator impl: $WEBAUTHN_IMPL"
-
-echo "📦 [6/12] Deploying WebAuthnValidator proxy..."
-WEBAUTHN_VALIDATOR=$(forge create dependencies/@openzeppelin-contracts-5.4.0/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy \
-  --private-key "$PRIVATE_KEY" \
-  --broadcast \
-  --rpc-url "$RPC_URL" \
-  --constructor-args "$WEBAUTHN_IMPL" "$DEPLOYER_ADDRESS" "0x" 2>&1 | extract_address)
-echo "✅ WebAuthnValidator: $WEBAUTHN_VALIDATOR"
-
-# Deploy GuardianExecutor
-echo ""
-echo "📦 [7/12] Deploying GuardianExecutor implementation..."
-GUARDIAN_IMPL=$(forge create src/modules/GuardianExecutor.sol:GuardianExecutor \
-  --private-key "$PRIVATE_KEY" \
-  --rpc-url "$RPC_URL" \
-  --broadcast 2>&1 | extract_address)
-echo "✅ GuardianExecutor impl: $GUARDIAN_IMPL"
-
-echo "📦 [8/12] Deploying GuardianExecutor proxy..."
-GUARDIAN_EXECUTOR=$(forge create dependencies/@openzeppelin-contracts-5.4.0/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy \
-  --private-key "$PRIVATE_KEY" \
-  --broadcast \
-  --rpc-url "$RPC_URL" \
-  --constructor-args "$GUARDIAN_IMPL" "$DEPLOYER_ADDRESS" "0x" 2>&1 | extract_address)
-echo "✅ GuardianExecutor: $GUARDIAN_EXECUTOR"
-
-# Deploy ModularSmartAccount implementation
-echo ""
-echo "📦 [9/12] Deploying ModularSmartAccount implementation..."
-ACCOUNT_IMPL=$(forge create src/ModularSmartAccount.sol:ModularSmartAccount \
-  --private-key "$PRIVATE_KEY" \
-  --rpc-url "$RPC_URL" \
-  --broadcast 2>&1 | extract_address)
-echo "✅ ModularSmartAccount impl: $ACCOUNT_IMPL"
-
-# Deploy UpgradeableBeacon
-echo ""
-echo "�� [10/12] Deploying UpgradeableBeacon..."
-BEACON=$(forge create dependencies/@openzeppelin-contracts-5.4.0/proxy/beacon/UpgradeableBeacon.sol:UpgradeableBeacon \
-  --private-key "$PRIVATE_KEY" \
-  --broadcast \
-  --rpc-url "$RPC_URL" \
-  --constructor-args "$ACCOUNT_IMPL" "$DEPLOYER_ADDRESS" 2>&1 | extract_address)
-echo "✅ UpgradeableBeacon: $BEACON"
-
-# Deploy MSAFactory implementation
-echo ""
-echo "📦 [11/12] Deploying MSAFactory implementation..."
-FACTORY_IMPL=$(forge create src/MSAFactory.sol:MSAFactory \
-  --private-key "$PRIVATE_KEY" \
-  --rpc-url "$RPC_URL" \
-  --broadcast \
-  --constructor-args "$BEACON" 2>&1 | extract_address)
-echo "✅ MSAFactory impl: $FACTORY_IMPL"
-
-# Deploy MSAFactory proxy
-echo ""
-echo "📦 [12/12] Deploying MSAFactory proxy..."
-FACTORY=$(forge create dependencies/@openzeppelin-contracts-5.4.0/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy \
-  --private-key "$PRIVATE_KEY" \
-  --broadcast \
-  --rpc-url "$RPC_URL" \
-  --constructor-args "$FACTORY_IMPL" "$DEPLOYER_ADDRESS" "0x" 2>&1 | extract_address)
-echo "✅ MSAFactory: $FACTORY"
+echo "✅ Deployment complete!"
+echo "  EOAKeyValidator: $EOA_VALIDATOR"
+echo "  SessionKeyValidator: $SESSION_VALIDATOR"
+echo "  WebAuthnValidator: $WEBAUTHN_VALIDATOR"
+echo "  GuardianExecutor: $GUARDIAN_EXECUTOR"
+echo "  ModularSmartAccount impl: $ACCOUNT_IMPL"
+echo "  UpgradeableBeacon: $BEACON"
+echo "  MSAFactory: $FACTORY"
 
 # Create contracts-anvil.json
 echo ""

@@ -38,6 +38,13 @@
         "command": "forge build smart-contracts/ --root ."
       }
     },
+    "build-erc4337-contracts": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/erc4337-contracts",
+        "command": "forge build"
+      }
+    },
     "deploy-contracts": {
       "executor": "nx:run-commands",
       "options": {
@@ -51,7 +58,8 @@
       "options": {
         "cwd": "examples/demo-app",
         "command": "./scripts/deploy-msa-anvil.sh"
-      }
+      },
+      "dependsOn": ["build-erc4337-contracts"]
     },
     "build:local": {
       "executor": "nx:run-commands",
