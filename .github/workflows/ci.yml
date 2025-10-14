@@ -52,13 +52,27 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
+      # Install standard foundry (for Anvil and regular EVM deployments)
+      - name: Install foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
       - name: Install zksync-foundry
         run: |
           wget -qc https://github.com/matter-labs/foundry-zksync/releases/download/nightly/foundry_nightly_linux_amd64.tar.gz -O - | tar -xz
           ./forge -V && ./cast -V
-          sudo mv ./forge /usr/local/bin/
-          sudo mv ./cast /usr/local/bin/
-          forge -V && cast -V
+          sudo mv ./forge /usr/local/bin/forge-zksync
+          sudo mv ./cast /usr/local/bin/cast-zksync
+          forge-zksync -V && cast-zksync -V
+
+      # Start Anvil for ERC-4337 contract deployments (standard EVM on port 8545)
+      - name: Start Anvil
+        run: |
+          anvil --port 8545 --block-time 1 &
+          echo "Waiting for Anvil to be ready..."
+          timeout 30 bash -c 'until cast client --rpc-url http://localhost:8545 > /dev/null 2>&1; do sleep 1; done'
+          echo "Anvil is ready!"
 
       # Install dependencies for repo
       - name: Install dependencies
