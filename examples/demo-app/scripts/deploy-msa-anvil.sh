@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -7,8 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Configuration
-DEPLOYER_ADDRESS="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+DEPLOYER_ADDRESS="0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"  # Anvil account #9
 RPC_URL="http://localhost:8545"
 CHAIN_ID=31337
 CONTRACTS_DIR="$WORKSPACE_ROOT/packages/erc4337-contracts"
@@ -25,14 +24,10 @@ cd "$CONTRACTS_DIR"
 echo "🔨 Building contracts..."
 forge build
 
-# Use Forge script to deploy all contracts
+# Use pnpm deploy-test to deploy all contracts
 echo ""
-echo "📦 Deploying contracts using Forge script..."
-DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:Deploy \
-  --rpc-url "$RPC_URL" \
-  --private-key "$PRIVATE_KEY" \
-  --broadcast \
-  -vvv 2>&1)
+echo "📦 Deploying contracts using pnpm deploy-test..."
+DEPLOY_OUTPUT=$(pnpm deploy-test 2>&1)
 
 echo "$DEPLOY_OUTPUT"
 

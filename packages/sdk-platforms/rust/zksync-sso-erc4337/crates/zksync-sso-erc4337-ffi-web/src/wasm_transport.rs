@@ -49,7 +49,10 @@ impl Service<RequestPacket> for WasmHttpTransport {
 
             // Send the request
             let response = request.send().await.map_err(|e| {
-                TransportErrorKind::custom_str(&format!("Request failed: {:?}", e))
+                TransportErrorKind::custom_str(&format!(
+                    "Request failed: {:?}",
+                    e
+                ))
             })?;
 
             // Check response status
