@@ -54,9 +54,7 @@ jobs:
 
       # Install standard foundry (for Anvil and regular EVM deployments)
       - name: Install foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
+        uses: foundry-rs/foundry-toolchain@v1.5.0
 
       - name: Install zksync-foundry
         run: |
