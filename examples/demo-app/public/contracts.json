@@ -1,12 +1,12 @@
 {
   "rpcUrl": "http://localhost:8545",
   "chainId": 31337,
-  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-  "eoaValidator": "0x66713e76897CdC363dF358C853df5eE5831c3E5a",
-  "sessionValidator": "0x6384D5F8999EaAC8bcCfae137D4e535075b47494",
-  "webauthnValidator": "0x7fAB7AEAB965240986e42729210Cf6E9Fdf26A5f",
-  "guardianExecutor": "",
-  "accountImplementation": "0x7b506952142c6B85ca370d79e0094DCD29C0b6a7",
-  "beacon": "0x35F418A6EEba1fA907900fF92245ddc99C468DFf",
-  "factory": "0xdf5Ae966f5ac119c53378473E430Dd34304107c1"
+  "deployer": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+  "eoaValidator": "0xE2141aB53c97897b9291BE5a50c09A0c3a02e8e1",
+  "sessionValidator": "0x4789c2fC7B2A726705Fb9420D7C91A429Fc162eb",
+  "webauthnValidator": "0x9e4FFA84856e99874aFB211c5c14FC9f362Ff10E",
+  "guardianExecutor": "0xfce3189FB890eee3cd8B4c3C4165A32b776118DA",
+  "accountImplementation": "0x2619c67c662dB20Ac4e908D625FDf71461907c29",
+  "beacon": "0x817E09a03dd89e75cBF1bFA2977B7F37ef49FcC8",
+  "factory": "0x29678F86A72aAe7d345CfDfcff82C7DBA03181d3"
 }
