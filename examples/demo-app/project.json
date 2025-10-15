@@ -35,7 +35,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
-        "command": "forge-zksync build smart-contracts/ --root ."
+        "command": "FOUNDRY_LOG=trace forge-zksync build smart-contracts/ --root ."
       }
     },
     "build-erc4337-contracts": {
