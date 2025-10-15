@@ -142,16 +142,25 @@ pub fn deploy_account(
         };
 
         // Parse deployer private key
-        let deployer_key = match deployer_private_key.trim_start_matches("0x").parse::<PrivateKeySigner>() {
+        let deployer_key = match deployer_private_key
+            .trim_start_matches("0x")
+            .parse::<PrivateKeySigner>()
+        {
             Ok(signer) => signer,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Invalid deployer private key: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid deployer private key: {}",
+                    e
+                )));
             }
         };
 
         let deployer_wallet = EthereumWallet::from(deployer_key);
-        console_log!("  Deployer address: {:?}", deployer_wallet.default_signer().address());
-        
+        console_log!(
+            "  Deployer address: {:?}",
+            deployer_wallet.default_signer().address()
+        );
+
         // Create transport and provider with wallet
         let transport = WasmHttpTransport::new(rpc_url);
         let client = RpcClient::new(transport.clone(), false);
@@ -161,15 +170,23 @@ pub fn deploy_account(
 
         // Compute account ID from user ID
         let account_id = compute_account_id(&user_id);
-        let account_id_bytes = match hex::decode(account_id.trim_start_matches("0x")) {
+        let account_id_bytes = match hex::decode(
+            account_id.trim_start_matches("0x"),
+        ) {
             Ok(bytes) => {
                 if bytes.len() != 32 {
-                    return Ok(JsValue::from_str(&format!("Invalid account ID length: expected 32 bytes, got {}", bytes.len())));
+                    return Ok(JsValue::from_str(&format!(
+                        "Invalid account ID length: expected 32 bytes, got {}",
+                        bytes.len()
+                    )));
                 }
                 FixedBytes::<32>::from_slice(&bytes)
             }
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Failed to decode account ID: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Failed to decode account ID: {}",
+                    e
+                )));
             }
         };
 
@@ -178,13 +195,19 @@ pub fn deploy_account(
         // Parse EOA signers if provided
         let eoa_signers = match (eoa_signers_addresses, eoa_validator_address) {
             (Some(addresses), Some(validator)) => {
-                console_log!("  Parsing EOA signers: {} addresses", addresses.len());
+                console_log!(
+                    "  Parsing EOA signers: {} addresses",
+                    addresses.len()
+                );
                 let mut parsed_addresses = Vec::new();
                 for addr_str in addresses {
                     match addr_str.parse::<Address>() {
                         Ok(addr) => parsed_addresses.push(addr),
                         Err(e) => {
-                            return Ok(JsValue::from_str(&format!("Invalid EOA signer address '{}': {}", addr_str, e)));
+                            return Ok(JsValue::from_str(&format!(
+                                "Invalid EOA signer address '{}': {}",
+                                addr_str, e
+                            )));
                         }
                     }
                 }
@@ -192,7 +215,10 @@ pub fn deploy_account(
                 let validator_addr = match validator.parse::<Address>() {
                     Ok(addr) => addr,
                     Err(e) => {
-                        return Ok(JsValue::from_str(&format!("Invalid validator address: {}", e)));
+                        return Ok(JsValue::from_str(&format!(
+                            "Invalid validator address: {}",
+                            e
+                        )));
                     }
                 };
 
@@ -203,7 +229,9 @@ pub fn deploy_account(
             }
             (None, None) => None,
             _ => {
-                return Ok(JsValue::from_str("Both eoa_signers_addresses and eoa_validator_address must be provided together"));
+                return Ok(JsValue::from_str(
+                    "Both eoa_signers_addresses and eoa_validator_address must be provided together",
+                ));
             }
         };
 
@@ -212,18 +240,20 @@ pub fn deploy_account(
             console_log!("  Encoding {} EOA signers", signers.addresses.len());
             use alloy::sol_types::SolValue;
             use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::SignersParams;
-            
-            let eoa_signer_encoded = SignersParams { signers: signers.addresses.to_vec() }
-                .abi_encode_params()
-                .into();
+
+            let eoa_signer_encoded =
+                SignersParams { signers: signers.addresses.to_vec() }
+                    .abi_encode_params()
+                    .into();
             let modules = vec![signers.validator_address];
             (vec![eoa_signer_encoded], modules)
         } else {
             console_log!("  No EOA signers, deploying empty account");
             (vec![], vec![])
         };
-        
-        let init_data: Bytes = MSAInitializeAccount::new(modules, data).encode().into();
+
+        let init_data: Bytes =
+            MSAInitializeAccount::new(modules, data).encode().into();
         console_log!("  Init data length: {} bytes", init_data.len());
 
         // Create factory instance and deploy
@@ -238,33 +268,44 @@ pub fn deploy_account(
                 match pending_tx.get_receipt().await {
                     Ok(receipt) => {
                         console_log!("  Transaction mined!");
-                        
+
                         // Extract account address from AccountCreated event
                         let topic = MSAFactory::AccountCreated::SIGNATURE_HASH;
                         let log = receipt
                             .logs()
                             .iter()
                             .find(|log| log.inner.topics()[0] == topic);
-                        
+
                         if let Some(log) = log {
                             let event = log.inner.topics()[1];
                             let address = Address::from_slice(&event[12..]);
                             let address_str = format!("0x{:x}", address);
-                            console_log!("  Deployed account address: {}", address_str);
+                            console_log!(
+                                "  Deployed account address: {}",
+                                address_str
+                            );
                             Ok(JsValue::from_str(&address_str))
                         } else {
-                            Ok(JsValue::from_str("Account deployed but AccountCreated event not found in logs"))
+                            Ok(JsValue::from_str(
+                                "Account deployed but AccountCreated event not found in logs",
+                            ))
                         }
                     }
                     Err(e) => {
                         console_log!("  Error getting receipt: {}", e);
-                        Ok(JsValue::from_str(&format!("Failed to get transaction receipt: {}", e)))
+                        Ok(JsValue::from_str(&format!(
+                            "Failed to get transaction receipt: {}",
+                            e
+                        )))
                     }
                 }
             }
             Err(e) => {
                 console_log!("  Error sending transaction: {}", e);
-                Ok(JsValue::from_str(&format!("Failed to send deployment transaction: {}", e)))
+                Ok(JsValue::from_str(&format!(
+                    "Failed to send deployment transaction: {}",
+                    e
+                )))
             }
         }
     })
@@ -308,28 +349,40 @@ pub fn send_transaction_eoa(
         let account = match account_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Invalid account address: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid account address: {}",
+                    e
+                )));
             }
         };
 
         let entry_point = match entry_point_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Invalid entry point address: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid entry point address: {}",
+                    e
+                )));
             }
         };
 
         let eoa_validator = match eoa_validator_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Invalid EOA validator address: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid EOA validator address: {}",
+                    e
+                )));
             }
         };
 
         let to = match to_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Invalid to address: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid to address: {}",
+                    e
+                )));
             }
         };
 
@@ -348,7 +401,10 @@ pub fn send_transaction_eoa(
                 match hex::decode(hex_str) {
                     Ok(bytes) => Bytes::from(bytes),
                     Err(e) => {
-                        return Ok(JsValue::from_str(&format!("Invalid data hex: {}", e)));
+                        return Ok(JsValue::from_str(&format!(
+                            "Invalid data hex: {}",
+                            e
+                        )));
                     }
                 }
             }
@@ -358,22 +414,30 @@ pub fn send_transaction_eoa(
         console_log!("  Parsed addresses and values successfully");
 
         // Parse EOA private key
-        let eoa_key = match eoa_private_key.trim_start_matches("0x").parse::<PrivateKeySigner>() {
+        let eoa_key = match eoa_private_key
+            .trim_start_matches("0x")
+            .parse::<PrivateKeySigner>()
+        {
             Ok(signer) => signer,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Invalid EOA private key: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid EOA private key: {}",
+                    e
+                )));
             }
         };
 
         let eoa_wallet = EthereumWallet::from(eoa_key);
-        console_log!("  EOA signer address: {:?}", eoa_wallet.default_signer().address());
+        console_log!(
+            "  EOA signer address: {:?}",
+            eoa_wallet.default_signer().address()
+        );
 
         // Create transport and provider
         let transport = WasmHttpTransport::new(rpc_url.clone());
         let client = RpcClient::new(transport.clone(), false);
-        let provider = ProviderBuilder::new()
-            .wallet(eoa_wallet)
-            .connect_client(client);
+        let provider =
+            ProviderBuilder::new().wallet(eoa_wallet).connect_client(client);
 
         console_log!("  Created provider and transport");
 
@@ -391,11 +455,8 @@ pub fn send_transaction_eoa(
             Execution, calls::encode_calls,
         };
 
-        let call = Execution {
-            target: to,
-            value: value_u256,
-            data: data_bytes,
-        };
+        let call =
+            Execution { target: to, value: value_u256, data: data_bytes };
 
         let calls = vec![call];
         let encoded_calls: Bytes = encode_calls(calls).into();
@@ -506,18 +567,21 @@ pub fn compute_smart_account_address(
     console_log!("Computing smart account address for user: {}", user_id);
 
     // Parse addresses
-    let factory_addr: Address = account_factory
-        .parse()
-        .map_err(|e| JsValue::from_str(&format!("Invalid factory address: {}", e)))?;
+    let factory_addr: Address = account_factory.parse().map_err(|e| {
+        JsValue::from_str(&format!("Invalid factory address: {}", e))
+    })?;
 
-    let deploy_wallet_addr: Address = deploy_wallet_address
-        .parse()
-        .map_err(|e| JsValue::from_str(&format!("Invalid wallet address: {}", e)))?;
+    let deploy_wallet_addr: Address =
+        deploy_wallet_address.parse().map_err(|e| {
+            JsValue::from_str(&format!("Invalid wallet address: {}", e))
+        })?;
 
     // Parse bytecode hash
-    let bytecode_hash_hex = bytecode_hash.strip_prefix("0x").unwrap_or(bytecode_hash);
-    let bytecode_hash_bytes = hex::decode(bytecode_hash_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid bytecode hash: {}", e)))?;
+    let bytecode_hash_hex =
+        bytecode_hash.strip_prefix("0x").unwrap_or(bytecode_hash);
+    let bytecode_hash_bytes = hex::decode(bytecode_hash_hex).map_err(|e| {
+        JsValue::from_str(&format!("Invalid bytecode hash: {}", e))
+    })?;
     let bytecode_hash = FixedBytes::<32>::from_slice(&bytecode_hash_bytes);
 
     // Parse proxy address
@@ -575,7 +639,7 @@ fn compute_create2_address(
     create2_input.extend(deployer.as_slice());
     create2_input.extend(salt.as_slice());
     create2_input.extend(bytecode_input_hash.as_slice());
-    
+
     let hash = keccak256(create2_input);
     Address::from_slice(&hash[12..])
 }
