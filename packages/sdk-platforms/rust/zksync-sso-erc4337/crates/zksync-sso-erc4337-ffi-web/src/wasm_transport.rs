@@ -5,13 +5,15 @@
 
 use alloy_json_rpc::{RequestPacket, ResponsePacket};
 use alloy_transport::{TransportError, TransportErrorKind, TransportFut};
-use std::future::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
+};
 use tower::Service;
 
 /// A wrapper that makes a future Send for WASM
-/// 
+///
 /// This is safe in WASM because JavaScript is single-threaded,
 /// so the future will never actually be sent between threads.
 struct SendWrapper<F>(F);
