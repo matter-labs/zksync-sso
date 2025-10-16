@@ -5,8 +5,28 @@
 
 use alloy_json_rpc::{RequestPacket, ResponsePacket};
 use alloy_transport::{TransportError, TransportErrorKind, TransportFut};
+use std::future::Future;
+use std::pin::Pin;
 use std::task::{Context, Poll};
 use tower::Service;
+
+/// A wrapper that makes a future Send for WASM
+/// 
+/// This is safe in WASM because JavaScript is single-threaded,
+/// so the future will never actually be sent between threads.
+struct SendWrapper<F>(F);
+
+// SAFETY: WASM is single-threaded, so this is safe
+unsafe impl<F> Send for SendWrapper<F> {}
+
+impl<F: Future> Future for SendWrapper<F> {
+    type Output = F::Output;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        // SAFETY: We're just forwarding the poll to the inner future
+        unsafe { self.map_unchecked_mut(|s| &mut s.0).poll(cx) }
+    }
+}
 
 /// WASM-compatible HTTP transport using reqwasm
 #[derive(Debug, Clone)]
@@ -37,7 +57,7 @@ impl Service<RequestPacket> for WasmHttpTransport {
     fn call(&mut self, req: RequestPacket) -> Self::Future {
         let url = self.url.clone();
 
-        Box::pin(async move {
+        Box::pin(SendWrapper(async move {
             // Serialize the JSON-RPC request
             let body = serde_json::to_string(&req)
                 .map_err(|e| TransportErrorKind::custom_str(&e.to_string()))?;
@@ -81,7 +101,7 @@ impl Service<RequestPacket> for WasmHttpTransport {
                 })?;
 
             Ok(response)
-        })
+        }))
     }
 }
 
