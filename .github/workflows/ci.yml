@@ -56,8 +56,8 @@ jobs:
         run: |
           wget -qc https://github.com/matter-labs/foundry-zksync/releases/download/nightly/foundry_nightly_linux_amd64.tar.gz -O - | tar -xz
           ./forge -V && ./cast -V
-          sudo mv ./forge /usr/local/bin/forge
-          sudo mv ./cast /usr/local/bin/cast
+          sudo mv ./forge /usr/local/bin/
+          sudo mv ./cast /usr/local/bin/
           forge -V && cast -V
 
       # Install dependencies for repo
@@ -92,6 +92,9 @@ jobs:
           pnpm nx build web-sdk
           pnpm nx build connector-export
           pnpm nx build demo-app
+
+      - name: Deploy Demo-App contracts
+        run: pnpm nx deploy-contracts demo-app
 
       - name: Run tests
         run: pnpm test
@@ -148,14 +151,6 @@ jobs:
       - name: Install foundry
         uses: foundry-rs/foundry-toolchain@v1.5.0
 
-      - name: Install zksync-foundry
-        run: |
-          wget -qc https://github.com/matter-labs/foundry-zksync/releases/download/nightly/foundry_nightly_linux_amd64.tar.gz -O - | tar -xz
-          ./forge -V && ./cast -V
-          sudo mv ./forge /usr/local/bin/forge-zksync
-          sudo mv ./cast /usr/local/bin/cast-zksync
-          forge-zksync -V && cast-zksync -V
-
       # Start Anvil for ERC-4337 contract deployments (standard EVM on port 8545)
       - name: Start Anvil
         run: |
@@ -168,19 +163,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
-      # Install dependencies for the submodule
-      - name: Install contract dependencies
-        run: pnpm install -r --frozen-lockfile
-        working-directory: packages/contracts
-
-      - name: Build contracts
-        run: pnpm build
-        working-directory: packages/contracts
-
-      - name: Deploy contracts
-        run: pnpm run deploy --file ../auth-server/stores/local-node.json
-        working-directory: packages/contracts
-
       # Web SDK depends on ERC-4337 contracts for WASM build
       - name: Install ERC-4337 contract dependencies
         run: forge soldeer install
@@ -192,14 +174,12 @@ jobs:
 
       - name: Build SDK with ERC-4337
         run: |
-          pnpm nx build sdk
           pnpm nx build web-sdk
-          pnpm nx build connector-export
           pnpm nx build:erc4337 demo-app
 
       - name: Deploy Demo-App ERC-4337 contracts
         continue-on-error: true
-        run: pnpm nx deploy-contracts demo-app
+        run: pnpm nx deploy-msa-factory demo-app
 
   e2e-nft-quest:
     runs-on: ubuntu-latest
