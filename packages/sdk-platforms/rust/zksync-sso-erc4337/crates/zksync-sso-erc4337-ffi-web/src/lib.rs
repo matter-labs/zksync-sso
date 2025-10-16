@@ -327,6 +327,7 @@ pub fn deploy_account(
 /// # Returns
 /// Promise that resolves when the UserOperation is confirmed
 #[wasm_bindgen]
+#[allow(clippy::too_many_arguments)]
 pub fn send_transaction_eoa(
     rpc_url: String,
     bundler_url: String,

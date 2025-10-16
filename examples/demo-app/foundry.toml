@@ -13,4 +13,3 @@ src = 'smart-contracts'
 libs = ['node_modules']
 fallback_oz = true
 is_system = false
-force_evmla = false
