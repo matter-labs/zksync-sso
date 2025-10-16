@@ -29,7 +29,8 @@
             "command": "pnpm nuxt generate"
           }
         ]
-      }
+      },
+      "dependsOn": ["deploy-contracts"]
     },
     "build:erc4337": {
       "executor": "nx:run-commands",
@@ -41,7 +42,7 @@
           }
         ]
       },
-      "dependsOn": ["deploy-contracts"]
+      "dependsOn": ["deploy-contracts-erc4337"]
     },
     "build-contracts": {
       "executor": "nx:run-commands",
@@ -64,6 +65,14 @@
         "command": "forge create smart-contracts/DemoPaymaster.sol:DemoPaymaster --private-key 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110 --rpc-url http://localhost:8011 --root . --chain 260 --zksync --json 2>&1 | sed -n 's/.*\\({.*}\\).*/\\1/p' > forge-output-paymaster.json && ADDRESS=$(sed -n 's/.*\"deployedTo\":\"\\([^\"]*\\)\".*/\\1/p' forge-output-paymaster.json) && echo \"DemoPaymaster deployed to: $ADDRESS\" && cast send --private-key 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110 $ADDRESS --rpc-url http://localhost:8011 --value 0.1ether && forge create smart-contracts/ERC1271Caller.sol:ERC1271Caller --private-key 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110 --rpc-url http://localhost:8011 --root . --chain 260 --zksync --json 2>&1 | sed -n 's/.*\\({.*}\\).*/\\1/p' > forge-output-erc1271.json && ADDRESS=$(sed -n 's/.*\"deployedTo\":\"\\([^\"]*\\)\".*/\\1/p' forge-output-erc1271.json) && echo \"ERC1271Caller deployed to: $ADDRESS\""
       },
       "dependsOn": ["build-contracts"]
+    },
+    "deploy-contracts-erc4337": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "echo '{\"deployedTo\":\"0x0000000000000000000000000000000000000000\"}' > forge-output-paymaster.json && echo '{\"deployedTo\":\"0x0000000000000000000000000000000000000000\"}' > forge-output-erc1271.json && echo 'Created stub contract JSONs for ERC-4337 build'"
+      },
+      "dependsOn": ["deploy-msa-factory"]
     },
     "deploy-msa-factory": {
       "executor": "nx:run-commands",
