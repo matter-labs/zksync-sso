@@ -153,7 +153,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
-        "command": "playwright test"
+        "command": "playwright test --config=playwright-erc4337.config.ts"
       },
       "dependsOn": ["e2e:setup:erc4337"]
     },
