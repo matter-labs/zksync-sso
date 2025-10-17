@@ -174,7 +174,9 @@ jobs:
 
       - name: Build SDK with ERC-4337
         run: |
+          pnpm nx build sdk
           pnpm nx build web-sdk
+          pnpm nx build connector-export
           pnpm nx build:erc4337 demo-app
 
       - name: Deploy Demo-App ERC-4337 contracts
