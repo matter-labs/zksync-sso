@@ -1,7 +1,44 @@
 // imports
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { ZkSyncSsoClient, ZkSyncSsoUtils } from "./client";
+import { setWasmBindings, ZkSyncSsoClient, ZkSyncSsoUtils } from "./client";
+
+// Mock WASM bindings for tests
+beforeAll(() => {
+  // Create realistic mock constructors that behave like the actual WASM classes
+  const MockClient = vi.fn().mockImplementation(function (config: unknown) {
+    return {
+      config,
+      getAddress: vi.fn().mockReturnValue("0x1234567890123456789012345678901234567890"),
+      signMessage: vi.fn().mockResolvedValue("0xsignature"),
+    };
+  });
+
+  const MockConfig = vi.fn().mockImplementation(function (rpcUrl: string, bundlerUrl: string) {
+    return { bundlerUrl, rpcUrl };
+  });
+
+  const MockContracts = vi.fn().mockImplementation(function (entryPoint: string, factory: string) {
+    return { entryPoint, factory };
+  });
+
+  const MockCall = vi.fn().mockImplementation(function (to: string, value: string, data: string) {
+    return { data, to, value };
+  });
+
+  const MockSendCallsRequest = vi.fn().mockImplementation(function (calls: unknown[]) {
+    return { calls };
+  });
+
+  // Initialize the WASM bindings with our mocks
+  setWasmBindings({
+    Call: MockCall as never,
+    Client: MockClient as never,
+    Config: MockConfig as never,
+    Contracts: MockContracts as never,
+    SendCallsRequest: MockSendCallsRequest as never,
+  });
+});
 
 describe("ZkSyncSsoUtils", () => {
   it("should validate addresses correctly", () => {
