@@ -79,7 +79,7 @@ mod tests {
 
         let chain = Chain::new(
             ChainId::ETHEREUM_MAINNET,
-            EntryPointVersion::V07,
+            EntryPointVersion::V08,
             "Mainnet".to_string(),
         );
 

@@ -35,7 +35,7 @@ impl From<ChainId> for Chain {
     fn from(chain_id: ChainId) -> Self {
         Self {
             id: chain_id,
-            entry_point_version: EntryPointVersion::V07,
+            entry_point_version: EntryPointVersion::V08,
             name: "".to_string(),
         }
     }

@@ -20,40 +20,25 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     PrintConfig {
-        #[arg(long, default_value = "https://sepolia.era.zksync.dev")]
+        #[arg(long)]
         rpc_url: String,
 
-        #[arg(long, default_value = "https://bundler.example.com")]
+        #[arg(long)]
         bundler_url: String,
 
-        #[arg(
-            long,
-            default_value = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
-        )]
+        #[arg(long)]
         entry_point_address: String,
 
-        #[arg(
-            long,
-            default_value = "0x9406Cc6185a346906296840746125a0E44976454"
-        )]
+        #[arg(long)]
         account_factory_address: String,
 
-        #[arg(
-            long,
-            default_value = "0x9406Cc6185a346906296840746125a0E44976454"
-        )]
+        #[arg(long)]
         webauthn_validator_address: String,
 
-        #[arg(
-            long,
-            default_value = "0x9406Cc6185a346906296840746125a0E44976454"
-        )]
+        #[arg(long)]
         eoa_validator_address: String,
 
-        #[arg(
-            long,
-            default_value = "0x9406Cc6185a346906296840746125a0E44976454"
-        )]
+        #[arg(long)]
         session_validator_address: String,
     },
 }
