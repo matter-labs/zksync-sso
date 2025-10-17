@@ -11,10 +11,12 @@ use wasm_bindgen_futures::future_to_promise;
 use zksync_sso_erc4337_core::{
     chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
-    erc4337::entry_point::version::EntryPointVersion,
-    erc4337::account::modular_smart_account::{
-        MSAFactory,
-        deploy::{EOASigners as CoreEOASigners, MSAInitializeAccount},
+    erc4337::{
+        account::modular_smart_account::{
+            MSAFactory,
+            deploy::{EOASigners as CoreEOASigners, MSAInitializeAccount},
+        },
+        entry_point::version::EntryPointVersion,
     },
 };
 
