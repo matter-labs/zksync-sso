@@ -3,7 +3,6 @@ use alloy::{
     primitives::{Address, Bytes, FixedBytes, U256, keccak256},
     providers::ProviderBuilder,
     signers::local::PrivateKeySigner,
-    sol_types::SolEvent,
 };
 use alloy_rpc_client::RpcClient;
 use wasm_bindgen::prelude::*;
@@ -12,10 +11,7 @@ use zksync_sso_erc4337_core::{
     chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
     erc4337::{
-        account::modular_smart_account::{
-            MSAFactory,
-            deploy::{EOASigners as CoreEOASigners, MSAInitializeAccount},
-        },
+        account::modular_smart_account::deploy::EOASigners as CoreEOASigners,
         entry_point::version::EntryPointVersion,
     },
 };
@@ -170,30 +166,6 @@ pub fn deploy_account(
             .wallet(deployer_wallet)
             .connect_client(client);
 
-        // Compute account ID from user ID
-        let account_id = compute_account_id(&user_id);
-        let account_id_bytes = match hex::decode(
-            account_id.trim_start_matches("0x"),
-        ) {
-            Ok(bytes) => {
-                if bytes.len() != 32 {
-                    return Ok(JsValue::from_str(&format!(
-                        "Invalid account ID length: expected 32 bytes, got {}",
-                        bytes.len()
-                    )));
-                }
-                FixedBytes::<32>::from_slice(&bytes)
-            }
-            Err(e) => {
-                return Ok(JsValue::from_str(&format!(
-                    "Failed to decode account ID: {}",
-                    e
-                )));
-            }
-        };
-
-        console_log!("  Account ID: 0x{}", hex::encode(account_id_bytes));
-
         // Parse EOA signers if provided
         let eoa_signers = match (eoa_signers_addresses, eoa_validator_address) {
             (Some(addresses), Some(validator)) => {
@@ -237,75 +209,26 @@ pub fn deploy_account(
             }
         };
 
-        // Prepare init data
-        let (data, modules) = if let Some(signers) = eoa_signers {
-            console_log!("  Encoding {} EOA signers", signers.addresses.len());
-            use alloy::sol_types::SolValue;
-            use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::SignersParams;
+        console_log!("  Calling core deploy_account...");
 
-            let eoa_signer_encoded =
-                SignersParams { signers: signers.addresses.to_vec() }
-                    .abi_encode_params()
-                    .into();
-            let modules = vec![signers.validator_address];
-            (vec![eoa_signer_encoded], modules)
-        } else {
-            console_log!("  No EOA signers, deploying empty account");
-            (vec![], vec![])
-        };
-
-        let init_data: Bytes =
-            MSAInitializeAccount::new(modules, data).encode().into();
-        console_log!("  Init data length: {} bytes", init_data.len());
-
-        // Create factory instance and deploy
-        let factory = MSAFactory::new(factory_addr, provider);
-
-        console_log!("  Calling factory.deployAccount...");
-        let deploy_call = factory.deployAccount(account_id_bytes, init_data);
-
-        match deploy_call.send().await {
-            Ok(pending_tx) => {
-                console_log!("  Transaction sent, waiting for receipt...");
-                match pending_tx.get_receipt().await {
-                    Ok(receipt) => {
-                        console_log!("  Transaction mined!");
-
-                        // Extract account address from AccountCreated event
-                        let topic = MSAFactory::AccountCreated::SIGNATURE_HASH;
-                        let log = receipt
-                            .logs()
-                            .iter()
-                            .find(|log| log.inner.topics()[0] == topic);
-
-                        if let Some(log) = log {
-                            let event = log.inner.topics()[1];
-                            let address = Address::from_slice(&event[12..]);
-                            let address_str = format!("0x{:x}", address);
-                            console_log!(
-                                "  Deployed account address: {}",
-                                address_str
-                            );
-                            Ok(JsValue::from_str(&address_str))
-                        } else {
-                            Ok(JsValue::from_str(
-                                "Account deployed but AccountCreated event not found in logs",
-                            ))
-                        }
-                    }
-                    Err(e) => {
-                        console_log!("  Error getting receipt: {}", e);
-                        Ok(JsValue::from_str(&format!(
-                            "Failed to get transaction receipt: {}",
-                            e
-                        )))
-                    }
-                }
+        // Use the core crate's deploy_account function
+        match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::deploy_account(
+            factory_addr,
+            eoa_signers,
+            None, // No WebAuthn signer for now
+            provider,
+        )
+        .await
+        {
+            Ok(address) => {
+                let address_str = format!("0x{:x}", address);
+                console_log!("  Deployed account address: {}", address_str);
+                Ok(JsValue::from_str(&address_str))
             }
             Err(e) => {
-                console_log!("  Error sending transaction: {}", e);
+                console_log!("  Error deploying account: {}", e);
                 Ok(JsValue::from_str(&format!(
-                    "Failed to send deployment transaction: {}",
+                    "Failed to deploy account: {}",
                     e
                 )))
             }
@@ -464,9 +387,11 @@ pub fn send_transaction_eoa(
         let calls = vec![call];
         let encoded_calls: Bytes = encode_calls(calls).into();
 
-        console_log!("  Encoded call data");
+        console_log!(
+            "  Encoded call data, calling core send_transaction_eoa..."
+        );
 
-        // Send transaction using core implementation
+        // Use the core crate's send_transaction_eoa function
         match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::send::send_transaction_eoa(
             account,
             eoa_validator,
