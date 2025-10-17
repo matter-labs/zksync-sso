@@ -15,6 +15,7 @@ use zksync_sso_erc4337_core::{
         MSAFactory,
         deploy::{EOASigners as CoreEOASigners, MSAInitializeAccount},
     },
+    erc4337::entry_point::version::EntryPointVersion,
 };
 
 // WASM transport is implemented but not yet fully integrated with Alloy's Provider trait
@@ -56,7 +57,11 @@ pub fn get_chain_info(chain_id: u64) -> String {
 /// Test function using core crate - get Ethereum Sepolia chain info
 #[wasm_bindgen]
 pub fn get_ethereum_sepolia_info() -> String {
-    let chain = Chain::ETHEREUM_SEPOLIA_V07;
+    let chain = Chain::new(
+        ChainId::ETHEREUM_MAINNET,
+        EntryPointVersion::V08,
+        "Ethereum Mainnet".to_string(),
+    );
     format!(
         "Chain: {}, ID: {}, Entry Point Version: {:?}, CAIP-2: {}",
         chain.name,
@@ -490,12 +495,14 @@ pub fn parse_contract_addresses(
     account_factory: &str,
     webauthn_validator: &str,
     eoa_validator: &str,
+    session_validator: &str,
 ) -> Result<String, JsValue> {
     match CoreContracts::from_string(
         entry_point.to_string(),
         account_factory.to_string(),
         webauthn_validator.to_string(),
         eoa_validator.to_string(),
+        session_validator.to_string(),
     ) {
         Ok(contracts) => Ok(format!(
             "Entry Point: {:?}, Account Factory: {:?}, WebAuthn Validator: {:?}, EOA Validator: {:?}",

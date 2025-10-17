@@ -26,6 +26,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
         account,
         entry_point,
         call_data,
+        None,
         bundler_client,
         provider,
         signer,
@@ -34,7 +35,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::erc4337::account::{
         erc7579::{
@@ -55,7 +56,7 @@ mod tests {
     };
     use std::{str::FromStr, sync::Arc};
 
-    fn get_signature_from_js(hash: String) -> eyre::Result<Bytes> {
+    pub fn get_signature_from_js(hash: String) -> eyre::Result<Bytes> {
         use std::process::Command;
 
         let working_dir = "../../../../../erc4337-contracts";
@@ -138,6 +139,7 @@ mod tests {
         let address = deploy_account(
             factory_address,
             Some(eoa_signers),
+            None,
             provider.clone(),
         )
         .await?;

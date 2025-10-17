@@ -5,8 +5,12 @@ use alloy::{
 use std::str::FromStr;
 use url::Url;
 use zksync_sso_erc4337_core::{
+    chain::{Chain, id::ChainId},
     config::{Config, contracts::Contracts},
-    erc4337::{client::Client, user_operation::UserOperationV08},
+    erc4337::{
+        client::Client, entry_point::version::EntryPointVersion,
+        user_operation::UserOperationV08,
+    },
 };
 
 #[tokio::test]
@@ -23,16 +27,24 @@ async fn test_integration() -> eyre::Result<()> {
         Address::from_str("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789")?, // EntryPoint v0.7
         Address::from_str("0x9406Cc6185a346906296840746125a0E44976454")?, // AccountFactory placeholder
         Address::from_str("0x9406Cc6185a346906296840746125a0E44976454")?, // EOAValidator placeholder
-        Address::from_str("0x9406Cc6185a346906296840746125a0E44976454")?, // WebAuthnValidator placeholder
+        Address::from_str("0x9406Cc6185a346906296840746125a0E44976454")?, // WebAuthnValidator placeholder,
+        Address::from_str("0x9406Cc6185a346906296840746125a0E44976454")?, // placeholder
     );
 
     // Anvil
     let rpc_url: Url = "http://localhost:8545".parse()?;
 
+    let chain = Chain::new(
+        ChainId::ETHEREUM_MAINNET,
+        EntryPointVersion::V08,
+        "Mainnet".to_string(),
+    );
+
     // Configure the client
     let config = Config::new(
         rpc_url.clone(),                  // Anvil RPC
         "http://localhost:4337".parse()?, // Alto bundler (typical port)
+        chain,
         contracts,
     );
 

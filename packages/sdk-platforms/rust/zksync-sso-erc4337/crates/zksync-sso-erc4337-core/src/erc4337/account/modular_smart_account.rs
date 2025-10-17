@@ -2,6 +2,7 @@ pub mod add_passkey;
 pub mod deploy;
 pub mod nonce;
 pub mod send;
+pub mod session;
 pub mod signature;
 
 use alloy::sol;
