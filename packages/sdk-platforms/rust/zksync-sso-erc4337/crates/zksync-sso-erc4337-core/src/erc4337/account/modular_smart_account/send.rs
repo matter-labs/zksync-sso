@@ -9,7 +9,7 @@ use crate::erc4337::{
     user_operation::hash::v08::get_user_operation_hash_entry_point,
 };
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes, U256, Uint, address},
+    primitives::{Address, Bytes, FixedBytes, U256, Uint},
     providers::Provider,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
 };
@@ -122,25 +122,12 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     )
     .await?;
 
-    dbg!(hash);
-
     let signature_provider = signer.provider;
     let signature = signature_provider(hash.0)?;
     user_op.signature = signature;
 
-    {
-        let expected_entry_point: Address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
-        eyre::ensure!(
-            entry_point == expected_entry_point,
-            "entry_point should be: {expected_entry_point}, received: {entry_point}"
-        );
-    };
-
     let user_op_hash =
         bundler_client.send_user_operation(entry_point, user_op).await?;
-
-    dbg!(user_op_hash.clone());
 
     bundler_client.wait_for_user_operation_receipt(user_op_hash).await?;
 
