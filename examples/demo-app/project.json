@@ -145,7 +145,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
-        "command": "playwright test"
+        "command": "playwright test --config=playwright.config.ts"
       },
       "dependsOn": ["e2e:setup"]
     },
