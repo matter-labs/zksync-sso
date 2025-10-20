@@ -115,6 +115,9 @@ jobs:
 
   e2e-demo-app-erc4337:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     defaults:
       run:
         working-directory: ./

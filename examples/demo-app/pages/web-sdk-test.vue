@@ -343,6 +343,7 @@
 </template>
 
 <script setup>
+import { Wallet } from "ethers";
 import { ref, onMounted, computed } from "vue";
 
 // Reactive state
@@ -420,7 +421,7 @@ async function testWebSDK() {
 
     // Create client instance (this will use stub implementation for now)
     // For demo purposes, use a dummy private key (DO NOT use in production)
-    const dummyPrivateKey = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const dummyPrivateKey = Wallet.createRandom().privateKey;
     const client = new ZkSyncSsoClient(config, dummyPrivateKey);
 
     testResult.value = "Web SDK client created successfully!";

@@ -22,6 +22,7 @@ export const {
   Contracts,
   Call,
   SendCallsRequest,
+  PasskeyPayload,
   ZkSyncSsoError,
   bytes_to_hex,
   hex_to_bytes,
