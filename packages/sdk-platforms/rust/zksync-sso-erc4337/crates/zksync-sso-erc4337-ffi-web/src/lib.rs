@@ -11,7 +11,13 @@ use zksync_sso_erc4337_core::{
     chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
     erc4337::{
-        account::modular_smart_account::deploy::EOASigners as CoreEOASigners,
+        account::modular_smart_account::{
+            add_passkey::PasskeyPayload as CorePasskeyPayload,
+            deploy::{
+                EOASigners as CoreEOASigners,
+                WebauthNSigner as CoreWebauthNSigner,
+            },
+        },
         entry_point::version::EntryPointVersion,
     },
 };
@@ -101,6 +107,49 @@ pub fn test_http_transport(rpc_url: String) -> js_sys::Promise {
     })
 }
 
+// WebAuthn passkey payload for WASM
+#[wasm_bindgen]
+#[derive(Debug, Clone)]
+pub struct PasskeyPayload {
+    credential_id: Vec<u8>,
+    passkey_x: Vec<u8>,
+    passkey_y: Vec<u8>,
+    origin_domain: String,
+}
+
+#[wasm_bindgen]
+impl PasskeyPayload {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        credential_id: Vec<u8>,
+        passkey_x: Vec<u8>,
+        passkey_y: Vec<u8>,
+        origin_domain: String,
+    ) -> Self {
+        Self { credential_id, passkey_x, passkey_y, origin_domain }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn credential_id(&self) -> Vec<u8> {
+        self.credential_id.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn passkey_x(&self) -> Vec<u8> {
+        self.passkey_x.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn passkey_y(&self) -> Vec<u8> {
+        self.passkey_y.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn origin_domain(&self) -> String {
+        self.origin_domain.clone()
+    }
+}
+
 /// Deploy a smart account using the factory
 ///
 /// # Arguments
@@ -110,6 +159,8 @@ pub fn test_http_transport(rpc_url: String) -> js_sys::Promise {
 /// * `deployer_private_key` - Private key of the account that will pay for deployment (0x-prefixed hex string)
 /// * `eoa_signers_addresses` - Optional array of EOA signer addresses (as hex strings)
 /// * `eoa_validator_address` - Optional EOA validator module address (required if eoa_signers_addresses is provided)
+/// * `passkey_payload` - Optional WebAuthn passkey payload
+/// * `webauthn_validator_address` - Optional WebAuthn validator module address (required if passkey_payload is provided)
 ///
 /// # Returns
 /// Promise that resolves to the deployed account address as a hex string
@@ -121,6 +172,8 @@ pub fn deploy_account(
     deployer_private_key: String,
     eoa_signers_addresses: Option<Vec<String>>,
     eoa_validator_address: Option<String>,
+    passkey_payload: Option<PasskeyPayload>,
+    webauthn_validator_address: Option<String>,
 ) -> js_sys::Promise {
     future_to_promise(async move {
         console_log!("Starting account deployment...");
@@ -209,13 +262,69 @@ pub fn deploy_account(
             }
         };
 
+        // Parse WebAuthn signer if provided
+        let webauthn_signer = match (
+            passkey_payload,
+            webauthn_validator_address,
+        ) {
+            (Some(passkey), Some(validator)) => {
+                console_log!("  Parsing WebAuthn passkey");
+
+                // Convert passkey coordinates to FixedBytes<32>
+                if passkey.passkey_x.len() != 32 {
+                    return Ok(JsValue::from_str(&format!(
+                        "Invalid passkey X coordinate length: expected 32 bytes, got {}",
+                        passkey.passkey_x.len()
+                    )));
+                }
+                if passkey.passkey_y.len() != 32 {
+                    return Ok(JsValue::from_str(&format!(
+                        "Invalid passkey Y coordinate length: expected 32 bytes, got {}",
+                        passkey.passkey_y.len()
+                    )));
+                }
+
+                let passkey_x =
+                    FixedBytes::<32>::from_slice(&passkey.passkey_x);
+                let passkey_y =
+                    FixedBytes::<32>::from_slice(&passkey.passkey_y);
+
+                let validator_addr = match validator.parse::<Address>() {
+                    Ok(addr) => addr,
+                    Err(e) => {
+                        return Ok(JsValue::from_str(&format!(
+                            "Invalid WebAuthn validator address: {}",
+                            e
+                        )));
+                    }
+                };
+
+                let core_passkey = CorePasskeyPayload {
+                    credential_id: Bytes::from(passkey.credential_id),
+                    passkey: [passkey_x, passkey_y],
+                    origin_domain: passkey.origin_domain,
+                };
+
+                Some(CoreWebauthNSigner {
+                    passkey: core_passkey,
+                    validator_address: validator_addr,
+                })
+            }
+            (None, None) => None,
+            _ => {
+                return Ok(JsValue::from_str(
+                    "Both passkey_payload and webauthn_validator_address must be provided together",
+                ));
+            }
+        };
+
         console_log!("  Calling core deploy_account...");
 
         // Use the core crate's deploy_account function
         match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::deploy_account(
             factory_addr,
             eoa_signers,
-            None, // No WebAuthn signer for now
+            webauthn_signer,
             provider,
         )
         .await
