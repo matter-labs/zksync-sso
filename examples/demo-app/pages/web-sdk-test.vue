@@ -444,7 +444,7 @@ async function deployAccount() {
 
   try {
     // Import the web SDK - destructure the WASM functions we need
-    const { deploy_account, compute_account_id } = await import("zksync-sso-web-sdk/bundler");
+    const { deploy_account, compute_account_id, DeployAccountConfig } = await import("zksync-sso-web-sdk/bundler");
 
     // Generate a user ID (in real app, this would be from authentication)
     const userId = "demo-user-" + Date.now();
@@ -609,8 +609,8 @@ async function sendFromSmartAccount() {
   txResult.value = "";
 
   try {
-    // Import the WASM function
-    const { send_transaction_eoa } = await import("zksync-sso-web-sdk/bundler");
+    // Import the WASM function and SendTransactionConfig
+    const { send_transaction_eoa, SendTransactionConfig } = await import("zksync-sso-web-sdk/bundler");
 
     // Load contracts.json
     const response = await fetch("/contracts.json");
@@ -641,27 +641,23 @@ async function sendFromSmartAccount() {
     // Convert amount to wei (as string)
     const amountWei = (BigInt(parseFloat(txParams.value.amount) * 1e18)).toString();
 
-    console.log("transaction",
+    // Construct the SendTransactionConfig wasm object
+    const sendConfig = new SendTransactionConfig(
       rpcUrl,
       bundlerUrl,
-      deploymentResult.value.address, // account address
       entryPointAddress,
-      eoaValidatorAddress,
-      eoaSignerPrivateKey,
-      txParams.value.to, // recipient
-      amountWei,
     );
+
     // Call the WASM function to send transaction via ERC-4337
+    // New signature: send_transaction_eoa(config, eoa_validator_address, eoa_private_key, account_address, to_address, value, data)
     const result = await send_transaction_eoa(
-      rpcUrl,
-      bundlerUrl,
-      deploymentResult.value.address, // account address
-      entryPointAddress,
+      sendConfig,
       eoaValidatorAddress,
       eoaSignerPrivateKey,
+      deploymentResult.value.address, // account address
       txParams.value.to, // recipient
       amountWei, // value as string
-      "", // data (null for simple transfer)
+      null, // data (null for simple transfer)
     );
 
     // eslint-disable-next-line no-console
