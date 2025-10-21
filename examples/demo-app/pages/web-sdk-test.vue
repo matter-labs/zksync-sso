@@ -51,6 +51,112 @@
       </div>
     </div>
 
+    <!-- Passkey Configuration (Optional) -->
+    <div class="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200">
+      <h2 class="text-lg font-semibold mb-3 text-yellow-800">
+        WebAuthn Passkey Configuration (Optional)
+      </h2>
+      <p class="text-sm text-gray-600 mb-4">
+        Configure a WebAuthn passkey for the smart account. Leave empty to deploy with EOA signer only.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">
+            <input
+              v-model="passkeyConfig.enabled"
+              type="checkbox"
+              class="mr-2"
+            >
+            Enable Passkey Deployment
+          </label>
+        </div>
+
+        <div
+          v-if="passkeyConfig.enabled"
+          class="space-y-3 pl-6 border-l-2 border-yellow-300"
+        >
+          <div class="mb-3">
+            <button
+              :disabled="webauthnLoading"
+              class="w-full px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+              @click="createWebAuthnCredential"
+            >
+              {{ webauthnLoading ? 'Creating Passkey...' : 'Create New WebAuthn Passkey' }}
+            </button>
+            <p class="text-xs text-gray-600 mt-2">
+              Click to create a new passkey using your device's authenticator (fingerprint, face ID, security key, etc.)
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Credential ID (hex):</label>
+            <input
+              v-model="passkeyConfig.credentialId"
+              type="text"
+              placeholder="0x2868baa08431052f6c7541392a458f64"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono"
+            >
+            <p class="text-xs text-gray-500 mt-1">
+              Example: 0x2868baa08431052f6c7541392a458f64
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Passkey X Coordinate (32 bytes hex):</label>
+            <input
+              v-model="passkeyConfig.passkeyX"
+              type="text"
+              placeholder="0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono"
+            >
+            <p class="text-xs text-gray-500 mt-1">
+              32-byte public key X coordinate
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Passkey Y Coordinate (32 bytes hex):</label>
+            <input
+              v-model="passkeyConfig.passkeyY"
+              type="text"
+              placeholder="0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono"
+            >
+            <p class="text-xs text-gray-500 mt-1">
+              32-byte public key Y coordinate
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Origin Domain:</label>
+            <input
+              v-model="passkeyConfig.originDomain"
+              type="text"
+              placeholder="https://example.com"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+            >
+            <p class="text-xs text-gray-500 mt-1">
+              The origin domain where the passkey was created
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">WebAuthn Validator Address:</label>
+            <input
+              v-model="passkeyConfig.validatorAddress"
+              type="text"
+              readonly
+              class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono bg-gray-50"
+            >
+            <p class="text-xs text-gray-500 mt-1">
+              Address of the WebAuthn validator module (loaded from contracts.json)
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Account Deployment Result -->
     <div
       v-if="deploymentResult"
@@ -76,6 +182,10 @@
           <strong>EOA Signer:</strong>
           <code class="bg-white px-2 py-1 rounded text-xs ml-2">{{ deploymentResult.eoaSigner }}</code>
           <span class="text-xs text-gray-600 ml-2">(Anvil Rich Wallet #1)</span>
+        </div>
+        <div v-if="deploymentResult.passkeyEnabled">
+          <strong>Passkey Enabled:</strong>
+          <span class="text-green-600 ml-2">Yes</span>
         </div>
       </div>
     </div>
@@ -387,6 +497,88 @@ const txParams = ref({
 const txResult = ref("");
 const txError = ref("");
 
+// Passkey configuration state
+const passkeyConfig = ref({
+  enabled: false,
+  credentialId: "0x2868baa08431052f6c7541392a458f64",
+  passkeyX: "0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40",
+  passkeyY: "0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501",
+  originDomain: window.location.origin,
+  validatorAddress: "",
+});
+
+const webauthnLoading = ref(false);
+
+/**
+ * Create a new WebAuthn credential using SimpleWebAuthn helper
+ */
+async function createWebAuthnCredential() {
+  webauthnLoading.value = true;
+
+  try {
+    // Import the WebAuthn helper from the SDK
+    const { createWebAuthnCredential: createCred } = await import("zksync-sso-web-sdk/bundler");
+
+    // eslint-disable-next-line no-console
+    console.log("Creating WebAuthn credential using SimpleWebAuthn...");
+
+    // Create the credential with custom options
+    const credential = await createCred({
+      rpName: "zkSync SSO Demo",
+      rpId: window.location.hostname,
+      userName: "Demo User",
+      userEmail: "demo-user@zksync-sso.example",
+      authenticatorAttachment: "platform", // Use platform authenticator (Touch ID, Face ID, etc.)
+      timeout: 60000,
+    });
+
+    // Update the passkey configuration
+    passkeyConfig.value.credentialId = credential.credentialId;
+    passkeyConfig.value.passkeyX = credential.publicKeyX;
+    passkeyConfig.value.passkeyY = credential.publicKeyY;
+    passkeyConfig.value.originDomain = credential.origin;
+
+    // eslint-disable-next-line no-console
+    console.log("WebAuthn credential created successfully:");
+    // eslint-disable-next-line no-console
+    console.log("  Credential ID:", passkeyConfig.value.credentialId);
+    // eslint-disable-next-line no-console
+    console.log("  Public Key X:", passkeyConfig.value.passkeyX);
+    // eslint-disable-next-line no-console
+    console.log("  Public Key Y:", passkeyConfig.value.passkeyY);
+    // eslint-disable-next-line no-console
+    console.log("  Origin:", passkeyConfig.value.originDomain);
+
+    alert("Passkey created successfully! The credential details have been populated below.");
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to create WebAuthn credential:", err);
+    alert(`Failed to create passkey: ${err.message}`);
+  } finally {
+    webauthnLoading.value = false;
+  }
+}
+
+/**
+ * Convert a hex string to a Uint8Array of bytes
+ */
+function hexToBytes(hex) {
+  // Remove 0x prefix if present
+  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
+
+  // Validate hex string
+  if (cleanHex.length % 2 !== 0) {
+    throw new Error(`Invalid hex string length: ${cleanHex.length}`);
+  }
+
+  const bytes = new Uint8Array(cleanHex.length / 2);
+  for (let i = 0; i < cleanHex.length; i += 2) {
+    bytes[i / 2] = parseInt(cleanHex.substr(i, 2), 16);
+  }
+
+  return bytes;
+}
+
 // Computed property to check if all address params are valid
 const isAddressParamsValid = computed(() => {
   const params = addressParams.value;
@@ -436,6 +628,27 @@ async function testWebSDK() {
   }
 }
 
+/**
+ * Load WebAuthn validator address from contracts.json
+ */
+async function loadWebAuthnValidatorAddress() {
+  try {
+    const response = await fetch("/contracts.json");
+    if (response.ok) {
+      const contracts = await response.json();
+      passkeyConfig.value.validatorAddress = contracts.webauthnValidator;
+      // eslint-disable-next-line no-console
+      console.log("Loaded WebAuthn validator address:", contracts.webauthnValidator);
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn("contracts.json not found, cannot load WebAuthn validator address");
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("Failed to load contracts.json:", err);
+  }
+}
+
 // Deploy a new smart account
 async function deployAccount() {
   loading.value = true;
@@ -471,6 +684,8 @@ async function deployAccount() {
         console.log("Loaded factory address from contracts.json:", factoryAddress);
         // eslint-disable-next-line no-console
         console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress);
+        // eslint-disable-next-line no-console
+        console.log("Loaded WebAuthn validator address from contracts.json:", webAuthnValidatorAddress);
       } else {
         // eslint-disable-next-line no-console
         console.warn("contracts.json not found, using default factory address");
@@ -498,20 +713,69 @@ async function deployAccount() {
     // eslint-disable-next-line no-console
     console.log("  User ID:", userId);
 
+    // Create passkey payload if enabled
+    let passkeyPayload = null;
+    let webauthnValidatorAddress = null;
+
+    if (passkeyConfig.value.enabled) {
+      // eslint-disable-next-line no-console
+      console.log("Creating passkey payload...");
+
+      try {
+        const credentialId = hexToBytes(passkeyConfig.value.credentialId);
+        const passkeyX = hexToBytes(passkeyConfig.value.passkeyX);
+        const passkeyY = hexToBytes(passkeyConfig.value.passkeyY);
+
+        // Validate coordinate lengths (must be 32 bytes)
+        if (passkeyX.length !== 32) {
+          throw new Error(`Passkey X coordinate must be 32 bytes, got ${passkeyX.length}`);
+        }
+        if (passkeyY.length !== 32) {
+          throw new Error(`Passkey Y coordinate must be 32 bytes, got ${passkeyY.length}`);
+        }
+
+        // Import PasskeyPayload from SDK
+        const { PasskeyPayload } = await import("zksync-sso-web-sdk/bundler");
+        if (!PasskeyPayload) {
+          throw new Error("PasskeyPayload class not found in SDK");
+        }
+        passkeyPayload = new PasskeyPayload(
+          credentialId,
+          passkeyX,
+          passkeyY,
+          passkeyConfig.value.originDomain,
+        );
+
+        // Set the webauthn validator address if provided
+        if (passkeyConfig.value.validatorAddress) {
+          webauthnValidatorAddress = passkeyConfig.value.validatorAddress;
+        } else {
+          throw new Error("WebAuthn validator address is required when using passkeys");
+        }
+
+        // eslint-disable-next-line no-console
+        console.log("  Passkey payload created successfully");
+        // eslint-disable-next-line no-console
+        console.log("  WebAuthn Validator:", webauthnValidatorAddress);
+      } catch (err) {
+        throw new Error(`Failed to create passkey payload: ${err.message}`);
+      }
+    }
+
     // Construct the DeployAccountConfig wasm object
     const deployConfig = new DeployAccountConfig(
       rpcUrl,
       factoryAddress,
       deployerPrivateKey,
       eoaValidatorAddress,
-      null, // webauthn validator (optional)
+      webauthnValidatorAddress, // webauthn validator (null if not using passkeys)
     );
 
     // Call the deployment function with the structured config
     const deployedAddress = await deploy_account(
       userId,
       eoaSignersAddresses,
-      null, // passkey payload (optional)
+      passkeyPayload, // passkey payload (null if not using passkeys)
       deployConfig,
     );
 
@@ -524,8 +788,11 @@ async function deployAccount() {
       accountId,
       address: deployedAddress,
       eoaSigner: eoaSignerAddress,
+      passkeyEnabled: passkeyConfig.value.enabled,
     };
-    testResult.value = "Account deployed successfully with EOA signer!";
+    testResult.value = passkeyConfig.value.enabled
+      ? "Account deployed successfully with EOA signer and WebAuthn passkey!"
+      : "Account deployed successfully with EOA signer!";
 
     // eslint-disable-next-line no-console
     console.log("Account deployment result:", deploymentResult.value);
@@ -705,6 +972,9 @@ onMounted(async () => {
     try {
       await import("zksync-sso-web-sdk/bundler");
       sdkLoaded.value = true;
+
+      // Load WebAuthn validator address from contracts.json
+      await loadWebAuthnValidatorAddress();
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("Failed to load Web SDK:", err);
