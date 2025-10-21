@@ -150,6 +150,98 @@ impl PasskeyPayload {
     }
 }
 
+// Config for WASM account deployments
+#[wasm_bindgen]
+#[derive(Debug, Clone)]
+pub struct DeployAccountConfig {
+    rpc_url: String,
+    factory_address: String,
+    deployer_private_key: String,
+    eoa_validator_address: Option<String>,
+    webauthn_validator_address: Option<String>,
+}
+
+#[wasm_bindgen]
+impl DeployAccountConfig {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        rpc_url: String,
+        factory_address: String,
+        deployer_private_key: String,
+        eoa_validator_address: Option<String>,
+        webauthn_validator_address: Option<String>,
+    ) -> Self {
+        Self {
+            rpc_url,
+            factory_address,
+            deployer_private_key,
+            eoa_validator_address,
+            webauthn_validator_address,
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn rpc_url(&self) -> String {
+        self.rpc_url.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn factory_address(&self) -> String {
+        self.factory_address.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn deployer_private_key(&self) -> String {
+        self.deployer_private_key.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn eoa_validator_address(&self) -> Option<String> {
+        self.eoa_validator_address.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn webauthn_validator_address(&self) -> Option<String> {
+        self.webauthn_validator_address.clone()
+    }
+}
+
+// Config for sending transactions from smart accounts
+#[wasm_bindgen]
+#[derive(Debug, Clone)]
+pub struct SendTransactionConfig {
+    rpc_url: String,
+    bundler_url: String,
+    entry_point_address: String,
+}
+
+#[wasm_bindgen]
+impl SendTransactionConfig {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        rpc_url: String,
+        bundler_url: String,
+        entry_point_address: String,
+    ) -> Self {
+        Self { rpc_url, bundler_url, entry_point_address }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn rpc_url(&self) -> String {
+        self.rpc_url.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn bundler_url(&self) -> String {
+        self.bundler_url.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn entry_point_address(&self) -> String {
+        self.entry_point_address.clone()
+    }
+}
+
 /// Deploy a smart account using the factory
 ///
 /// # Arguments
@@ -166,34 +258,32 @@ impl PasskeyPayload {
 /// Promise that resolves to the deployed account address as a hex string
 #[wasm_bindgen]
 pub fn deploy_account(
-    rpc_url: String,
-    factory_address: String,
     user_id: String,
-    deployer_private_key: String,
     eoa_signers_addresses: Option<Vec<String>>,
-    eoa_validator_address: Option<String>,
     passkey_payload: Option<PasskeyPayload>,
-    webauthn_validator_address: Option<String>,
+    deploy_account_config: DeployAccountConfig,
 ) -> js_sys::Promise {
     future_to_promise(async move {
         console_log!("Starting account deployment...");
-        console_log!("  RPC URL: {}", rpc_url);
-        console_log!("  Factory: {}", factory_address);
+        console_log!("  RPC URL: {}", deploy_account_config.rpc_url);
+        console_log!("  Factory: {}", deploy_account_config.factory_address);
         console_log!("  User ID: {}", user_id);
 
         // Parse factory address
-        let factory_addr = match factory_address.parse::<Address>() {
-            Ok(addr) => addr,
-            Err(e) => {
-                return Ok(JsValue::from_str(&format!(
-                    "Invalid factory address: {}",
-                    e
-                )));
-            }
-        };
+        let factory_addr =
+            match deploy_account_config.factory_address.parse::<Address>() {
+                Ok(addr) => addr,
+                Err(e) => {
+                    return Ok(JsValue::from_str(&format!(
+                        "Invalid factory address: {}",
+                        e
+                    )));
+                }
+            };
 
         // Parse deployer private key
-        let deployer_key = match deployer_private_key
+        let deployer_key = match deploy_account_config
+            .deployer_private_key
             .trim_start_matches("0x")
             .parse::<PrivateKeySigner>()
         {
@@ -213,14 +303,17 @@ pub fn deploy_account(
         );
 
         // Create transport and provider with wallet
-        let transport = WasmHttpTransport::new(rpc_url);
+        let transport = WasmHttpTransport::new(deploy_account_config.rpc_url);
         let client = RpcClient::new(transport.clone(), false);
         let provider = ProviderBuilder::new()
             .wallet(deployer_wallet)
             .connect_client(client);
 
         // Parse EOA signers if provided
-        let eoa_signers = match (eoa_signers_addresses, eoa_validator_address) {
+        let eoa_signers = match (
+            eoa_signers_addresses,
+            deploy_account_config.eoa_validator_address,
+        ) {
             (Some(addresses), Some(validator)) => {
                 console_log!(
                     "  Parsing EOA signers: {} addresses",
@@ -265,7 +358,7 @@ pub fn deploy_account(
         // Parse WebAuthn signer if provided
         let webauthn_signer = match (
             passkey_payload,
-            webauthn_validator_address,
+            deploy_account_config.webauthn_validator_address,
         ) {
             (Some(passkey), Some(validator)) => {
                 console_log!("  Parsing WebAuthn passkey");
@@ -361,14 +454,11 @@ pub fn deploy_account(
 /// # Returns
 /// Promise that resolves when the UserOperation is confirmed
 #[wasm_bindgen]
-#[allow(clippy::too_many_arguments)]
 pub fn send_transaction_eoa(
-    rpc_url: String,
-    bundler_url: String,
-    account_address: String,
-    entry_point_address: String,
+    config: SendTransactionConfig,
     eoa_validator_address: String,
     eoa_private_key: String,
+    account_address: String,
     to_address: String,
     value: String,
     data: Option<String>,
@@ -378,7 +468,7 @@ pub fn send_transaction_eoa(
         console_log!("  Account: {}", account_address);
         console_log!("  To: {}", to_address);
         console_log!("  Value: {}", value);
-        console_log!("  Bundler: {}", bundler_url);
+        console_log!("  Bundler: {}", config.bundler_url);
 
         // Parse addresses
         let account = match account_address.parse::<Address>() {
@@ -391,7 +481,7 @@ pub fn send_transaction_eoa(
             }
         };
 
-        let entry_point = match entry_point_address.parse::<Address>() {
+        let entry_point = match config.entry_point_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
                 return Ok(JsValue::from_str(&format!(
@@ -469,7 +559,7 @@ pub fn send_transaction_eoa(
         );
 
         // Create transport and provider
-        let transport = WasmHttpTransport::new(rpc_url.clone());
+        let transport = WasmHttpTransport::new(config.rpc_url.clone());
         let client = RpcClient::new(transport.clone(), false);
         let provider =
             ProviderBuilder::new().wallet(eoa_wallet).connect_client(client);
@@ -479,7 +569,7 @@ pub fn send_transaction_eoa(
         // Create bundler client
         let bundler_client = {
             use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
-            let config = BundlerConfig::new(bundler_url);
+            let config = BundlerConfig::new(config.bundler_url);
             zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
         };
 
