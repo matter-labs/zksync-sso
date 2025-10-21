@@ -23,6 +23,8 @@ export const {
   Call,
   SendCallsRequest,
   PasskeyPayload,
+  DeployAccountConfig,
+  SendTransactionConfig,
   ZkSyncSsoError,
   bytes_to_hex,
   hex_to_bytes,

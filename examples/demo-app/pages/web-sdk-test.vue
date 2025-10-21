@@ -498,14 +498,21 @@ async function deployAccount() {
     // eslint-disable-next-line no-console
     console.log("  User ID:", userId);
 
-    // Call the deployment function
-    const deployedAddress = await deploy_account(
+    // Construct the DeployAccountConfig wasm object
+    const deployConfig = new DeployAccountConfig(
       rpcUrl,
       factoryAddress,
-      userId,
       deployerPrivateKey,
-      eoaSignersAddresses,
       eoaValidatorAddress,
+      null, // webauthn validator (optional)
+    );
+
+    // Call the deployment function with the structured config
+    const deployedAddress = await deploy_account(
+      userId,
+      eoaSignersAddresses,
+      null, // passkey payload (optional)
+      deployConfig,
     );
 
     // eslint-disable-next-line no-console
