@@ -83,7 +83,20 @@ function bytesToHex(bytes: Uint8Array): string {
 }
 
 /**
- * Convert a base64url string to Uint8Array
+ * Convert Uint8Array to base64url encoding (for SimpleWebAuthn)
+ */
+function arrayBufferToBase64url(buffer: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < buffer.length; i++) {
+    binary += String.fromCharCode(buffer[i]);
+  }
+  const base64 = btoa(binary);
+  // Convert base64 to base64url
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+
+/**
+ * Convert base64url string to Uint8Array
  */
 function base64urlToBuffer(base64url: string): Uint8Array {
   // Replace base64url characters with base64 equivalents
@@ -117,16 +130,16 @@ function base64urlToBuffer(base64url: string): Uint8Array {
 export async function createWebAuthnCredential(
   options: CreateCredentialOptions = {},
 ): Promise<WebAuthnCredential> {
-  // Check if SimpleWebAuthn is available
+  // Try to import SimpleWebAuthn (optional peer dependency)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let startRegistration: any;
   try {
-    // @ts-expect-error - Optional peer dependency, may not be installed
+    // @ts-expect-error - @simplewebauthn/browser is an optional peer dependency
     const simpleWebAuthn = await import("@simplewebauthn/browser");
     startRegistration = simpleWebAuthn.startRegistration;
   } catch {
     throw new Error(
-      "SimpleWebAuthn is not installed. Please install @simplewebauthn/browser: "
-      + "npm install @simplewebauthn/browser",
+      "SimpleWebAuthn is not installed. Please install @simplewebauthn/browser: npm install @simplewebauthn/browser",
     );
   }
 
@@ -143,148 +156,182 @@ export async function createWebAuthnCredential(
   const userId = new Uint8Array(16);
   window.crypto.getRandomValues(userId);
 
-  // Prepare registration options compatible with SimpleWebAuthn
+  // Prepare registration options for SimpleWebAuthn
   const registrationOptions = {
-    challenge: bytesToHex(challenge).slice(2), // Remove 0x prefix for SimpleWebAuthn
+    challenge: arrayBufferToBase64url(challenge),
     rp: {
       name: options.rpName || "zkSync SSO",
       id: options.rpId || window.location.hostname,
     },
     user: {
-      id: bytesToHex(userId).slice(2), // Remove 0x prefix
+      id: arrayBufferToBase64url(userId),
       name: options.userEmail || "user@example.com",
       displayName: options.userName || "Demo User",
     },
     pubKeyCredParams: [
       {
-        type: "public-key" as const,
+        type: "public-key",
         alg: -7, // ES256 (P-256)
       },
     ],
     authenticatorSelection: {
       authenticatorAttachment: options.authenticatorAttachment || "platform",
       requireResidentKey: false,
-      residentKey: "preferred" as const,
-      userVerification: "required" as const,
+      userVerification: "preferred",
     },
     timeout: options.timeout || 60000,
-    attestation: "none" as const,
+    attestation: "none",
   };
 
   // Create the credential using SimpleWebAuthn
   const credential = await startRegistration(registrationOptions);
 
-  // Parse the response to extract public key coordinates
-  const credentialIdBytes = base64urlToBuffer(credential.id);
-  const credentialId = bytesToHex(credentialIdBytes);
+  // Parse the authenticator data to extract the public key
+  // SimpleWebAuthn returns base64url-encoded strings
+  const authenticatorDataBase64url = credential.response.authenticatorData;
+  const authenticatorData = base64urlToBuffer(authenticatorDataBase64url);
 
-  // The response includes the public key in the attestationObject
-  // SimpleWebAuthn already handles CBOR parsing for us
-  // We need to extract the public key coordinates from the response
+  // Authenticator data structure:
+  // - 32 bytes: RP ID hash
+  // - 1 byte: flags
+  // - 4 bytes: signature counter
+  // - 16 bytes: AAGUID
+  // - 2 bytes: credential ID length
+  // - N bytes: credential ID
+  // - M bytes: COSE public key
 
-  // Parse the authenticator data which contains the credential public key
-  const authenticatorData = base64urlToBuffer(credential.response.authenticatorData);
+  const credIdLengthOffset = 53; // 32 + 1 + 4 + 16
+  const credIdLength = (authenticatorData[credIdLengthOffset] << 8)
+    | authenticatorData[credIdLengthOffset + 1];
 
-  // The public key is encoded in COSE format after the authenticator data header
-  // Structure: RP ID Hash (32) + Flags (1) + Counter (4) + Attested Cred Data
-  // Attested Cred Data: AAGUID (16) + Cred ID Length (2) + Cred ID + COSE Key
+  const credIdOffset = credIdLengthOffset + 2;
+  const credId = authenticatorData.slice(credIdOffset, credIdOffset + credIdLength);
 
-  let offset = 37; // Skip: RP ID hash (32) + flags (1) + counter (4)
-  offset += 16; // Skip AAGUID
+  // Extract COSE public key
+  const coseKeyOffset = credIdOffset + credIdLength;
+  const coseKey = authenticatorData.slice(coseKeyOffset);
 
-  // Read credential ID length (2 bytes, big endian)
-  const credIdLength = (authenticatorData[offset] << 8) | authenticatorData[offset + 1];
-  offset += 2;
+  // eslint-disable-next-line no-console
+  console.log("COSE key bytes:", Array.from(coseKey).map((b) => b.toString(16).padStart(2, "0")).join(" "));
 
-  // Skip credential ID
-  offset += credIdLength;
-
-  // Now we're at the COSE key
-  const coseKey = authenticatorData.slice(offset);
-
-  // Parse COSE key to extract x and y coordinates
-  const { x, y } = parseCOSEKey(coseKey);
+  // Parse COSE key to extract public key coordinates
+  const [xBuffer, yBuffer] = parseCOSEKey(coseKey);
 
   return {
-    credentialId,
-    publicKeyX: bytesToHex(x),
-    publicKeyY: bytesToHex(y),
+    credentialId: bytesToHex(credId),
+    publicKeyX: bytesToHex(xBuffer),
+    publicKeyY: bytesToHex(yBuffer),
     origin: window.location.origin,
   };
 }
 
-/**
- * Parse COSE key format to extract P-256 public key coordinates
- *
- * COSE key format for P-256:
- * - kty (1): 2 (EC2)
- * - alg (3): -7 (ES256)
- * - crv (-1): 1 (P-256)
- * - x (-2): 32 bytes
- * - y (-3): 32 bytes
- */
-function parseCOSEKey(coseKey: Uint8Array): { x: Uint8Array; y: Uint8Array } {
-  const dataView = new DataView(coseKey.buffer, coseKey.byteOffset, coseKey.byteLength);
-  let offset = 0;
+// ============================================================================
+// COSE/CBOR Parsing Functions (browser-compatible, no Node Buffer dependency)
+// ============================================================================
 
-  // Read the first byte (should be a map)
-  const firstByte = dataView.getUint8(offset++);
-  if ((firstByte & 0xE0) !== 0xA0) {
-    throw new Error("Expected CBOR map for COSE key");
-  }
+enum COSEKEYS {
+  kty = 1, // Key Type
+  alg = 3, // Algorithm
+  crv = -1, // Curve for EC keys
+  x = -2, // X coordinate for EC keys
+  y = -3, // Y coordinate for EC keys
+}
 
-  const mapSize = firstByte & 0x1F;
-  const keyData: { [key: number]: Uint8Array | number } = {};
+type COSEPublicKeyMap = Map<COSEKEYS, number | Uint8Array>;
+
+// CBOR Decoding functions (only what we need for parsing COSE keys)
+
+function decodeMap(buffer: Uint8Array): COSEPublicKeyMap {
+  const map = new Map<COSEKEYS, number | Uint8Array>();
+  let offset = 1; // Start after the map header
+
+  const mapHeader = buffer[0];
+  const mapSize = mapHeader & 0x1F; // Number of pairs
 
   for (let i = 0; i < mapSize; i++) {
-    // Read key (integer)
-    let key = dataView.getInt8(offset);
-    offset++;
+    const [key, keyLength] = decodeInt(buffer, offset);
+    offset += keyLength;
 
-    // Handle negative integers
-    if (key >= 0x20 && key <= 0x37) {
-      key = -1 - (key - 0x20);
-    }
+    const [value, valueLength] = decodeValue(buffer, offset);
+    offset += valueLength;
 
-    // Read value
-    const valueType = dataView.getUint8(offset);
-    offset++;
-
-    if ((valueType & 0xE0) === 0x40) {
-      // Byte string
-      let length = valueType & 0x1F;
-
-      // Handle extended length encoding
-      if (length === 24) {
-        length = dataView.getUint8(offset);
-        offset++;
-      }
-
-      const value = new Uint8Array(coseKey.buffer, coseKey.byteOffset + offset, length);
-      keyData[key] = value;
-      offset += length;
-    } else if (valueType <= 0x17) {
-      // Small positive integer
-      keyData[key] = valueType;
-    } else if (valueType >= 0x20 && valueType <= 0x37) {
-      // Small negative integer
-      keyData[key] = -1 - (valueType - 0x20);
-    }
+    map.set(key as COSEKEYS, value);
   }
 
-  // Extract x and y coordinates
-  const x = keyData[-2] as Uint8Array;
-  const y = keyData[-3] as Uint8Array;
+  return map;
+}
+
+function decodeInt(buffer: Uint8Array, offset: number): [number, number] {
+  const intByte = buffer[offset];
+
+  if (intByte < 24) {
+    // Small positive integer (0–23)
+    return [intByte, 1];
+  } else if (intByte === 0x18) {
+    // 1-byte unsigned integer
+    return [buffer[offset + 1], 2];
+  } else if (intByte === 0x19) {
+    // 2-byte unsigned integer
+    const value = (buffer[offset + 1] << 8) | buffer[offset + 2];
+    return [value, 3];
+  } else if (intByte >= 0x20 && intByte <= 0x37) {
+    // Small negative integer (-1 to -24)
+    return [-(intByte - 0x20) - 1, 1];
+  } else if (intByte === 0x38) {
+    // 1-byte negative integer
+    return [-1 - buffer[offset + 1], 2];
+  } else if (intByte === 0x39) {
+    // 2-byte negative integer
+    const value = (buffer[offset + 1] << 8) | buffer[offset + 2];
+    return [-1 - value, 3];
+  } else {
+    throw new Error(`Unsupported integer format: ${intByte}`);
+  }
+}
+
+function decodeBytes(buffer: Uint8Array, offset: number): [Uint8Array, number] {
+  const lengthByte = buffer[offset];
+  if (lengthByte >= 0x40 && lengthByte <= 0x57) {
+    const length = lengthByte - 0x40;
+    return [buffer.slice(offset + 1, offset + 1 + length), length + 1];
+  } else if (lengthByte === 0x58) {
+    // Byte array with 1-byte length prefix
+    const length = buffer[offset + 1];
+    return [buffer.slice(offset + 2, offset + 2 + length), length + 2];
+  } else {
+    throw new Error("Unsupported byte format");
+  }
+}
+
+function decodeValue(buffer: Uint8Array, offset: number): [number | Uint8Array, number] {
+  const type = buffer[offset];
+  if (type >= 0x40 && type <= 0x5F) {
+    // Byte array
+    return decodeBytes(buffer, offset);
+  } else {
+    return decodeInt(buffer, offset);
+  }
+}
+
+/**
+ * Parse COSE key to extract P-256 public key coordinates
+ * @param publicPasskey - CBOR-encoded COSE public key
+ * @returns Tuple of [x, y] coordinates as Uint8Arrays
+ */
+function parseCOSEKey(publicPasskey: Uint8Array): [Uint8Array, Uint8Array] {
+  const cosePublicKey = decodeMap(publicPasskey);
+  const x = cosePublicKey.get(COSEKEYS.x) as Uint8Array;
+  const y = cosePublicKey.get(COSEKEYS.y) as Uint8Array;
 
   if (!x || !y) {
-    throw new Error("Failed to extract public key coordinates from COSE key");
+    throw new Error(`Failed to extract x and y coordinates from COSE key ${publicPasskey}`);
   }
 
   if (x.length !== 32 || y.length !== 32) {
     throw new Error(`Invalid coordinate length: x=${x.length}, y=${y.length} (expected 32 bytes each)`);
   }
 
-  return { x, y };
+  return [x, y];
 }
 
 /**

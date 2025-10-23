@@ -528,7 +528,7 @@ async function createWebAuthnCredential() {
       rpId: window.location.hostname,
       userName: "Demo User",
       userEmail: "demo-user@zksync-sso.example",
-      authenticatorAttachment: "platform", // Use platform authenticator (Touch ID, Face ID, etc.)
+      authenticatorAttachment: "cross-platform", // Use cross-platform authenticator (security keys like YubiKey)
       timeout: 60000,
     });
 
