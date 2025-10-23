@@ -1,7 +1,10 @@
-use crate::erc4337::account::modular_smart_account::{
-    IMSA::initializeAccountCall,
-    MSAFactory::{self, deployAccountCall},
-    add_passkey::PasskeyPayload,
+use crate::erc4337::{
+    account::modular_smart_account::{
+        IMSA::initializeAccountCall,
+        MSAFactory::{self, deployAccountCall},
+        add_passkey::PasskeyPayload,
+    },
+    utils::check_deployed::{Contract, check_contract_deployed},
 };
 use alloy::{
     primitives::{Address, Bytes, FixedBytes},
@@ -102,6 +105,12 @@ pub async fn deploy_account<P: Provider + Send + Sync + Clone>(
 
     let address = get_account_created_address(&receipt)?;
 
+    check_contract_deployed(
+        &Contract { address, name: "ModularSmartAccount".to_string() },
+        provider,
+    )
+    .await?;
+
     Ok(address)
 }
 
@@ -122,62 +131,34 @@ fn get_account_created_address(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::erc4337::account::erc7579::module_installed::is_module_installed;
-    use alloy::{
-        primitives::address, providers::ProviderBuilder,
-        signers::local::PrivateKeySigner,
+    use crate::{
+        erc4337::account::erc7579::module_installed::is_module_installed,
+        utils::alloy_utilities::test_utilities::start_anvil_and_deploy_contracts,
     };
-    use std::str::FromStr;
+    use alloy::primitives::address;
 
     #[tokio::test]
-    #[ignore = "needs local infrastructure to be running"]
     async fn test_deploy_account_basic() -> eyre::Result<()> {
-        let rpc_url = "http://localhost:8545".parse()?;
+        let (_, anvil_instance, provider, contracts, _) =
+            start_anvil_and_deploy_contracts().await?;
 
-        let factory_address =
-            address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
+        let factory_address = contracts.account_factory;
 
-        let provider = {
-            let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-            let signer = PrivateKeySigner::from_str(signer_private_key)?;
-            let alloy_signer = signer.clone();
-            let ethereum_wallet =
-                alloy::network::EthereumWallet::new(alloy_signer.clone());
+        _ = deploy_account(factory_address, None, None, provider.clone())
+            .await?;
 
-            ProviderBuilder::new()
-                .wallet(ethereum_wallet.clone())
-                .connect_http(rpc_url)
-        };
-
-        let _address =
-            deploy_account(factory_address, None, None, provider.clone())
-                .await?;
+        drop(anvil_instance);
 
         Ok(())
     }
 
     #[tokio::test]
-    #[ignore = "needs local infrastructure to be running"]
     async fn test_deploy_account_with_eoa_signer() -> eyre::Result<()> {
-        let rpc_url = "http://localhost:8545".parse()?;
+        let (_, anvil_instance, provider, contracts, _) =
+            start_anvil_and_deploy_contracts().await?;
 
-        let factory_address =
-            address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
-
-        let eoa_validator_address =
-            address!("0x00427eDF0c3c3bd42188ab4C907759942Abebd93");
-
-        let provider = {
-            let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-            let signer = PrivateKeySigner::from_str(signer_private_key)?;
-            let alloy_signer = signer.clone();
-            let ethereum_wallet =
-                alloy::network::EthereumWallet::new(alloy_signer.clone());
-
-            ProviderBuilder::new()
-                .wallet(ethereum_wallet.clone())
-                .connect_http(rpc_url)
-        };
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
 
         let signers =
             vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
@@ -205,11 +186,8 @@ mod tests {
         .await?;
         eyre::ensure!(is_module_installed, "Module is not installed");
 
-        Ok(())
-    }
+        drop(anvil_instance);
 
-    #[test]
-    fn test_deploy_account_via_user_op() -> eyre::Result<()> {
         Ok(())
     }
 }

@@ -37,22 +37,26 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::erc4337::account::{
-        erc7579::{
-            Execution, add_module::add_module, calls::encode_calls,
-            module_installed::is_module_installed,
+    use crate::{
+        erc4337::account::{
+            erc7579::{
+                Execution, add_module::add_module, calls::encode_calls,
+                module_installed::is_module_installed,
+            },
+            modular_smart_account::{
+                add_passkey::{PasskeyPayload, add_passkey},
+                deploy::{EOASigners, deploy_account},
+                signature::{eoa_signature, stub_signature_eoa},
+            },
         },
-        modular_smart_account::{
-            add_passkey::{PasskeyPayload, add_passkey},
-            deploy::{EOASigners, deploy_account},
-            signature::{eoa_signature, stub_signature_eoa},
+        utils::alloy_utilities::test_utilities::{
+            TestInfraConfig,
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
     use alloy::{
         primitives::{Bytes, U256, address, bytes, fixed_bytes},
-        providers::ProviderBuilder,
         rpc::types::TransactionRequest,
-        signers::local::PrivateKeySigner,
     };
     use std::{str::FromStr, sync::Arc};
 
@@ -100,31 +104,31 @@ pub mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "needs local infrastructure to be running"]
     async fn test_send_transaction_webauthn() -> eyre::Result<()> {
-        let rpc_url = "http://localhost:8545".parse()?;
+        let (
+            _,
+            anvil_instance,
+            provider,
+            contracts,
+            signer_private_key,
+            bundler,
+            bundler_client,
+        ) = {
+            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+            let config = TestInfraConfig {
+                signer_private_key: signer_private_key.clone(),
+            };
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+                &config,
+            )
+            .await?
+        };
 
-        let factory_address =
-            address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
 
         let entry_point_address =
             address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
-
-        let eoa_validator_address =
-            address!("0x00427eDF0c3c3bd42188ab4C907759942Abebd93");
-
-        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
-
-        let provider = {
-            let signer = PrivateKeySigner::from_str(signer_private_key)?;
-            let alloy_signer = signer.clone();
-            let ethereum_wallet =
-                alloy::network::EthereumWallet::new(alloy_signer.clone());
-
-            ProviderBuilder::new()
-                .wallet(ethereum_wallet.clone())
-                .connect_http(rpc_url)
-        };
 
         let eoa_signer_address =
             address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
@@ -165,19 +169,13 @@ pub mod tests {
             _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
         }
 
-        let webauthn_module =
-            address!("0xF3F924c9bADF6891D3676cfe9bF72e2C78527E17");
-        let bundler_client = {
-            use crate::erc4337::bundler::config::BundlerConfig;
-            let bundler_url = "http://localhost:4337".to_string();
-            let config = BundlerConfig::new(bundler_url);
-            BundlerClient::new(config)
-        };
+        let webauthn_module = contracts.webauthn_validator;
 
         let signer = {
             let stub_sig = stub_signature_eoa(eoa_validator_address)?;
+            let signer_private_key = signer_private_key.clone();
             let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(signer_private_key, eoa_validator_address, hash)
+                eoa_signature(&signer_private_key, eoa_validator_address, hash)
             });
             Signer { provider: signature_provider, stub_signature: stub_sig }
         };
@@ -258,6 +256,9 @@ pub mod tests {
         .await?;
 
         println!("Passkey transaction successfully sent");
+
+        drop(anvil_instance);
+        drop(bundler);
 
         Ok(())
     }
