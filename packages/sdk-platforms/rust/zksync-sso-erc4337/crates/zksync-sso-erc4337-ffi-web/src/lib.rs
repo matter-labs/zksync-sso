@@ -2,6 +2,7 @@ use alloy::{
     network::EthereumWallet,
     primitives::{Address, Bytes, FixedBytes, U256, keccak256},
     providers::ProviderBuilder,
+    rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
     signers::local::PrivateKeySigner,
 };
 use alloy_rpc_client::RpcClient;
@@ -438,6 +439,167 @@ pub fn deploy_account(
     })
 }
 
+/// Add a passkey to an already-deployed smart account
+///
+/// This function registers a passkey with the WebAuthn validator module.
+/// The account must already be deployed and the WebAuthn validator must be installed.
+///
+/// # Parameters
+/// * `config` - SendTransactionConfig with RPC URL, bundler URL, and entry point
+/// * `account_address` - The deployed smart account address
+/// * `passkey_payload` - The passkey to register
+/// * `webauthn_validator_address` - The WebAuthn validator module address
+/// * `eoa_validator_address` - The EOA validator module address (for signing the transaction)
+/// * `eoa_private_key` - Private key of an EOA signer (to authorize the passkey addition)
+///
+/// # Returns
+/// Promise that resolves when the passkey is registered
+#[wasm_bindgen]
+pub fn add_passkey_to_account(
+    config: SendTransactionConfig,
+    account_address: String,
+    passkey_payload: PasskeyPayload,
+    webauthn_validator_address: String,
+    eoa_validator_address: String,
+    eoa_private_key: String,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Adding passkey to smart account...");
+        console_log!("  Account: {}", account_address);
+
+        // Parse addresses
+        let account = match account_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid account address: {}",
+                    e
+                )));
+            }
+        };
+
+        let entry_point = match config.entry_point_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid entry point address: {}",
+                    e
+                )));
+            }
+        };
+
+        let webauthn_validator = match webauthn_validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid WebAuthn validator address: {}",
+                    e
+                )));
+            }
+        };
+
+        let eoa_validator = match eoa_validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid EOA validator address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse EOA private key
+        let eoa_key = match eoa_private_key
+            .trim_start_matches("0x")
+            .parse::<PrivateKeySigner>()
+        {
+            Ok(signer) => signer,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid EOA private key: {}",
+                    e
+                )));
+            }
+        };
+
+        let eoa_wallet = EthereumWallet::from(eoa_key.clone());
+
+        // Create transport and provider
+        let transport = WasmHttpTransport::new(config.rpc_url);
+        let client = RpcClient::new(transport.clone(), false);
+        let provider = ProviderBuilder::new()
+            .wallet(eoa_wallet)
+            .connect_client(client);
+
+        // Create bundler client
+        let bundler_client = {
+            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
+            let config = BundlerConfig::new(config.bundler_url);
+            zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
+        };
+
+        // Create EOA signer
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::{
+            eoa_signature, stub_signature_eoa,
+        };
+        use std::sync::Arc;
+
+        let stub_sig = match stub_signature_eoa(eoa_validator) {
+            Ok(sig) => sig,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Failed to create stub signature: {}", e)));
+            }
+        };
+
+        let eoa_key_str = format!("0x{}", hex::encode(eoa_key.to_bytes()));
+        let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
+            eoa_signature(&eoa_key_str, eoa_validator, hash)
+        });
+
+        let signer = zksync_sso_erc4337_core::erc4337::signer::Signer {
+            provider: signature_provider,
+            stub_signature: stub_sig,
+        };
+
+        // Convert PasskeyPayload to core type
+        let passkey_x = FixedBytes::<32>::from_slice(&passkey_payload.passkey_x);
+        let passkey_y = FixedBytes::<32>::from_slice(&passkey_payload.passkey_y);
+
+        let core_passkey = CorePasskeyPayload {
+            credential_id: Bytes::from(passkey_payload.credential_id),
+            passkey: [passkey_x, passkey_y],
+            origin_domain: passkey_payload.origin_domain,
+        };
+
+        console_log!("  Calling add_passkey...");
+
+        // Call the core add_passkey function
+        match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::add_passkey::add_passkey(
+            account,
+            core_passkey,
+            webauthn_validator,
+            entry_point,
+            provider,
+            bundler_client,
+            signer,
+        )
+        .await
+        {
+            Ok(_) => {
+                console_log!("  Passkey added successfully");
+                Ok(JsValue::from_str("Passkey registered successfully"))
+            }
+            Err(e) => {
+                console_log!("  Error adding passkey: {}", e);
+                Ok(JsValue::from_str(&format!(
+                    "Failed to add passkey: {}",
+                    e
+                )))
+            }
+        }
+    })
+}
+
 /// Send a transaction from a smart account using EOA validator
 ///
 /// # Arguments
@@ -609,6 +771,385 @@ pub fn send_transaction_eoa(
             Err(e) => {
                 console_log!("  Error sending transaction: {}", e);
                 Ok(JsValue::from_str(&format!("Failed to send transaction: {}", e)))
+            }
+        }
+    })
+}
+
+/// Prepare a UserOperation for passkey signing
+/// Returns the hash that needs to be signed by the passkey
+///
+/// # Parameters
+/// * `config` - SendTransactionConfig with RPC, bundler, and entry point
+/// * `webauthn_validator_address` - Address of the WebAuthn validator module
+/// * `account_address` - The smart account address
+/// * `to_address` - The recipient address
+/// * `value` - Amount to send (as string, e.g., "1000000000000000000" for 1 ETH)
+/// * `data` - Optional calldata as hex string
+///
+/// # Returns
+/// JSON string with format: `{"hash": "0x...", "userOpId": "..."}`
+/// The hash should be signed by the passkey, then passed to `submit_passkey_user_operation`
+#[wasm_bindgen]
+pub fn prepare_passkey_user_operation(
+    config: SendTransactionConfig,
+    webauthn_validator_address: String,
+    account_address: String,
+    to_address: String,
+    value: String,
+    data: Option<String>,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Preparing passkey UserOperation...");
+        console_log!("  Account: {}", account_address);
+        console_log!("  To: {}", to_address);
+        console_log!("  Value: {}", value);
+
+        // Parse addresses
+        let account = match account_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid account address: {}",
+                    e
+                )));
+            }
+        };
+
+        let entry_point = match config.entry_point_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid entry point address: {}",
+                    e
+                )));
+            }
+        };
+
+        let webauthn_validator = match webauthn_validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid WebAuthn validator address: {}",
+                    e
+                )));
+            }
+        };
+
+        let to = match to_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid to address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse value
+        let value_u256 = match value.parse::<U256>() {
+            Ok(v) => v,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid value: {}", e)));
+            }
+        };
+
+        // Parse data
+        let data_bytes = match data {
+            Some(d) => {
+                let hex_str = d.trim_start_matches("0x");
+                match hex::decode(hex_str) {
+                    Ok(bytes) => Bytes::from(bytes),
+                    Err(e) => {
+                        return Ok(JsValue::from_str(&format!(
+                            "Invalid data hex: {}",
+                            e
+                        )));
+                    }
+                }
+            }
+            None => Bytes::default(),
+        };
+
+        console_log!("  Parsed addresses and values successfully");
+
+        // Create transport and provider
+        let transport = WasmHttpTransport::new(config.rpc_url.clone());
+        let client = RpcClient::new(transport.clone(), false);
+        let provider = ProviderBuilder::new().connect_client(client);
+
+        console_log!("  Created provider and transport");
+
+        // Create bundler client
+        let bundler_client = {
+            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
+            let config = BundlerConfig::new(config.bundler_url);
+            zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
+        };
+
+        console_log!("  Created bundler client");
+
+        // Encode the execution call
+        use zksync_sso_erc4337_core::erc4337::account::erc7579::{
+            Execution, calls::encode_calls,
+        };
+
+        let call = Execution { target: to, value: value_u256, data: data_bytes };
+        let calls = vec![call];
+        let encoded_calls: Bytes = encode_calls(calls).into();
+
+        console_log!("  Encoded call data");
+
+        // Check account balance before proceeding
+        console_log!("  Checking account balance...");
+        use alloy::providers::Provider;
+        let balance = match provider.get_balance(account).await {
+            Ok(bal) => bal,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Failed to get account balance: {}", e)));
+            }
+        };
+
+        console_log!("  Account balance: {} wei", balance);
+
+        if balance == U256::ZERO {
+            return Ok(JsValue::from_str(
+                "Account has zero balance. Please fund the smart account with ETH before sending transactions."
+            ));
+        }
+
+        // Rough estimate: minimum balance should be at least 0.001 ETH for gas
+        let min_balance = U256::from(1_000_000_000_000_000u64); // 0.001 ETH in wei
+        if balance < min_balance {
+            return Ok(JsValue::from_str(&format!(
+                "Account balance is too low: {} wei. Please fund the smart account with at least 0.001 ETH.",
+                balance
+            )));
+        }
+
+        // Build UserOperation with stub signature
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::{
+            nonce::get_nonce,
+            signature::stub_signature_passkey,
+        };
+        use alloy::primitives::Uint;
+
+        let nonce_key = Uint::from(0);
+        let nonce = match get_nonce(entry_point, account, nonce_key, &provider).await {
+            Ok(n) => n,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Failed to get nonce: {}", e)));
+            }
+        };
+
+        let stub_sig = match stub_signature_passkey(webauthn_validator) {
+            Ok(sig) => sig,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Failed to create stub signature: {}", e)));
+            }
+        };
+
+        // Create AlloyPackedUserOperation for gas estimation (has unpacked fields)
+        let mut user_op = AlloyPackedUserOperation {
+            sender: account,
+            nonce,
+            call_data: encoded_calls.clone(),
+            signature: stub_sig.clone(),
+            paymaster: None,
+            paymaster_verification_gas_limit: None,
+            paymaster_data: None,
+            paymaster_post_op_gas_limit: None,
+            call_gas_limit: Default::default(),
+            max_priority_fee_per_gas: Default::default(),
+            max_fee_per_gas: Default::default(),
+            pre_verification_gas: Default::default(),
+            verification_gas_limit: Default::default(),
+            factory: None,
+            factory_data: None,
+        };
+
+        // Skip gas estimation for now and use fixed values (for debugging)
+        console_log!("  Skipping gas estimation, using fixed values...");
+        
+        // Use fixed gas values similar to what the test uses
+        user_op.call_gas_limit = U256::from(100_000);
+        user_op.verification_gas_limit = U256::from(200_000);
+        user_op.pre_verification_gas = U256::from(50_000);
+        user_op.max_priority_fee_per_gas = U256::from(1_000_000_000); // 1 gwei
+        user_op.max_fee_per_gas = U256::from(3_000_000_000u64); // 3 gwei
+        
+        console_log!("  Using gas limits: call={}, verification={}, preVerification={}", 
+            user_op.call_gas_limit, 
+            user_op.verification_gas_limit, 
+            user_op.pre_verification_gas);
+
+        // Pack gas limits and fees for EntryPoint::PackedUserOperation
+        let packed_gas_limits: U256 =
+            (user_op.verification_gas_limit << 128) | user_op.call_gas_limit;
+        let gas_fees: U256 =
+            (user_op.max_priority_fee_per_gas << 128) | user_op.max_fee_per_gas;
+
+        // Create PackedUserOperation for hashing (EntryPoint format with packed fields)
+        use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint::PackedUserOperation;
+        let packed_user_op = PackedUserOperation {
+            sender: user_op.sender,
+            nonce: user_op.nonce,
+            initCode: Bytes::default(),
+            callData: user_op.call_data.clone(),
+            accountGasLimits: packed_gas_limits.to_be_bytes().into(),
+            preVerificationGas: user_op.pre_verification_gas,
+            gasFees: gas_fees.to_be_bytes().into(),
+            paymasterAndData: Bytes::default(),
+            signature: user_op.signature.clone(),
+        };
+
+        // Get the hash that needs to be signed
+        use zksync_sso_erc4337_core::erc4337::user_operation::hash::v08::get_user_operation_hash_entry_point;
+
+        let hash = match get_user_operation_hash_entry_point(
+            &packed_user_op,
+            &entry_point,
+            provider.clone(),
+        ).await {
+            Ok(h) => h,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Failed to get UserOp hash: {}", e)));
+            }
+        };
+
+        console_log!("  UserOperation hash: {:?}", hash);
+
+        // Store the AlloyPackedUserOperation in a global map so we can retrieve it later
+        // For now, we'll use the hash as the ID
+        use std::sync::Mutex;
+        use std::collections::HashMap;
+        use once_cell::sync::Lazy;
+
+        static USER_OPS: Lazy<Mutex<HashMap<String, AlloyPackedUserOperation>>> =
+            Lazy::new(|| Mutex::new(HashMap::new()));
+
+        let hash_str = format!("{:?}", hash);
+        USER_OPS.lock().unwrap().insert(hash_str.clone(), user_op);
+
+        // Return JSON with hash and userOpId
+        let result = format!(
+            r#"{{"hash":"{}","userOpId":"{}"}}"#,
+            hash_str, hash_str
+        );
+
+        console_log!("  Prepared UserOperation, waiting for passkey signature");
+        Ok(JsValue::from_str(&result))
+    })
+}
+
+/// Submit a passkey-signed UserOperation
+///
+/// # Parameters
+/// * `config` - SendTransactionConfig with bundler URL
+/// * `user_op_id` - The ID returned from `prepare_passkey_user_operation`
+/// * `passkey_signature` - The signature from WebAuthn (hex string with 0x prefix)
+///
+/// # Returns
+/// Promise that resolves when the UserOperation is confirmed
+#[wasm_bindgen]
+pub fn submit_passkey_user_operation(
+    config: SendTransactionConfig,
+    user_op_id: String,
+    passkey_signature: String,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Submitting passkey-signed UserOperation...");
+        console_log!("  UserOp ID: {}", user_op_id);
+
+        // Retrieve the AlloyPackedUserOperation from storage
+        use std::sync::Mutex;
+        use std::collections::HashMap;
+        use once_cell::sync::Lazy;
+
+        static USER_OPS: Lazy<Mutex<HashMap<String, AlloyPackedUserOperation>>> =
+            Lazy::new(|| Mutex::new(HashMap::new()));
+
+        let mut user_op = {
+            let mut map = USER_OPS.lock().unwrap();
+            match map.remove(&user_op_id) {
+                Some(op) => op,
+                None => {
+                    return Ok(JsValue::from_str(&format!(
+                        "UserOperation not found for ID: {}",
+                        user_op_id
+                    )));
+                }
+            }
+        };
+
+        // Parse the passkey signature
+        let sig_hex = passkey_signature.trim_start_matches("0x");
+        let signature = match hex::decode(sig_hex) {
+            Ok(bytes) => Bytes::from(bytes),
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid signature hex: {}",
+                    e
+                )));
+            }
+        };
+
+        console_log!("  Signature length: {} bytes", signature.len());
+
+        // Update UserOperation with real signature
+        user_op.signature = signature;
+
+        // Create bundler client
+        let bundler_client = {
+            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
+            let config = BundlerConfig::new(config.bundler_url);
+            zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
+        };
+
+        // Parse entry point address for bundler call
+        let entry_point = match config.entry_point_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid entry point address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Submit UserOperation
+        use zksync_sso_erc4337_core::erc4337::bundler::Bundler;
+        
+        match bundler_client.send_user_operation(entry_point, user_op).await {
+            Ok(user_op_hash) => {
+                console_log!("  UserOperation submitted: {:?}", user_op_hash);
+                let hash_for_display = user_op_hash.clone();
+
+                // Wait for receipt
+                match bundler_client.wait_for_user_operation_receipt(user_op_hash).await {
+                    Ok(receipt) => {
+                        console_log!("  UserOperation confirmed!");
+                        console_log!("  Receipt: {:?}", receipt);
+                        Ok(JsValue::from_str(&format!(
+                            "Transaction confirmed! UserOp hash: {:?}",
+                            hash_for_display
+                        )))
+                    }
+                    Err(e) => {
+                        console_log!("  Error waiting for receipt: {}", e);
+                        Ok(JsValue::from_str(&format!(
+                            "UserOperation submitted but failed to get receipt: {}",
+                            e
+                        )))
+                    }
+                }
+            }
+            Err(e) => {
+                console_log!("  Error submitting UserOperation: {}", e);
+                Ok(JsValue::from_str(&format!(
+                    "Failed to submit UserOperation: {}",
+                    e
+                )))
             }
         }
     })
