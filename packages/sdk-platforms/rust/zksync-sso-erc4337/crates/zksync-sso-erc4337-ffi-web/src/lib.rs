@@ -46,6 +46,14 @@ macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
+// Global storage for UserOperations being prepared/signed
+use once_cell::sync::Lazy;
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+static USER_OPS: Lazy<Mutex<HashMap<String, AlloyPackedUserOperation>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
 // Test function to verify WASM is working
 #[wasm_bindgen]
 pub fn greet(name: &str) -> String {
@@ -1021,13 +1029,6 @@ pub fn prepare_passkey_user_operation(
 
         // Store the AlloyPackedUserOperation in a global map so we can retrieve it later
         // For now, we'll use the hash as the ID
-        use std::sync::Mutex;
-        use std::collections::HashMap;
-        use once_cell::sync::Lazy;
-
-        static USER_OPS: Lazy<Mutex<HashMap<String, AlloyPackedUserOperation>>> =
-            Lazy::new(|| Mutex::new(HashMap::new()));
-
         let hash_str = format!("{:?}", hash);
         USER_OPS.lock().unwrap().insert(hash_str.clone(), user_op);
 
@@ -1061,14 +1062,16 @@ pub fn submit_passkey_user_operation(
         console_log!("Submitting passkey-signed UserOperation...");
         console_log!("  UserOp ID: {}", user_op_id);
 
+        // Debug: Check what's in the HashMap
+        {
+            let map = USER_OPS.lock().unwrap();
+            console_log!("  HashMap contains {} entries", map.len());
+            for key in map.keys() {
+                console_log!("    Key: {}", key);
+            }
+        }
+
         // Retrieve the AlloyPackedUserOperation from storage
-        use std::sync::Mutex;
-        use std::collections::HashMap;
-        use once_cell::sync::Lazy;
-
-        static USER_OPS: Lazy<Mutex<HashMap<String, AlloyPackedUserOperation>>> =
-            Lazy::new(|| Mutex::new(HashMap::new()));
-
         let mut user_op = {
             let mut map = USER_OPS.lock().unwrap();
             match map.remove(&user_op_id) {
