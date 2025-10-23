@@ -1236,7 +1236,7 @@ async function sendFromSmartAccountWithPasskey() {
   const credentialIdBytes = hexToBytes(passkeyConfig.value.credentialId);
   const credentialIdBase64url = uint8ArrayToBase64url(credentialIdBytes);
 
-  const authResponse = await startAuthentication({
+  const authResponse = await startAuthentication({ optionsJSON: {
     challenge: challengeBase64url,
     rpId: window.location.hostname,
     userVerification: "preferred",
@@ -1244,7 +1244,7 @@ async function sendFromSmartAccountWithPasskey() {
       id: credentialIdBase64url,
       type: "public-key",
     }],
-  });
+  } });
 
   // eslint-disable-next-line no-console
   console.log("  Passkey signature received");
@@ -1299,6 +1299,21 @@ async function sendFromSmartAccountWithPasskey() {
   // Get credential ID
   const credentialId = hexToBytes(passkeyConfig.value.credentialId);
 
+  // eslint-disable-next-line no-console
+  console.log("  Debug signature components:");
+  // eslint-disable-next-line no-console
+  console.log("    authenticatorData length:", authenticatorData.length);
+  // eslint-disable-next-line no-console
+  console.log("    clientDataJSON:", clientDataJSON);
+  // eslint-disable-next-line no-console
+  console.log("    r length:", rPadded.length, "first bytes:", Array.from(rPadded.slice(0, 4)));
+  // eslint-disable-next-line no-console
+  console.log("    s length:", sPadded.length, "first bytes:", Array.from(sPadded.slice(0, 4)));
+  // eslint-disable-next-line no-console
+  console.log("    credentialId length:", credentialId.length);
+  // eslint-disable-next-line no-console
+  console.log("    Passkey config:", passkeyConfig.value);
+
   // ABI encode the signature using ethers
   const { ethers } = await import("ethers");
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
@@ -1320,9 +1335,26 @@ async function sendFromSmartAccountWithPasskey() {
   // Step 3: Submit the signed UserOperation
   // eslint-disable-next-line no-console
   console.log("Step 3: Submitting signed UserOperation...");
+  // eslint-disable-next-line no-console
+  console.log("  Config:", sendConfig);
+  // eslint-disable-next-line no-console
+  console.log("  UserOp ID:", userOpId);
+  // eslint-disable-next-line no-console
+  console.log("  UserOp ID type:", typeof userOpId);
+  // eslint-disable-next-line no-console
+  console.log("  Signature:", signatureEncoded);
+  // eslint-disable-next-line no-console
+  console.log("  Signature type:", typeof signatureEncoded);
+
+  // Create a new config for submit (the previous one was consumed by prepare)
+  const submitConfig = new SendTransactionConfig(
+    rpcUrl,
+    bundlerUrl,
+    entryPointAddress,
+  );
 
   const result = await submit_passkey_user_operation(
-    sendConfig,
+    submitConfig,
     userOpId,
     signatureEncoded,
   );
