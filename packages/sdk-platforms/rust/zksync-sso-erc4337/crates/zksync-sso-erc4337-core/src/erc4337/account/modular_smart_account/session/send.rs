@@ -8,30 +8,35 @@ pub fn keyed_nonce(session_signer_address: Address) -> Uint<192, 3> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::erc4337::{
-        account::{
-            erc7579::{
-                Execution, add_module::add_module, calls::encode_calls,
-                module_installed::is_module_installed,
-            },
-            modular_smart_account::{
-                deploy::{EOASigners, deploy_account},
-                send::send_transaction,
-                session::{
-                    SessionLib::{SessionSpec, TransferSpec, UsageLimit},
-                    create::create_session,
+    use crate::{
+        erc4337::{
+            account::{
+                erc7579::{
+                    Execution, add_module::add_module, calls::encode_calls,
+                    module_installed::is_module_installed,
                 },
-                signature::{
-                    eoa_signature, session_signature, stub_signature_eoa,
+                modular_smart_account::{
+                    deploy::{EOASigners, deploy_account},
+                    send::send_transaction,
+                    session::{
+                        SessionLib::{SessionSpec, TransferSpec, UsageLimit},
+                        create::create_session,
+                    },
+                    signature::{
+                        eoa_signature, session_signature, stub_signature_eoa,
+                    },
                 },
             },
+            signer::Signer,
         },
-        bundler::pimlico::client::BundlerClient,
-        signer::Signer,
+        utils::alloy_utilities::test_utilities::{
+            TestInfraConfig,
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+        },
     };
     use alloy::{
         primitives::{Bytes, FixedBytes, U256, Uint, address},
-        providers::{Provider, ProviderBuilder},
+        providers::Provider,
         rpc::types::TransactionRequest,
         signers::local::PrivateKeySigner,
     };
@@ -60,40 +65,37 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "needs local infrastructure to be running"]
     async fn test_send_transaction_session() -> eyre::Result<()> {
-        let rpc_url = "http://localhost:8545".parse()?;
+        let (
+            _,
+            anvil_instance,
+            provider,
+            contracts,
+            signer_private_key,
+            bundler,
+            bundler_client,
+        ) = {
+            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+            let config = TestInfraConfig {
+                signer_private_key: signer_private_key.clone(),
+            };
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+                &config,
+            )
+            .await?
+        };
 
-        let factory_address =
-            address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
-
+        let session_key_module = contracts.session_validator;
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
         let entry_point_address =
             address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
-
-        let session_key_module =
-            address!("0x57eaa1Fd8d80135Db195B147a249aad777aD10f0");
-
-        let eoa_validator_address =
-            address!("0x00427eDF0c3c3bd42188ab4C907759942Abebd93");
-
-        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
 
         let session_key_hex = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
         println!("\n\n\nsession_key_hex: {}", session_key_hex);
         let session_signer_address =
             PrivateKeySigner::from_str(session_key_hex)?.address();
         println!("session_key address: {}", session_signer_address);
-
-        let provider = {
-            let signer = PrivateKeySigner::from_str(signer_private_key)?;
-            let alloy_signer = signer.clone();
-            let ethereum_wallet =
-                alloy::network::EthereumWallet::new(alloy_signer.clone());
-
-            ProviderBuilder::new()
-                .wallet(ethereum_wallet.clone())
-                .connect_http(rpc_url)
-        };
 
         let signers =
             vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
@@ -132,17 +134,11 @@ mod tests {
             _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
         }
 
-        let bundler_client = {
-            use crate::erc4337::bundler::config::BundlerConfig;
-            let bundler_url = "http://localhost:4337".to_string();
-            let config = BundlerConfig::new(bundler_url);
-            BundlerClient::new(config)
-        };
         {
             let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-
+            let signer_private_key = signer_private_key.clone();
             let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(signer_private_key, eoa_validator_address, hash)
+                eoa_signature(&signer_private_key, eoa_validator_address, hash)
             });
 
             let signer = Signer {
@@ -177,14 +173,13 @@ mod tests {
 
         let signer = {
             let stub_sig = stub_signature_eoa(eoa_validator_address)?;
+            let signer_private_key = signer_private_key.clone();
             let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(signer_private_key, eoa_validator_address, hash)
+                eoa_signature(&signer_private_key, eoa_validator_address, hash)
             });
             Signer { provider: signature_provider, stub_signature: stub_sig }
         };
 
-        // let session_signer_address = session_key.address();
-        // let session_signer_address =
         let expires_at = Uint::from(2088558400u64);
         let target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
         let session_spec = SessionSpec {
@@ -262,6 +257,9 @@ mod tests {
         .await?;
 
         println!("Session transaction successfully sent");
+
+        drop(anvil_instance);
+        drop(bundler);
 
         Ok(())
     }

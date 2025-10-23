@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/matter-labs/anvil-zksync.git"
-RELEASE_VERSION="v0.6.3"
+RELEASE_VERSION="v0.6.11"
 
 # Detect platform
 if [[ "$OSTYPE" == "darwin"* ]]; then
