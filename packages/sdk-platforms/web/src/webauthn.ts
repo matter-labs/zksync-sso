@@ -176,8 +176,8 @@ export async function createWebAuthnCredential(
     ],
     authenticatorSelection: {
       authenticatorAttachment: options.authenticatorAttachment || "platform",
-      requireResidentKey: false,
-      userVerification: "preferred",
+      residentKey: "required",
+      userVerification: "discouraged",
     },
     timeout: options.timeout || 60000,
     attestation: "none",

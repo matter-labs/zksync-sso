@@ -1239,7 +1239,10 @@ async function sendFromSmartAccountWithPasskey() {
   const authResponse = await startAuthentication({ optionsJSON: {
     challenge: challengeBase64url,
     rpId: window.location.hostname,
-    userVerification: "preferred",
+    rpName: window.location.hostname,
+    rpID: window.location.hostname,
+    origin: window.location.origin,
+    userVerification: "discouraged",
     allowCredentials: [{
       id: credentialIdBase64url,
       type: "public-key",
