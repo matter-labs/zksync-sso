@@ -48,12 +48,12 @@ macro_rules! console_log {
 
 // Global storage for UserOperations being prepared/signed
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
-use std::sync::Mutex;
+use std::{collections::HashMap, sync::Mutex};
 
 // Store both the UserOp and the validator address
-static USER_OPS: Lazy<Mutex<HashMap<String, (AlloyPackedUserOperation, Address)>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+static USER_OPS: Lazy<
+    Mutex<HashMap<String, (AlloyPackedUserOperation, Address)>>,
+> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 // Test function to verify WASM is working
 #[wasm_bindgen]
@@ -497,15 +497,16 @@ pub fn add_passkey_to_account(
             }
         };
 
-        let webauthn_validator = match webauthn_validator_address.parse::<Address>() {
-            Ok(addr) => addr,
-            Err(e) => {
-                return Ok(JsValue::from_str(&format!(
-                    "Invalid WebAuthn validator address: {}",
-                    e
-                )));
-            }
-        };
+        let webauthn_validator =
+            match webauthn_validator_address.parse::<Address>() {
+                Ok(addr) => addr,
+                Err(e) => {
+                    return Ok(JsValue::from_str(&format!(
+                        "Invalid WebAuthn validator address: {}",
+                        e
+                    )));
+                }
+            };
 
         let eoa_validator = match eoa_validator_address.parse::<Address>() {
             Ok(addr) => addr,
@@ -536,9 +537,8 @@ pub fn add_passkey_to_account(
         // Create transport and provider
         let transport = WasmHttpTransport::new(config.rpc_url);
         let client = RpcClient::new(transport.clone(), false);
-        let provider = ProviderBuilder::new()
-            .wallet(eoa_wallet)
-            .connect_client(client);
+        let provider =
+            ProviderBuilder::new().wallet(eoa_wallet).connect_client(client);
 
         // Create bundler client
         let bundler_client = {
@@ -556,7 +556,10 @@ pub fn add_passkey_to_account(
         let stub_sig = match stub_signature_eoa(eoa_validator) {
             Ok(sig) => sig,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Failed to create stub signature: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Failed to create stub signature: {}",
+                    e
+                )));
             }
         };
 
@@ -571,8 +574,10 @@ pub fn add_passkey_to_account(
         };
 
         // Convert PasskeyPayload to core type
-        let passkey_x = FixedBytes::<32>::from_slice(&passkey_payload.passkey_x);
-        let passkey_y = FixedBytes::<32>::from_slice(&passkey_payload.passkey_y);
+        let passkey_x =
+            FixedBytes::<32>::from_slice(&passkey_payload.passkey_x);
+        let passkey_y =
+            FixedBytes::<32>::from_slice(&passkey_payload.passkey_y);
 
         let core_passkey = CorePasskeyPayload {
             credential_id: Bytes::from(passkey_payload.credential_id),
@@ -835,15 +840,16 @@ pub fn prepare_passkey_user_operation(
             }
         };
 
-        let webauthn_validator = match webauthn_validator_address.parse::<Address>() {
-            Ok(addr) => addr,
-            Err(e) => {
-                return Ok(JsValue::from_str(&format!(
-                    "Invalid WebAuthn validator address: {}",
-                    e
-                )));
-            }
-        };
+        let webauthn_validator =
+            match webauthn_validator_address.parse::<Address>() {
+                Ok(addr) => addr,
+                Err(e) => {
+                    return Ok(JsValue::from_str(&format!(
+                        "Invalid WebAuthn validator address: {}",
+                        e
+                    )));
+                }
+            };
 
         let to = match to_address.parse::<Address>() {
             Ok(addr) => addr,
@@ -894,7 +900,8 @@ pub fn prepare_passkey_user_operation(
             Execution, calls::encode_calls,
         };
 
-        let call = Execution { target: to, value: value_u256, data: data_bytes };
+        let call =
+            Execution { target: to, value: value_u256, data: data_bytes };
         let calls = vec![call];
         let encoded_calls: Bytes = encode_calls(calls).into();
 
@@ -906,7 +913,10 @@ pub fn prepare_passkey_user_operation(
         let balance = match provider.get_balance(account).await {
             Ok(bal) => bal,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Failed to get account balance: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Failed to get account balance: {}",
+                    e
+                )));
             }
         };
 
@@ -914,7 +924,7 @@ pub fn prepare_passkey_user_operation(
 
         if balance == U256::ZERO {
             return Ok(JsValue::from_str(
-                "Account has zero balance. Please fund the smart account with ETH before sending transactions."
+                "Account has zero balance. Please fund the smart account with ETH before sending transactions.",
             ));
         }
 
@@ -935,17 +945,24 @@ pub fn prepare_passkey_user_operation(
         use alloy::primitives::Uint;
 
         let nonce_key = Uint::from(0);
-        let nonce = match get_nonce(entry_point, account, nonce_key, &provider).await {
-            Ok(n) => n,
-            Err(e) => {
-                return Ok(JsValue::from_str(&format!("Failed to get nonce: {}", e)));
-            }
-        };
+        let nonce =
+            match get_nonce(entry_point, account, nonce_key, &provider).await {
+                Ok(n) => n,
+                Err(e) => {
+                    return Ok(JsValue::from_str(&format!(
+                        "Failed to get nonce: {}",
+                        e
+                    )));
+                }
+            };
 
         let stub_sig = match stub_signature_passkey(webauthn_validator) {
             Ok(sig) => sig,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Failed to create stub signature: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Failed to create stub signature: {}",
+                    e
+                )));
             }
         };
 
@@ -970,18 +987,20 @@ pub fn prepare_passkey_user_operation(
 
         // Skip gas estimation for now and use fixed values (for debugging)
         console_log!("  Skipping gas estimation, using fixed values...");
-        
+
         // Use fixed gas values similar to what the test uses
         user_op.call_gas_limit = U256::from(100_000);
         user_op.verification_gas_limit = U256::from(200_000);
         user_op.pre_verification_gas = U256::from(50_000);
         user_op.max_priority_fee_per_gas = U256::from(1_000_000_000); // 1 gwei
         user_op.max_fee_per_gas = U256::from(3_000_000_000u64); // 3 gwei
-        
-        console_log!("  Using gas limits: call={}, verification={}, preVerification={}", 
-            user_op.call_gas_limit, 
-            user_op.verification_gas_limit, 
-            user_op.pre_verification_gas);
+
+        console_log!(
+            "  Using gas limits: call={}, verification={}, preVerification={}",
+            user_op.call_gas_limit,
+            user_op.verification_gas_limit,
+            user_op.pre_verification_gas
+        );
 
         // Pack gas limits and fees for EntryPoint::PackedUserOperation
         let packed_gas_limits: U256 =
@@ -1010,10 +1029,15 @@ pub fn prepare_passkey_user_operation(
             &packed_user_op,
             &entry_point,
             provider.clone(),
-        ).await {
+        )
+        .await
+        {
             Ok(h) => h,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Failed to get UserOp hash: {}", e)));
+                return Ok(JsValue::from_str(&format!(
+                    "Failed to get UserOp hash: {}",
+                    e
+                )));
             }
         };
 
@@ -1036,10 +1060,8 @@ pub fn prepare_passkey_user_operation(
         USER_OPS.lock().unwrap().insert(hash_str.clone(), (user_op, validator));
 
         // Return JSON with hash and userOpId
-        let result = format!(
-            r#"{{"hash":"{}","userOpId":"{}"}}"#,
-            hash_str, hash_str
-        );
+        let result =
+            format!(r#"{{"hash":"{}","userOpId":"{}"}}"#, hash_str, hash_str);
 
         console_log!("  Prepared UserOperation, waiting for passkey signature");
         Ok(JsValue::from_str(&result))
@@ -1106,9 +1128,12 @@ pub fn submit_passkey_user_operation(
         let mut full_signature = Vec::new();
         full_signature.extend_from_slice(validator_address.as_slice()); // 20 bytes
         full_signature.extend_from_slice(&signature); // ABI-encoded passkey signature
-        
-        console_log!("  Full signature length: {} bytes (20 validator + {} passkey)", 
-            full_signature.len(), signature.len());
+
+        console_log!(
+            "  Full signature length: {} bytes (20 validator + {} passkey)",
+            full_signature.len(),
+            signature.len()
+        );
 
         // Update UserOperation with full signature (validator address + passkey signature)
         user_op.signature = Bytes::from(full_signature);
@@ -1133,14 +1158,17 @@ pub fn submit_passkey_user_operation(
 
         // Submit UserOperation
         use zksync_sso_erc4337_core::erc4337::bundler::Bundler;
-        
+
         match bundler_client.send_user_operation(entry_point, user_op).await {
             Ok(user_op_hash) => {
                 console_log!("  UserOperation submitted: {:?}", user_op_hash);
                 let hash_for_display = user_op_hash.clone();
 
                 // Wait for receipt
-                match bundler_client.wait_for_user_operation_receipt(user_op_hash).await {
+                match bundler_client
+                    .wait_for_user_operation_receipt(user_op_hash)
+                    .await
+                {
                     Ok(receipt) => {
                         console_log!("  UserOperation confirmed!");
                         console_log!("  Receipt: {:?}", receipt);

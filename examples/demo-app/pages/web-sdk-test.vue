@@ -601,11 +601,11 @@ async function createWebAuthnCredential() {
 
     // Create the credential with custom options
     const credential = await createCred({
-      rpName: "zkSync SSO Demo",
+      rpName: "SSO Demo",
       rpId: window.location.hostname,
       userName: "Demo User",
       userEmail: "demo-user@zksync-sso.example",
-      authenticatorAttachment: "cross-platform", // Use cross-platform authenticator (security keys like YubiKey)
+      authenticatorAttachment: "cross-platform",
       timeout: 60000,
     });
 
