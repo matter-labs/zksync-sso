@@ -6,11 +6,13 @@ on:
   push:
     paths:
       - "packages/contracts/**"
+      - "packages/erc4337-contracts/**"
       - "packages/sdk-platforms/rust/**"
       - ".github/workflows/ci-rust.yml"
   pull_request:
     paths:
       - "packages/contracts/**"
+      - "packages/erc4337-contracts/**"
       - "packages/sdk-platforms/rust/**"
       - ".github/workflows/ci-rust.yml"
 
