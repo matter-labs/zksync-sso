@@ -107,11 +107,11 @@ pub mod tests {
     async fn test_send_transaction_webauthn() -> eyre::Result<()> {
         let (
             _,
-            _anvil_instance,
+            anvil_instance,
             provider,
             contracts,
             signer_private_key,
-            _bundler,
+            bundler,
             bundler_client,
         ) = {
             let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
@@ -257,6 +257,8 @@ pub mod tests {
 
         println!("Passkey transaction successfully sent");
 
+        drop(anvil_instance);
+        drop(bundler);
         Ok(())
     }
 
@@ -278,11 +280,11 @@ pub mod tests {
         use alloy::rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation;
         let (
             _,
-            _anvil_instance,
+            anvil_instance,
             provider,
             contracts,
             signer_private_key,
-            _bundler,
+            bundler,
             bundler_client,
         ) = {
             let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
@@ -485,6 +487,8 @@ pub mod tests {
 
         println!("Passkey transaction successfully sent (two-step)!");
 
+        drop(anvil_instance);
+        drop(bundler);
         Ok(())
     }
 }
