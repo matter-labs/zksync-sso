@@ -889,15 +889,6 @@ pub fn prepare_passkey_user_operation(
 
         console_log!("  Created provider and transport");
 
-        // Create bundler client
-        let bundler_client = {
-            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
-            let config = BundlerConfig::new(config.bundler_url);
-            zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
-        };
-
-        console_log!("  Created bundler client");
-
         // Encode the execution call
         use zksync_sso_erc4337_core::erc4337::account::erc7579::{
             Execution, calls::encode_calls,
