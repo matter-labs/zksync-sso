@@ -107,11 +107,11 @@ pub mod tests {
     async fn test_send_transaction_webauthn() -> eyre::Result<()> {
         let (
             _,
-            anvil_instance,
+            _anvil_instance,
             provider,
             contracts,
             signer_private_key,
-            bundler,
+            _bundler,
             bundler_client,
         ) = {
             let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
@@ -257,8 +257,233 @@ pub mod tests {
 
         println!("Passkey transaction successfully sent");
 
-        drop(anvil_instance);
-        drop(bundler);
+        Ok(())
+    }
+
+    /// Test that mimics the WASM two-step flow:
+    /// 1. Build UserOp and get hash
+    /// 2. Sign hash with passkey (simulated)
+    /// 3. Submit with signed UserOp
+    #[tokio::test]
+    async fn test_send_transaction_webauthn_two_step() -> eyre::Result<()> {
+        use crate::erc4337::{
+            account::modular_smart_account::{
+                signature::stub_signature_passkey,
+                nonce::get_nonce,
+            },
+            entry_point::EntryPoint::PackedUserOperation,
+            user_operation::hash::v08::get_user_operation_hash_entry_point,
+            bundler::Bundler,
+        };
+        use alloy::rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation;
+        let (
+            _,
+            _anvil_instance,
+            provider,
+            contracts,
+            signer_private_key,
+            _bundler,
+            bundler_client,
+        ) = {
+            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+            let config = TestInfraConfig {
+                signer_private_key: signer_private_key.clone(),
+            };
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+                &config,
+            )
+            .await?
+        };
+
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
+
+        let entry_point_address =
+            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+
+        let eoa_signer_address =
+            address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
+
+        let signers = vec![eoa_signer_address];
+
+        let eoa_signers = EOASigners {
+            addresses: signers,
+            validator_address: eoa_validator_address,
+        };
+
+        let address = deploy_account(
+            factory_address,
+            Some(eoa_signers),
+            None,
+            provider.clone(),
+        )
+        .await?;
+
+        println!("Account deployed: {:?}", address);
+
+        // Fund the account
+        {
+            let fund_tx = TransactionRequest::default()
+                .to(address)
+                .value(U256::from(10000000000000000000u64));
+            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
+        }
+
+        let webauthn_module = contracts.webauthn_validator;
+
+        let signer = {
+            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
+            let signer_private_key = signer_private_key.clone();
+            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
+                eoa_signature(&signer_private_key, eoa_validator_address, hash)
+            });
+            Signer { provider: signature_provider, stub_signature: stub_sig }
+        };
+
+        // Install WebAuthn validator
+        {
+            add_module(
+                address,
+                webauthn_module,
+                entry_point_address,
+                provider.clone(),
+                bundler_client.clone(),
+                signer.clone(),
+            )
+            .await?;
+
+            let is_web_authn_module_installed =
+                is_module_installed(webauthn_module, address, provider.clone())
+                    .await?;
+
+            eyre::ensure!(
+                is_web_authn_module_installed,
+                "WebAuthn module is not installed"
+            );
+        }
+
+        // Add passkey
+        let credential_id = bytes!("0x2868baa08431052f6c7541392a458f64");
+        let passkey = [
+            fixed_bytes!(
+                "0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40"
+            ),
+            fixed_bytes!(
+                "0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501"
+            ),
+        ];
+        let origin_domain = "https://example.com".to_string();
+
+        let passkey_payload = PasskeyPayload { credential_id, passkey, origin_domain };
+
+        add_passkey(
+            address,
+            passkey_payload,
+            webauthn_module,
+            entry_point_address,
+            provider.clone(),
+            bundler_client.clone(),
+            signer,
+        )
+        .await?;
+
+        println!("Passkey successfully added");
+
+        // ===== TWO-STEP FLOW STARTS HERE =====
+        
+        // Step 1: Build UserOperation and get hash to sign
+        println!("\nStep 1: Building UserOperation...");
+        
+        let call = {
+            let target = address;
+            let value = U256::from(1);
+            let data = Bytes::default();
+            Execution { target, value, data }
+        };
+
+        let calls = vec![call];
+        let call_data: Bytes = encode_calls(calls).into();
+
+        let nonce_key = alloy::primitives::Uint::from(0);
+        let nonce = get_nonce(entry_point_address, address, nonce_key, &provider).await?;
+
+        let stub_sig = stub_signature_passkey(webauthn_module)?;
+
+        // Build AlloyPackedUserOperation
+        let mut user_op = AlloyPackedUserOperation {
+            sender: address,
+            nonce,
+            paymaster: None,
+            paymaster_verification_gas_limit: None,
+            paymaster_data: None,
+            paymaster_post_op_gas_limit: None,
+            call_gas_limit: U256::from(100_000),
+            max_priority_fee_per_gas: U256::from(0x77359400),
+            max_fee_per_gas: U256::from(0x82e08afeu64),
+            pre_verification_gas: U256::from(50_000),
+            verification_gas_limit: U256::from(200_000),
+            factory: None,
+            factory_data: None,
+            call_data,
+            signature: stub_sig,
+        };
+
+        // Pack gas limits and fees for hashing
+        let packed_gas_limits: U256 =
+            (user_op.verification_gas_limit << 128) | user_op.call_gas_limit;
+        let gas_fees: U256 =
+            (user_op.max_priority_fee_per_gas << 128) | user_op.max_fee_per_gas;
+
+        let packed_user_op = PackedUserOperation {
+            sender: user_op.sender,
+            nonce: user_op.nonce,
+            initCode: Bytes::default(),
+            callData: user_op.call_data.clone(),
+            accountGasLimits: packed_gas_limits.to_be_bytes().into(),
+            preVerificationGas: user_op.pre_verification_gas,
+            gasFees: gas_fees.to_be_bytes().into(),
+            paymasterAndData: Bytes::default(),
+            signature: user_op.signature.clone(),
+        };
+
+        let hash = get_user_operation_hash_entry_point(
+            &packed_user_op,
+            &entry_point_address,
+            provider.clone(),
+        ).await?;
+
+        println!("UserOp hash to sign: {:?}", hash);
+
+        // Step 2: Sign the hash (simulate JavaScript calling the passkey)
+        println!("\nStep 2: Signing hash with passkey...");
+        
+        let passkey_signature = get_signature_from_js(hash.0.to_string())?;
+        println!("Passkey signature length: {} bytes", passkey_signature.len());
+        
+        // Prepend validator address (20 bytes) - THIS IS WHAT WASM DOES
+        let mut full_signature = Vec::new();
+        full_signature.extend_from_slice(webauthn_module.as_slice());
+        full_signature.extend_from_slice(&passkey_signature);
+        
+        println!("Full signature length: {} bytes (20 validator + {} passkey)", 
+            full_signature.len(), passkey_signature.len());
+
+        // Step 3: Update UserOp with signature and submit
+        println!("\nStep 3: Submitting UserOperation...");
+        
+        user_op.signature = Bytes::from(full_signature);
+
+        let user_op_hash = bundler_client
+            .send_user_operation(entry_point_address, user_op)
+            .await?;
+
+        println!("UserOperation submitted: {:?}", user_op_hash);
+
+        bundler_client
+            .wait_for_user_operation_receipt(user_op_hash)
+            .await?;
+
+        println!("Passkey transaction successfully sent (two-step)!");
 
         Ok(())
     }
