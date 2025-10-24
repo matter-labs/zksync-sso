@@ -17,6 +17,17 @@ crate-type = ["cdylib"]
 # Core dependency - exclude tokio-runtime for WASM compatibility
 zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core", default-features = false }
 
+# Alloy for primitives (keccak256, hex encoding)
+alloy.workspace = true
+alloy-provider.workspace = true
+alloy-transport = "1.0"
+alloy-transport-http = "1.0"
+alloy-json-rpc = "1.0"
+alloy-rpc-client = "1.0"
+
+# WASM HTTP client
+reqwasm = "0.5"
+
 # Uniffi for FFI bindings
 uniffi.workspace = true
 
@@ -44,9 +55,17 @@ hex = "0.4"
 getrandom = { version = "0.2", features = ["js"] }
 
 # Serialization (optional, for future use)
-serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
+serde = { workspace = true, optional = false }
+serde_json = { workspace = true, optional = false }
+
+# Tower for Service trait
+tower = "0.5"
+tracing-subscriber.workspace = true
+tracing-web = "0.1.3"
+
+# Explicitly add getrandom v0.2 with js feature for WASM (used by rand 0.8 from alloy)
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
 
 [features]
 default = []
-serde = ["dep:serde", "dep:serde_json"]

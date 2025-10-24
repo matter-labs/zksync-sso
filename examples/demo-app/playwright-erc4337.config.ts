@@ -1,19 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
-
-/**
- * See https://playwright.dev/docs/test-configuration.
+ * Playwright configuration for ERC-4337 web SDK tests.
+ * This config is specifically for testing the web-sdk-test page
+ * which tests deploy, fund, and transfer operations.
  */
 export default defineConfig({
   testDir: "./tests",
-  testMatch: "**/create-account.spec.ts",
+  /* Only run the web-sdk-test spec */
+  testMatch: "**/web-sdk-test.spec.ts",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -46,12 +41,6 @@ export default defineConfig({
     {
       command: "pnpm nx preview demo-app",
       url: "http://localhost:3004",
-      reuseExistingServer: !process.env.CI,
-      timeout: 180_000,
-    },
-    {
-      command: "pnpm nx preview auth-server",
-      url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
     },

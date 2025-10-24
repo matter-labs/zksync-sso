@@ -20,6 +20,24 @@
       },
       "dependsOn": ["deploy-contracts"]
     },
+    "dev:erc4337": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "pnpm nx dev auth-server",
+            "prefix": "Auth-Server:"
+          },
+
+          {
+            "command": "PORT=3004 nuxt dev",
+            "prefix": "Demo-App:"
+          }
+        ]
+      },
+      "dependsOn": ["deploy-contracts-erc4337"]
+    },
     "build": {
       "executor": "nx:run-commands",
       "options": {
@@ -32,11 +50,30 @@
       },
       "dependsOn": ["deploy-contracts"]
     },
+    "build:erc4337": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "pnpm nuxt generate"
+          }
+        ]
+      },
+      "dependsOn": ["deploy-contracts-erc4337"]
+    },
     "build-contracts": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
         "command": "FOUNDRY_LOG=trace forge build smart-contracts/ --root . --zksync"
+      }
+    },
+    "build-erc4337-contracts": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/erc4337-contracts",
+        "command": "forge build"
       }
     },
     "deploy-contracts": {
@@ -46,6 +83,22 @@
         "command": "forge create smart-contracts/DemoPaymaster.sol:DemoPaymaster --private-key 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110 --rpc-url http://localhost:8011 --root . --chain 260 --zksync --json 2>&1 | sed -n 's/.*\\({.*}\\).*/\\1/p' > forge-output-paymaster.json && ADDRESS=$(sed -n 's/.*\"deployedTo\":\"\\([^\"]*\\)\".*/\\1/p' forge-output-paymaster.json) && echo \"DemoPaymaster deployed to: $ADDRESS\" && cast send --private-key 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110 $ADDRESS --rpc-url http://localhost:8011 --value 0.1ether && forge create smart-contracts/ERC1271Caller.sol:ERC1271Caller --private-key 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110 --rpc-url http://localhost:8011 --root . --chain 260 --zksync --json 2>&1 | sed -n 's/.*\\({.*}\\).*/\\1/p' > forge-output-erc1271.json && ADDRESS=$(sed -n 's/.*\"deployedTo\":\"\\([^\"]*\\)\".*/\\1/p' forge-output-erc1271.json) && echo \"ERC1271Caller deployed to: $ADDRESS\""
       },
       "dependsOn": ["build-contracts"]
+    },
+    "deploy-contracts-erc4337": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "echo '{\"deployedTo\":\"0x0000000000000000000000000000000000000000\"}' > forge-output-paymaster.json && echo '{\"deployedTo\":\"0x0000000000000000000000000000000000000000\"}' > forge-output-erc1271.json && echo 'Created stub contract JSONs for ERC-4337 build'"
+      },
+      "dependsOn": ["deploy-msa-factory"]
+    },
+    "deploy-msa-factory": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "./scripts/deploy-msa-anvil.sh"
+      },
+      "dependsOn": ["build-erc4337-contracts"]
     },
     "build:local": {
       "executor": "nx:run-commands",
@@ -80,13 +133,29 @@
       },
       "dependsOn": ["deploy-contracts"]
     },
+    "e2e:setup:erc4337": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "pnpm exec playwright install chromium"
+      },
+      "dependsOn": ["deploy-contracts-erc4337"]
+    },
     "e2e": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
-        "command": "playwright test"
+        "command": "playwright test --config=playwright.config.ts"
       },
       "dependsOn": ["e2e:setup"]
+    },
+    "e2e:erc4337": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "playwright test --config=playwright-erc4337.config.ts"
+      },
+      "dependsOn": ["e2e:setup:erc4337"]
     },
     "e2e:debug": {
       "executor": "nx:run-commands",
