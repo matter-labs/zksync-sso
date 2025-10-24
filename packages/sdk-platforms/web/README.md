@@ -10,11 +10,6 @@ WebAssembly-powered SDK for zkSync SSO ERC-4337 integration in web applications.
 This package provides TypeScript bindings for a
 Rust/WebAssembly implementation of zkSync SSO ERC-4337 functionality.
 
-## Current Status
-
-This package provides TypeScript bindings for a
-Rust/WebAssembly implementation of zkSync SSO ERC-4337 functionality.
-
 **What's Working:**
 
 - ✅ WASM module builds successfully for bundler and Node.js targets
