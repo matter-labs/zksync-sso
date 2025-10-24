@@ -77,8 +77,8 @@ pub fn pack_gas_fees(
 pub const TEST_PRIVATE_KEY: &str =
     "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
 pub const TEST_USER_OP_HASH: &str =
-    "0xca561def4a003f59a3937b8a8bbcb19a97bf3714f32ccb164c98937fe7b7d942";
-pub const TEST_EXPECTED_SIGNATURE: &str = "0x53353e26dd66f04e501ec4d041ce02081765695d0c101f773fef2a80e629eaa80766ef53bcbce0a085854a9bd25d3e9cbbd0ce08fc6870173600f0b83acf59361b";
+    "0x2df06416b0a74c9125b57736a863665a767570fa3a5958735ddf2cc325a23a3e";
+pub const TEST_EXPECTED_SIGNATURE: &str = "0xe78c2d68677789bdb8e636848e81c7143301c98828c0730f89e1e2ecbb11ddac483d48515fc52d1b9b98ad59c47a41dc160ee8235435c415f44a44c77a9ed7811b";
 
 pub fn load_userop_from_fixture(
     json_path: &str,
