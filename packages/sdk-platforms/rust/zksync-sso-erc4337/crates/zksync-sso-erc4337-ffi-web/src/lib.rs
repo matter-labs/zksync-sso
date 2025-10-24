@@ -51,7 +51,8 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-static USER_OPS: Lazy<Mutex<HashMap<String, AlloyPackedUserOperation>>> =
+// Store both the UserOp and the validator address
+static USER_OPS: Lazy<Mutex<HashMap<String, (AlloyPackedUserOperation, Address)>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 // Test function to verify WASM is working
@@ -1027,10 +1028,21 @@ pub fn prepare_passkey_user_operation(
 
         console_log!("  UserOperation hash: {:?}", hash);
 
-        // Store the AlloyPackedUserOperation in a global map so we can retrieve it later
+        // Parse validator address to store with UserOp
+        let validator = match webauthn_validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid validator address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Store the AlloyPackedUserOperation and validator address in a global map
         // For now, we'll use the hash as the ID
         let hash_str = format!("{:?}", hash);
-        USER_OPS.lock().unwrap().insert(hash_str.clone(), user_op);
+        USER_OPS.lock().unwrap().insert(hash_str.clone(), (user_op, validator));
 
         // Return JSON with hash and userOpId
         let result = format!(
@@ -1071,11 +1083,11 @@ pub fn submit_passkey_user_operation(
             }
         }
 
-        // Retrieve the AlloyPackedUserOperation from storage
-        let mut user_op = {
+        // Retrieve the AlloyPackedUserOperation and validator address from storage
+        let (mut user_op, validator_address) = {
             let mut map = USER_OPS.lock().unwrap();
             match map.remove(&user_op_id) {
-                Some(op) => op,
+                Some(data) => data,
                 None => {
                     return Ok(JsValue::from_str(&format!(
                         "UserOperation not found for ID: {}",
@@ -1099,8 +1111,16 @@ pub fn submit_passkey_user_operation(
 
         console_log!("  Signature length: {} bytes", signature.len());
 
-        // Update UserOperation with real signature
-        user_op.signature = signature;
+        // Prepend validator address to signature (ModularSmartAccount expects first 20 bytes to be validator)
+        let mut full_signature = Vec::new();
+        full_signature.extend_from_slice(validator_address.as_slice()); // 20 bytes
+        full_signature.extend_from_slice(&signature); // ABI-encoded passkey signature
+        
+        console_log!("  Full signature length: {} bytes (20 validator + {} passkey)", 
+            full_signature.len(), signature.len());
+
+        // Update UserOperation with full signature (validator address + passkey signature)
+        user_op.signature = Bytes::from(full_signature);
 
         // Create bundler client
         let bundler_client = {

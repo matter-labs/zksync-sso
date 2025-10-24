@@ -1242,7 +1242,7 @@ async function sendFromSmartAccountWithPasskey() {
     rpName: window.location.hostname,
     rpID: window.location.hostname,
     origin: window.location.origin,
-    userVerification: "discouraged",
+    userVerification: "required", // Required to set UV flag in authenticatorData
     allowCredentials: [{
       id: credentialIdBase64url,
       type: "public-key",
@@ -1251,6 +1251,57 @@ async function sendFromSmartAccountWithPasskey() {
 
   // eslint-disable-next-line no-console
   console.log("  Passkey signature received");
+
+  // Verify the signature in JavaScript before sending to Rust
+  // eslint-disable-next-line no-console
+  console.log("Step 2.5: Verifying signature in JavaScript...");
+
+  try {
+    const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
+
+    // Reconstruct the public key in COSE format
+    // COSE P-256 public key format is a CBOR map with specific integer keys
+    const x = hexToBytes(passkeyConfig.value.passkeyX);
+    const y = hexToBytes(passkeyConfig.value.passkeyY);
+
+    // Build COSE key structure manually
+    // CBOR encoding: Map with keys: 1 (kty), 3 (alg), -1 (crv), -2 (x), -3 (y)
+    const cosePublicKey = new Uint8Array([
+      0xA5, // Map with 5 items
+      0x01, 0x02, // kty: 2 (EC2)
+      0x03, 0x26, // alg: -7 (ES256)
+      0x20, 0x01, // crv: 1 (P-256)
+      0x21, 0x58, 0x20, ...x, // -2: x (32 bytes)
+      0x22, 0x58, 0x20, ...y, // -3: y (32 bytes)
+    ]);
+
+    const verification = await verifyAuthenticationResponse({
+      response: authResponse,
+      expectedChallenge: challengeBase64url,
+      expectedOrigin: passkeyConfig.value.originDomain || window.location.origin,
+      expectedRPID: window.location.hostname,
+      requireUserVerification: true, // Require user verification to match contract
+      credential: {
+        id: passkeyConfig.value.credentialId.slice(2), // Remove 0x prefix
+        publicKey: cosePublicKey,
+        counter: 0,
+      },
+    });
+
+    // eslint-disable-next-line no-console
+    console.log("  JavaScript verification result:", verification.verified);
+
+    if (!verification.verified) {
+      throw new Error("Signature verification failed in JavaScript!");
+    }
+
+    // eslint-disable-next-line no-console
+    console.log("  ✓ Signature verified successfully in JavaScript");
+  } catch (verifyError) {
+    // eslint-disable-next-line no-console
+    console.error("  JavaScript verification error:", verifyError);
+    throw new Error(`Signature verification failed: ${verifyError.message}`);
+  }
 
   // Step 3: Encode the signature in the format expected by the validator
   // The WebAuthn validator expects ABI-encoded: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
