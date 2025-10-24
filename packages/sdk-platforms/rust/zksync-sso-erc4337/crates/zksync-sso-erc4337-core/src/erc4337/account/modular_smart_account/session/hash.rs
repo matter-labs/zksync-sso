@@ -16,7 +16,6 @@ mod tests {
     };
     use alloy::primitives::{U256, Uint, address, fixed_bytes};
 
-    #[ignore = "needs local infrastructure to be running"]
     #[test]
     fn test_hash_session() -> eyre::Result<()> {
         let expected_session_hash = fixed_bytes!(

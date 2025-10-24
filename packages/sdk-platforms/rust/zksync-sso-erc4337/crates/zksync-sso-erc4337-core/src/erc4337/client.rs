@@ -11,7 +11,7 @@ use alloy::{
 };
 
 #[cfg(test)]
-pub mod test_utils;
+pub mod alto_test_utils;
 
 #[derive(Debug, Clone)]
 pub struct Client<P> {

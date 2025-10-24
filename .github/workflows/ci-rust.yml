@@ -196,8 +196,11 @@ jobs:
           cargo clippy --all-targets -- -D warnings
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337
 
-      - name: Run rust tests
-        run: cargo test
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Run rust tests with nextest
+        run: cargo nextest run --profile ci --all-features
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337
 
   rust-sdk-erc4337-wasm:

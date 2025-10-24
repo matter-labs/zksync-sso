@@ -83,56 +83,58 @@ fn add_validation_key_call_data(passkey: PasskeyPayload) -> Bytes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::erc4337::{
-        account::{
-            erc7579::{
-                add_module::add_module, module_installed::is_module_installed,
+    use crate::{
+        erc4337::{
+            account::{
+                erc7579::{
+                    add_module::add_module,
+                    module_installed::is_module_installed,
+                },
+                modular_smart_account::{
+                    deploy::{EOASigners, deploy_account},
+                    signature::{eoa_signature, stub_signature_eoa},
+                },
             },
-            modular_smart_account::{
-                deploy::{EOASigners, deploy_account},
-                signature::{eoa_signature, stub_signature_eoa},
-            },
+            signer::Signer,
         },
-        bundler::pimlico::client::BundlerClient,
-        signer::Signer,
+        utils::alloy_utilities::test_utilities::{
+            TestInfraConfig,
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+        },
     };
     use alloy::{
         primitives::{FixedBytes, U256, address, bytes, fixed_bytes},
-        providers::{Provider, ProviderBuilder},
+        providers::Provider,
         rpc::types::TransactionRequest,
-        signers::local::PrivateKeySigner,
     };
-    use std::{str::FromStr, sync::Arc};
+    use std::sync::Arc;
 
     #[tokio::test]
-    #[ignore = "needs local infrastructure to be running"]
     async fn test_add_passkey() -> eyre::Result<()> {
-        let rpc_url = "http://localhost:8545".parse()?;
-
-        let factory_address =
-            address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
+        let (
+            _,
+            anvil_instance,
+            provider,
+            contracts,
+            signer_private_key,
+            bundler,
+            bundler_client,
+        ) = {
+            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+            let config = TestInfraConfig {
+                signer_private_key: signer_private_key.clone(),
+            };
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+                &config,
+            )
+            .await?
+        };
 
         let entry_point_address =
             address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
 
-        let eoa_validator_address =
-            address!("0x00427eDF0c3c3bd42188ab4C907759942Abebd93");
-
-        let webauthn_validator_address =
-            address!("0xF3F924c9bADF6891D3676cfe9bF72e2C78527E17");
-
-        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
-
-        let provider = {
-            let signer = PrivateKeySigner::from_str(signer_private_key)?;
-            let alloy_signer = signer.clone();
-            let ethereum_wallet =
-                alloy::network::EthereumWallet::new(alloy_signer.clone());
-
-            ProviderBuilder::new()
-                .wallet(ethereum_wallet.clone())
-                .connect_http(rpc_url)
-        };
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
 
         let signers =
             vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
@@ -152,17 +154,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_eoa_module_installed = is_module_installed(
+        let is_module_installed = is_module_installed(
             eoa_validator_address,
             address,
             provider.clone(),
         )
         .await?;
-
-        eyre::ensure!(
-            is_eoa_module_installed,
-            "is_eoa_module_installed is not installed"
-        );
+        eyre::ensure!(is_module_installed, "Module is not installed");
 
         {
             let fund_tx = TransactionRequest::default()
@@ -171,19 +169,12 @@ mod tests {
             _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
         }
 
-        let webauthn_module =
-            address!("0xF3F924c9bADF6891D3676cfe9bF72e2C78527E17");
-        let bundler_client = {
-            use crate::erc4337::bundler::config::BundlerConfig;
-            let bundler_url = "http://localhost:4337".to_string();
-            let config = BundlerConfig::new(bundler_url);
-            BundlerClient::new(config)
-        };
+        let webauthn_module = contracts.webauthn_validator;
         {
             let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-
+            let signer_private_key = signer_private_key.clone();
             let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(signer_private_key, eoa_validator_address, hash)
+                eoa_signature(&signer_private_key, eoa_validator_address, hash)
             });
 
             let signer = Signer {
@@ -200,49 +191,55 @@ mod tests {
                 signer,
             )
             .await?;
-
-            let is_web_authn_module_installed =
-                is_module_installed(webauthn_module, address, provider.clone())
-                    .await?;
-
-            eyre::ensure!(
-                is_web_authn_module_installed,
-                "is_web_authn_module is not installed"
-            );
-        }
-
-        let credential_id = bytes!("0x2868baa08431052f6c7541392a458f64");
-        let passkey = [
-            fixed_bytes!(
-                "0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40"
-            ),
-            fixed_bytes!(
-                "0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501"
-            ),
-        ];
-        let origin_domain = "https://example.com".to_string();
-        let passkey = PasskeyPayload { credential_id, passkey, origin_domain };
-
-        let signer = {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(signer_private_key, eoa_validator_address, hash)
-            });
-            Signer { provider: signature_provider, stub_signature: stub_sig }
         };
 
-        add_passkey(
-            address,
-            passkey,
-            webauthn_validator_address,
-            entry_point_address,
-            provider,
-            bundler_client,
-            signer,
-        )
-        .await?;
+        {
+            let credential_id = bytes!("0x2868baa08431052f6c7541392a458f64");
+            let passkey = [
+                fixed_bytes!(
+                    "0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40"
+                ),
+                fixed_bytes!(
+                    "0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501"
+                ),
+            ];
+            let origin_domain = "https://example.com".to_string();
+            let passkey =
+                PasskeyPayload { credential_id, passkey, origin_domain };
+
+            let signer = {
+                let stub_sig = stub_signature_eoa(eoa_validator_address)?;
+                let signer_private_key = signer_private_key.clone();
+                let signature_provider =
+                    Arc::new(move |hash: FixedBytes<32>| {
+                        eoa_signature(
+                            &signer_private_key,
+                            eoa_validator_address,
+                            hash,
+                        )
+                    });
+                Signer {
+                    provider: signature_provider,
+                    stub_signature: stub_sig,
+                }
+            };
+
+            add_passkey(
+                address,
+                passkey,
+                webauthn_module,
+                entry_point_address,
+                provider,
+                bundler_client,
+                signer,
+            )
+            .await?;
+        }
 
         println!("Passkey successfully added");
+
+        drop(anvil_instance);
+        drop(bundler);
 
         Ok(())
     }

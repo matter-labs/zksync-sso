@@ -1,0 +1,21 @@
+[profile.default]
+# Show test output for failing tests
+failure-output = "immediate"
+# Show test output for successful tests
+success-output = "never"
+# Show test output while tests are running
+status-level = "pass"
+# Number of retries for failed tests
+retries = 0
+# Run all tests sequentially (no parallel execution)
+test-threads = 1
+
+[profile.ci]
+# In CI, show output for all tests
+failure-output = "immediate-final"
+success-output = "never"
+status-level = "pass"
+# Enable JUnit output for CI
+# The path is relative to the workspace root
+# Run all tests sequentially in CI as well
+test-threads = 1

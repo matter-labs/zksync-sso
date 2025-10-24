@@ -137,47 +137,49 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::erc4337::account::{
-        erc7579::{
-            Execution, calls::encode_calls,
-            module_installed::is_module_installed,
+    use crate::{
+        erc4337::account::{
+            erc7579::{
+                Execution, calls::encode_calls,
+                module_installed::is_module_installed,
+            },
+            modular_smart_account::deploy::{EOASigners, deploy_account},
         },
-        modular_smart_account::deploy::{EOASigners, deploy_account},
+        utils::alloy_utilities::test_utilities::{
+            TestInfraConfig,
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+        },
     };
     use alloy::{
         primitives::{Bytes, U256, address},
-        providers::ProviderBuilder,
         rpc::types::TransactionRequest,
-        signers::local::PrivateKeySigner,
     };
-    use std::str::FromStr;
 
     #[tokio::test]
-    #[ignore = "needs local infrastructure to be running"]
     async fn test_send_transaction_contracts() -> eyre::Result<()> {
-        let rpc_url = "http://localhost:8545".parse()?;
-
-        let factory_address =
-            address!("0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3");
+        let (
+            _,
+            anvil_instance,
+            provider,
+            contracts,
+            signer_private_key,
+            bundler,
+            bundler_client,
+        ) = {
+            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+                &TestInfraConfig {
+                    signer_private_key: signer_private_key.clone(),
+                },
+            )
+            .await?
+        };
 
         let entry_point_address =
             address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
 
-        let eoa_validator_address =
-            address!("0x00427eDF0c3c3bd42188ab4C907759942Abebd93");
-
-        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
-
-        let provider = {
-            let signer = PrivateKeySigner::from_str(signer_private_key)?;
-            let alloy_signer = signer.clone();
-            let ethereum_wallet =
-                alloy::network::EthereumWallet::new(alloy_signer.clone());
-
-            ProviderBuilder::new()
-                .wallet(ethereum_wallet.clone())
-                .connect_http(rpc_url)
-        };
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
 
         let signers =
             vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
@@ -215,13 +217,6 @@ mod tests {
 
         let calls = vec![call];
 
-        let bundler_client = {
-            use crate::erc4337::bundler::config::BundlerConfig;
-            let bundler_url = "http://localhost:4337".to_string();
-            let config = BundlerConfig::new(bundler_url);
-            BundlerClient::new(config)
-        };
-
         {
             let fund_tx = TransactionRequest::default()
                 .to(address)
@@ -241,6 +236,9 @@ mod tests {
             signer_private_key.to_string(),
         )
         .await?;
+
+        drop(bundler);
+        drop(anvil_instance);
 
         Ok(())
     }
