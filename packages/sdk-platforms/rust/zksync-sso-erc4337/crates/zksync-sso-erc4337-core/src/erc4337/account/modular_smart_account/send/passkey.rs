@@ -270,12 +270,11 @@ pub mod tests {
     async fn test_send_transaction_webauthn_two_step() -> eyre::Result<()> {
         use crate::erc4337::{
             account::modular_smart_account::{
-                signature::stub_signature_passkey,
-                nonce::get_nonce,
+                nonce::get_nonce, signature::stub_signature_passkey,
             },
+            bundler::Bundler,
             entry_point::EntryPoint::PackedUserOperation,
             user_operation::hash::v08::get_user_operation_hash_entry_point,
-            bundler::Bundler,
         };
         use alloy::rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation;
         let (
@@ -376,7 +375,8 @@ pub mod tests {
         ];
         let origin_domain = "https://example.com".to_string();
 
-        let passkey_payload = PasskeyPayload { credential_id, passkey, origin_domain };
+        let passkey_payload =
+            PasskeyPayload { credential_id, passkey, origin_domain };
 
         add_passkey(
             address,
@@ -392,10 +392,10 @@ pub mod tests {
         println!("Passkey successfully added");
 
         // ===== TWO-STEP FLOW STARTS HERE =====
-        
+
         // Step 1: Build UserOperation and get hash to sign
         println!("\nStep 1: Building UserOperation...");
-        
+
         let call = {
             let target = address;
             let value = U256::from(1);
@@ -407,7 +407,9 @@ pub mod tests {
         let call_data: Bytes = encode_calls(calls).into();
 
         let nonce_key = alloy::primitives::Uint::from(0);
-        let nonce = get_nonce(entry_point_address, address, nonce_key, &provider).await?;
+        let nonce =
+            get_nonce(entry_point_address, address, nonce_key, &provider)
+                .await?;
 
         let stub_sig = stub_signature_passkey(webauthn_module)?;
 
@@ -452,27 +454,31 @@ pub mod tests {
             &packed_user_op,
             &entry_point_address,
             provider.clone(),
-        ).await?;
+        )
+        .await?;
 
         println!("UserOp hash to sign: {:?}", hash);
 
         // Step 2: Sign the hash (simulate JavaScript calling the passkey)
         println!("\nStep 2: Signing hash with passkey...");
-        
+
         let passkey_signature = get_signature_from_js(hash.0.to_string())?;
         println!("Passkey signature length: {} bytes", passkey_signature.len());
-        
+
         // Prepend validator address (20 bytes) - THIS IS WHAT WASM DOES
         let mut full_signature = Vec::new();
         full_signature.extend_from_slice(webauthn_module.as_slice());
         full_signature.extend_from_slice(&passkey_signature);
-        
-        println!("Full signature length: {} bytes (20 validator + {} passkey)", 
-            full_signature.len(), passkey_signature.len());
+
+        println!(
+            "Full signature length: {} bytes (20 validator + {} passkey)",
+            full_signature.len(),
+            passkey_signature.len()
+        );
 
         // Step 3: Update UserOp with signature and submit
         println!("\nStep 3: Submitting UserOperation...");
-        
+
         user_op.signature = Bytes::from(full_signature);
 
         let user_op_hash = bundler_client
@@ -481,9 +487,7 @@ pub mod tests {
 
         println!("UserOperation submitted: {:?}", user_op_hash);
 
-        bundler_client
-            .wait_for_user_operation_receipt(user_op_hash)
-            .await?;
+        bundler_client.wait_for_user_operation_receipt(user_op_hash).await?;
 
         println!("Passkey transaction successfully sent (two-step)!");
 
