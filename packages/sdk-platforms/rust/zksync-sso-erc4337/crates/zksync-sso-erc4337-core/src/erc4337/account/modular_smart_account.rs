@@ -19,8 +19,8 @@ sol!(
     #[derive(Debug, Default)]
     #[allow(missing_docs)]
     #[sol(rpc)]
-    IMSA,
-    "../../../../../../packages/erc4337-contracts/out/IMSA.sol/IMSA.json"
+    ModularSmartAccount,
+    "../../../../../../packages/erc4337-contracts/out/ModularSmartAccount.sol/ModularSmartAccount.json"
 );
 
 sol!(

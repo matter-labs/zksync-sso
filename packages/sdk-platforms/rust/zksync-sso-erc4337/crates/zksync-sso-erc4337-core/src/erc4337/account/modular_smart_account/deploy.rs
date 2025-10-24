@@ -1,7 +1,7 @@
 use crate::erc4337::{
     account::modular_smart_account::{
-        IMSA::initializeAccountCall,
         MSAFactory::{self, deployAccountCall},
+        ModularSmartAccount::initializeAccountCall,
         add_passkey::PasskeyPayload,
     },
     utils::check_deployed::{Contract, check_contract_deployed},
