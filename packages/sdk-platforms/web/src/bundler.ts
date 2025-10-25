@@ -3,6 +3,7 @@ import * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
 
 export * from "./client";
 export * from "./types";
+export * from "./webauthn";
 
 import { setWasmBindings } from "./client";
 
@@ -16,7 +17,10 @@ export const {
   compute_smart_account_address,
   test_http_transport,
   deploy_account,
+  add_passkey_to_account,
   send_transaction_eoa,
+  prepare_passkey_user_operation,
+  submit_passkey_user_operation,
   Client,
   Config,
   Contracts,

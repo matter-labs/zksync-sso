@@ -5131,6 +5131,7 @@ dependencies = [
  "hex",
  "js-sys",
  "log",
+ "once_cell",
  "reqwasm",
  "serde",
  "serde_json",
