@@ -1184,6 +1184,92 @@ async function sendFromSmartAccountWithPasskey() {
   // Convert amount to wei (as string)
   const amountWei = (BigInt(parseFloat(txParams.value.amount) * 1e18)).toString();
 
+  // Step 0: Create a stub signature with all-zeros hash for gas estimation
+  // This ensures gas estimation uses a real passkey signature format
+  // eslint-disable-next-line no-console
+  console.log("Step 0: Creating stub signature for gas estimation...");
+  // eslint-disable-next-line no-console
+  console.log("  Please touch your security key to create the stub signature...");
+
+  const allZerosBytes = new Uint8Array(32); // All zeros
+  const allZerosBase64url = uint8ArrayToBase64url(allZerosBytes);
+
+  // Convert credential ID from hex to base64url
+  const credentialIdBytes = hexToBytes(passkeyConfig.value.credentialId);
+  const credentialIdBase64url = uint8ArrayToBase64url(credentialIdBytes);
+
+  const stubAuthResponse = await startAuthentication({
+    optionsJSON: {
+      challenge: allZerosBase64url,
+      timeout: 60000,
+      userVerification: "required",
+      rpId: window.location.hostname,
+      allowCredentials: [{
+        id: credentialIdBase64url,
+        type: "public-key",
+      }],
+    },
+  });
+
+  // Encode the stub signature in the format expected by the validator
+  const stubAuthenticatorData = base64urlToUint8Array(stubAuthResponse.response.authenticatorData);
+  const stubClientDataJSONBytes = base64urlToUint8Array(stubAuthResponse.response.clientDataJSON);
+  const stubClientDataJSON = new TextDecoder().decode(stubClientDataJSONBytes);
+  const stubSignatureBytes = base64urlToUint8Array(stubAuthResponse.response.signature);
+
+  // Parse DER signature to extract r and s for stub
+  let stubOffset = 0;
+  if (stubSignatureBytes[stubOffset++] !== 0x30)
+    throw new Error("Invalid DER signature format");
+  stubOffset++; // Skip total length
+
+  if (stubSignatureBytes[stubOffset++] !== 0x02)
+    throw new Error("Invalid DER signature format (r marker)");
+  const stubRLength = stubSignatureBytes[stubOffset++];
+  let stubR = stubSignatureBytes.slice(stubOffset, stubOffset + stubRLength);
+  stubOffset += stubRLength;
+
+  if (stubSignatureBytes[stubOffset++] !== 0x02)
+    throw new Error("Invalid DER signature format (s marker)");
+  const stubSLength = stubSignatureBytes[stubOffset++];
+  let stubS = stubSignatureBytes.slice(stubOffset, stubOffset + stubSLength);
+
+  // Strip leading 0x00 bytes
+  while (stubR.length > 32 && stubR[0] === 0x00) stubR = stubR.slice(1);
+  while (stubS.length > 32 && stubS[0] === 0x00) stubS = stubS.slice(1);
+
+  if (stubR.length > 32 || stubS.length > 32)
+    throw new Error("Invalid signature: r or s too long");
+
+  // Convert r and s to bytes32 (pad to 32 bytes)
+  const stubRPadded = new Uint8Array(32);
+  const stubSPadded = new Uint8Array(32);
+  stubRPadded.set(stubR, 32 - stubR.length);
+  stubSPadded.set(stubS, 32 - stubS.length);
+
+  const stubCredentialId = hexToBytes(passkeyConfig.value.credentialId);
+
+  // ABI encode the stub signature
+  const { ethers } = await import("ethers");
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+
+  const stubSignatureEncoded = abiCoder.encode(
+    ["bytes", "string", "bytes32[2]", "bytes"],
+    [
+      stubAuthenticatorData,
+      stubClientDataJSON,
+      [stubRPadded, stubSPadded],
+      stubCredentialId,
+    ],
+  );
+
+  // Prepend the validator address (20 bytes)
+  const validatorBytes = hexToBytes(webauthnValidatorAddress);
+  const stubSignatureWithValidator = ethers.concat([validatorBytes, stubSignatureEncoded]);
+
+  // eslint-disable-next-line no-console
+  console.log("  Stub signature created:", stubSignatureWithValidator.length, "bytes");
+
   // Step 1: Prepare UserOperation and get hash to sign
   const sendConfig = new SendTransactionConfig(
     rpcUrl,
@@ -1201,6 +1287,7 @@ async function sendFromSmartAccountWithPasskey() {
     txParams.value.to,
     amountWei,
     null, // data (null for simple transfer)
+    stubSignatureWithValidator, // Pass the stub signature
   );
 
   // eslint-disable-next-line no-console
@@ -1232,10 +1319,7 @@ async function sendFromSmartAccountWithPasskey() {
   // Convert bytes to base64url for SimpleWebAuthn
   const challengeBase64url = uint8ArrayToBase64url(challengeBytes);
 
-  // Convert credential ID from hex to base64url
-  const credentialIdBytes = hexToBytes(passkeyConfig.value.credentialId);
-  const credentialIdBase64url = uint8ArrayToBase64url(credentialIdBytes);
-
+  // Reuse credential ID base64url from Step 0
   const authResponse = await startAuthentication({ optionsJSON: {
     challenge: challengeBase64url,
     rpId: window.location.hostname,
@@ -1244,7 +1328,7 @@ async function sendFromSmartAccountWithPasskey() {
     origin: window.location.origin,
     userVerification: "required", // Required to set UV flag in authenticatorData
     allowCredentials: [{
-      id: credentialIdBase64url,
+      id: credentialIdBase64url, // Reuse from Step 0
       type: "public-key",
     }],
   } });
@@ -1350,8 +1434,8 @@ async function sendFromSmartAccountWithPasskey() {
   rPadded.set(r, 32 - r.length); // Right-align (pad left)
   sPadded.set(s, 32 - s.length);
 
-  // Get credential ID
-  const credentialId = hexToBytes(passkeyConfig.value.credentialId);
+  // Get credential ID (reuse from Step 0)
+  const credentialIdForEncoding = hexToBytes(passkeyConfig.value.credentialId);
 
   // eslint-disable-next-line no-console
   console.log("  Debug signature components:");
@@ -1364,14 +1448,11 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("    s length:", sPadded.length, "first bytes:", Array.from(sPadded.slice(0, 4)));
   // eslint-disable-next-line no-console
-  console.log("    credentialId length:", credentialId.length);
+  console.log("    credentialId length:", credentialIdForEncoding.length);
   // eslint-disable-next-line no-console
   console.log("    Passkey config:", passkeyConfig.value);
 
-  // ABI encode the signature using ethers
-  const { ethers } = await import("ethers");
-  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
-
+  // ABI encode the signature using ethers (reuse from Step 0)
   // Encode: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
   const signatureEncoded = abiCoder.encode(
     ["bytes", "string", "bytes32[2]", "bytes"],
@@ -1379,7 +1460,7 @@ async function sendFromSmartAccountWithPasskey() {
       authenticatorData,
       clientDataJSON,
       [rPadded, sPadded],
-      credentialId,
+      credentialIdForEncoding,
     ],
   );
 

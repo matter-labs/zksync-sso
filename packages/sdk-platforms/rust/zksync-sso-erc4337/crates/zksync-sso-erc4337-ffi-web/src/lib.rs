@@ -800,6 +800,7 @@ pub fn send_transaction_eoa(
 /// * `to_address` - The recipient address
 /// * `value` - Amount to send (as string, e.g., "1000000000000000000" for 1 ETH)
 /// * `data` - Optional calldata as hex string
+/// * `stub_signature_hex` - A real passkey signature created with all-zeros hash (for gas estimation)
 ///
 /// # Returns
 /// JSON string with format: `{"hash": "0x...", "userOpId": "..."}`
@@ -812,6 +813,7 @@ pub fn prepare_passkey_user_operation(
     to_address: String,
     value: String,
     data: Option<String>,
+    stub_signature_hex: String,
 ) -> js_sys::Promise {
     future_to_promise(async move {
         console_log!("Preparing passkey UserOperation...");
@@ -956,15 +958,19 @@ pub fn prepare_passkey_user_operation(
                 }
             };
 
-        let stub_sig = match stub_signature_passkey(webauthn_validator) {
-            Ok(sig) => sig,
+        // Parse the stub signature (should be a real passkey signature with all-zeros hash)
+        let stub_sig_hex = stub_signature_hex.trim_start_matches("0x");
+        let stub_sig = match hex::decode(stub_sig_hex) {
+            Ok(bytes) => Bytes::from(bytes),
             Err(e) => {
                 return Ok(JsValue::from_str(&format!(
-                    "Failed to create stub signature: {}",
+                    "Invalid stub signature hex: {}",
                     e
                 )));
             }
         };
+
+        console_log!("  Using stub signature for gas estimation: {} bytes", stub_sig.len());
 
         // Create AlloyPackedUserOperation for gas estimation (has unpacked fields)
         let mut user_op = AlloyPackedUserOperation {
@@ -985,15 +991,42 @@ pub fn prepare_passkey_user_operation(
             factory_data: None,
         };
 
-        // Skip gas estimation for now and use fixed values (for debugging)
-        console_log!("  Skipping gas estimation, using fixed values...");
+        // Create bundler client for gas estimation
+        console_log!("  Estimating gas...");
+        use zksync_sso_erc4337_core::erc4337::bundler::{
+            Bundler,
+            pimlico::client::{BundlerClient, BundlerConfig},
+        };
 
-        // Use fixed gas values similar to what the test uses
-        user_op.call_gas_limit = U256::from(100_000);
-        user_op.verification_gas_limit = U256::from(200_000);
-        user_op.pre_verification_gas = U256::from(50_000);
-        user_op.max_priority_fee_per_gas = U256::from(1_000_000_000); // 1 gwei
-        user_op.max_fee_per_gas = U256::from(3_000_000_000u64); // 3 gwei
+        let bundler_config = BundlerConfig::new(config.bundler_url.clone());
+        let bundler_client = BundlerClient::new(bundler_config);
+
+        let estimated_gas = match bundler_client
+            .estimate_user_operation_gas(&user_op, &entry_point)
+            .await
+        {
+            Ok(gas) => gas,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Failed to estimate gas: {}. Make sure the passkey is registered and the account is funded.",
+                    e
+                )));
+            }
+        };
+
+        console_log!("  Estimated gas: call={}, verification={}, preVerification={}", 
+            estimated_gas.call_gas_limit,
+            estimated_gas.verification_gas_limit,
+            estimated_gas.pre_verification_gas
+        );
+
+        // Update with estimated gas values (with 20% buffer on verification gas like the working test)
+        user_op.call_gas_limit = estimated_gas.call_gas_limit;
+        user_op.verification_gas_limit =
+            (estimated_gas.verification_gas_limit * U256::from(6)) / U256::from(5);
+        user_op.pre_verification_gas = estimated_gas.pre_verification_gas;
+        user_op.max_priority_fee_per_gas = U256::from(0x77359400);
+        user_op.max_fee_per_gas = U256::from(0x82e08afeu64);
 
         console_log!(
             "  Using gas limits: call={}, verification={}, preVerification={}",
