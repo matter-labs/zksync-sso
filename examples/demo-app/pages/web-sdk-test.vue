@@ -1184,101 +1184,36 @@ async function sendFromSmartAccountWithPasskey() {
   // Convert amount to wei (as string)
   const amountWei = (BigInt(parseFloat(txParams.value.amount) * 1e18)).toString();
 
-  // Step 0: Create a stub signature with all-zeros hash for gas estimation
-  // This ensures gas estimation uses a real passkey signature format
+  // Step 0: Get the UserOp hash WITHOUT gas estimation first
+  // We'll use a simple approach: build UserOp with placeholder gas values,
+  // get the hash, sign it, then estimate gas with the real signature
   // eslint-disable-next-line no-console
-  console.log("Step 0: Creating stub signature for gas estimation...");
-  // eslint-disable-next-line no-console
-  console.log("  Please touch your security key to create the stub signature...");
+  console.log("Step 0: Building UserOperation to get hash...");
 
-  const allZerosBytes = new Uint8Array(32); // All zeros
-  const allZerosBase64url = uint8ArrayToBase64url(allZerosBytes);
-
-  // Convert credential ID from hex to base64url
-  const credentialIdBytes = hexToBytes(passkeyConfig.value.credentialId);
-  const credentialIdBase64url = uint8ArrayToBase64url(credentialIdBytes);
-
-  const stubAuthResponse = await startAuthentication({
-    optionsJSON: {
-      challenge: allZerosBase64url,
-      timeout: 60000,
-      userVerification: "required",
-      rpId: window.location.hostname,
-      allowCredentials: [{
-        id: credentialIdBase64url,
-        type: "public-key",
-      }],
-    },
-  });
-
-  // Encode the stub signature in the format expected by the validator
-  const stubAuthenticatorData = base64urlToUint8Array(stubAuthResponse.response.authenticatorData);
-  const stubClientDataJSONBytes = base64urlToUint8Array(stubAuthResponse.response.clientDataJSON);
-  const stubClientDataJSON = new TextDecoder().decode(stubClientDataJSONBytes);
-  const stubSignatureBytes = base64urlToUint8Array(stubAuthResponse.response.signature);
-
-  // Parse DER signature to extract r and s for stub
-  let stubOffset = 0;
-  if (stubSignatureBytes[stubOffset++] !== 0x30)
-    throw new Error("Invalid DER signature format");
-  stubOffset++; // Skip total length
-
-  if (stubSignatureBytes[stubOffset++] !== 0x02)
-    throw new Error("Invalid DER signature format (r marker)");
-  const stubRLength = stubSignatureBytes[stubOffset++];
-  let stubR = stubSignatureBytes.slice(stubOffset, stubOffset + stubRLength);
-  stubOffset += stubRLength;
-
-  if (stubSignatureBytes[stubOffset++] !== 0x02)
-    throw new Error("Invalid DER signature format (s marker)");
-  const stubSLength = stubSignatureBytes[stubOffset++];
-  let stubS = stubSignatureBytes.slice(stubOffset, stubOffset + stubSLength);
-
-  // Strip leading 0x00 bytes
-  while (stubR.length > 32 && stubR[0] === 0x00) stubR = stubR.slice(1);
-  while (stubS.length > 32 && stubS[0] === 0x00) stubS = stubS.slice(1);
-
-  if (stubR.length > 32 || stubS.length > 32)
-    throw new Error("Invalid signature: r or s too long");
-
-  // Convert r and s to bytes32 (pad to 32 bytes)
-  const stubRPadded = new Uint8Array(32);
-  const stubSPadded = new Uint8Array(32);
-  stubRPadded.set(stubR, 32 - stubR.length);
-  stubSPadded.set(stubS, 32 - stubS.length);
-
-  const stubCredentialId = hexToBytes(passkeyConfig.value.credentialId);
-
-  // ABI encode the stub signature
+  // Import ethers for ABI encoding
   const { ethers } = await import("ethers");
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 
-  const stubSignatureEncoded = abiCoder.encode(
-    ["bytes", "string", "bytes32[2]", "bytes"],
-    [
-      stubAuthenticatorData,
-      stubClientDataJSON,
-      [stubRPadded, stubSPadded],
-      stubCredentialId,
-    ],
-  );
+  // Convert credential ID from hex to base64url for later use
+  const credentialIdBytes = hexToBytes(passkeyConfig.value.credentialId);
+  const credentialIdBase64url = uint8ArrayToBase64url(credentialIdBytes);
 
-  // Prepend the validator address (20 bytes)
-  const validatorBytes = hexToBytes(webauthnValidatorAddress);
-  const stubSignatureWithValidator = ethers.concat([validatorBytes, stubSignatureEncoded]);
-
-  // eslint-disable-next-line no-console
-  console.log("  Stub signature created:", stubSignatureWithValidator.length, "bytes");
-
-  // Step 1: Prepare UserOperation and get hash to sign
+  // Step 1: Prepare UserOperation with stub signature to get the hash
   const sendConfig = new SendTransactionConfig(
     rpcUrl,
     bundlerUrl,
     entryPointAddress,
   );
 
+  // Create a minimal stub signature (just validator address + zeros)
+  // This is only used to get the hash structure, not for validation
+  const validatorBytes = hexToBytes(webauthnValidatorAddress);
+  const minimalStub = new Uint8Array(564); // 20 validator + 544 passkey data
+  minimalStub.set(validatorBytes, 0);
+  const minimalStubHex = "0x" + Array.from(minimalStub).map((b) => b.toString(16).padStart(2, "0")).join("");
+
   // eslint-disable-next-line no-console
-  console.log("Step 1: Preparing UserOperation...");
+  console.log("  Calling prepare with minimal stub to get hash...");
 
   const prepareResult = await prepare_passkey_user_operation(
     sendConfig,
@@ -1287,7 +1222,7 @@ async function sendFromSmartAccountWithPasskey() {
     txParams.value.to,
     amountWei,
     null, // data (null for simple transfer)
-    stubSignatureWithValidator, // Pass the stub signature
+    minimalStubHex, // Minimal stub just to get the hash
   );
 
   // eslint-disable-next-line no-console
@@ -1298,17 +1233,17 @@ async function sendFromSmartAccountWithPasskey() {
     throw new Error(prepareResult);
   }
 
-  // Parse the result JSON
+  // Parse the result JSON to get the hash
   const { hash, userOpId } = JSON.parse(prepareResult);
 
   // eslint-disable-next-line no-console
-  console.log("  UserOp hash to sign:", hash);
+  console.log("  UserOp hash (before gas estimation):", hash);
   // eslint-disable-next-line no-console
   console.log("  UserOp ID:", userOpId);
 
-  // Step 2: Sign with passkey
+  // Step 1: Sign the hash with passkey
   // eslint-disable-next-line no-console
-  console.log("Step 2: Requesting passkey signature...");
+  console.log("Step 1: Requesting passkey signature for the real hash...");
   // eslint-disable-next-line no-console
   console.log("  Please touch your security key...");
 
@@ -1338,7 +1273,7 @@ async function sendFromSmartAccountWithPasskey() {
 
   // Verify the signature in JavaScript before sending to Rust
   // eslint-disable-next-line no-console
-  console.log("Step 2.5: Verifying signature in JavaScript...");
+  console.log("Step 1.5: Verifying signature in JavaScript...");
 
   try {
     const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
@@ -1387,8 +1322,11 @@ async function sendFromSmartAccountWithPasskey() {
     throw new Error(`Signature verification failed: ${verifyError.message}`);
   }
 
-  // Step 3: Encode the signature in the format expected by the validator
+  // Step 2: Encode the signature in the format expected by the validator
   // The WebAuthn validator expects ABI-encoded: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
+  // eslint-disable-next-line no-console
+  console.log("Step 2: Encoding signature...");
+
   const authenticatorData = base64urlToUint8Array(authResponse.response.authenticatorData);
   const clientDataJSONBytes = base64urlToUint8Array(authResponse.response.clientDataJSON);
   const clientDataJSON = new TextDecoder().decode(clientDataJSONBytes); // Convert to string
@@ -1467,6 +1405,11 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("  ABI-encoded signature length:", signatureEncoded.length);
 
+  // Prepend validator address to create the full signature
+  const fullSignature = ethers.concat([validatorBytes, signatureEncoded]);
+  // eslint-disable-next-line no-console
+  console.log("  Full signature length:", fullSignature.length, "bytes");
+
   // Step 3: Submit the signed UserOperation
   // eslint-disable-next-line no-console
   console.log("Step 3: Submitting signed UserOperation...");
@@ -1477,9 +1420,9 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("  UserOp ID type:", typeof userOpId);
   // eslint-disable-next-line no-console
-  console.log("  Signature:", signatureEncoded);
+  console.log("  Signature:", fullSignature);
   // eslint-disable-next-line no-console
-  console.log("  Signature type:", typeof signatureEncoded);
+  console.log("  Signature type:", typeof fullSignature);
 
   // Create a new config for submit (the previous one was consumed by prepare)
   const submitConfig = new SendTransactionConfig(
@@ -1491,7 +1434,7 @@ async function sendFromSmartAccountWithPasskey() {
   const result = await submit_passkey_user_operation(
     submitConfig,
     userOpId,
-    signatureEncoded,
+    fullSignature,
   );
 
   // eslint-disable-next-line no-console
