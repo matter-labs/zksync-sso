@@ -411,9 +411,11 @@ pub mod tests {
             get_nonce(entry_point_address, address, nonce_key, &provider)
                 .await?;
 
-        let stub_sig = stub_signature_passkey(webauthn_module)?;
+        // Create stub signature for gas estimation
+        // Use all-zeros hash to generate a real passkey signature for estimation
+        let stub_sig = get_signature_from_js(FixedBytes::<32>::default().to_string())?;
 
-        // Build AlloyPackedUserOperation
+        // Build AlloyPackedUserOperation with stub values for gas estimation
         let mut user_op = AlloyPackedUserOperation {
             sender: address,
             nonce,
@@ -421,16 +423,29 @@ pub mod tests {
             paymaster_verification_gas_limit: None,
             paymaster_data: None,
             paymaster_post_op_gas_limit: None,
-            call_gas_limit: U256::from(100_000),
-            max_priority_fee_per_gas: U256::from(0x77359400),
-            max_fee_per_gas: U256::from(0x82e08afeu64),
-            pre_verification_gas: U256::from(50_000),
-            verification_gas_limit: U256::from(200_000),
+            call_gas_limit: Default::default(),
+            max_priority_fee_per_gas: Default::default(),
+            max_fee_per_gas: Default::default(),
+            pre_verification_gas: Default::default(),
+            verification_gas_limit: Default::default(),
             factory: None,
             factory_data: None,
             call_data,
-            signature: stub_sig,
+            signature: Bytes::from(stub_sig),
         };
+
+        // Estimate gas
+        let estimated_gas = bundler_client
+            .estimate_user_operation_gas(&user_op, &entry_point_address)
+            .await?;
+
+        // Update with estimated gas values
+        user_op.call_gas_limit = estimated_gas.call_gas_limit;
+        user_op.verification_gas_limit =
+            (estimated_gas.verification_gas_limit * U256::from(6)) / U256::from(5);
+        user_op.pre_verification_gas = estimated_gas.pre_verification_gas;
+        user_op.max_priority_fee_per_gas = U256::from(0x77359400);
+        user_op.max_fee_per_gas = U256::from(0x82e08afeu64);
 
         // Pack gas limits and fees for hashing
         let packed_gas_limits: U256 =
@@ -458,23 +473,23 @@ pub mod tests {
         .await?;
 
         println!("UserOp hash to sign: {:?}", hash);
+        println!("Packed user_op used for hash:");
+        println!("  sender: {:?}", packed_user_op.sender);
+        println!("  nonce: {:?}", packed_user_op.nonce);
+        println!("  accountGasLimits: {:?}", packed_user_op.accountGasLimits);
+        println!("  gasFees: {:?}", packed_user_op.gasFees);
+        println!("  preVerificationGas: {:?}", packed_user_op.preVerificationGas);
 
         // Step 2: Sign the hash (simulate JavaScript calling the passkey)
         println!("\nStep 2: Signing hash with passkey...");
+        println!("Hash to sign (as string): {}", hash.0.to_string());
 
-        let passkey_signature = get_signature_from_js(hash.0.to_string())?;
-        println!("Passkey signature length: {} bytes", passkey_signature.len());
+        let full_signature = get_signature_from_js(hash.0.to_string())?;
+        println!("Full signature length: {} bytes", full_signature.len());
 
-        // Prepend validator address (20 bytes) - THIS IS WHAT WASM DOES
-        let mut full_signature = Vec::new();
-        full_signature.extend_from_slice(webauthn_module.as_slice());
-        full_signature.extend_from_slice(&passkey_signature);
-
-        println!(
-            "Full signature length: {} bytes (20 validator + {} passkey)",
-            full_signature.len(),
-            passkey_signature.len()
-        );
+        // NOTE: get_signature_from_js already prepends the validator address (20 bytes)
+        // So we don't need to prepend it again here like WASM does
+        // The signature format is: [20 bytes validator address][ABI-encoded passkey data]
 
         // Step 3: Update UserOp with signature and submit
         println!("\nStep 3: Submitting UserOperation...");
