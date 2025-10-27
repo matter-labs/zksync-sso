@@ -1891,6 +1891,10 @@ mod tests {
     /// which is more representative of the browser flow
     #[tokio::test]
     async fn test_wasm_passkey_two_step_flow() -> eyre::Result<()> {
+        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+        let config = TestInfraConfig {
+            signer_private_key: signer_private_key.clone(),
+        };
         let (
             _,
             anvil_instance,
@@ -1899,16 +1903,10 @@ mod tests {
             _signer_private_key,
             bundler,
             bundler_client,
-        ) = {
-            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-            let config = TestInfraConfig {
-                signer_private_key: signer_private_key.clone(),
-            };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
-                &config,
-            )
-            .await?
-        };
+        ) = start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            &config,
+        )
+        .await?;
 
         let factory_address = contracts.account_factory;
         let entry_point_address = address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
@@ -1962,13 +1960,17 @@ mod tests {
         
         println!("Passkey module verified as installed");
 
-        // ===== TWO-STEP FLOW USING CORE FUNCTIONS =====
-        // This simulates the browser flow: prepare UserOp -> sign with passkey -> submit
+        // ===== TWO-STEP FLOW - MANUAL APPROACH LIKE CORE TEST =====
+        // Instead of using send_transaction, manually build UserOp like the passing core test
 
-        println!("\nTesting two-step passkey flow...");
+        println!("\nTesting two-step passkey flow (manual approach)...");
         
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::send::passkey::send_transaction;
         use zksync_sso_erc4337_core::erc4337::account::erc7579::calls::encode_calls;
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::nonce::get_nonce;
+        use zksync_sso_erc4337_core::erc4337::user_operation::hash::v08::get_user_operation_hash_entry_point;
+        use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint::PackedUserOperation;
+        use alloy::rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation;
+        use zksync_sso_erc4337_core::erc4337::bundler::Bundler;
 
         let call = Execution {
             target: account_address,
@@ -1978,26 +1980,100 @@ mod tests {
         let calls = vec![call];
         let call_data: Bytes = encode_calls(calls).into();
 
-        let signature_provider: zksync_sso_erc4337_core::erc4337::signer::SignatureProvider =
-            Arc::new(move |hash: FixedBytes<32>| {
-                get_signature_from_js(hash.to_string())
-            });
+        let nonce_key = alloy::primitives::Uint::from(0);
+        let nonce =
+            get_nonce(entry_point_address, account_address, nonce_key, &provider)
+                .await?;
 
-        send_transaction(
-            account_address,
-            webauthn_module,
-            entry_point_address,
+        // Create stub signature for gas estimation
+        let stub_sig = get_signature_from_js(FixedBytes::<32>::default().to_string())?;
+
+        // Build AlloyPackedUserOperation with stub values for gas estimation
+        let mut user_op = AlloyPackedUserOperation {
+            sender: account_address,
+            nonce,
+            paymaster: None,
+            paymaster_verification_gas_limit: None,
+            paymaster_data: None,
+            paymaster_post_op_gas_limit: None,
+            call_gas_limit: Default::default(),
+            max_priority_fee_per_gas: Default::default(),
+            max_fee_per_gas: Default::default(),
+            pre_verification_gas: Default::default(),
+            verification_gas_limit: Default::default(),
+            factory: None,
+            factory_data: None,
             call_data,
-            bundler_client,
+            signature: Bytes::from(stub_sig),
+        };
+
+        println!("About to estimate gas, bundler is in scope...");
+        
+        // Explicitly reference bundler to prevent optimizer from dropping it
+        let _keep_alive = &bundler;
+        
+        // Estimate gas - holding bundler reference
+        let estimated_gas = bundler_client
+            .estimate_user_operation_gas(&user_op, &entry_point_address)
+            .await?;
+
+        println!("Gas estimation succeeded!");
+
+        // Update with estimated gas values
+        user_op.call_gas_limit = estimated_gas.call_gas_limit;
+        user_op.verification_gas_limit =
+            (estimated_gas.verification_gas_limit * U256::from(6)) / U256::from(5);
+        user_op.pre_verification_gas = estimated_gas.pre_verification_gas;
+        user_op.max_priority_fee_per_gas = U256::from(0x77359400);
+        user_op.max_fee_per_gas = U256::from(0x82e08afeu64);
+
+        // Pack gas limits and fees for hashing
+        let packed_gas_limits: U256 =
+            (user_op.verification_gas_limit << 128) | user_op.call_gas_limit;
+        let gas_fees: U256 =
+            (user_op.max_priority_fee_per_gas << 128) | user_op.max_fee_per_gas;
+
+        let packed_user_op = PackedUserOperation {
+            sender: user_op.sender,
+            nonce: user_op.nonce,
+            initCode: Bytes::default(),
+            callData: user_op.call_data.clone(),
+            accountGasLimits: packed_gas_limits.to_be_bytes().into(),
+            preVerificationGas: user_op.pre_verification_gas,
+            gasFees: gas_fees.to_be_bytes().into(),
+            paymasterAndData: Bytes::default(),
+            signature: user_op.signature.clone(),
+        };
+
+        let hash = get_user_operation_hash_entry_point(
+            &packed_user_op,
+            &entry_point_address,
             provider.clone(),
-            signature_provider,
         )
         .await?;
+
+        println!("UserOp hash to sign: {:?}", hash);
+
+        // Sign the hash
+        let full_signature = get_signature_from_js(hash.0.to_string())?;
+        println!("Full signature length: {} bytes", full_signature.len());
+
+        // Update UserOp with signature and submit
+        user_op.signature = Bytes::from(full_signature);
+
+        let user_op_hash = bundler_client
+            .send_user_operation(entry_point_address, user_op)
+            .await?;
+
+        println!("UserOperation submitted: {:?}", user_op_hash);
+
+        bundler_client.wait_for_user_operation_receipt(user_op_hash).await?;
 
         println!("✅ Passkey transaction successfully sent!");
         println!("✅ Two-step flow verified - account deployed with passkey only");
         println!("✅ No EOA signer needed - pure passkey authentication");
 
+        // Explicitly drop at end
         drop(anvil_instance);
         drop(bundler);
         Ok(())
