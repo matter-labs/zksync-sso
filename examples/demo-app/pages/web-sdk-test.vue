@@ -1153,11 +1153,10 @@ async function sendFromSmartAccountWithPasskey() {
 
   // Import WASM functions and SimpleWebAuthn
   const {
-    prepare_passkey_user_operation,
+    prepare_passkey_user_operation_fixed_gas,
     submit_passkey_user_operation,
     SendTransactionConfig,
   } = await import("zksync-sso-web-sdk/bundler");
-
   const { startAuthentication } = await import("@simplewebauthn/browser");
 
   // Load contracts.json
@@ -1208,14 +1207,29 @@ async function sendFromSmartAccountWithPasskey() {
   // Create a minimal stub signature (just validator address + zeros)
   // This is only used to get the hash structure, not for validation
   const validatorBytes = hexToBytes(webauthnValidatorAddress);
-  const minimalStub = new Uint8Array(564); // 20 validator + 544 passkey data
-  minimalStub.set(validatorBytes, 0);
-  const minimalStubHex = "0x" + Array.from(minimalStub).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  // Build a minimal ABI-encoded placeholder signature that matches the validator
+  // signature type: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
+  // Use empty authenticatorData, empty clientDataJSON, zeros for r/s, empty credentialId.
+  const zero32 = new Uint8Array(32);
+  const emptyBytes = new Uint8Array(0);
+
+  const stubEncoded = abiCoder.encode(
+    ["bytes", "string", "bytes32[2]", "bytes"],
+    [emptyBytes, "", [zero32, zero32], emptyBytes],
+  );
+
+  // stubEncoded is a hex string like "0x..." — convert to bytes and prepend validator
+  const stubEncodedBytes = hexToBytes(stubEncoded);
+  const minimalStubBytes = new Uint8Array(validatorBytes.length + stubEncodedBytes.length);
+  minimalStubBytes.set(validatorBytes, 0);
+  minimalStubBytes.set(stubEncodedBytes, validatorBytes.length);
+  const minimalStubHex = "0x" + Array.from(minimalStubBytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 
   // eslint-disable-next-line no-console
-  console.log("  Calling prepare with minimal stub to get hash...");
+  console.log("  Calling prepare_fixed_gas with minimal stub to get hash (NO gas estimation)...");
 
-  const prepareResult = await prepare_passkey_user_operation(
+  const prepareResult = await prepare_passkey_user_operation_fixed_gas(
     sendConfig,
     webauthnValidatorAddress,
     deploymentResult.value.address,
@@ -1270,57 +1284,8 @@ async function sendFromSmartAccountWithPasskey() {
 
   // eslint-disable-next-line no-console
   console.log("  Passkey signature received");
-
-  // Verify the signature in JavaScript before sending to Rust
-  // eslint-disable-next-line no-console
-  console.log("Step 1.5: Verifying signature in JavaScript...");
-
-  try {
-    const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
-
-    // Reconstruct the public key in COSE format
-    // COSE P-256 public key format is a CBOR map with specific integer keys
-    const x = hexToBytes(passkeyConfig.value.passkeyX);
-    const y = hexToBytes(passkeyConfig.value.passkeyY);
-
-    // Build COSE key structure manually
-    // CBOR encoding: Map with keys: 1 (kty), 3 (alg), -1 (crv), -2 (x), -3 (y)
-    const cosePublicKey = new Uint8Array([
-      0xA5, // Map with 5 items
-      0x01, 0x02, // kty: 2 (EC2)
-      0x03, 0x26, // alg: -7 (ES256)
-      0x20, 0x01, // crv: 1 (P-256)
-      0x21, 0x58, 0x20, ...x, // -2: x (32 bytes)
-      0x22, 0x58, 0x20, ...y, // -3: y (32 bytes)
-    ]);
-
-    const verification = await verifyAuthenticationResponse({
-      response: authResponse,
-      expectedChallenge: challengeBase64url,
-      expectedOrigin: passkeyConfig.value.originDomain || window.location.origin,
-      expectedRPID: window.location.hostname,
-      requireUserVerification: true, // Require user verification to match contract
-      credential: {
-        id: passkeyConfig.value.credentialId.slice(2), // Remove 0x prefix
-        publicKey: cosePublicKey,
-        counter: 0,
-      },
-    });
-
-    // eslint-disable-next-line no-console
-    console.log("  JavaScript verification result:", verification.verified);
-
-    if (!verification.verified) {
-      throw new Error("Signature verification failed in JavaScript!");
-    }
-
-    // eslint-disable-next-line no-console
-    console.log("  ✓ Signature verified successfully in JavaScript");
-  } catch (verifyError) {
-    // eslint-disable-next-line no-console
-    console.error("  JavaScript verification error:", verifyError);
-    throw new Error(`Signature verification failed: ${verifyError.message}`);
-  }
+  // No client-side server verification here; the signature will be ABI-encoded
+  // and submitted to the bundler/EntryPoint for on-chain verification (matches Rust test).
 
   // Step 2: Encode the signature in the format expected by the validator
   // The WebAuthn validator expects ABI-encoded: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
@@ -1406,23 +1371,24 @@ async function sendFromSmartAccountWithPasskey() {
   console.log("  ABI-encoded signature length:", signatureEncoded.length);
 
   // Prepend validator address to create the full signature
-  const fullSignature = ethers.concat([validatorBytes, signatureEncoded]);
+  // signatureEncoded is a hex string (0x...), convert to bytes
+  const signatureEncodedBytes = hexToBytes(signatureEncoded);
+  const fullSignatureBytes = new Uint8Array(validatorBytes.length + signatureEncodedBytes.length);
+  fullSignatureBytes.set(validatorBytes, 0);
+  fullSignatureBytes.set(signatureEncodedBytes, validatorBytes.length);
+
+  // Convert to hex for the WASM submit function
+  const fullSignatureHex = "0x" + Array.from(fullSignatureBytes).map((b) => b.toString(16).padStart(2, "0")).join("");
   // eslint-disable-next-line no-console
-  console.log("  Full signature length:", fullSignature.length, "bytes");
+  console.log("  Full signature hex length:", fullSignatureHex.length);
 
   // Step 3: Submit the signed UserOperation
   // eslint-disable-next-line no-console
   console.log("Step 3: Submitting signed UserOperation...");
   // eslint-disable-next-line no-console
-  console.log("  Config:", sendConfig);
-  // eslint-disable-next-line no-console
   console.log("  UserOp ID:", userOpId);
   // eslint-disable-next-line no-console
-  console.log("  UserOp ID type:", typeof userOpId);
-  // eslint-disable-next-line no-console
-  console.log("  Signature:", fullSignature);
-  // eslint-disable-next-line no-console
-  console.log("  Signature type:", typeof fullSignature);
+  console.log("  Signature length:", fullSignatureHex.length);
 
   // Create a new config for submit (the previous one was consumed by prepare)
   const submitConfig = new SendTransactionConfig(
@@ -1430,11 +1396,10 @@ async function sendFromSmartAccountWithPasskey() {
     bundlerUrl,
     entryPointAddress,
   );
-
   const result = await submit_passkey_user_operation(
     submitConfig,
     userOpId,
-    fullSignature,
+    fullSignatureHex,
   );
 
   // eslint-disable-next-line no-console

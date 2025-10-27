@@ -20,6 +20,7 @@ export const {
   add_passkey_to_account,
   send_transaction_eoa,
   prepare_passkey_user_operation,
+  prepare_passkey_user_operation_fixed_gas,
   submit_passkey_user_operation,
   Client,
   Config,

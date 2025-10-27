@@ -134,7 +134,6 @@ export async function createWebAuthnCredential(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let startRegistration: any;
   try {
-    // @ts-expect-error - @simplewebauthn/browser is an optional peer dependency
     const simpleWebAuthn = await import("@simplewebauthn/browser");
     startRegistration = simpleWebAuthn.startRegistration;
   } catch {

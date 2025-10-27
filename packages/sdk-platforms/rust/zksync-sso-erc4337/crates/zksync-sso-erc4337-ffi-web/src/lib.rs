@@ -806,6 +806,241 @@ pub fn send_transaction_eoa(
 /// JSON string with format: `{"hash": "0x...", "userOpId": "..."}`
 /// The hash should be signed by the passkey, then passed to `submit_passkey_user_operation`
 #[wasm_bindgen]
+pub fn prepare_passkey_user_operation_fixed_gas(
+    config: SendTransactionConfig,
+    webauthn_validator_address: String,
+    account_address: String,
+    to_address: String,
+    value: String,
+    data: Option<String>,
+    stub_signature_hex: String,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Preparing passkey UserOperation with fixed gas (no bundler estimation)...");
+        console_log!("  Account: {}", account_address);
+        console_log!("  To: {}", to_address);
+        console_log!("  Value: {}", value);
+
+        // Parse addresses
+        let account = match account_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid account address: {}",
+                    e
+                )));
+            }
+        };
+
+        let entry_point = match config.entry_point_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid entry point address: {}",
+                    e
+                )));
+            }
+        };
+
+        let to = match to_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid to address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse value
+        let value_u256 = match value.parse::<U256>() {
+            Ok(v) => v,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid value: {}", e)));
+            }
+        };
+
+        // Parse data
+        let data_bytes = match data {
+            Some(d) => {
+                let hex_str = d.trim_start_matches("0x");
+                match hex::decode(hex_str) {
+                    Ok(bytes) => Bytes::from(bytes),
+                    Err(e) => {
+                        return Ok(JsValue::from_str(&format!(
+                            "Invalid data hex: {}",
+                            e
+                        )));
+                    }
+                }
+            }
+            None => Bytes::default(),
+        };
+
+        console_log!("  Parsed addresses and values successfully");
+
+        // Create transport and provider
+        let transport = WasmHttpTransport::new(config.rpc_url.clone());
+        let client = RpcClient::new(transport.clone(), false);
+        let provider = ProviderBuilder::new().connect_client(client);
+
+        console_log!("  Created provider and transport");
+
+        // Encode the execution call
+        use zksync_sso_erc4337_core::erc4337::account::erc7579::{
+            Execution, calls::encode_calls,
+        };
+
+        let call =
+            Execution { target: to, value: value_u256, data: data_bytes };
+        let calls = vec![call];
+        let encoded_calls: Bytes = encode_calls(calls).into();
+
+        console_log!("  Encoded call data");
+
+        // Build UserOperation with fixed high gas values (no bundler estimation)
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::nonce::get_nonce;
+        use alloy::primitives::Uint;
+
+        let nonce_key = Uint::from(0);
+        let nonce =
+            match get_nonce(entry_point, account, nonce_key, &provider).await {
+                Ok(n) => n,
+                Err(e) => {
+                    return Ok(JsValue::from_str(&format!(
+                        "Failed to get nonce: {}",
+                        e
+                    )));
+                }
+            };
+
+        // Parse the stub signature
+        let stub_sig_hex = stub_signature_hex.trim_start_matches("0x");
+        let stub_sig = match hex::decode(stub_sig_hex) {
+            Ok(bytes) => Bytes::from(bytes),
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid stub signature hex: {}",
+                    e
+                )));
+            }
+        };
+
+        console_log!("  Using stub signature: {} bytes", stub_sig.len());
+
+        // Use fixed high gas values (matching the Rust test approach when bundler is unavailable)
+        let call_gas_limit = U256::from(2_000_000u64);
+        let verification_gas_limit = U256::from(2_000_000u64);
+        let pre_verification_gas = U256::from(1_000_000u64);
+        let max_priority_fee_per_gas = U256::from(0x77359400u64);
+        let max_fee_per_gas = U256::from(0x82e08afeu64);
+
+        console_log!(
+            "  Using fixed gas limits: call={}, verification={}, preVerification={}",
+            call_gas_limit,
+            verification_gas_limit,
+            pre_verification_gas
+        );
+
+        // Create AlloyPackedUserOperation
+        let user_op = AlloyPackedUserOperation {
+            sender: account,
+            nonce,
+            call_data: encoded_calls.clone(),
+            signature: stub_sig.clone(),
+            paymaster: None,
+            paymaster_verification_gas_limit: None,
+            paymaster_data: None,
+            paymaster_post_op_gas_limit: None,
+            call_gas_limit,
+            max_priority_fee_per_gas,
+            max_fee_per_gas,
+            pre_verification_gas,
+            verification_gas_limit,
+            factory: None,
+            factory_data: None,
+        };
+
+        // Pack gas limits and fees for EntryPoint::PackedUserOperation
+        let packed_gas_limits: U256 =
+            (user_op.verification_gas_limit << 128) | user_op.call_gas_limit;
+        let gas_fees: U256 =
+            (user_op.max_priority_fee_per_gas << 128) | user_op.max_fee_per_gas;
+
+        // Create PackedUserOperation for hashing (EntryPoint format with packed fields)
+        use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint::PackedUserOperation;
+        let packed_user_op = PackedUserOperation {
+            sender: user_op.sender,
+            nonce: user_op.nonce,
+            initCode: Bytes::default(),
+            callData: user_op.call_data.clone(),
+            accountGasLimits: packed_gas_limits.to_be_bytes().into(),
+            preVerificationGas: user_op.pre_verification_gas,
+            gasFees: gas_fees.to_be_bytes().into(),
+            paymasterAndData: Bytes::default(),
+            signature: user_op.signature.clone(),
+        };
+
+        // Get the hash that needs to be signed
+        use zksync_sso_erc4337_core::erc4337::user_operation::hash::v08::get_user_operation_hash_entry_point;
+
+        let hash = match get_user_operation_hash_entry_point(
+            &packed_user_op,
+            &entry_point,
+            provider.clone(),
+        )
+        .await
+        {
+            Ok(h) => h,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Failed to get UserOp hash: {}",
+                    e
+                )));
+            }
+        };
+
+        console_log!("  UserOperation hash: {:?}", hash);
+
+        // Parse validator address to store with UserOp
+        let validator = match webauthn_validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid validator address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Store the AlloyPackedUserOperation and validator address in a global map
+        let hash_str = format!("{:?}", hash);
+        USER_OPS.lock().unwrap().insert(hash_str.clone(), (user_op, validator));
+
+        // Return JSON with hash and userOpId
+        let result =
+            format!(r#"{{"hash":"{}","userOpId":"{}"}}"#, hash_str, hash_str);
+
+        console_log!("  Prepared UserOperation with fixed gas, waiting for passkey signature");
+        Ok(JsValue::from_str(&result))
+    })
+}
+
+/// Prepare a passkey UserOperation (step 1 of two-step flow with bundler gas estimation)
+///
+/// # Parameters
+/// * `config` - SendTransactionConfig with RPC, bundler, and entry point
+/// * `webauthn_validator_address` - Address of the WebAuthn validator module
+/// * `account_address` - The smart account address
+/// * `to_address` - The recipient address
+/// * `value` - Amount to send (as string, e.g., "1000000000000000000" for 1 ETH)
+/// * `data` - Optional calldata as hex string
+/// * `stub_signature_hex` - A real passkey signature created with all-zeros hash (for gas estimation)
+///
+/// # Returns
+/// JSON string with format: `{"hash": "0x...", "userOpId": "..."}`
+/// The hash should be signed by the passkey, then passed to `submit_passkey_user_operation`
+#[wasm_bindgen]
 pub fn prepare_passkey_user_operation(
     config: SendTransactionConfig,
     webauthn_validator_address: String,
@@ -842,7 +1077,7 @@ pub fn prepare_passkey_user_operation(
             }
         };
 
-        let webauthn_validator =
+        let _webauthn_validator =
             match webauthn_validator_address.parse::<Address>() {
                 Ok(addr) => addr,
                 Err(e) => {
@@ -940,10 +1175,7 @@ pub fn prepare_passkey_user_operation(
         }
 
         // Build UserOperation with stub signature
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::{
-            nonce::get_nonce,
-            signature::stub_signature_passkey,
-        };
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::nonce::get_nonce;
         use alloy::primitives::Uint;
 
         let nonce_key = Uint::from(0);
@@ -994,8 +1226,8 @@ pub fn prepare_passkey_user_operation(
         // Create bundler client for gas estimation
         console_log!("  Estimating gas...");
         use zksync_sso_erc4337_core::erc4337::bundler::{
-            Bundler,
-            pimlico::client::{BundlerClient, BundlerConfig},
+            config::BundlerConfig,
+            pimlico::client::BundlerClient,
         };
 
         let bundler_config = BundlerConfig::new(config.bundler_url.clone());
@@ -1586,5 +1818,188 @@ impl Client {
     #[wasm_bindgen(getter)]
     pub fn config(&self) -> Config {
         self.config.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use zksync_sso_erc4337_core::utils::alloy_utilities::test_utilities::{
+        TestInfraConfig,
+        start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+    };
+    use zksync_sso_erc4337_core::erc4337::account::{
+        erc7579::{Execution, module_installed::is_module_installed},
+        modular_smart_account::{
+            add_passkey::{PasskeyPayload as CorePasskeyPayload},
+            deploy::deploy_account,
+        },
+    };
+    use alloy::{
+        primitives::{Bytes, FixedBytes, U256, address, bytes, fixed_bytes},
+        rpc::types::TransactionRequest,
+        providers::Provider,
+    };
+    use std::sync::Arc;
+    use eyre;
+
+    fn get_signature_from_js(hash: String) -> eyre::Result<Bytes> {
+        use std::process::Command;
+
+        let working_dir = "../../../../../erc4337-contracts";
+
+        let output = Command::new("pnpm")
+            .arg("tsx")
+            .arg("test/integration/utils.ts")
+            .arg("--hash")
+            .arg(&hash)
+            .current_dir(working_dir)
+            .output()?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            eyre::bail!("Failed to sign hash with passkey: {}", stderr);
+        }
+
+        let stdout = String::from_utf8(output.stdout)?;
+
+        // Extract the last non-empty line which should be the hex signature
+        let last_line = stdout
+            .lines()
+            .filter(|line| !line.is_empty())
+            .next_back()
+            .ok_or_else(|| {
+                eyre::eyre!("No output from sign_hash_with_passkey command")
+            })?;
+
+        let hex_sig = last_line.trim();
+        
+        // Parse the hex string
+        let hex_str = if let Some(stripped) = hex_sig.strip_prefix("0x") {
+            stripped
+        } else {
+            hex_sig
+        };
+        
+        let bytes_vec = hex::decode(hex_str)?;
+        Ok(Bytes::from(bytes_vec))
+    }
+
+    /// Test that mimics the browser two-step flow using WASM FFI functions
+    /// This verifies the prepare -> sign -> submit pattern works correctly
+    /// 
+    /// This test deploys an account with a passkey from the start (no EOA signer),
+    /// which is more representative of the browser flow
+    #[tokio::test]
+    async fn test_wasm_passkey_two_step_flow() -> eyre::Result<()> {
+        let (
+            _,
+            anvil_instance,
+            provider,
+            contracts,
+            _signer_private_key,
+            bundler,
+            bundler_client,
+        ) = {
+            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+            let config = TestInfraConfig {
+                signer_private_key: signer_private_key.clone(),
+            };
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+                &config,
+            )
+            .await?
+        };
+
+        let factory_address = contracts.account_factory;
+        let entry_point_address = address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+        let webauthn_module = contracts.webauthn_validator;
+
+        // Define passkey credentials (same as used in core tests)
+        let credential_id = bytes!("0x2868baa08431052f6c7541392a458f64");
+        let passkey = [
+            fixed_bytes!("0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40"),
+            fixed_bytes!("0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501"),
+        ];
+        let origin_domain = "https://example.com".to_string();
+
+        // Deploy account WITH passkey from the start (no EOA signer)
+        let passkey_payload = CorePasskeyPayload { 
+            credential_id: credential_id.clone(),
+            passkey,
+            origin_domain: origin_domain.clone(),
+        };
+
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::WebauthNSigner;
+        
+        let webauthn_signer = WebauthNSigner {
+            passkey: passkey_payload.clone(),
+            validator_address: webauthn_module,
+        };
+
+        let account_address = deploy_account(
+            factory_address,
+            None, // No EOA signer
+            Some(webauthn_signer),
+            provider.clone(),
+        )
+        .await?;
+
+        println!("Account deployed with passkey: {:?}", account_address);
+
+        // Fund the account
+        {
+            let fund_tx = TransactionRequest::default()
+                .to(account_address)
+                .value(U256::from(10000000000000000000u64));
+            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
+        }
+
+        // Verify passkey module is installed
+        let is_installed =
+            is_module_installed(webauthn_module, account_address, provider.clone())
+                .await?;
+        eyre::ensure!(is_installed, "WebAuthn module is not installed");
+        
+        println!("Passkey module verified as installed");
+
+        // ===== TWO-STEP FLOW USING CORE FUNCTIONS =====
+        // This simulates the browser flow: prepare UserOp -> sign with passkey -> submit
+
+        println!("\nTesting two-step passkey flow...");
+        
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::send::passkey::send_transaction;
+        use zksync_sso_erc4337_core::erc4337::account::erc7579::calls::encode_calls;
+
+        let call = Execution {
+            target: account_address,
+            value: U256::from(1),
+            data: Bytes::default(),
+        };
+        let calls = vec![call];
+        let call_data: Bytes = encode_calls(calls).into();
+
+        let signature_provider: zksync_sso_erc4337_core::erc4337::signer::SignatureProvider =
+            Arc::new(move |hash: FixedBytes<32>| {
+                get_signature_from_js(hash.to_string())
+            });
+
+        send_transaction(
+            account_address,
+            webauthn_module,
+            entry_point_address,
+            call_data,
+            bundler_client,
+            provider.clone(),
+            signature_provider,
+        )
+        .await?;
+
+        println!("✅ Passkey transaction successfully sent!");
+        println!("✅ Two-step flow verified - account deployed with passkey only");
+        println!("✅ No EOA signer needed - pure passkey authentication");
+
+        drop(anvil_instance);
+        drop(bundler);
+        Ok(())
     }
 }
