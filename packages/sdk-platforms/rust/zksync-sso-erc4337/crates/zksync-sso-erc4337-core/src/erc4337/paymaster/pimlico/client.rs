@@ -208,32 +208,32 @@ mod tests {
         Ok(bundler_client)
     }
 
-    #[tokio::test]
-    #[ignore = "not yet implemented"]
-    async fn test_sponsor_user_operation_v07() -> eyre::Result<()> {
-        let paymaster_client =
-            setup_sponsor_user_operation_v07_paymaster_mock().await?;
+    // #[tokio::test]
+    // #[ignore = "not yet implemented"]
+    // async fn test_sponsor_user_operation_v07() -> eyre::Result<()> {
+    //     let paymaster_client =
+    //         setup_sponsor_user_operation_v07_paymaster_mock().await?;
 
-        let entry_point =
-            "0x0000000071727De22E5E9d8BAf0edAc6f37da032".parse::<Address>()?;
-        let entry_point_address = entry_point;
+    //     let entry_point =
+    //         "0x0000000071727De22E5E9d8BAf0edAc6f37da032".parse::<Address>()?;
+    //     let entry_point_address = entry_point;
 
-        let user_operation_entry_point = crate::erc4337::user_operation::wrapper_v07::PackedUserOperationWrapperV07::mock().0;
-        let user_operation_alloy: AlloyPackedUserOperation =
-            user_operation_entry_point.into();
-        let user_operation_pre =
-            UserOperationPreSponsorshipV07::from(user_operation_alloy);
+    //     let user_operation_entry_point = crate::erc4337::user_operation::wrapper_v07::PackedUserOperationWrapperV07::mock().0;
+    //     let user_operation_alloy: AlloyPackedUserOperation =
+    //         user_operation_entry_point.into();
+    //     let user_operation_pre =
+    //         UserOperationPreSponsorshipV07::from(user_operation_alloy);
 
-        let sponsorship_result = paymaster_client
-            .sponsor_user_operation_v07(
-                &user_operation_pre,
-                &entry_point_address,
-                None,
-            )
-            .await?;
+    //     let sponsorship_result = paymaster_client
+    //         .sponsor_user_operation_v07(
+    //             &user_operation_pre,
+    //             &entry_point_address,
+    //             None,
+    //         )
+    //         .await?;
 
-        ensure!(sponsorship_result.call_gas_limit.to_string() == "100000");
+    //     ensure!(sponsorship_result.call_gas_limit.to_string() == "100000");
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
