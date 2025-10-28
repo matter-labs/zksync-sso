@@ -1013,12 +1013,18 @@ pub fn prepare_passkey_user_operation_fixed_gas(
         };
 
         // Store the AlloyPackedUserOperation and validator address in a global map
-        let hash_str = format!("{:?}", hash);
-        USER_OPS.lock().unwrap().insert(hash_str.clone(), (user_op, validator));
+        // Use the debug format for the hashmap key (includes type wrapper)
+        let hash_key = format!("{:?}", hash);
+        // Convert to B256 to get hex format for the JSON response (just the hex bytes)
+        let hash_b256: alloy::primitives::B256 = hash.into();
+        let hash_hex = format!("{:#x}", hash_b256);
+        USER_OPS.lock().unwrap().insert(hash_key.clone(), (user_op, validator));
 
         // Return JSON with hash and userOpId
+        // hash: clean hex string for JavaScript to sign
+        // userOpId: debug format key to retrieve the UserOp later
         let result =
-            format!(r#"{{"hash":"{}","userOpId":"{}"}}"#, hash_str, hash_str);
+            format!(r#"{{"hash":"{}","userOpId":"{}"}}"#, hash_hex, hash_key);
 
         console_log!("  Prepared UserOperation with fixed gas, waiting for passkey signature");
         Ok(JsValue::from_str(&result))

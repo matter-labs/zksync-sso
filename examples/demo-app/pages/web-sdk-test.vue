@@ -1273,7 +1273,16 @@ async function sendFromSmartAccountWithPasskey() {
 
   // Convert hash to challenge bytes (remove 0x prefix and convert to Uint8Array)
   const challengeHex = hash.slice(2);
-  const challengeBytes = new Uint8Array(challengeHex.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
+
+  // eslint-disable-next-line no-console
+  console.log("  Raw hash from Rust:", hash);
+  // eslint-disable-next-line no-console
+  console.log("  Challenge hex (no 0x):", challengeHex);
+  // eslint-disable-next-line no-console
+  console.log("  Challenge hex length:", challengeHex.length, "(should be 64)");
+
+  // Use hexToBytes helper function instead of inline conversion
+  const challengeBytes = hexToBytes(hash);
 
   // eslint-disable-next-line no-console
   console.log("  Challenge bytes length:", challengeBytes.length, "(should be 32)");
