@@ -1188,6 +1188,51 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("  WebAuthn Validator:", webauthnValidatorAddress);
 
+  // Verify the public key is registered on-chain
+  // eslint-disable-next-line no-console
+  console.log("Verifying public key registration on-chain...");
+  const { ethers: ethersForValidation } = await import("ethers");
+  const providerForValidation = new ethersForValidation.JsonRpcProvider(rpcUrl);
+
+  // ABI for getAccountKey function
+  const validatorAbi = [
+    "function getAccountKey(string calldata originDomain, bytes calldata credentialId, address accountAddress) external view returns (bytes32[2] memory)",
+  ];
+  const validatorContract = new ethersForValidation.Contract(webauthnValidatorAddress, validatorAbi, providerForValidation);
+
+  const credIdBytes = hexToBytes(passkeyConfig.value.credentialId);
+  const registeredKey = await validatorContract.getAccountKey(
+    passkeyConfig.value.originDomain,
+    credIdBytes,
+    deploymentResult.value.address,
+  );
+
+  // eslint-disable-next-line no-console
+  console.log("  Registered public key on-chain:");
+  // eslint-disable-next-line no-console
+  console.log("    X:", registeredKey[0]);
+  // eslint-disable-next-line no-console
+  console.log("    Y:", registeredKey[1]);
+  // eslint-disable-next-line no-console
+  console.log("  Expected public key (from config):");
+  // eslint-disable-next-line no-console
+  console.log("    X:", passkeyConfig.value.passkeyX);
+  // eslint-disable-next-line no-console
+  console.log("    Y:", passkeyConfig.value.passkeyY);
+
+  // Check if they match
+  const registeredX = registeredKey[0].toLowerCase();
+  const registeredY = registeredKey[1].toLowerCase();
+  const expectedX = passkeyConfig.value.passkeyX.toLowerCase();
+  const expectedY = passkeyConfig.value.passkeyY.toLowerCase();
+
+  if (registeredX !== expectedX || registeredY !== expectedY) {
+    throw new Error("Public key mismatch! The key registered on-chain doesn't match the config. This means you're trying to sign with a different passkey than the one that was registered.");
+  }
+
+  // eslint-disable-next-line no-console
+  console.log("  ✓ Public key verification passed!");
+
   // Convert amount to wei (as string)
   const amountWei = (BigInt(parseFloat(txParams.value.amount) * 1e18)).toString();
 
@@ -1396,7 +1441,11 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("    credentialId (hex):", passkeyConfig.value.credentialId);
   // eslint-disable-next-line no-console
-  console.log("    Public key from config:", passkeyConfig.value.publicKey);
+  console.log("    Public key X (registered):", passkeyConfig.value.passkeyX);
+  // eslint-disable-next-line no-console
+  console.log("    Public key Y (registered):", passkeyConfig.value.passkeyY);
+  // eslint-disable-next-line no-console
+  console.log("    Origin (registered):", passkeyConfig.value.originDomain);
 
   // ABI encode the signature using ethers (reuse from Step 0)
   // Encode: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
