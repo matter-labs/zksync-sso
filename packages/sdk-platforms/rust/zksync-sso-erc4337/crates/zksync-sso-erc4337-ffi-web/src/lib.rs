@@ -903,16 +903,15 @@ pub fn prepare_passkey_user_operation_fixed_gas(
         use alloy::primitives::Uint;
 
         let nonce_key = Uint::from(0);
-        let nonce =
-            match get_nonce(entry_point, account, nonce_key, &provider).await {
-                Ok(n) => n,
-                Err(e) => {
-                    return Ok(JsValue::from_str(&format!(
-                        "Failed to get nonce: {}",
-                        e
-                    )));
-                }
-            };
+        let nonce = match get_nonce(entry_point, account, nonce_key, &provider).await {
+            Ok(n) => n,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Failed to get nonce: {}",
+                    e
+                )));
+            }
+        };
 
         // Parse the stub signature
         let stub_sig_hex = stub_signature_hex.trim_start_matches("0x");
@@ -1400,8 +1399,25 @@ pub fn submit_passkey_user_operation(
             signature.len()
         );
 
+        // Log signature breakdown for debugging
+        console_log!("  Validator address: {:?}", validator_address);
+        console_log!("  First 32 bytes of passkey signature: {:?}", 
+            &signature.as_ref().get(0..32.min(signature.len())));
+        console_log!("  Last 32 bytes of passkey signature: {:?}", 
+            signature.as_ref().get(signature.len().saturating_sub(32)..));
+
         // Update UserOperation with full signature (validator address + passkey signature)
-        user_op.signature = Bytes::from(full_signature);
+        user_op.signature = Bytes::from(full_signature.clone());
+
+        // Log UserOperation details before submission
+        console_log!("  UserOperation details:");
+        console_log!("    sender: {:?}", user_op.sender);
+        console_log!("    nonce: {}", user_op.nonce);
+        console_log!("    callData length: {}", user_op.call_data.len());
+        console_log!("    signature length: {}", user_op.signature.len());
+        console_log!("    callGasLimit: {}", user_op.call_gas_limit);
+        console_log!("    verificationGasLimit: {}", user_op.verification_gas_limit);
+        console_log!("    preVerificationGas: {}", user_op.pre_verification_gas);
 
         // Create bundler client
         let bundler_client = {

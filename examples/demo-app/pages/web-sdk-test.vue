@@ -1038,9 +1038,9 @@ async function sendFromSmartAccount() {
   txResult.value = "";
 
   try {
-    // Check smart account balance before sending
+    // Import ethers to check balance and account deployment
     // eslint-disable-next-line no-console
-    console.log("Checking smart account balance...");
+    console.log("Checking smart account status...");
 
     // Import ethers to check balance
     const { ethers } = await import("ethers");
@@ -1052,6 +1052,14 @@ async function sendFromSmartAccount() {
 
     // Create provider
     const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+    // Check if account is deployed
+    const code = await provider.getCode(deploymentResult.value.address);
+    if (code === "0x") {
+      throw new Error("Smart account is not deployed on-chain yet. The deployment may have failed. Please check the console for deployment errors and try deploying again.");
+    }
+    // eslint-disable-next-line no-console
+    console.log("  Account is deployed (has code)");
 
     // Check balance
     const balance = await provider.getBalance(deploymentResult.value.address);
@@ -1251,7 +1259,9 @@ async function sendFromSmartAccountWithPasskey() {
   const { hash, userOpId } = JSON.parse(prepareResult);
 
   // eslint-disable-next-line no-console
-  console.log("  UserOp hash (before gas estimation):", hash);
+  console.log("  UserOp hash (from prepare):", hash);
+  // eslint-disable-next-line no-console
+  console.log("  UserOp hash length:", hash.length, "characters (should be 66 for 0x + 64 hex)");
   // eslint-disable-next-line no-console
   console.log("  UserOp ID:", userOpId);
 
@@ -1265,8 +1275,18 @@ async function sendFromSmartAccountWithPasskey() {
   const challengeHex = hash.slice(2);
   const challengeBytes = new Uint8Array(challengeHex.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
 
+  // eslint-disable-next-line no-console
+  console.log("  Challenge bytes length:", challengeBytes.length, "(should be 32)");
+  // eslint-disable-next-line no-console
+  console.log("  Challenge bytes (first 8):", Array.from(challengeBytes.slice(0, 8)));
+
   // Convert bytes to base64url for SimpleWebAuthn
   const challengeBase64url = uint8ArrayToBase64url(challengeBytes);
+
+  // eslint-disable-next-line no-console
+  console.log("  Challenge base64url:", challengeBase64url);
+  // eslint-disable-next-line no-console
+  console.log("  Challenge base64url length:", challengeBase64url.length);
 
   // Reuse credential ID base64url from Step 0
   const authResponse = await startAuthentication({ optionsJSON: {
@@ -1345,15 +1365,29 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("    authenticatorData length:", authenticatorData.length);
   // eslint-disable-next-line no-console
+  console.log("    authenticatorData (hex):", "0x" + Array.from(authenticatorData).map((b) => b.toString(16).padStart(2, "0")).join(""));
+  // eslint-disable-next-line no-console
   console.log("    clientDataJSON:", clientDataJSON);
   // eslint-disable-next-line no-console
-  console.log("    r length:", rPadded.length, "first bytes:", Array.from(rPadded.slice(0, 4)));
+  console.log("    clientDataJSON length:", clientDataJSON.length);
+  // Check if challenge in clientDataJSON matches the hash we signed
+  const clientDataObj = JSON.parse(clientDataJSON);
   // eslint-disable-next-line no-console
-  console.log("    s length:", sPadded.length, "first bytes:", Array.from(sPadded.slice(0, 4)));
+  console.log("    challenge from clientDataJSON:", clientDataObj.challenge);
+  // eslint-disable-next-line no-console
+  console.log("    challenge we sent:", challengeBase64url);
+  // eslint-disable-next-line no-console
+  console.log("    challenges match:", clientDataObj.challenge === challengeBase64url);
+  // eslint-disable-next-line no-console
+  console.log("    r length:", rPadded.length, "hex:", "0x" + Array.from(rPadded).map((b) => b.toString(16).padStart(2, "0")).join(""));
+  // eslint-disable-next-line no-console
+  console.log("    s length:", sPadded.length, "hex:", "0x" + Array.from(sPadded).map((b) => b.toString(16).padStart(2, "0")).join(""));
   // eslint-disable-next-line no-console
   console.log("    credentialId length:", credentialIdForEncoding.length);
   // eslint-disable-next-line no-console
-  console.log("    Passkey config:", passkeyConfig.value);
+  console.log("    credentialId (hex):", passkeyConfig.value.credentialId);
+  // eslint-disable-next-line no-console
+  console.log("    Public key from config:", passkeyConfig.value.publicKey);
 
   // ABI encode the signature using ethers (reuse from Step 0)
   // Encode: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
@@ -1370,25 +1404,15 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("  ABI-encoded signature length:", signatureEncoded.length);
 
-  // Prepend validator address to create the full signature
-  // signatureEncoded is a hex string (0x...), convert to bytes
-  const signatureEncodedBytes = hexToBytes(signatureEncoded);
-  const fullSignatureBytes = new Uint8Array(validatorBytes.length + signatureEncodedBytes.length);
-  fullSignatureBytes.set(validatorBytes, 0);
-  fullSignatureBytes.set(signatureEncodedBytes, validatorBytes.length);
-
-  // Convert to hex for the WASM submit function
-  const fullSignatureHex = "0x" + Array.from(fullSignatureBytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-  // eslint-disable-next-line no-console
-  console.log("  Full signature hex length:", fullSignatureHex.length);
-
   // Step 3: Submit the signed UserOperation
+  // Note: The Rust submit function will prepend the validator address,
+  // so we only pass the ABI-encoded WebAuthn signature (no validator prefix)
   // eslint-disable-next-line no-console
   console.log("Step 3: Submitting signed UserOperation...");
   // eslint-disable-next-line no-console
   console.log("  UserOp ID:", userOpId);
   // eslint-disable-next-line no-console
-  console.log("  Signature length:", fullSignatureHex.length);
+  console.log("  Passkey signature length (without validator):", signatureEncoded.length);
 
   // Create a new config for submit (the previous one was consumed by prepare)
   const submitConfig = new SendTransactionConfig(
@@ -1399,7 +1423,7 @@ async function sendFromSmartAccountWithPasskey() {
   const result = await submit_passkey_user_operation(
     submitConfig,
     userOpId,
-    fullSignatureHex,
+    signatureEncoded, // Pass ONLY the ABI-encoded WebAuthn signature (Rust will prepend validator)
   );
 
   // eslint-disable-next-line no-console
