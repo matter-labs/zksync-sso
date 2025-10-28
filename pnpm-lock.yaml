@@ -143,7 +143,7 @@ importers:
         version: 3.5.22(typescript@5.6.2)
       vue-router:
         specifier: latest
-        version: 4.5.1(vue@3.5.22(typescript@5.6.2))
+        version: 4.6.3(vue@3.5.22(typescript@5.6.2))
       zksync-sso:
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -306,7 +306,7 @@ importers:
         version: 1.1.0(vue@3.5.22(typescript@5.6.2))
       vue-router:
         specifier: latest
-        version: 4.5.1(vue@3.5.22(typescript@5.6.2))
+        version: 4.6.3(vue@3.5.22(typescript@5.6.2))
       zksync-ethers:
         specifier: ^6.15.0
         version: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
@@ -789,7 +789,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.23(@types/react@19.1.8)
+        version: 1.3.1(@types/react@19.1.8)
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -867,6 +867,9 @@ importers:
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
+      ethers:
+        specifier: ^6.15.0
+        version: 6.15.0(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       rollup:
         specifier: ^4.17.2
         version: 4.30.1
@@ -5183,8 +5186,8 @@ packages:
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
 
-  '@types/bun@1.2.23':
-    resolution: {integrity: sha512-le8ueOY5b6VKYf19xT3McVbXqLqmxzPXHsQT/q9JHgikJ2X22wyTW3g3ohz2ZMnp7dod6aduIiq8A14Xyimm0A==}
+  '@types/bun@1.3.1':
+    resolution: {integrity: sha512-4jNMk2/K9YJtfqwoAa28c8wK+T7nvJFOjxI4h/7sORWcypRNxBpr+TPNaCfVWq70tLCJsqoFwcf0oI0JU/fvMQ==}
 
   '@types/chai-as-promised@7.1.8':
     resolution: {integrity: sha512-ThlRVIJhr69FLlh6IctTXFkmhtP3NpMZ2QGq69StYLyKZFp/HOp1VdKZj7RvfNWYYcJ1xlbLGLLWj1UvP5u/Gw==}
@@ -6633,8 +6636,8 @@ packages:
     resolution: {integrity: sha512-lDsx2BzkKe7gkCYiT5Acj02DpTwDznl/VNN7Psn7M3USPG7Vs/BaClZJJTAG+ufAR9++N1/NiUTdaFBWDIl5TQ==}
     engines: {node: '>=12'}
 
-  bun-types@1.2.23:
-    resolution: {integrity: sha512-R9f0hKAZXgFU3mlrA0YpE/fiDvwV0FT9rORApt2aQVWSuJDzZOyB5QLc0N/4HF57CS8IXJ6+L5E4W1bW6NS2Aw==}
+  bun-types@1.3.1:
+    resolution: {integrity: sha512-NMrcy7smratanWJ2mMXdpatalovtxVggkj11bScuWuiOoXTiKIu2eVS1/7qbyI/4yHedtsn175n4Sm4JcdHLXw==}
     peerDependencies:
       '@types/react': ^19
 
@@ -7907,6 +7910,10 @@ packages:
 
   ethers@6.13.4:
     resolution: {integrity: sha512-21YtnZVg4/zKkCQPjrDj38B1r4nQvTZLopUGMLQ1ePU2zV/joCfDC3t3iKQjWRzjjjbzR+mdAIoikeBRNkdllA==}
+    engines: {node: '>=14.0.0'}
+
+  ethers@6.15.0:
+    resolution: {integrity: sha512-Kf/3ZW54L4UT0pZtsY/rf+EkBU7Qi5nnhonjUb8yTXcxH3cdcWrV2cRyk0Xk/4jK6OoHhxxZHriyhje20If2hQ==}
     engines: {node: '>=14.0.0'}
 
   ethjs-unit@0.1.6:
@@ -12273,10 +12280,10 @@ packages:
     peerDependencies:
       vue: ^3.2.0
 
-  vue-router@4.5.1:
-    resolution: {integrity: sha512-ogAF3P97NPm8fJsE4by9dwSYtDwXIY1nFY9T6DyQnGHd1E2Da94w9JIolpe42LJGIl0DwOHBi8TcRPlPGwbTtw==}
+  vue-router@4.6.3:
+    resolution: {integrity: sha512-ARBedLm9YlbvQomnmq91Os7ck6efydTSpRP3nuOKCvgJOHNrhRoJDSKtee8kcL1Vf7nz6U+PMBL+hTvR3bTVQg==}
     peerDependencies:
-      vue: ^3.2.0
+      vue: ^3.5.0
 
   vue@3.5.13:
     resolution: {integrity: sha512-wmeiSMxkZCSc+PM2w2VRsOYAZC8GdipNFRTsLSfodVqI9mbejKeXEGr8SckuLnrQPGe3oJN5c3K0vpoU9q/wCQ==}
@@ -14244,7 +14251,7 @@ snapshots:
       mrmime: 2.0.0
       open: 10.1.0
       picocolors: 1.1.1
-      ws: 8.18.1(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      ws: 8.18.3(bufferutil@4.0.8)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -16434,7 +16441,7 @@ snapshots:
       vite-plugin-inspect: 0.8.7(@nuxt/kit@3.13.2(magicast@0.3.5)(rollup@4.30.1))(rollup@4.30.1)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
       vite-plugin-vue-inspector: 5.1.3(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
       which: 3.0.1
-      ws: 8.18.1(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      ws: 8.18.3(bufferutil@4.0.8)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
       - bufferutil
       - rollup
@@ -16482,7 +16489,7 @@ snapshots:
       vite-plugin-inspect: 0.8.7(@nuxt/kit@3.13.2(magicast@0.3.5)(rollup@4.30.1))(rollup@4.30.1)(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))
       vite-plugin-vue-inspector: 5.1.3(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))
       which: 3.0.1
-      ws: 8.18.1(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      ws: 8.18.3(bufferutil@4.0.8)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
       - bufferutil
       - rollup
@@ -18876,7 +18883,7 @@ snapshots:
 
   '@scure/bip32@1.7.0':
     dependencies:
-      '@noble/curves': 1.9.0
+      '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
@@ -19341,9 +19348,9 @@ snapshots:
       '@types/connect': 3.4.38
       '@types/node': 22.15.33
 
-  '@types/bun@1.2.23(@types/react@19.1.8)':
+  '@types/bun@1.3.1(@types/react@19.1.8)':
     dependencies:
-      bun-types: 1.2.23(@types/react@19.1.8)
+      bun-types: 1.3.1(@types/react@19.1.8)
     transitivePeerDependencies:
       - '@types/react'
 
@@ -19815,6 +19822,14 @@ snapshots:
       '@vitest/utils': 2.1.8
       chai: 5.1.2
       tinyrainbow: 1.2.0
+
+  '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))':
+    dependencies:
+      '@vitest/spy': 2.1.8
+      estree-walker: 3.0.3
+      magic-string: 0.30.17
+    optionalDependencies:
+      vite: 5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)
 
   '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))':
     dependencies:
@@ -22444,7 +22459,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  bun-types@1.2.23(@types/react@19.1.8):
+  bun-types@1.3.1(@types/react@19.1.8):
     dependencies:
       '@types/node': 22.15.33
       '@types/react': 19.1.8
@@ -24119,6 +24134,19 @@ snapshots:
       - utf-8-validate
 
   ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10):
+    dependencies:
+      '@adraffy/ens-normalize': 1.10.1
+      '@noble/curves': 1.2.0
+      '@noble/hashes': 1.3.2
+      '@types/node': 22.7.5
+      aes-js: 4.0.0-beta.5
+      tslib: 2.7.0
+      ws: 8.17.1(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  ethers@6.15.0(bufferutil@4.0.8)(utf-8-validate@5.0.10):
     dependencies:
       '@adraffy/ens-normalize': 1.10.1
       '@noble/curves': 1.2.0
@@ -27208,8 +27236,8 @@ snapshots:
 
   ox@0.6.7(typescript@5.6.2)(zod@3.24.1):
     dependencies:
-      '@adraffy/ens-normalize': 1.10.1
-      '@noble/curves': 1.8.2
+      '@adraffy/ens-normalize': 1.11.0
+      '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.6.2
       '@scure/bip39': 1.5.4
@@ -27222,8 +27250,8 @@ snapshots:
 
   ox@0.6.9(typescript@5.6.2)(zod@3.24.1):
     dependencies:
-      '@adraffy/ens-normalize': 1.10.1
-      '@noble/curves': 1.8.2
+      '@adraffy/ens-normalize': 1.11.0
+      '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.6.2
       '@scure/bip39': 1.5.4
@@ -30075,7 +30103,7 @@ snapshots:
   vitest@2.1.8(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       '@vitest/expect': 2.1.8
-      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))
+      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
       '@vitest/pretty-format': 2.1.8
       '@vitest/runner': 2.1.8
       '@vitest/snapshot': 2.1.8
@@ -30201,7 +30229,7 @@ snapshots:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.21(typescript@5.6.2)
 
-  vue-router@4.5.1(vue@3.5.22(typescript@5.6.2)):
+  vue-router@4.6.3(vue@3.5.22(typescript@5.6.2)):
     dependencies:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.22(typescript@5.6.2)

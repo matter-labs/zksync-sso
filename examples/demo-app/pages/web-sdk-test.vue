@@ -1159,13 +1159,12 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("Sending transaction from smart account using Passkey...");
 
-  // Import WASM functions and SimpleWebAuthn
+  // Import WASM functions
   const {
     prepare_passkey_user_operation_fixed_gas,
     submit_passkey_user_operation,
     SendTransactionConfig,
   } = await import("zksync-sso-web-sdk/bundler");
-  const { startAuthentication } = await import("@simplewebauthn/browser");
 
   // Load contracts.json
   const response = await fetch("/contracts.json");
@@ -1236,51 +1235,25 @@ async function sendFromSmartAccountWithPasskey() {
   // Convert amount to wei (as string)
   const amountWei = (BigInt(parseFloat(txParams.value.amount) * 1e18)).toString();
 
-  // Step 0: Get the UserOp hash WITHOUT gas estimation first
-  // We'll use a simple approach: build UserOp with placeholder gas values,
-  // get the hash, sign it, then estimate gas with the real signature
+  // Step 0: Build UserOperation with stub signature to get hash
   // eslint-disable-next-line no-console
   console.log("Step 0: Building UserOperation to get hash...");
 
-  // Import ethers for ABI encoding
-  const { ethers } = await import("ethers");
-  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+  // Import the new SDK helper functions
+  const { signWithPasskey, createStubSignature } = await import("zksync-sso-web-sdk/bundler");
 
-  // Convert credential ID from hex to base64url for later use
-  const credentialIdBytes = hexToBytes(passkeyConfig.value.credentialId);
-  const credentialIdBase64url = uint8ArrayToBase64url(credentialIdBytes);
+  // Create minimal stub signature using SDK helper (replaces ~40 lines of manual encoding)
+  const stubSignature = await createStubSignature(webauthnValidatorAddress);
 
-  // Step 1: Prepare UserOperation with stub signature to get the hash
+  // Prepare UserOperation with stub to get the hash
   const sendConfig = new SendTransactionConfig(
     rpcUrl,
     bundlerUrl,
     entryPointAddress,
   );
 
-  // Create a minimal stub signature (just validator address + zeros)
-  // This is only used to get the hash structure, not for validation
-  const validatorBytes = hexToBytes(webauthnValidatorAddress);
-
-  // Build a minimal ABI-encoded placeholder signature that matches the validator
-  // signature type: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-  // Use empty authenticatorData, empty clientDataJSON, zeros for r/s, empty credentialId.
-  const zero32 = new Uint8Array(32);
-  const emptyBytes = new Uint8Array(0);
-
-  const stubEncoded = abiCoder.encode(
-    ["bytes", "string", "bytes32[2]", "bytes"],
-    [emptyBytes, "", [zero32, zero32], emptyBytes],
-  );
-
-  // stubEncoded is a hex string like "0x..." — convert to bytes and prepend validator
-  const stubEncodedBytes = hexToBytes(stubEncoded);
-  const minimalStubBytes = new Uint8Array(validatorBytes.length + stubEncodedBytes.length);
-  minimalStubBytes.set(validatorBytes, 0);
-  minimalStubBytes.set(stubEncodedBytes, validatorBytes.length);
-  const minimalStubHex = "0x" + Array.from(minimalStubBytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-
   // eslint-disable-next-line no-console
-  console.log("  Calling prepare_fixed_gas with minimal stub to get hash (NO gas estimation)...");
+  console.log("  Calling prepare_fixed_gas with stub to get hash (NO gas estimation)...");
 
   const prepareResult = await prepare_passkey_user_operation_fixed_gas(
     sendConfig,
@@ -1289,7 +1262,7 @@ async function sendFromSmartAccountWithPasskey() {
     txParams.value.to,
     amountWei,
     null, // data (null for simple transfer)
-    minimalStubHex, // Minimal stub just to get the hash
+    stubSignature,
   );
 
   // eslint-disable-next-line no-console
@@ -1306,171 +1279,45 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("  UserOp hash (from prepare):", hash);
   // eslint-disable-next-line no-console
-  console.log("  UserOp hash length:", hash.length, "characters (should be 66 for 0x + 64 hex)");
-  // eslint-disable-next-line no-console
   console.log("  UserOp ID:", userOpId);
 
-  // Step 1: Sign the hash with passkey
+  // Step 1: Sign the hash with passkey using SDK helper (replaces ~170 lines of manual encoding)
   // eslint-disable-next-line no-console
   console.log("Step 1: Requesting passkey signature for the real hash...");
   // eslint-disable-next-line no-console
   console.log("  Please touch your security key...");
 
-  // Convert hash to challenge bytes (remove 0x prefix and convert to Uint8Array)
-  const challengeHex = hash.slice(2);
-
-  // eslint-disable-next-line no-console
-  console.log("  Raw hash from Rust:", hash);
-  // eslint-disable-next-line no-console
-  console.log("  Challenge hex (no 0x):", challengeHex);
-  // eslint-disable-next-line no-console
-  console.log("  Challenge hex length:", challengeHex.length, "(should be 64)");
-
-  // Use hexToBytes helper function instead of inline conversion
-  const challengeBytes = hexToBytes(hash);
-
-  // eslint-disable-next-line no-console
-  console.log("  Challenge bytes length:", challengeBytes.length, "(should be 32)");
-  // eslint-disable-next-line no-console
-  console.log("  Challenge bytes (first 8):", Array.from(challengeBytes.slice(0, 8)));
-
-  // Convert bytes to base64url for SimpleWebAuthn
-  const challengeBase64url = uint8ArrayToBase64url(challengeBytes);
-
-  // eslint-disable-next-line no-console
-  console.log("  Challenge base64url:", challengeBase64url);
-  // eslint-disable-next-line no-console
-  console.log("  Challenge base64url length:", challengeBase64url.length);
-
-  // Reuse credential ID base64url from Step 0
-  const authResponse = await startAuthentication({ optionsJSON: {
-    challenge: challengeBase64url,
+  const { signature: signatureEncoded } = await signWithPasskey({
+    hash,
+    credentialId: passkeyConfig.value.credentialId,
     rpId: window.location.hostname,
-    rpName: window.location.hostname,
-    rpID: window.location.hostname,
     origin: window.location.origin,
-    userVerification: "required", // Required to set UV flag in authenticatorData
-    allowCredentials: [{
-      id: credentialIdBase64url, // Reuse from Step 0
-      type: "public-key",
-    }],
-  } });
+  });
 
   // eslint-disable-next-line no-console
-  console.log("  Passkey signature received");
-  // No client-side server verification here; the signature will be ABI-encoded
-  // and submitted to the bundler/EntryPoint for on-chain verification (matches Rust test).
-
-  // Step 2: Encode the signature in the format expected by the validator
-  // The WebAuthn validator expects ABI-encoded: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-  // eslint-disable-next-line no-console
-  console.log("Step 2: Encoding signature...");
-
-  const authenticatorData = base64urlToUint8Array(authResponse.response.authenticatorData);
-  const clientDataJSONBytes = base64urlToUint8Array(authResponse.response.clientDataJSON);
-  const clientDataJSON = new TextDecoder().decode(clientDataJSONBytes); // Convert to string
-  const signatureBytes = base64urlToUint8Array(authResponse.response.signature);
-
-  // Parse DER signature to extract r and s
-  // DER format: 0x30 [total-length] 0x02 [r-length] [r] 0x02 [s-length] [s]
-  let offset = 0;
-  if (signatureBytes[offset++] !== 0x30) {
-    throw new Error("Invalid DER signature format");
-  }
-  offset++; // Skip total length
-
-  if (signatureBytes[offset++] !== 0x02) {
-    throw new Error("Invalid DER signature format - missing r marker");
-  }
-  const rLength = signatureBytes[offset++];
-  let r = signatureBytes.slice(offset, offset + rLength);
-  offset += rLength;
-
-  if (signatureBytes[offset++] !== 0x02) {
-    throw new Error("Invalid DER signature format - missing s marker");
-  }
-  const sLength = signatureBytes[offset++];
-  let s = signatureBytes.slice(offset, offset + sLength);
-
-  // Strip leading 0x00 bytes (DER adds these when high bit is set)
-  while (r.length > 32 && r[0] === 0x00) {
-    r = r.slice(1);
-  }
-  while (s.length > 32 && s[0] === 0x00) {
-    s = s.slice(1);
-  }
-
-  // Ensure values fit in 32 bytes
-  if (r.length > 32 || s.length > 32) {
-    throw new Error(`Invalid signature component length: r=${r.length}, s=${s.length}`);
-  }
-
-  // Convert r and s to bytes32 (pad to 32 bytes)
-  const rPadded = new Uint8Array(32);
-  const sPadded = new Uint8Array(32);
-  rPadded.set(r, 32 - r.length); // Right-align (pad left)
-  sPadded.set(s, 32 - s.length);
-
-  // Get credential ID (reuse from Step 0)
-  const credentialIdForEncoding = hexToBytes(passkeyConfig.value.credentialId);
-
-  // eslint-disable-next-line no-console
-  console.log("  Debug signature components:");
-  // eslint-disable-next-line no-console
-  console.log("    authenticatorData length:", authenticatorData.length);
-  // eslint-disable-next-line no-console
-  console.log("    authenticatorData (hex):", "0x" + Array.from(authenticatorData).map((b) => b.toString(16).padStart(2, "0")).join(""));
-  // eslint-disable-next-line no-console
-  console.log("    clientDataJSON:", clientDataJSON);
-  // eslint-disable-next-line no-console
-  console.log("    clientDataJSON length:", clientDataJSON.length);
-  // Check if challenge in clientDataJSON matches the hash we signed
-  const clientDataObj = JSON.parse(clientDataJSON);
-  // eslint-disable-next-line no-console
-  console.log("    challenge from clientDataJSON:", clientDataObj.challenge);
-  // eslint-disable-next-line no-console
-  console.log("    challenge we sent:", challengeBase64url);
-  // eslint-disable-next-line no-console
-  console.log("    challenges match:", clientDataObj.challenge === challengeBase64url);
-  // eslint-disable-next-line no-console
-  console.log("    r length:", rPadded.length, "hex:", "0x" + Array.from(rPadded).map((b) => b.toString(16).padStart(2, "0")).join(""));
-  // eslint-disable-next-line no-console
-  console.log("    s length:", sPadded.length, "hex:", "0x" + Array.from(sPadded).map((b) => b.toString(16).padStart(2, "0")).join(""));
-  // eslint-disable-next-line no-console
-  console.log("    credentialId length:", credentialIdForEncoding.length);
-  // eslint-disable-next-line no-console
-  console.log("    credentialId (hex):", passkeyConfig.value.credentialId);
-  // eslint-disable-next-line no-console
-  console.log("    Public key X (registered):", passkeyConfig.value.passkeyX);
-  // eslint-disable-next-line no-console
-  console.log("    Public key Y (registered):", passkeyConfig.value.passkeyY);
-  // eslint-disable-next-line no-console
-  console.log("    Origin (registered):", passkeyConfig.value.originDomain);
-
-  // ABI encode the signature using ethers (reuse from Step 0)
-  // Encode: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-  const signatureEncoded = abiCoder.encode(
-    ["bytes", "string", "bytes32[2]", "bytes"],
-    [
-      authenticatorData,
-      clientDataJSON,
-      [rPadded, sPadded],
-      credentialIdForEncoding,
-    ],
-  );
-
+  console.log("  Passkey signature received and encoded");
   // eslint-disable-next-line no-console
   console.log("  ABI-encoded signature length:", signatureEncoded.length);
 
-  // Step 3: Submit the signed UserOperation
+  // Optional: Log debug info (the SDK handles all the encoding internally)
+  // eslint-disable-next-line no-console
+  console.log("  Debug info:");
+  // eslint-disable-next-line no-console
+  console.log("    Credential ID:", passkeyConfig.value.credentialId);
+  // eslint-disable-next-line no-console
+  console.log("    Public key X:", passkeyConfig.value.passkeyX);
+  // eslint-disable-next-line no-console
+  console.log("    Public key Y:", passkeyConfig.value.passkeyY);
+  // eslint-disable-next-line no-console
+  console.log("    Origin:", passkeyConfig.value.originDomain);
+
+  // Step 2: Submit the signed UserOperation
   // Note: The Rust submit function will prepend the validator address,
   // so we only pass the ABI-encoded WebAuthn signature (no validator prefix)
   // eslint-disable-next-line no-console
-  console.log("Step 3: Submitting signed UserOperation...");
+  console.log("Step 2: Submitting signed UserOperation...");
   // eslint-disable-next-line no-console
   console.log("  UserOp ID:", userOpId);
-  // eslint-disable-next-line no-console
-  console.log("  Passkey signature length (without validator):", signatureEncoded.length);
 
   // Create a new config for submit (the previous one was consumed by prepare)
   const submitConfig = new SendTransactionConfig(
@@ -1488,45 +1335,6 @@ async function sendFromSmartAccountWithPasskey() {
   console.log("  Transaction result:", result);
 
   txResult.value = result;
-}
-
-/**
- * Convert Uint8Array to base64url string
- */
-function uint8ArrayToBase64url(bytes) {
-  // Convert to binary string
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-
-  // Encode to base64
-  const base64 = btoa(binary);
-
-  // Convert to base64url (remove padding and replace chars)
-  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-}
-
-/**
- * Convert base64url string to Uint8Array
- */
-function base64urlToUint8Array(base64url) {
-  // Replace base64url characters with base64
-  const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-
-  // Pad with '='
-  const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, "=");
-
-  // Decode base64
-  const binary = atob(padded);
-
-  // Convert to Uint8Array
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes;
 }
 
 // Test HTTP transport with reqwasm

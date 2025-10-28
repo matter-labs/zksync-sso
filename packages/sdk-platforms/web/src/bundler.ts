@@ -4,6 +4,7 @@ import * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
 export * from "./client";
 export * from "./types";
 export * from "./webauthn";
+export * from "./webauthn-helpers";
 
 import { setWasmBindings } from "./client";
 
