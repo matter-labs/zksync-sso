@@ -413,7 +413,8 @@ pub mod tests {
 
         // Create stub signature for gas estimation
         // Use all-zeros hash to generate a real passkey signature for estimation
-        let stub_sig = get_signature_from_js(FixedBytes::<32>::default().to_string())?;
+        let stub_sig =
+            get_signature_from_js(FixedBytes::<32>::default().to_string())?;
 
         // Build AlloyPackedUserOperation with stub values for gas estimation
         let mut user_op = AlloyPackedUserOperation {
@@ -441,8 +442,9 @@ pub mod tests {
 
         // Update with estimated gas values
         user_op.call_gas_limit = estimated_gas.call_gas_limit;
-        user_op.verification_gas_limit =
-            (estimated_gas.verification_gas_limit * U256::from(6)) / U256::from(5);
+        user_op.verification_gas_limit = (estimated_gas.verification_gas_limit
+            * U256::from(6))
+            / U256::from(5);
         user_op.pre_verification_gas = estimated_gas.pre_verification_gas;
         user_op.max_priority_fee_per_gas = U256::from(0x77359400);
         user_op.max_fee_per_gas = U256::from(0x82e08afeu64);
@@ -478,7 +480,10 @@ pub mod tests {
         println!("  nonce: {:?}", packed_user_op.nonce);
         println!("  accountGasLimits: {:?}", packed_user_op.accountGasLimits);
         println!("  gasFees: {:?}", packed_user_op.gasFees);
-        println!("  preVerificationGas: {:?}", packed_user_op.preVerificationGas);
+        println!(
+            "  preVerificationGas: {:?}",
+            packed_user_op.preVerificationGas
+        );
 
         // Step 2: Sign the hash (simulate JavaScript calling the passkey)
         println!("\nStep 2: Signing hash with passkey...");

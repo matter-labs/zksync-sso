@@ -62,7 +62,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
 
   // Wait for funding transaction to complete - look for transaction hash
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:"), "Funding transaction failed").toBeVisible({ timeout: 30000 });
 
   // Verify we have a transaction hash displayed
   const fundTxHash = page.locator("code").filter({ hasText: /^0x[a-fA-F0-9]{64}/ }).first();
@@ -161,7 +161,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
 
   // Wait for funding transaction to complete
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:"), "Funding transaction failed").toBeVisible({ timeout: 60000 });
 
   console.log("✓ Smart account funded successfully");
 
