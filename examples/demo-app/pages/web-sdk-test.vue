@@ -52,110 +52,7 @@
     </div>
 
     <!-- Passkey Configuration (Optional) -->
-    <div class="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200">
-      <h2 class="text-lg font-semibold mb-3 text-yellow-800">
-        WebAuthn Passkey Configuration (Optional)
-      </h2>
-      <p class="text-sm text-gray-600 mb-4">
-        Configure a WebAuthn passkey for the smart account. Leave empty to deploy with EOA signer only.
-      </p>
-
-      <div class="space-y-3">
-        <div>
-          <label class="block text-sm font-medium mb-1">
-            <input
-              v-model="passkeyConfig.enabled"
-              type="checkbox"
-              class="mr-2"
-            >
-            Enable Passkey Deployment
-          </label>
-        </div>
-
-        <div
-          v-if="passkeyConfig.enabled"
-          class="space-y-3 pl-6 border-l-2 border-yellow-300"
-        >
-          <div class="mb-3">
-            <button
-              :disabled="webauthnLoading"
-              class="w-full px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
-              @click="createWebAuthnCredential"
-            >
-              {{ webauthnLoading ? 'Creating Passkey...' : 'Create New WebAuthn Passkey' }}
-            </button>
-            <p class="text-xs text-gray-600 mt-2">
-              Click to create a new passkey using your device's authenticator (fingerprint, face ID, security key, etc.)
-            </p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Credential ID (hex):</label>
-            <input
-              v-model="passkeyConfig.credentialId"
-              type="text"
-              placeholder="0x2868baa08431052f6c7541392a458f64"
-              class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono"
-            >
-            <p class="text-xs text-gray-500 mt-1">
-              Example: 0x2868baa08431052f6c7541392a458f64
-            </p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Passkey X Coordinate (32 bytes hex):</label>
-            <input
-              v-model="passkeyConfig.passkeyX"
-              type="text"
-              placeholder="0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40"
-              class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono"
-            >
-            <p class="text-xs text-gray-500 mt-1">
-              32-byte public key X coordinate
-            </p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Passkey Y Coordinate (32 bytes hex):</label>
-            <input
-              v-model="passkeyConfig.passkeyY"
-              type="text"
-              placeholder="0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501"
-              class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono"
-            >
-            <p class="text-xs text-gray-500 mt-1">
-              32-byte public key Y coordinate
-            </p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Origin Domain:</label>
-            <input
-              v-model="passkeyConfig.originDomain"
-              type="text"
-              placeholder="https://example.com"
-              class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-            >
-            <p class="text-xs text-gray-500 mt-1">
-              The origin domain where the passkey was created
-            </p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">WebAuthn Validator Address:</label>
-            <input
-              v-model="passkeyConfig.validatorAddress"
-              type="text"
-              readonly
-              class="w-full px-3 py-2 border border-gray-300 rounded text-xs font-mono bg-gray-50"
-            >
-            <p class="text-xs text-gray-500 mt-1">
-              Address of the WebAuthn validator module (loaded from contracts.json)
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <PasskeyConfig v-model="passkeyConfig" />
 
     <!-- Account Deployment Result -->
     <div
@@ -301,32 +198,10 @@
 
       <div class="space-y-3">
         <!-- Signing Method Selection -->
-        <div
+        <SigningMethodSelector
           v-if="deploymentResult.passkeyEnabled"
-          class="mb-3 p-3 bg-white rounded border border-indigo-300"
-        >
-          <label class="block text-sm font-medium mb-2">Signing Method:</label>
-          <div class="space-y-2">
-            <label class="flex items-center">
-              <input
-                v-model="txParams.signingMethod"
-                type="radio"
-                value="eoa"
-                class="mr-2"
-              >
-              <span class="text-sm">EOA Validator (Private Key)</span>
-            </label>
-            <label class="flex items-center">
-              <input
-                v-model="txParams.signingMethod"
-                type="radio"
-                value="passkey"
-                class="mr-2"
-              >
-              <span class="text-sm">WebAuthn Passkey (Hardware Key)</span>
-            </label>
-          </div>
-        </div>
+          v-model="txParams.signingMethod"
+        />
 
         <div>
           <label class="block text-sm font-medium mb-1">Recipient Address:</label>
@@ -583,58 +458,6 @@ const passkeyConfig = ref({
   originDomain: window.location.origin,
   validatorAddress: "",
 });
-
-const webauthnLoading = ref(false);
-
-/**
- * Create a new WebAuthn credential using SimpleWebAuthn helper
- */
-async function createWebAuthnCredential() {
-  webauthnLoading.value = true;
-
-  try {
-    // Import the WebAuthn helper from the SDK
-    const { createWebAuthnCredential: createCred } = await import("zksync-sso-web-sdk/bundler");
-
-    // eslint-disable-next-line no-console
-    console.log("Creating WebAuthn credential using SimpleWebAuthn...");
-
-    // Create the credential with custom options
-    const credential = await createCred({
-      rpName: "SSO Demo",
-      rpId: window.location.hostname,
-      userName: "Demo User",
-      userEmail: "demo-user@zksync-sso.example",
-      authenticatorAttachment: "cross-platform",
-      timeout: 60000,
-    });
-
-    // Update the passkey configuration
-    passkeyConfig.value.credentialId = credential.credentialId;
-    passkeyConfig.value.passkeyX = credential.publicKeyX;
-    passkeyConfig.value.passkeyY = credential.publicKeyY;
-    passkeyConfig.value.originDomain = credential.origin;
-
-    // eslint-disable-next-line no-console
-    console.log("WebAuthn credential created successfully:");
-    // eslint-disable-next-line no-console
-    console.log("  Credential ID:", passkeyConfig.value.credentialId);
-    // eslint-disable-next-line no-console
-    console.log("  Public Key X:", passkeyConfig.value.passkeyX);
-    // eslint-disable-next-line no-console
-    console.log("  Public Key Y:", passkeyConfig.value.passkeyY);
-    // eslint-disable-next-line no-console
-    console.log("  Origin:", passkeyConfig.value.originDomain);
-
-    alert("Passkey created successfully! The credential details have been populated below.");
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("Failed to create WebAuthn credential:", err);
-    alert(`Failed to create passkey: ${err.message}`);
-  } finally {
-    webauthnLoading.value = false;
-  }
-}
 
 /**
  * Convert a hex string to a Uint8Array of bytes
@@ -1235,17 +1058,14 @@ async function sendFromSmartAccountWithPasskey() {
   // Convert amount to wei (as string)
   const amountWei = (BigInt(parseFloat(txParams.value.amount) * 1e18)).toString();
 
-  // Step 0: Build UserOperation with stub signature to get hash
+  // Step 0: Build UserOperation to get hash
   // eslint-disable-next-line no-console
   console.log("Step 0: Building UserOperation to get hash...");
 
-  // Import the new SDK helper functions
-  const { signWithPasskey, createStubSignature } = await import("zksync-sso-web-sdk/bundler");
+  // Import the SDK helper function (stub signature is created internally by Rust)
+  const { signWithPasskey } = await import("zksync-sso-web-sdk/bundler");
 
-  // Create minimal stub signature using SDK helper (replaces ~40 lines of manual encoding)
-  const stubSignature = await createStubSignature(webauthnValidatorAddress);
-
-  // Prepare UserOperation with stub to get the hash
+  // Prepare UserOperation - stub signature is created internally
   const sendConfig = new SendTransactionConfig(
     rpcUrl,
     bundlerUrl,
@@ -1253,7 +1073,7 @@ async function sendFromSmartAccountWithPasskey() {
   );
 
   // eslint-disable-next-line no-console
-  console.log("  Calling prepare_fixed_gas with stub to get hash (NO gas estimation)...");
+  console.log("  Calling prepare_fixed_gas (stub created internally)...");
 
   const prepareResult = await prepare_passkey_user_operation_fixed_gas(
     sendConfig,
@@ -1262,7 +1082,6 @@ async function sendFromSmartAccountWithPasskey() {
     txParams.value.to,
     amountWei,
     null, // data (null for simple transfer)
-    stubSignature,
   );
 
   // eslint-disable-next-line no-console
