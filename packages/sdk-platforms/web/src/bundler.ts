@@ -23,6 +23,8 @@ export const {
   prepare_passkey_user_operation,
   prepare_passkey_user_operation_fixed_gas,
   submit_passkey_user_operation,
+  abi_encode_passkey_signature,
+  abi_encode_stub_passkey_signature,
   Client,
   Config,
   Contracts,

@@ -1552,6 +1552,120 @@ pub fn console_log_from_rust(message: &str) {
     console_log!("{}", message);
 }
 
+/// ABI encode a passkey signature
+///
+/// Format: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
+///
+/// # Parameters
+/// * `authenticator_data` - Raw authenticator data from WebAuthn response (hex string)
+/// * `client_data_json` - Client data JSON string from WebAuthn response
+/// * `r` - Signature r component (hex string, must be 32 bytes when decoded)
+/// * `s` - Signature s component (hex string, must be 32 bytes when decoded)
+/// * `credential_id` - The credential ID (hex string)
+///
+/// # Returns
+/// ABI-encoded signature as hex string with 0x prefix
+#[wasm_bindgen]
+pub fn abi_encode_passkey_signature(
+    authenticator_data: &str,
+    client_data_json: &str,
+    r: &str,
+    s: &str,
+    credential_id: &str,
+) -> Result<String, JsValue> {
+    use alloy::sol_types::SolValue;
+
+    // Parse hex strings to bytes
+    let auth_data_hex =
+        authenticator_data.strip_prefix("0x").unwrap_or(authenticator_data);
+    let auth_data = hex::decode(auth_data_hex).map_err(|e| {
+        JsValue::from_str(&format!("Invalid authenticatorData hex: {}", e))
+    })?;
+
+    let r_hex = r.strip_prefix("0x").unwrap_or(r);
+    let r_bytes = hex::decode(r_hex)
+        .map_err(|e| JsValue::from_str(&format!("Invalid r hex: {}", e)))?;
+    if r_bytes.len() != 32 {
+        return Err(JsValue::from_str(&format!(
+            "r must be 32 bytes, got {}",
+            r_bytes.len()
+        )));
+    }
+    let r_fixed = FixedBytes::<32>::from_slice(&r_bytes);
+
+    let s_hex = s.strip_prefix("0x").unwrap_or(s);
+    let s_bytes = hex::decode(s_hex)
+        .map_err(|e| JsValue::from_str(&format!("Invalid s hex: {}", e)))?;
+    if s_bytes.len() != 32 {
+        return Err(JsValue::from_str(&format!(
+            "s must be 32 bytes, got {}",
+            s_bytes.len()
+        )));
+    }
+    let s_fixed = FixedBytes::<32>::from_slice(&s_bytes);
+
+    let cred_id_hex = credential_id.strip_prefix("0x").unwrap_or(credential_id);
+    let cred_id = hex::decode(cred_id_hex).map_err(|e| {
+        JsValue::from_str(&format!("Invalid credentialId hex: {}", e))
+    })?;
+
+    // ABI encode using Alloy's sol_types
+    // Type: (bytes, string, bytes32[2], bytes)
+    let encoded = (
+        Bytes::from(auth_data),
+        client_data_json.to_string(),
+        [r_fixed, s_fixed],
+        Bytes::from(cred_id),
+    )
+        .abi_encode();
+
+    Ok(format!("0x{}", hex::encode(encoded)))
+}
+
+/// ABI encode a stub passkey signature for gas estimation
+///
+/// Creates a minimal signature with empty/zero values
+///
+/// # Parameters
+/// * `validator_address` - The WebAuthn validator address (hex string with 0x prefix)
+///
+/// # Returns
+/// Hex-encoded stub signature (validator address + ABI-encoded empty signature)
+#[wasm_bindgen]
+pub fn abi_encode_stub_passkey_signature(
+    validator_address: &str,
+) -> Result<String, JsValue> {
+    use alloy::sol_types::SolValue;
+
+    // Parse validator address
+    let validator_hex =
+        validator_address.strip_prefix("0x").unwrap_or(validator_address);
+    let validator_bytes = hex::decode(validator_hex).map_err(|e| {
+        JsValue::from_str(&format!("Invalid validator address hex: {}", e))
+    })?;
+    if validator_bytes.len() != 20 {
+        return Err(JsValue::from_str(&format!(
+            "Validator address must be 20 bytes, got {}",
+            validator_bytes.len()
+        )));
+    }
+
+    // Create minimal stub: empty authenticatorData, empty clientDataJSON, zero r/s, empty credentialId
+    let zero_32 = FixedBytes::<32>::default();
+    let empty_bytes = Bytes::default();
+
+    // ABI encode using Alloy's sol_types
+    let encoded =
+        (empty_bytes.clone(), String::new(), [zero_32, zero_32], empty_bytes)
+            .abi_encode();
+
+    // Prepend validator address
+    let mut full_stub = validator_bytes;
+    full_stub.extend_from_slice(&encoded);
+
+    Ok(format!("0x{}", hex::encode(full_stub)))
+}
+
 /// Compute account ID from user ID (same logic as get_account_id_by_user_id in SDK)
 /// This is used to generate a unique identifier for smart accounts
 #[wasm_bindgen]
