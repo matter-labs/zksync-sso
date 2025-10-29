@@ -15,6 +15,7 @@ on:
       - "packages/erc4337-contracts/**"
       - "packages/sdk-platforms/rust/**"
       - ".github/workflows/ci-rust.yml"
+  workflow_dispatch:
 
 jobs:
   rust-sdk:
