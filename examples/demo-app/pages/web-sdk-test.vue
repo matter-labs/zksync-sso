@@ -81,8 +81,7 @@
           <span class="text-xs text-gray-600 ml-2">(Anvil Rich Wallet #1)</span>
         </div>
         <div v-if="deploymentResult.passkeyEnabled">
-          <strong>Passkey Enabled:</strong>
-          <span class="text-green-600 ml-2">Yes</span>
+          <span><strong>Passkey Enabled:</strong> Yes</span>
         </div>
       </div>
     </div>

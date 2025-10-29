@@ -1,15 +1,18 @@
 <template>
   <div class="bg-indigo-50 p-4 rounded-lg mb-4 border border-indigo-200">
     <h2 class="text-lg font-semibold mb-3 text-indigo-800">
-      Send Transaction from Smart Account
+      {{ deploymentResult.passkeyEnabled ? 'Step 3: Send Transaction from Smart Account' : 'Step 2: Send Transaction from Smart Account' }}
     </h2>
     <p class="text-sm text-gray-600 mb-4">
-      Send ETH from your smart account to any address using ERC-4337.
+      Send a transaction from your smart account using either EOA or Passkey signing.
     </p>
 
     <div class="space-y-3">
       <!-- Signing Method Selection -->
-      <div class="mb-3 p-3 bg-white rounded border border-indigo-300">
+      <div
+        v-if="deploymentResult.passkeyEnabled"
+        class="mb-3 p-3 bg-white rounded border border-indigo-300"
+      >
         <label class="block text-sm font-medium mb-2">Signing Method:</label>
         <div class="space-y-2">
           <label class="flex items-center">
@@ -60,7 +63,7 @@
         class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         @click="sendTransaction"
       >
-        {{ loading ? "Sending..." : "Send Transaction" }}
+        {{ loading ? "Sending..." : (signingMethod === 'passkey' ? 'Send with Passkey' : 'Send with EOA') }}
       </button>
     </div>
 
@@ -69,22 +72,18 @@
       v-if="txResult"
       class="mt-4 p-3 bg-white rounded border border-indigo-300"
     >
-      <h3 class="font-semibold mb-2">
-        Transaction Sent!
-      </h3>
-      <p class="text-sm break-all">
+      <strong class="text-sm">Transaction Hash:</strong>
+      <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">
         {{ txResult }}
-      </p>
+      </code>
     </div>
 
     <div
       v-if="txError"
       class="mt-4 p-3 bg-red-50 rounded border border-red-300"
     >
-      <h3 class="font-semibold mb-2 text-red-800">
-        Error
-      </h3>
-      <p class="text-sm text-red-600">
+      <strong class="text-sm text-red-800">Error:</strong>
+      <p class="text-xs text-red-600 mt-1">
         {{ txError }}
       </p>
     </div>

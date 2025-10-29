@@ -34,6 +34,26 @@
           <p class="text-xs text-gray-600 mt-2">
             Click to create a new passkey using your device's authenticator (fingerprint, face ID, security key, etc.)
           </p>
+
+          <!-- Success Message -->
+          <div
+            v-if="successMessage"
+            class="mt-3 p-3 bg-green-50 rounded border border-green-300"
+          >
+            <p class="text-sm text-green-800">
+              {{ successMessage }}
+            </p>
+          </div>
+
+          <!-- Error Message -->
+          <div
+            v-if="errorMessage"
+            class="mt-3 p-3 bg-red-50 rounded border border-red-300"
+          >
+            <p class="text-sm text-red-600">
+              {{ errorMessage }}
+            </p>
+          </div>
         </div>
 
         <div>
@@ -126,12 +146,16 @@ const config = computed({
 });
 
 const loading = ref(false);
+const successMessage = ref("");
+const errorMessage = ref("");
 
 /**
  * Create a new WebAuthn credential using SimpleWebAuthn helper
  */
 async function handleCreatePasskey() {
   loading.value = true;
+  successMessage.value = "";
+  errorMessage.value = "";
 
   try {
     // Import the WebAuthn helper from the SDK
@@ -167,11 +191,11 @@ async function handleCreatePasskey() {
     // eslint-disable-next-line no-console
     console.log("  Origin:", config.value.originDomain);
 
-    alert("Passkey created successfully! The credential details have been populated below.");
+    successMessage.value = "Passkey created successfully! The credential details have been populated below.";
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("Failed to create WebAuthn credential:", err);
-    alert(`Failed to create passkey: ${err.message}`);
+    errorMessage.value = `Failed to create passkey: ${err.message}`;
   } finally {
     loading.value = false;
   }
