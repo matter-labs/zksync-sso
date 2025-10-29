@@ -194,13 +194,19 @@ export async function signWithPasskey(
   // ABI encode the signature using WASM function
   // Format: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
   const wasm = await import("../pkg-bundler/zksync_sso_erc4337_web_ffi");
-  const signature = wasm.abi_encode_passkey_signature(
-    authenticatorDataHex,
-    clientDataJSON,
-    rHex,
-    sHex,
-    credentialIdHex,
-  );
+
+  let signature: string;
+  try {
+    signature = wasm.abi_encode_passkey_signature(
+      authenticatorDataHex,
+      clientDataJSON,
+      rHex,
+      sHex,
+      credentialIdHex,
+    );
+  } catch (error) {
+    throw new Error(`Failed to ABI encode passkey signature: ${error}`);
+  }
 
   return {
     signature,

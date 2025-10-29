@@ -1573,8 +1573,6 @@ pub fn abi_encode_passkey_signature(
     s: &str,
     credential_id: &str,
 ) -> Result<String, JsValue> {
-    use alloy::sol_types::SolValue;
-
     // Parse hex strings to bytes
     let auth_data_hex =
         authenticator_data.strip_prefix("0x").unwrap_or(authenticator_data);
@@ -1611,13 +1609,28 @@ pub fn abi_encode_passkey_signature(
 
     // ABI encode using Alloy's sol_types
     // Type: (bytes, string, bytes32[2], bytes)
-    let encoded = (
-        Bytes::from(auth_data),
-        client_data_json.to_string(),
-        [r_fixed, s_fixed],
-        Bytes::from(cred_id),
-    )
-        .abi_encode();
+    // Use abi_encode_params to match Solidity's abi.decode expectations
+    use alloy::sol;
+    sol! {
+        struct PasskeySignature {
+            bytes authenticatorData;
+            string clientDataJSON;
+            bytes32[2] rs;
+            bytes credentialId;
+        }
+    }
+
+    let sig_data = PasskeySignature {
+        authenticatorData: Bytes::from(auth_data),
+        clientDataJSON: client_data_json.to_string(),
+        rs: [r_fixed, s_fixed],
+        credentialId: Bytes::from(cred_id),
+    };
+
+    let encoded =
+        <PasskeySignature as alloy::sol_types::SolType>::abi_encode_params(
+            &sig_data,
+        );
 
     Ok(format!("0x{}", hex::encode(encoded)))
 }
