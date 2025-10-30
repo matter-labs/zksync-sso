@@ -609,6 +609,35 @@ async function deployAccount() {
     // eslint-disable-next-line no-console
     console.log("Account deployed at:", deployedAddress);
 
+    // Verify the account contract exists by checking code at the address
+    // eslint-disable-next-line no-console
+    console.log("Verifying account deployment...");
+    try {
+      const response = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "eth_getCode",
+          params: [deployedAddress, "latest"],
+        }),
+      });
+      const data = await response.json();
+      const code = data.result;
+
+      if (!code || code === "0x" || code === "0x0") {
+        throw new Error(`Account contract not deployed at ${deployedAddress} - no code found. The deployment transaction may have failed or not been mined yet.`);
+      }
+
+      // eslint-disable-next-line no-console
+      console.log("✓ Account contract verified - code exists at address");
+    } catch (verifyErr) {
+      // eslint-disable-next-line no-console
+      console.error("Account verification failed:", verifyErr);
+      throw new Error(`Account deployment verification failed: ${verifyErr.message}`);
+    }
+
     // Display the deployment result
     deploymentResult.value = {
       userId,

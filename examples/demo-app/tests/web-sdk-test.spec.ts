@@ -48,6 +48,9 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
   await expect(page.getByText("Account Address:")).toBeVisible();
   await expect(page.getByText("EOA Signer:")).toBeVisible();
 
+  // Wait a bit for the contract to be fully propagated
+  await page.waitForTimeout(2000);
+
   console.log("✓ Smart account deployed successfully");
 
   // Step 2: Fund Smart Account
@@ -148,6 +151,9 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
 
   // Verify passkey is enabled in deployment result
   await expect(page.getByText("Passkey Enabled: Yes")).toBeVisible();
+
+  // Wait a bit for the contract to be fully propagated
+  await page.waitForTimeout(2000);
 
   console.log("✓ Smart account with passkey deployed successfully");
 
