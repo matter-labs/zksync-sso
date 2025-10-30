@@ -3,7 +3,9 @@ use crate::erc4337::{
         erc7579::{Execution, calls::encode_calls},
         modular_smart_account::{
             send::send_transaction,
-            session::{SessionKeyValidator, SessionLib::SessionSpec},
+            session::{
+                SessionKeyValidator, session_lib::session_spec::SessionSpec,
+            },
         },
     },
     bundler::pimlico::client::BundlerClient,
@@ -45,7 +47,7 @@ fn add_session_call_data(
     session_key_validator: Address,
 ) -> Bytes {
     let create_session_calldata =
-        SessionKeyValidator::createSessionCall { sessionSpec: spec }
+        SessionKeyValidator::createSessionCall { sessionSpec: spec.into() }
             .abi_encode()
             .into();
 
@@ -74,7 +76,10 @@ mod tests {
                     add_passkey::PasskeyPayload,
                     deploy::{EOASigners, WebauthNSigner, deploy_account},
                     send::passkey::tests::get_signature_from_js,
-                    session::SessionLib::{TransferSpec, UsageLimit},
+                    session::session_lib::session_spec::{
+                        limit_type::LimitType, transfer_spec::TransferSpec,
+                        usage_limit::UsageLimit,
+                    },
                     signature::{eoa_signature, stub_signature_eoa},
                 },
             },
@@ -93,7 +98,7 @@ mod tests {
     use std::sync::Arc;
 
     #[tokio::test]
-    async fn test_create_session() -> eyre::Result<()> {
+    async fn test_create_session_new() -> eyre::Result<()> {
         let (
             _,
             anvil_instance,
@@ -210,18 +215,18 @@ mod tests {
             let target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
             let session_spec = SessionSpec {
                 signer: signer_address,
-                expiresAt: expires_at,
-                callPolicies: vec![],
-                feeLimit: UsageLimit {
-                    limitType: 1,
+                expires_at,
+                call_policies: vec![],
+                fee_limit: UsageLimit {
+                    limit_type: LimitType::Lifetime,
                     limit: U256::from(1_000_000_000_000_000_000u64),
                     period: Uint::from(0),
                 },
-                transferPolicies: vec![TransferSpec {
-                    maxValuePerUse: U256::from(1),
+                transfer_policies: vec![TransferSpec {
+                    max_value_per_use: U256::from(1),
                     target,
-                    valueLimit: UsageLimit {
-                        limitType: 0,
+                    value_limit: UsageLimit {
+                        limit_type: LimitType::Unlimited,
                         limit: U256::from(0),
                         period: Uint::from(0),
                     },
@@ -249,7 +254,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_session_with_webauthn() -> eyre::Result<()> {
+    async fn test_create_session_with_webauthn_new() -> eyre::Result<()> {
         let (
             _,
             anvil_instance,
@@ -366,18 +371,18 @@ mod tests {
             let target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
             let session_spec = SessionSpec {
                 signer: signer_address,
-                expiresAt: expires_at,
-                callPolicies: vec![],
-                feeLimit: UsageLimit {
-                    limitType: 1,
+                expires_at,
+                call_policies: vec![],
+                fee_limit: UsageLimit {
+                    limit_type: LimitType::Lifetime,
                     limit: U256::from(1_000_000_000_000_000_000u64),
                     period: Uint::from(0),
                 },
-                transferPolicies: vec![TransferSpec {
-                    maxValuePerUse: U256::from(1),
+                transfer_policies: vec![TransferSpec {
+                    max_value_per_use: U256::from(1),
                     target,
-                    valueLimit: UsageLimit {
-                        limitType: 0,
+                    value_limit: UsageLimit {
+                        limit_type: LimitType::Unlimited,
                         limit: U256::from(0),
                         period: Uint::from(0),
                     },
