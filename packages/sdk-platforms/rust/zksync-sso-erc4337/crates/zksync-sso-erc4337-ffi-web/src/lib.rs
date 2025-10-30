@@ -1997,8 +1997,6 @@ mod tests {
         providers::Provider,
         rpc::types::TransactionRequest,
     };
-    use eyre;
-    use std::sync::Arc;
     use zksync_sso_erc4337_core::{
         erc4337::account::{
             erc7579::{Execution, module_installed::is_module_installed},
@@ -2191,7 +2189,7 @@ mod tests {
             factory: None,
             factory_data: None,
             call_data,
-            signature: Bytes::from(stub_sig),
+            signature: stub_sig,
         };
 
         println!("About to estimate gas, bundler is in scope...");
@@ -2247,7 +2245,7 @@ mod tests {
         println!("Full signature length: {} bytes", full_signature.len());
 
         // Update UserOp with signature and submit
-        user_op.signature = Bytes::from(full_signature);
+        user_op.signature = full_signature;
 
         let user_op_hash = bundler_client
             .send_user_operation(entry_point_address, user_op)

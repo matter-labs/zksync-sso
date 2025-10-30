@@ -1,6 +1,6 @@
 pub mod serde_helpers;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utilities"))]
 pub mod test_utilities;
 
 use alloy::{network::EthereumWallet, signers::local::PrivateKeySigner};

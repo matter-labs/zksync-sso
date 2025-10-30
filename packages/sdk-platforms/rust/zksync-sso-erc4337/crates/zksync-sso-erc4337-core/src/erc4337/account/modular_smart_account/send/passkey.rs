@@ -269,9 +269,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_send_transaction_webauthn_two_step() -> eyre::Result<()> {
         use crate::erc4337::{
-            account::modular_smart_account::{
-                nonce::get_nonce, signature::stub_signature_passkey,
-            },
+            account::modular_smart_account::nonce::get_nonce,
             bundler::Bundler,
             entry_point::EntryPoint::PackedUserOperation,
             user_operation::hash::v08::get_user_operation_hash_entry_point,
@@ -432,7 +430,7 @@ pub mod tests {
             factory: None,
             factory_data: None,
             call_data,
-            signature: Bytes::from(stub_sig),
+            signature: stub_sig,
         };
 
         // Estimate gas
@@ -487,7 +485,7 @@ pub mod tests {
 
         // Step 2: Sign the hash (simulate JavaScript calling the passkey)
         println!("\nStep 2: Signing hash with passkey...");
-        println!("Hash to sign (as string): {}", hash.0.to_string());
+        println!("Hash to sign (as string): {}", hash.0);
 
         let full_signature = get_signature_from_js(hash.0.to_string())?;
         println!("Full signature length: {} bytes", full_signature.len());
@@ -499,7 +497,7 @@ pub mod tests {
         // Step 3: Update UserOp with signature and submit
         println!("\nStep 3: Submitting UserOperation...");
 
-        user_op.signature = Bytes::from(full_signature);
+        user_op.signature = full_signature;
 
         let user_op_hash = bundler_client
             .send_user_operation(entry_point_address, user_op)
