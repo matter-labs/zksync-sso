@@ -269,8 +269,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_send_transaction_webauthn_two_step() -> eyre::Result<()> {
         use crate::erc4337::{
-            account::modular_smart_account::nonce::get_nonce,
-            bundler::Bundler,
+            account::modular_smart_account::nonce::get_nonce, bundler::Bundler,
             entry_point::EntryPoint::PackedUserOperation,
             user_operation::hash::v08::get_user_operation_hash_entry_point,
         };
