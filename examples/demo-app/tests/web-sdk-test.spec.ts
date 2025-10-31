@@ -28,11 +28,13 @@ test.beforeEach(async ({ page }) => {
   });
 
   await waitForServicesToLoad(page);
-  await page.goto("/web-sdk-test");
-  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 });
 
 test("Deploy, fund, and transfer from smart account", async ({ page }) => {
+  // Use deployer account #0 (Anvil rich wallet #0)
+  await page.goto("/web-sdk-test?deployerIndex=0");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
   // Wait for SDK to load
   await expect(page.getByText("SDK Loaded:")).toBeVisible();
   await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
@@ -108,6 +110,10 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
 });
 
 test("Deploy with passkey and send transaction using passkey", async ({ page }) => {
+  // Use deployer account #1 (Anvil rich wallet #1)
+  await page.goto("/web-sdk-test?deployerIndex=1");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
   // Wait for SDK to load
   await expect(page.getByText("SDK Loaded:")).toBeVisible();
   await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
@@ -207,6 +213,10 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
 });
 
 test("Deploy with passkey but send transaction using EOA", async ({ page }) => {
+  // Use deployer account #2 (Anvil rich wallet #2)
+  await page.goto("/web-sdk-test?deployerIndex=2");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
   // Wait for SDK to load
   await expect(page.getByText("SDK Loaded:")).toBeVisible();
   await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
