@@ -337,9 +337,46 @@ async function sendFromSmartAccountWithPasskey() {
   // Convert amount to wei (as string)
   const amountWei = (BigInt(parseFloat(amount.value) * 1e18)).toString();
 
-  // Step 0: Build UserOperation to get hash
+  // Step 0: Verify contract is ready before attempting to get nonce
   // eslint-disable-next-line no-console
-  console.log("Step 0: Building UserOperation to get hash...");
+  console.log("Step 0: Verifying smart account contract is ready...");
+
+  // Verify the account contract has code and is accessible
+  const { ethers: ethersForCheck } = await import("ethers");
+  const providerForCheck = new ethersForCheck.JsonRpcProvider(rpcUrl);
+  const codeCheck = await providerForCheck.getCode(props.deploymentResult.address);
+
+  if (!codeCheck || codeCheck === "0x" || codeCheck === "0x0") {
+    throw new Error(`Smart account contract not found at ${props.deploymentResult.address}. The account may not be deployed yet.`);
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(`  ✓ Smart account contract verified (${codeCheck.length} bytes)`);
+
+  // Try to call getNonce to verify the contract is fully functional
+  // This catches the race condition before it gets to the Rust code
+  try {
+    // eslint-disable-next-line no-console
+    console.log("  Verifying getNonce is accessible...");
+    const accountAbi = ["function getNonce() view returns (uint256)"];
+    const accountContract = new ethersForCheck.Contract(props.deploymentResult.address, accountAbi, providerForCheck);
+    const nonce = await accountContract.getNonce();
+    // eslint-disable-next-line no-console
+    console.log(`  ✓ Current nonce: ${nonce}`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("  ✗ getNonce failed:", err);
+    throw new Error(`Smart account not ready: getNonce call failed. The account may need more time to settle. Error: ${err.message}`);
+  }
+
+  // Additional delay to ensure state is fully propagated to bundler
+  // eslint-disable-next-line no-console
+  console.log("  Waiting 2 seconds for state propagation...");
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  // Step 1: Build UserOperation to get hash
+  // eslint-disable-next-line no-console
+  console.log("Step 1: Building UserOperation to get hash...");
 
   // Import the SDK helper function (stub signature is created internally by Rust)
   const { signWithPasskey } = await import("zksync-sso-web-sdk/bundler");

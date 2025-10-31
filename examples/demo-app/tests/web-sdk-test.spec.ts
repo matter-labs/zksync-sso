@@ -205,3 +205,102 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
 
   console.log("✅ All passkey steps completed successfully!");
 });
+
+test("Deploy with passkey but send transaction using EOA", async ({ page }) => {
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  console.log("Step 1: Enabling passkey configuration...");
+
+  // Enable passkey deployment
+  const passkeyCheckbox = page.getByLabel("Enable Passkey Deployment");
+  await expect(passkeyCheckbox).toBeVisible();
+  await passkeyCheckbox.check();
+
+  console.log("Step 2: Creating WebAuthn passkey...");
+
+  // Create a virtual authenticator for testing
+  const client = await page.context().newCDPSession(page);
+  await client.send("WebAuthn.enable");
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+    },
+  });
+
+  // Click Create New WebAuthn Passkey button
+  await page.getByRole("button", { name: "Create New WebAuthn Passkey" }).click();
+
+  // Wait for passkey creation to complete
+  await expect(page.getByText("Passkey created successfully!")).toBeVisible({ timeout: 10000 });
+
+  console.log("✓ WebAuthn passkey created successfully");
+
+  // Step 3: Deploy Account with Passkey
+  console.log("Step 3: Deploying smart account with passkey...");
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+
+  // Wait for deployment to complete
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+
+  // Verify passkey is enabled in deployment result
+  await expect(page.getByText("Passkey Enabled: Yes")).toBeVisible();
+
+  // Wait a bit for the contract to be fully propagated
+  await page.waitForTimeout(2000);
+
+  console.log("✓ Smart account with passkey deployed successfully");
+
+  // Step 4: Fund Smart Account
+  console.log("Step 4: Funding smart account...");
+
+  const amountInput = page.locator("input[placeholder=\"0.1\"]");
+  await expect(amountInput).toBeVisible();
+  await amountInput.fill("0.1");
+
+  await page.getByRole("button", { name: "Fund Smart Account" }).click();
+
+  // Wait for funding transaction to complete
+  await expect(page.getByText("Transaction Hash:"), "Funding transaction failed").toBeVisible({ timeout: 60000 });
+
+  console.log("✓ Smart account funded successfully");
+
+  // Step 5: Send Transaction using EOA (not passkey)
+  console.log("Step 5: Sending transaction using EOA (account was deployed with passkey)...");
+
+  // Make sure EOA is selected as signing method (should be default)
+  const eoaRadio = page.getByLabel("EOA Validator (Private Key)");
+  await expect(eoaRadio).toBeVisible();
+  await eoaRadio.check();
+
+  // Fill in recipient address
+  await expect(page.getByText("Recipient Address:")).toBeVisible();
+  const recipientInput = page.getByText("Recipient Address:").locator("..").locator("input");
+  await expect(recipientInput).toBeVisible();
+  await recipientInput.fill("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+
+  // Fill in transfer amount
+  await expect(page.getByText("Amount (ETH):")).toBeVisible();
+  const transferAmountInput = page.getByText("Amount (ETH):").locator("..").locator("input");
+  await expect(transferAmountInput).toBeVisible();
+  await transferAmountInput.fill("0.001");
+
+  // Click Send with EOA button
+  await page.getByRole("button", { name: "Send with EOA" }).click();
+
+  // Wait for transaction to complete
+  await expect(page.locator("strong:has-text(\"Transaction Hash:\")").nth(1)).toBeVisible({ timeout: 60000 });
+
+  // Verify we have a transaction hash for the send
+  const sendTxHash = page.locator("code").filter({ hasText: /^0x[a-fA-F0-9]{64}/ }).nth(1);
+  await expect(sendTxHash).toBeVisible();
+
+  console.log("✓ Transaction sent using EOA successfully (account has passkey)");
+
+  console.log("✅ Passkey deployment + EOA signing completed successfully!");
+});
