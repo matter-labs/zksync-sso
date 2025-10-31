@@ -116,7 +116,7 @@ const txError = ref("");
 /**
  * Convert a hex string to a Uint8Array of bytes
  */
-function hexToBytes(hex) {
+function _hexToBytes(hex) {
   // Remove 0x prefix if present
   const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
 
@@ -259,14 +259,11 @@ async function sendFromSmartAccountWithEOA() {
 // Send transaction using Passkey validator
 async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
-  console.log("Sending transaction from smart account using Passkey...");
+  console.log("Sending transaction from smart account using Passkey (pure JS implementation)...");
 
-  // Import WASM functions
-  const {
-    prepare_passkey_user_operation_fixed_gas,
-    submit_passkey_user_operation,
-    SendTransactionConfig,
-  } = await import("zksync-sso-web-sdk/bundler");
+  // Import helpers
+  const { signWithPasskey, createStubSignature } = await import("zksync-sso-web-sdk/bundler");
+  const { ethers } = await import("ethers");
 
   // Load contracts.json
   const response = await fetch("/contracts.json");
@@ -289,152 +286,199 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("  WebAuthn Validator:", webauthnValidatorAddress);
 
-  // Verify the public key is registered on-chain
+  // Create provider
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+  // Convert amount to wei
+  const amountWei = ethers.parseEther(amount.value);
+
+  // Step 1: Build execution call data
   // eslint-disable-next-line no-console
-  console.log("Verifying public key registration on-chain...");
-  const { ethers: ethersForValidation } = await import("ethers");
-  const providerForValidation = new ethersForValidation.JsonRpcProvider(rpcUrl);
+  console.log("Step 1: Building execution call data...");
 
-  // ABI for getAccountKey function
-  const validatorAbi = [
-    "function getAccountKey(string calldata originDomain, bytes calldata credentialId, address accountAddress) external view returns (bytes32[2] memory)",
-  ];
-  const validatorContract = new ethersForValidation.Contract(webauthnValidatorAddress, validatorAbi, providerForValidation);
+  // Using MSA's execute function: execute(uint8 mode, bytes calldata executionCalldata)
+  // mode 0x00 = single execution
+  // executionCalldata = abi.encode(target, value, data)
+  const executionCalldata = ethers.AbiCoder.defaultAbiCoder().encode(
+    ["address", "uint256", "bytes"],
+    [to.value, amountWei, "0x"],
+  );
 
-  const credIdBytes = hexToBytes(props.passkeyConfig.credentialId);
-  const registeredKey = await validatorContract.getAccountKey(
-    props.passkeyConfig.originDomain,
-    credIdBytes,
-    props.deploymentResult.address,
+  const accountInterface = new ethers.Interface([
+    "function execute(uint8 mode, bytes calldata executionCalldata)",
+  ]);
+  const callData = accountInterface.encodeFunctionData("execute", [0x00, executionCalldata]);
+
+  // eslint-disable-next-line no-console
+  console.log("  Call data encoded");
+
+  // Step 2: Get nonce from entry point
+  // eslint-disable-next-line no-console
+  console.log("Step 2: Getting nonce from entry point...");
+
+  const entryPointInterface = new ethers.Interface([
+    "function getNonce(address sender, uint192 key) view returns (uint256)",
+  ]);
+  const entryPointContract = new ethers.Contract(entryPointAddress, entryPointInterface, provider);
+  const nonce = await entryPointContract.getNonce(props.deploymentResult.address, 0);
+
+  // eslint-disable-next-line no-console
+  console.log("  Nonce:", nonce.toString());
+
+  // Step 3: Create stub signature for gas estimation
+  // eslint-disable-next-line no-console
+  console.log("Step 3: Creating stub signature...");
+
+  const stubSignature = await createStubSignature(webauthnValidatorAddress);
+
+  // Step 4: Build UserOperation with fixed gas
+  // eslint-disable-next-line no-console
+  console.log("Step 4: Building UserOperation...");
+
+  const userOp = {
+    sender: props.deploymentResult.address,
+    nonce: "0x" + nonce.toString(16),
+    callData,
+    initCode: "0x",
+    // Fixed high gas values
+    callGasLimit: "0x" + (2000000).toString(16),
+    verificationGasLimit: "0x" + (2000000).toString(16),
+    preVerificationGas: "0x" + (2000000).toString(16),
+    maxFeePerGas: "0x" + (2000000).toString(16),
+    maxPriorityFeePerGas: "0x" + (2000000).toString(16),
+    signature: stubSignature,
+    paymasterAndData: "0x",
+  };
+
+  // eslint-disable-next-line no-console
+  console.log("  UserOperation built");
+
+  // Step 5: Get UserOp hash
+  // eslint-disable-next-line no-console
+  console.log("Step 5: Getting UserOp hash...");
+
+  // Pack UserOp for hashing
+  const packedUserOp = ethers.AbiCoder.defaultAbiCoder().encode(
+    ["address", "uint256", "bytes32", "bytes32", "bytes32", "uint256", "bytes32", "bytes32"],
+    [
+      userOp.sender,
+      userOp.nonce,
+      ethers.keccak256(userOp.initCode),
+      ethers.keccak256(userOp.callData),
+      ethers.solidityPacked(
+        ["uint128", "uint128"],
+        [userOp.verificationGasLimit, userOp.callGasLimit],
+      ),
+      userOp.preVerificationGas,
+      ethers.solidityPacked(
+        ["uint128", "uint128"],
+        [userOp.maxPriorityFeePerGas, userOp.maxFeePerGas],
+      ),
+      ethers.keccak256(userOp.paymasterAndData),
+    ],
+  );
+
+  const packedHash = ethers.keccak256(packedUserOp);
+  const chainId = await provider.getNetwork().then((n) => n.chainId);
+
+  const userOpHash = ethers.keccak256(
+    ethers.AbiCoder.defaultAbiCoder().encode(
+      ["bytes32", "address", "uint256"],
+      [packedHash, entryPointAddress, chainId],
+    ),
   );
 
   // eslint-disable-next-line no-console
-  console.log("  Registered public key on-chain:");
+  console.log("  UserOp hash:", userOpHash);
+
+  // Step 6: Sign with passkey
   // eslint-disable-next-line no-console
-  console.log("    X:", registeredKey[0]);
-  // eslint-disable-next-line no-console
-  console.log("    Y:", registeredKey[1]);
-  // eslint-disable-next-line no-console
-  console.log("  Expected public key (from config):");
-  // eslint-disable-next-line no-console
-  console.log("    X:", props.passkeyConfig.passkeyX);
-  // eslint-disable-next-line no-console
-  console.log("    Y:", props.passkeyConfig.passkeyY);
-
-  // Check if they match
-  const registeredX = registeredKey[0].toLowerCase();
-  const registeredY = registeredKey[1].toLowerCase();
-  const expectedX = props.passkeyConfig.passkeyX.toLowerCase();
-  const expectedY = props.passkeyConfig.passkeyY.toLowerCase();
-
-  if (registeredX !== expectedX || registeredY !== expectedY) {
-    throw new Error("Public key mismatch! The key registered on-chain doesn't match the config. This means you're trying to sign with a different passkey than the one that was registered.");
-  }
-
-  // eslint-disable-next-line no-console
-  console.log("  ✓ Public key verification passed!");
-
-  // Convert amount to wei (as string)
-  const amountWei = (BigInt(parseFloat(amount.value) * 1e18)).toString();
-
-  // Let the Rust SDK handle contract verification and nonce fetching
-  // The Rust code will provide better error messages if there are issues
-
-  // Step 1: Build UserOperation to get hash
-  // eslint-disable-next-line no-console
-  console.log("Step 1: Building UserOperation to get hash...");
-
-  // Import the SDK helper function (stub signature is created internally by Rust)
-  const { signWithPasskey } = await import("zksync-sso-web-sdk/bundler");
-
-  // Prepare UserOperation - stub signature is created internally
-  const sendConfig = new SendTransactionConfig(
-    rpcUrl,
-    bundlerUrl,
-    entryPointAddress,
-  );
-
-  // eslint-disable-next-line no-console
-  console.log("  Calling prepare_fixed_gas (stub created internally)...");
-
-  const prepareResult = await prepare_passkey_user_operation_fixed_gas(
-    sendConfig,
-    webauthnValidatorAddress,
-    props.deploymentResult.address,
-    to.value,
-    amountWei,
-    null, // data (null for simple transfer)
-  );
-
-  // eslint-disable-next-line no-console
-  console.log("  Prepare result:", prepareResult);
-
-  // Check if it's an error message
-  if (prepareResult.startsWith("Failed to") || prepareResult.startsWith("Error")) {
-    throw new Error(prepareResult);
-  }
-
-  // Parse the result JSON to get the hash
-  const { hash, userOpId } = JSON.parse(prepareResult);
-
-  // eslint-disable-next-line no-console
-  console.log("  UserOp hash (from prepare):", hash);
-  // eslint-disable-next-line no-console
-  console.log("  UserOp ID:", userOpId);
-
-  // Step 1: Sign the hash with passkey using SDK helper (replaces ~170 lines of manual encoding)
-  // eslint-disable-next-line no-console
-  console.log("Step 1: Requesting passkey signature for the real hash...");
+  console.log("Step 6: Requesting passkey signature...");
   // eslint-disable-next-line no-console
   console.log("  Please touch your security key...");
 
   const { signature: signatureEncoded } = await signWithPasskey({
-    hash,
+    hash: userOpHash,
     credentialId: props.passkeyConfig.credentialId,
     rpId: window.location.hostname,
     origin: window.location.origin,
   });
 
   // eslint-disable-next-line no-console
-  console.log("  Passkey signature received and encoded");
-  // eslint-disable-next-line no-console
-  console.log("  ABI-encoded signature length:", signatureEncoded.length);
+  console.log("  Passkey signature received");
 
-  // Optional: Log debug info (the SDK handles all the encoding internally)
-  // eslint-disable-next-line no-console
-  console.log("  Debug info:");
-  // eslint-disable-next-line no-console
-  console.log("    Credential ID:", props.passkeyConfig.credentialId);
-  // eslint-disable-next-line no-console
-  console.log("    Public key X:", props.passkeyConfig.passkeyX);
-  // eslint-disable-next-line no-console
-  console.log("    Public key Y:", props.passkeyConfig.passkeyY);
-  // eslint-disable-next-line no-console
-  console.log("    Origin:", props.passkeyConfig.originDomain);
+  // Update UserOp with real signature
+  userOp.signature = signatureEncoded;
 
-  // Step 2: Submit the signed UserOperation
-  // Note: The Rust submit function will prepend the validator address,
-  // so we only pass the ABI-encoded WebAuthn signature (no validator prefix)
+  // Step 7: Submit to bundler
   // eslint-disable-next-line no-console
-  console.log("Step 2: Submitting signed UserOperation...");
-  // eslint-disable-next-line no-console
-  console.log("  UserOp ID:", userOpId);
+  console.log("Step 7: Submitting to bundler...");
 
-  // Create a new config for submit (the previous one was consumed by prepare)
-  const submitConfig = new SendTransactionConfig(
-    rpcUrl,
-    bundlerUrl,
-    entryPointAddress,
-  );
-  const result = await submit_passkey_user_operation(
-    submitConfig,
-    userOpId,
-    signatureEncoded, // Pass ONLY the ABI-encoded WebAuthn signature (Rust will prepend validator)
-  );
+  const bundlerResponse = await fetch(bundlerUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_sendUserOperation",
+      params: [userOp, entryPointAddress],
+    }),
+  });
+
+  const bundlerResult = await bundlerResponse.json();
 
   // eslint-disable-next-line no-console
-  console.log("  Transaction result:", result);
+  console.log("  Bundler response:", bundlerResult);
 
-  txResult.value = result;
+  if (bundlerResult.error) {
+    throw new Error(`Bundler error: ${bundlerResult.error.message}`);
+  }
+
+  const userOpHashResult = bundlerResult.result;
+
+  // eslint-disable-next-line no-console
+  console.log("  UserOp submitted, hash:", userOpHashResult);
+
+  // Step 8: Wait for receipt
+  // eslint-disable-next-line no-console
+  console.log("Step 8: Waiting for receipt...");
+
+  let receipt = null;
+  for (let i = 0; i < 30; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const receiptResponse = await fetch(bundlerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_getUserOperationReceipt",
+        params: [userOpHashResult],
+      }),
+    });
+
+    const receiptResult = await receiptResponse.json();
+    if (receiptResult.result) {
+      receipt = receiptResult.result;
+      break;
+    }
+  }
+
+  if (!receipt) {
+    throw new Error("Transaction receipt not found after 60 seconds");
+  }
+
+  // eslint-disable-next-line no-console
+  console.log("  Receipt:", receipt);
+
+  if (!receipt.success) {
+    throw new Error("Transaction failed");
+  }
+
+  // eslint-disable-next-line no-console
+  console.log("✓ Transaction successful!");
+
+  txResult.value = `Transaction successful! Hash: ${receipt.receipt.transactionHash}`;
 }
 </script>
