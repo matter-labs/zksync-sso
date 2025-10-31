@@ -40,6 +40,7 @@ pub async fn add_passkey<P: Provider + Send + Sync + Clone>(
         entry_point_address,
         call_data,
         None,
+        None,
         bundler_client,
         provider.clone(),
         signer,

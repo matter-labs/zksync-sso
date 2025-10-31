@@ -1,5 +1,7 @@
 use crate::erc4337::{
-    account::modular_smart_account::send::send_transaction as send_transaction_base,
+    account::modular_smart_account::send::{
+        PaymasterParams, send_transaction as send_transaction_base,
+    },
     bundler::pimlico::client::BundlerClient,
     signer::{SignatureProvider, Signer},
 };
@@ -13,6 +15,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     _webauthn_validator: Address,
     entry_point: Address,
     call_data: Bytes,
+    paymaster: Option<PaymasterParams>,
     bundler_client: BundlerClient,
     provider: P,
     signature_provider: SignatureProvider,
@@ -27,6 +30,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
         entry_point,
         call_data,
         None,
+        paymaster,
         bundler_client,
         provider,
         signer,
@@ -249,6 +253,7 @@ pub mod tests {
             webauthn_module,
             entry_point_address,
             calldata,
+            None,
             bundler_client,
             provider.clone(),
             signature_provider,

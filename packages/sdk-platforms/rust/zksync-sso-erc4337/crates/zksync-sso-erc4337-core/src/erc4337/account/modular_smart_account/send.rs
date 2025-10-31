@@ -6,7 +6,10 @@ use crate::erc4337::{
     bundler::{Bundler, pimlico::client::BundlerClient},
     entry_point::EntryPoint,
     signer::Signer,
-    user_operation::hash::v08::get_user_operation_hash_entry_point,
+    user_operation::{
+        hash::v08::get_user_operation_hash_entry_point,
+        utils::concat_paymaster_data,
+    },
 };
 use alloy::{
     primitives::{Address, Bytes, FixedBytes, U256, Uint},
@@ -16,6 +19,36 @@ use alloy::{
 use std::sync::Arc;
 
 pub mod passkey;
+
+#[derive(Debug, Clone)]
+pub struct PaymasterParams {
+    pub address: Address,
+    pub data: Bytes,
+    pub verification_gas_limit: Option<U256>,
+    pub post_op_gas_limit: Option<U256>,
+}
+
+fn build_paymaster_and_data(
+    paymaster: Option<Address>,
+    verification_gas_limit: Option<U256>,
+    post_op_gas_limit: Option<U256>,
+    paymaster_data: Option<&Bytes>,
+) -> Bytes {
+    match paymaster {
+        Some(paymaster_address) => {
+            let verification = verification_gas_limit.unwrap_or_default();
+            let post_op = post_op_gas_limit.unwrap_or_default();
+            let data = paymaster_data.cloned().unwrap_or_default();
+            concat_paymaster_data(
+                paymaster_address,
+                verification,
+                post_op,
+                &data,
+            )
+        }
+        None => Bytes::default(),
+    }
+}
 
 pub async fn send_transaction_eoa<P: Provider + Send + Sync + Clone>(
     account: Address,
@@ -40,6 +73,7 @@ pub async fn send_transaction_eoa<P: Provider + Send + Sync + Clone>(
         entry_point,
         call_data,
         None,
+        None,
         bundler_client,
         provider,
         signer,
@@ -52,6 +86,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     entry_point: Address,
     call_data: Bytes,
     nonce_key: Option<Uint<192, 3>>,
+    paymaster: Option<PaymasterParams>,
     bundler_client: BundlerClient,
     provider: P,
     signer: Signer,
@@ -62,14 +97,20 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
 
     let (estimated_gas, mut user_op) = {
         let alloy_user_op = {
-            let stub_sig = signer.stub_signature;
+            let stub_sig = signer.stub_signature.clone();
             AlloyPackedUserOperation {
                 sender: account,
                 nonce,
-                paymaster: None,
-                paymaster_verification_gas_limit: None,
-                paymaster_data: None,
-                paymaster_post_op_gas_limit: None,
+                paymaster: paymaster.as_ref().map(|params| params.address),
+                paymaster_verification_gas_limit: paymaster
+                    .as_ref()
+                    .and_then(|params| params.verification_gas_limit),
+                paymaster_data: paymaster
+                    .as_ref()
+                    .map(|params| params.data.clone()),
+                paymaster_post_op_gas_limit: paymaster
+                    .as_ref()
+                    .and_then(|params| params.post_op_gas_limit),
                 call_gas_limit: Default::default(),
                 max_priority_fee_per_gas: Default::default(),
                 max_fee_per_gas: Default::default(),
@@ -97,6 +138,17 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     user_op.max_priority_fee_per_gas = U256::from(0x77359400);
     user_op.max_fee_per_gas = U256::from(0x82e08afeu64);
 
+    if let Some(paymaster) = paymaster.as_ref() {
+        user_op.paymaster = Some(paymaster.address);
+        user_op.paymaster_data = Some(paymaster.data.clone());
+        user_op.paymaster_verification_gas_limit = estimated_gas
+            .paymaster_verification_gas_limit
+            .or(paymaster.verification_gas_limit);
+        user_op.paymaster_post_op_gas_limit = estimated_gas
+            .paymaster_post_op_gas_limit
+            .or(paymaster.post_op_gas_limit);
+    }
+
     let packed_gas_limits: U256 =
         (user_op.verification_gas_limit << 128) | user_op.call_gas_limit;
 
@@ -111,7 +163,12 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
         accountGasLimits: packed_gas_limits.to_be_bytes().into(),
         preVerificationGas: user_op.pre_verification_gas,
         gasFees: gas_fees.to_be_bytes().into(),
-        paymasterAndData: Bytes::default(),
+        paymasterAndData: build_paymaster_and_data(
+            user_op.paymaster,
+            user_op.paymaster_verification_gas_limit,
+            user_op.paymaster_post_op_gas_limit,
+            user_op.paymaster_data.as_ref(),
+        ),
         signature: user_op.signature.clone(),
     };
 
@@ -122,7 +179,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     )
     .await?;
 
-    let signature_provider = signer.provider;
+    let signature_provider = Arc::clone(&signer.provider);
     let signature = signature_provider(hash.0)?;
     user_op.signature = signature;
 
@@ -154,6 +211,37 @@ mod tests {
         primitives::{Bytes, U256, address},
         rpc::types::TransactionRequest,
     };
+
+    #[test]
+    fn test_build_paymaster_and_data_with_values() {
+        let paymaster = address!("0x1111111111111111111111111111111111111111");
+        let verification = U256::from(0x1000);
+        let post_op = U256::from(0x2000);
+        let data = Bytes::from(vec![0xde, 0xad, 0xbe, 0xef]);
+
+        let result = super::build_paymaster_and_data(
+            Some(paymaster),
+            Some(verification),
+            Some(post_op),
+            Some(&data),
+        );
+
+        let expected =
+            concat_paymaster_data(paymaster, verification, post_op, &data);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_build_paymaster_and_data_without_paymaster() {
+        let data = Bytes::from(vec![0xca, 0xfe]);
+        let result = super::build_paymaster_and_data(
+            None,
+            Some(U256::from(0x1)),
+            Some(U256::from(0x2)),
+            Some(&data),
+        );
+        assert_eq!(result, Bytes::default());
+    }
 
     #[tokio::test]
     async fn test_send_transaction_contracts() -> eyre::Result<()> {

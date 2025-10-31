@@ -254,6 +254,7 @@ mod tests {
             entry_point_address,
             calldata,
             Some(keyed_nonce),
+            None,
             bundler_client,
             provider.clone(),
             session_signer,
