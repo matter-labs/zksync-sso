@@ -522,14 +522,25 @@ async function deployAccount() {
       console.warn("Failed to load contracts.json, using default factory address:", err);
     }
 
-    // Add a rich Anvil wallet as an EOA signer for additional security
-    // Using Anvil account #1 (0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
-    const eoaSignerAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
-    const eoaSignersAddresses = [eoaSignerAddress];
+    // Get deployer account index from URL query parameter (default to 0)
+    // This allows tests to use different Anvil accounts to avoid nonce collisions
+    const route = useRoute();
+    const deployerIndex = parseInt(String(route.query.deployerIndex || "0"), 10);
 
-    // Use the appropriate private key based on the network
-    // Standard Anvil (port 8545): 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-    const deployerPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Anvil default account #0
+    // Anvil rich wallet accounts (first 3)
+    const anvilAccounts = [
+      { address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" }, // Account #0
+      { address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", privateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" }, // Account #1
+      { address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", privateKey: "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a" }, // Account #2
+    ];
+
+    const deployerAccount = anvilAccounts[deployerIndex] || anvilAccounts[0];
+
+    // Add the next Anvil wallet as an EOA signer for additional security
+    const eoaSignerIndex = (deployerIndex + 1) % anvilAccounts.length;
+    const eoaSignerAddress = anvilAccounts[eoaSignerIndex].address;
+    const eoaSignersAddresses = [eoaSignerAddress];
+    const deployerPrivateKey = deployerAccount.privateKey;
 
     // eslint-disable-next-line no-console
     console.log("Deploying account...");
@@ -644,6 +655,7 @@ async function deployAccount() {
       accountId,
       address: deployedAddress,
       eoaSigner: eoaSignerAddress,
+      eoaSignerPrivateKey: anvilAccounts[eoaSignerIndex].privateKey,
       passkeyEnabled: passkeyConfig.value.enabled,
     };
 
@@ -685,8 +697,8 @@ async function registerPasskey() {
     const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
     const eoaValidatorAddress = contracts.eoaValidator;
 
-    // EOA signer private key (Anvil account #1) - to authorize the passkey registration
-    const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+    // Use the EOA signer private key from deployment result
+    const eoaSignerPrivateKey = deploymentResult.value.eoaSignerPrivateKey;
 
     // eslint-disable-next-line no-console
     console.log("Registering passkey with WebAuthn validator...");
@@ -773,8 +785,8 @@ async function fundSmartAccount() {
     // Create provider
     const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-    // EOA signer private key (Anvil account #1)
-    const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+    // Use the EOA signer private key from deployment result
+    const eoaSignerPrivateKey = deploymentResult.value.eoaSignerPrivateKey;
     const eoaSigner = new ethers.Wallet(eoaSignerPrivateKey, provider);
 
     // Convert amount to wei
