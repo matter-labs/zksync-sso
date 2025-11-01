@@ -7,6 +7,10 @@ import { startAuthentication } from "@simplewebauthn/browser";
 
 /**
  * Convert hex string to Uint8Array
+ *
+ * Note: We use a custom implementation instead of viem's hexToBytes to keep the SDK
+ * lightweight and avoid adding viem as a dependency. Applications using this SDK
+ * can use viem for their own hex conversions.
  */
 function hexToBytes(hex: string): Uint8Array {
   const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;

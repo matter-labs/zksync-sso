@@ -337,6 +337,7 @@
 <script setup>
 import { Wallet } from "ethers";
 import { ref, onMounted, computed } from "vue";
+import { hexToBytes } from "viem";
 
 // Reactive state
 const sdkLoaded = ref(false);
@@ -385,26 +386,6 @@ const passkeyConfig = ref({
   originDomain: window.location.origin,
   validatorAddress: "",
 });
-
-/**
- * Convert a hex string to a Uint8Array of bytes
- */
-function hexToBytes(hex) {
-  // Remove 0x prefix if present
-  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
-
-  // Validate hex string
-  if (cleanHex.length % 2 !== 0) {
-    throw new Error(`Invalid hex string length: ${cleanHex.length}`);
-  }
-
-  const bytes = new Uint8Array(cleanHex.length / 2);
-  for (let i = 0; i < cleanHex.length; i += 2) {
-    bytes[i / 2] = parseInt(cleanHex.substr(i, 2), 16);
-  }
-
-  return bytes;
-}
 
 // Computed property to check if all address params are valid
 const isAddressParamsValid = computed(() => {

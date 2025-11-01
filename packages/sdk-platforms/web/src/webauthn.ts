@@ -8,8 +8,6 @@
  * @module webauthn
  */
 
-import type { PasskeyPayload } from "../pkg-bundler/zksync_sso_erc4337_web_ffi.js";
-
 /**
  * Configuration options for creating a WebAuthn credential
  */
@@ -331,55 +329,4 @@ function parseCOSEKey(publicPasskey: Uint8Array): [Uint8Array, Uint8Array] {
   }
 
   return [x, y];
-}
-
-/**
- * Create a PasskeyPayload from WebAuthn credential
- *
- * This is a convenience function that creates a WebAuthn credential and
- * immediately converts it to a PasskeyPayload for use with the deploy_account
- * function.
- *
- * @param options - Configuration options for credential creation
- * @returns Promise resolving to PasskeyPayload instance
- */
-export async function createPasskeyPayload(
-  options: CreateCredentialOptions = {},
-): Promise<PasskeyPayload> {
-  // Import PasskeyPayload constructor from WASM
-  const { PasskeyPayload } = await import("../pkg-bundler/zksync_sso_erc4337_web_ffi.js");
-
-  // Create the credential
-  const credential = await createWebAuthnCredential(options);
-
-  // Convert hex strings to Uint8Array
-  const credentialId = hexToBytes(credential.credentialId);
-  const passkeyX = hexToBytes(credential.publicKeyX);
-  const passkeyY = hexToBytes(credential.publicKeyY);
-
-  // Create and return PasskeyPayload
-  return new PasskeyPayload(
-    credentialId,
-    passkeyX,
-    passkeyY,
-    credential.origin,
-  );
-}
-
-/**
- * Convert hex string to Uint8Array
- */
-function hexToBytes(hex: string): Uint8Array {
-  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
-
-  if (cleanHex.length % 2 !== 0) {
-    throw new Error(`Invalid hex string length: ${cleanHex.length}`);
-  }
-
-  const bytes = new Uint8Array(cleanHex.length / 2);
-  for (let i = 0; i < cleanHex.length; i += 2) {
-    bytes[i / 2] = parseInt(cleanHex.substr(i, 2), 16);
-  }
-
-  return bytes;
 }
