@@ -1,5 +1,11 @@
-use crate::erc4337::account::modular_smart_account::session::SessionLib::{
-    SessionSpec, UsageLimit,
+pub mod passkey;
+pub mod sign_typed_data;
+
+use crate::erc4337::account::modular_smart_account::session::{
+    SessionLib::SessionSpec as SessionLibSessionSpec,
+    session_lib::session_spec::{
+        SessionSpec, limit_type::LimitType, usage_limit::UsageLimit,
+    },
 };
 use alloy::{
     dyn_abi::SolType,
@@ -7,11 +13,7 @@ use alloy::{
     signers::{SignerSync, local::PrivateKeySigner},
     sol,
 };
-use eyre::Ok;
 use std::str::FromStr;
-
-pub mod passkey;
-pub mod sign_typed_data;
 
 const STUB_PRIVATE_KEY: &str =
     "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
@@ -62,7 +64,7 @@ fn get_period_id(limit: &UsageLimit) -> Uint<48, 1> {
             .as_secs(),
     );
 
-    if limit.limitType == 2 {
+    if limit.limit_type == LimitType::Allowance {
         current_timestamp / limit.period
     } else {
         Uint::from(0)
@@ -78,16 +80,22 @@ pub fn session_signature(
     let session_validator_bytes = session_validator.0.to_vec();
     let signature_bytes = eoa_sign(private_key_hex, hash)?;
 
-    type SessionSignature = sol! { tuple(bytes, SessionSpec, uint48[]) };
+    let period_ids =
+        vec![get_period_id(&session_spec.fee_limit), Uint::from(0)];
 
-    let period_ids = vec![get_period_id(&session_spec.feeLimit), Uint::from(0)];
+    let fat_signature = {
+        type SessionSignature =
+            sol! { tuple(bytes, SessionLibSessionSpec, uint48[]) };
+        let spec: SessionLibSessionSpec = session_spec.to_owned().into();
+        SessionSignature::abi_encode_params(&(
+            signature_bytes,
+            spec.clone(),
+            period_ids,
+        ))
+    };
 
-    let fat_signature = SessionSignature::abi_encode_params(&(
-        signature_bytes,
-        session_spec.clone(),
-        period_ids,
-    ));
     let bytes = [session_validator_bytes, fat_signature].concat();
+
     Ok(bytes.into())
 }
 

@@ -75,9 +75,13 @@ mod tests {
                     deploy::{EOASigners, WebauthNSigner, deploy_account},
                     send::passkey::tests::get_signature_from_js,
                     session::{
-                        SessionLib::{SessionSpec, TransferSpec, UsageLimit},
                         create::create_session,
                         hash::hash_session,
+                        session_lib::session_spec::{
+                            SessionSpec, limit_type::LimitType,
+                            transfer_spec::TransferSpec,
+                            usage_limit::UsageLimit,
+                        },
                         status::get_session_status,
                     },
                     signature::{eoa_signature, stub_signature_eoa},
@@ -214,18 +218,18 @@ mod tests {
             let target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
             let session_spec = SessionSpec {
                 signer: signer_address,
-                expiresAt: expires_at,
-                callPolicies: vec![],
-                feeLimit: UsageLimit {
-                    limitType: 1,
+                expires_at,
+                call_policies: vec![],
+                fee_limit: UsageLimit {
+                    limit_type: LimitType::Lifetime,
                     limit: U256::from(1_000_000_000_000_000_000u64),
                     period: Uint::from(0),
                 },
-                transferPolicies: vec![TransferSpec {
-                    maxValuePerUse: U256::from(1),
+                transfer_policies: vec![TransferSpec {
+                    max_value_per_use: U256::from(1),
                     target,
-                    valueLimit: UsageLimit {
-                        limitType: 0,
+                    value_limit: UsageLimit {
+                        limit_type: LimitType::Unlimited,
                         limit: U256::from(0),
                         period: Uint::from(0),
                     },
@@ -402,18 +406,18 @@ mod tests {
         let target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
         let session_spec = SessionSpec {
             signer: signer_address,
-            expiresAt: expires_at,
-            callPolicies: vec![],
-            feeLimit: UsageLimit {
-                limitType: 1,
+            expires_at,
+            call_policies: vec![],
+            fee_limit: UsageLimit {
+                limit_type: LimitType::Lifetime,
                 limit: U256::from(1_000_000_000_000_000_000u64),
                 period: Uint::from(0),
             },
-            transferPolicies: vec![TransferSpec {
-                maxValuePerUse: U256::from(1),
+            transfer_policies: vec![TransferSpec {
+                max_value_per_use: U256::from(1),
                 target,
-                valueLimit: UsageLimit {
-                    limitType: 0,
+                value_limit: UsageLimit {
+                    limit_type: LimitType::Unlimited,
                     limit: U256::from(0),
                     period: Uint::from(0),
                 },
