@@ -263,7 +263,7 @@ async function sendFromSmartAccountWithPasskey() {
 
   // Import WASM functions
   const {
-    prepare_passkey_user_operation_fixed_gas,
+    prepare_passkey_user_operation,
     submit_passkey_user_operation,
     SendTransactionConfig,
   } = await import("zksync-sso-web-sdk/bundler");
@@ -351,10 +351,7 @@ async function sendFromSmartAccountWithPasskey() {
     entryPointAddress,
   );
 
-  // eslint-disable-next-line no-console
-  console.log("  Calling prepare_fixed_gas (stub created internally)...");
-
-  const prepareResult = await prepare_passkey_user_operation_fixed_gas(
+  const prepareResult = await prepare_passkey_user_operation(
     sendConfig,
     webauthnValidatorAddress,
     props.deploymentResult.address,

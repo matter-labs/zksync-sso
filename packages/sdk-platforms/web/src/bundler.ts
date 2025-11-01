@@ -12,7 +12,8 @@ export const {
   // These are the essential functions for implementing passkey-based smart accounts
   deploy_account, // Deploy a new smart account with passkey
   add_passkey_to_account, // Add additional passkey to existing account
-  prepare_passkey_user_operation_fixed_gas, // Prepare transaction for passkey signing
+  prepare_passkey_user_operation, // Prepare transaction for passkey signing
+  send_transaction_eoa,
   submit_passkey_user_operation, // Submit signed transaction to bundler
   compute_account_id, // Generate unique account ID from passkey
 
@@ -32,18 +33,6 @@ export const {
   compute_smart_account_address, // Compute account address without deploying
   bytes_to_hex, // Convert bytes to hex string
   hex_to_bytes, // Convert hex string to bytes
-
-  // ===== DEPRECATED - DO NOT USE IN NEW CODE =====
-  /**
-   * @deprecated Use prepare_passkey_user_operation_fixed_gas instead
-   * This function is kept for backwards compatibility only
-   */
-  prepare_passkey_user_operation,
-
-  /**
-   * @deprecated Not part of passkey flow, use external wallet for EOA
-   */
-  send_transaction_eoa,
 } = wasm;
 
 // Initialize WASM module
