@@ -724,6 +724,17 @@ async function fundSmartAccount() {
   fundResult.value = "";
 
   try {
+    // Check if deployment was successful
+    if (!deploymentResult.value || !deploymentResult.value.address) {
+      throw new Error("Smart account not deployed yet");
+    }
+
+    // Validate the address looks like an Ethereum address
+    const address = deploymentResult.value.address;
+    if (!address || typeof address !== "string" || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
+      throw new Error(`Invalid smart account address: ${address}`);
+    }
+
     // Import ethers to interact with the blockchain
     const { ethers } = await import("ethers");
 
@@ -737,7 +748,7 @@ async function fundSmartAccount() {
     // eslint-disable-next-line no-console
     console.log("  From (EOA):", deploymentResult.value.eoaSigner);
     // eslint-disable-next-line no-console
-    console.log("  To (Smart Account):", deploymentResult.value.address);
+    console.log("  To (Smart Account):", address);
     // eslint-disable-next-line no-console
     console.log("  Amount:", fundParams.value.amount, "ETH");
 
@@ -751,9 +762,12 @@ async function fundSmartAccount() {
     // Convert amount to wei
     const amountWei = ethers.parseEther(fundParams.value.amount);
 
+    // Ensure address is properly formatted (prevents ENS lookup on non-ENS networks)
+    const toAddress = ethers.getAddress(address);
+
     // Send transaction to fund the smart account
     const tx = await eoaSigner.sendTransaction({
-      to: deploymentResult.value.address,
+      to: toAddress,
       value: amountWei,
     });
 

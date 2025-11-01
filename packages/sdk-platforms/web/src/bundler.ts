@@ -1,65 +1,53 @@
 // Bundler-specific entry point for web applications
 import * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
 
-export * from "./client";
 export * from "./passkey-utils";
 export * from "./types";
 export * from "./webauthn";
 export * from "./webauthn-helpers";
 
-import { setWasmBindings } from "./client";
-
 // Re-export core WASM functions for passkey flow
 export const {
-  // Core passkey functions (primary API)
-  deploy_account,
-  add_passkey_to_account,
-  prepare_passkey_user_operation_fixed_gas,
-  submit_passkey_user_operation,
+  // ===== CORE PASSKEY FUNCTIONS (PRIMARY API) =====
+  // These are the essential functions for implementing passkey-based smart accounts
+  deploy_account, // Deploy a new smart account with passkey
+  add_passkey_to_account, // Add additional passkey to existing account
+  prepare_passkey_user_operation_fixed_gas, // Prepare transaction for passkey signing
+  submit_passkey_user_operation, // Submit signed transaction to bundler
+  compute_account_id, // Generate unique account ID from passkey
 
-  // Helper functions
-  compute_account_id,
-  encode_passkey_signature,
-  create_stub_passkey_signature,
+  // ===== HELPER FUNCTIONS =====
+  // Used internally by webauthn-helpers.ts
+  encode_passkey_signature, // ABI encode passkey signature components
+  create_stub_passkey_signature, // Create stub signature for gas estimation
 
-  // Configuration types
-  PasskeyPayload,
-  DeployAccountConfig,
-  SendTransactionConfig,
+  // ===== CONFIGURATION TYPES =====
+  // TypeScript interfaces for configuration objects
+  PasskeyPayload, // Passkey credential data
+  DeployAccountConfig, // Account deployment configuration
+  SendTransactionConfig, // Transaction sending configuration
 
-  // Utility functions
-  bytes_to_hex,
-  hex_to_bytes,
+  // ===== ADVANCED/OPTIONAL FUNCTIONS =====
+  // These may be useful for advanced use cases
+  compute_smart_account_address, // Compute account address without deploying
+  bytes_to_hex, // Convert bytes to hex string
+  hex_to_bytes, // Convert hex string to bytes
 
-  // Legacy/Testing functions (consider deprecating)
-  greet,
-  get_chain_info,
-  get_ethereum_sepolia_info,
-  parse_contract_addresses,
-  compute_smart_account_address,
-  test_http_transport,
-  send_transaction_eoa,
+  // ===== DEPRECATED - DO NOT USE IN NEW CODE =====
+  /**
+   * @deprecated Use prepare_passkey_user_operation_fixed_gas instead
+   * This function is kept for backwards compatibility only
+   */
   prepare_passkey_user_operation,
-  Client,
-  Config,
-  Contracts,
-  Call,
-  SendCallsRequest,
-  ZkSyncSsoError,
-  console_log_from_rust,
+
+  /**
+   * @deprecated Not part of passkey flow, use external wallet for EOA
+   */
+  send_transaction_eoa,
 } = wasm;
 
 // Initialize WASM module
 export const init = wasm.init;
-
-// Set up WASM bindings for the client wrapper
-setWasmBindings({
-  Client,
-  Config,
-  Contracts,
-  Call,
-  SendCallsRequest,
-});
 
 // Auto-initialize for bundler environments
 wasm.init();
