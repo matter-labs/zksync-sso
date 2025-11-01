@@ -204,15 +204,3 @@ export async function signWithPasskey(
     s: sPadded,
   };
 }
-
-/**
- * Create a minimal stub signature for gas estimation
- * This creates a properly formatted but non-functional signature with empty/zero values
- *
- * @param validatorAddress - The WebAuthn validator address (as hex string with 0x prefix)
- * @returns Hex-encoded stub signature (validator address + ABI-encoded empty signature)
- */
-export async function createStubSignature(validatorAddress: string): Promise<string> {
-  const { create_stub_passkey_signature } = await import("../pkg-bundler/zksync_sso_erc4337_web_ffi");
-  return create_stub_passkey_signature(validatorAddress);
-}

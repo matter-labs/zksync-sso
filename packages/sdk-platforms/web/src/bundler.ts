@@ -20,7 +20,6 @@ export const {
   // ===== HELPER FUNCTIONS =====
   // Used internally by webauthn-helpers.ts
   encode_passkey_signature, // ABI encode passkey signature components
-  create_stub_passkey_signature, // Create stub signature for gas estimation
 
   // ===== CONFIGURATION TYPES =====
   // TypeScript interfaces for configuration objects

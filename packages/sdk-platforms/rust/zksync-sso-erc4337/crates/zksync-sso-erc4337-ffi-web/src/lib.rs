@@ -1237,34 +1237,6 @@ pub fn compute_account_id(user_id: &str) -> String {
     format!("0x{}", hex::encode(salt_hash))
 }
 
-/// Compute CREATE2 address (zkSync version)
-/// This is the zkSync-specific CREATE2 computation
-fn compute_create2_address(
-    deployer: Address,
-    bytecode_hash: FixedBytes<32>,
-    salt: FixedBytes<32>,
-    input: Bytes,
-) -> Address {
-    // zkSync CREATE2 formula:
-    // keccak256(0xff ++ deployer ++ salt ++ keccak256(bytecode_hash ++ input_hash))
-
-    let input_hash = keccak256(&input);
-
-    let mut bytecode_and_input = Vec::new();
-    bytecode_and_input.extend(bytecode_hash.as_slice());
-    bytecode_and_input.extend(input_hash.as_slice());
-    let bytecode_input_hash = keccak256(bytecode_and_input);
-
-    let mut create2_input = Vec::new();
-    create2_input.push(0xff);
-    create2_input.extend(deployer.as_slice());
-    create2_input.extend(salt.as_slice());
-    create2_input.extend(bytecode_input_hash.as_slice());
-
-    let hash = keccak256(create2_input);
-    Address::from_slice(&hash[12..])
-}
-
 /// Encode a passkey signature for on-chain verification
 /// Returns the ABI-encoded signature ready for submission
 ///
@@ -1314,39 +1286,6 @@ pub fn encode_passkey_signature(
         .abi_encode();
 
     Ok(format!("0x{}", hex::encode(encoded)))
-}
-
-/// Create a stub passkey signature for gas estimation
-/// Returns a minimal valid signature with empty/zero values
-///
-/// # Parameters
-/// * `validator_address` - The WebAuthn validator address (hex string with 0x prefix)
-///
-/// # Returns
-/// Hex-encoded stub signature (validator address + ABI-encoded empty signature)
-#[wasm_bindgen]
-pub fn create_stub_passkey_signature(
-    validator_address: &str,
-) -> Result<String, JsValue> {
-    use alloy::sol_types::SolValue;
-
-    let validator = validator_address.parse::<Address>().map_err(|e| {
-        JsValue::from_str(&format!("Invalid validator address: {}", e))
-    })?;
-
-    let empty_bytes: Vec<u8> = vec![];
-    let zero_32 = FixedBytes::<32>::ZERO;
-
-    // ABI encode stub signature: (bytes, string, bytes32[2], bytes)
-    let encoded =
-        (empty_bytes.clone(), String::new(), [zero_32, zero_32], empty_bytes)
-            .abi_encode();
-
-    // Prepend validator address
-    let mut full_sig = validator.to_vec();
-    full_sig.extend_from_slice(&encoded);
-
-    Ok(format!("0x{}", hex::encode(full_sig)))
 }
 
 // Error type for WASM
