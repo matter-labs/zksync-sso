@@ -269,10 +269,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_send_transaction_webauthn_two_step() -> eyre::Result<()> {
         use crate::erc4337::{
-            account::modular_smart_account::{
-                nonce::get_nonce, signature::stub_signature_passkey,
-            },
-            bundler::Bundler,
+            account::modular_smart_account::nonce::get_nonce, bundler::Bundler,
             entry_point::EntryPoint::PackedUserOperation,
             user_operation::hash::v08::get_user_operation_hash_entry_point,
         };
@@ -413,7 +410,8 @@ pub mod tests {
 
         // Create stub signature for gas estimation
         // Use all-zeros hash to generate a real passkey signature for estimation
-        let stub_sig = get_signature_from_js(FixedBytes::<32>::default().to_string())?;
+        let stub_sig =
+            get_signature_from_js(FixedBytes::<32>::default().to_string())?;
 
         // Build AlloyPackedUserOperation with stub values for gas estimation
         let mut user_op = AlloyPackedUserOperation {
@@ -431,7 +429,7 @@ pub mod tests {
             factory: None,
             factory_data: None,
             call_data,
-            signature: Bytes::from(stub_sig),
+            signature: stub_sig,
         };
 
         // Estimate gas
@@ -441,8 +439,9 @@ pub mod tests {
 
         // Update with estimated gas values
         user_op.call_gas_limit = estimated_gas.call_gas_limit;
-        user_op.verification_gas_limit =
-            (estimated_gas.verification_gas_limit * U256::from(6)) / U256::from(5);
+        user_op.verification_gas_limit = (estimated_gas.verification_gas_limit
+            * U256::from(6))
+            / U256::from(5);
         user_op.pre_verification_gas = estimated_gas.pre_verification_gas;
         user_op.max_priority_fee_per_gas = U256::from(0x77359400);
         user_op.max_fee_per_gas = U256::from(0x82e08afeu64);
@@ -478,11 +477,14 @@ pub mod tests {
         println!("  nonce: {:?}", packed_user_op.nonce);
         println!("  accountGasLimits: {:?}", packed_user_op.accountGasLimits);
         println!("  gasFees: {:?}", packed_user_op.gasFees);
-        println!("  preVerificationGas: {:?}", packed_user_op.preVerificationGas);
+        println!(
+            "  preVerificationGas: {:?}",
+            packed_user_op.preVerificationGas
+        );
 
         // Step 2: Sign the hash (simulate JavaScript calling the passkey)
         println!("\nStep 2: Signing hash with passkey...");
-        println!("Hash to sign (as string): {}", hash.0.to_string());
+        println!("Hash to sign (as string): {}", hash.0);
 
         let full_signature = get_signature_from_js(hash.0.to_string())?;
         println!("Full signature length: {} bytes", full_signature.len());
@@ -494,7 +496,7 @@ pub mod tests {
         // Step 3: Update UserOp with signature and submit
         println!("\nStep 3: Submitting UserOperation...");
 
-        user_op.signature = Bytes::from(full_signature);
+        user_op.signature = full_signature;
 
         let user_op_hash = bundler_client
             .send_user_operation(entry_point_address, user_op)
