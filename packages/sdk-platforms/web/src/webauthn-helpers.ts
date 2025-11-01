@@ -185,13 +185,15 @@ export async function signWithPasskey(
   const rPadded = padTo32Bytes(r);
   const sPadded = padTo32Bytes(s);
 
-  // ABI encode the signature
+  // ABI encode the signature using Rust function
   // Format: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-  const { AbiCoder } = await import("ethers");
-  const abiCoder = AbiCoder.defaultAbiCoder();
-  const signature = abiCoder.encode(
-    ["bytes", "string", "bytes32[2]", "bytes"],
-    [authenticatorData, clientDataJSON, [rPadded, sPadded], credentialIdBytes],
+  const { encode_passkey_signature } = await import("../pkg-bundler/zksync_sso_erc4337_web_ffi");
+  const signature = encode_passkey_signature(
+    authenticatorData,
+    clientDataJSON,
+    rPadded,
+    sPadded,
+    credentialIdBytes,
   );
 
   return {
@@ -211,24 +213,6 @@ export async function signWithPasskey(
  * @returns Hex-encoded stub signature (validator address + ABI-encoded empty signature)
  */
 export async function createStubSignature(validatorAddress: string): Promise<string> {
-  const validatorBytes = hexToBytes(validatorAddress);
-
-  // Create minimal stub: empty authenticatorData, empty clientDataJSON, zero r/s, empty credentialId
-  const zero32 = new Uint8Array(32);
-  const emptyBytes = new Uint8Array(0);
-
-  const { AbiCoder } = await import("ethers");
-  const abiCoder = AbiCoder.defaultAbiCoder();
-  const stubEncoded = abiCoder.encode(
-    ["bytes", "string", "bytes32[2]", "bytes"],
-    [emptyBytes, "", [zero32, zero32], emptyBytes],
-  );
-
-  // Prepend validator address
-  const stubEncodedBytes = hexToBytes(stubEncoded);
-  const fullStubBytes = new Uint8Array(validatorBytes.length + stubEncodedBytes.length);
-  fullStubBytes.set(validatorBytes, 0);
-  fullStubBytes.set(stubEncodedBytes, validatorBytes.length);
-
-  return "0x" + Array.from(fullStubBytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const { create_stub_passkey_signature } = await import("../pkg-bundler/zksync_sso_erc4337_web_ffi");
+  return create_stub_passkey_signature(validatorAddress);
 }

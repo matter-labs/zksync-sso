@@ -1661,6 +1661,89 @@ fn compute_create2_address(
     Address::from_slice(&hash[12..])
 }
 
+/// Encode a passkey signature for on-chain verification
+/// Returns the ABI-encoded signature ready for submission
+///
+/// # Parameters
+/// * `authenticator_data` - Raw authenticator data from WebAuthn
+/// * `client_data_json` - Client data JSON string from WebAuthn
+/// * `r` - R component of ECDSA signature (must be 32 bytes)
+/// * `s` - S component of ECDSA signature (must be 32 bytes)
+/// * `credential_id` - The credential ID bytes
+///
+/// # Returns
+/// Hex-encoded ABI signature: (bytes, string, bytes32[2], bytes)
+#[wasm_bindgen]
+pub fn encode_passkey_signature(
+    authenticator_data: &[u8],
+    client_data_json: &str,
+    r: &[u8],
+    s: &[u8],
+    credential_id: &[u8],
+) -> Result<String, JsValue> {
+    use alloy::sol_types::SolValue;
+
+    // Validate r and s are 32 bytes
+    if r.len() != 32 {
+        return Err(JsValue::from_str(&format!(
+            "r must be 32 bytes, got {}",
+            r.len()
+        )));
+    }
+    if s.len() != 32 {
+        return Err(JsValue::from_str(&format!(
+            "s must be 32 bytes, got {}",
+            s.len()
+        )));
+    }
+
+    let r_fixed: [u8; 32] = r.try_into().unwrap();
+    let s_fixed: [u8; 32] = s.try_into().unwrap();
+
+    // ABI encode: (bytes, string, bytes32[2], bytes)
+    let encoded = (
+        authenticator_data.to_vec(),
+        client_data_json.to_string(),
+        [FixedBytes::from(r_fixed), FixedBytes::from(s_fixed)],
+        credential_id.to_vec(),
+    )
+        .abi_encode();
+
+    Ok(format!("0x{}", hex::encode(encoded)))
+}
+
+/// Create a stub passkey signature for gas estimation
+/// Returns a minimal valid signature with empty/zero values
+///
+/// # Parameters
+/// * `validator_address` - The WebAuthn validator address (hex string with 0x prefix)
+///
+/// # Returns
+/// Hex-encoded stub signature (validator address + ABI-encoded empty signature)
+#[wasm_bindgen]
+pub fn create_stub_passkey_signature(
+    validator_address: &str,
+) -> Result<String, JsValue> {
+    use alloy::sol_types::SolValue;
+
+    let validator = validator_address
+        .parse::<Address>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid validator address: {}", e)))?;
+
+    let empty_bytes: Vec<u8> = vec![];
+    let zero_32 = FixedBytes::<32>::ZERO;
+
+    // ABI encode stub signature: (bytes, string, bytes32[2], bytes)
+    let encoded = (empty_bytes.clone(), String::new(), [zero_32, zero_32], empty_bytes)
+        .abi_encode();
+
+    // Prepend validator address
+    let mut full_sig = validator.to_vec();
+    full_sig.extend_from_slice(&encoded);
+
+    Ok(format!("0x{}", hex::encode(full_sig)))
+}
+
 // Error type for WASM
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
