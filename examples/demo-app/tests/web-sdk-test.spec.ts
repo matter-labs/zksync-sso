@@ -161,7 +161,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
 
   // Wait for funding transaction to complete
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:"), "Funding failed").toBeVisible({ timeout: 30000 });
 
   console.log("✓ Smart account funded successfully");
 
