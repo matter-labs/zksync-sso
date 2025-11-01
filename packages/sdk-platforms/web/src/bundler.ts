@@ -1,47 +1,30 @@
 // Bundler-specific entry point for web applications
 import * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
 
-export * from "./client";
 export * from "./types";
+export * from "./webauthn";
+export * from "./webauthn-helpers";
 
-import { setWasmBindings } from "./client";
-
-// Re-export WASM functions
+// Re-export core WASM functions for passkey flow
 export const {
-  greet,
-  get_chain_info,
-  get_ethereum_sepolia_info,
-  parse_contract_addresses,
-  compute_account_id,
-  compute_smart_account_address,
-  test_http_transport,
-  deploy_account,
+  // ===== CORE PASSKEY FUNCTIONS (PRIMARY API) =====
+  // These are the essential functions for implementing passkey-based smart accounts
+  deploy_account, // Deploy a new smart account with passkey
+  add_passkey_to_account, // Add additional passkey to existing account
+  prepare_passkey_user_operation, // Prepare transaction for passkey signing
   send_transaction_eoa,
-  Client,
-  Config,
-  Contracts,
-  Call,
-  SendCallsRequest,
-  PasskeyPayload,
-  DeployAccountConfig,
-  SendTransactionConfig,
-  ZkSyncSsoError,
-  bytes_to_hex,
-  hex_to_bytes,
-  console_log_from_rust,
+  submit_passkey_user_operation, // Submit signed transaction to bundler
+  compute_account_id, // Generate unique account ID from passkey
+
+  // ===== CONFIGURATION TYPES =====
+  // TypeScript interfaces for configuration objects
+  PasskeyPayload, // Passkey credential data
+  DeployAccountConfig, // Account deployment configuration
+  SendTransactionConfig, // Transaction sending configuration
 } = wasm;
 
 // Initialize WASM module
 export const init = wasm.init;
-
-// Set up WASM bindings for the client wrapper
-setWasmBindings({
-  Client,
-  Config,
-  Contracts,
-  Call,
-  SendCallsRequest,
-});
 
 // Auto-initialize for bundler environments
 wasm.init();

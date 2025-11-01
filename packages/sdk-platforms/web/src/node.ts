@@ -15,8 +15,6 @@ export const {
   Call,
   SendCallsRequest,
   ZkSyncSsoError,
-  bytes_to_hex,
-  hex_to_bytes,
   console_log_from_rust,
 } = wasm;
 

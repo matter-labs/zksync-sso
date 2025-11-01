@@ -1,6 +1,7 @@
 pub mod serde_helpers;
 
-#[cfg(test)]
+// Make test utilities available for both tests and when other crates need them
+#[cfg(any(test, feature = "test-utilities"))]
 pub mod test_utilities;
 
 use alloy::{network::EthereumWallet, signers::local::PrivateKeySigner};

@@ -10,7 +10,7 @@ use alloy::{
     signers::local::PrivateKeySigner,
 };
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utilities"))]
 pub mod alto_test_utils;
 
 #[derive(Debug, Clone)]

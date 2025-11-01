@@ -45,6 +45,11 @@ der_derive.workspace = true
 base64-url.workspace = true
 base64.workspace = true
 
+# Test utilities (optional)
+libc = { workspace = true, optional = true }
+strip-ansi-escapes = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
+
 # Explicitly add getrandom v0.2 with js feature for WASM (used by rand 0.8 from alloy)
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
@@ -55,6 +60,7 @@ web-sys = { version = "0.3", features = ["Window"] }
 [features]
 default = ["tokio-runtime"]
 tokio-runtime = ["tokio"]
+test-utilities = ["libc", "strip-ansi-escapes", "tempfile"]
 
 [dev-dependencies]
 # Alloy

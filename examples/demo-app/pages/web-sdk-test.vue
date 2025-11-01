@@ -51,6 +51,9 @@
       </div>
     </div>
 
+    <!-- Passkey Configuration (Optional) -->
+    <PasskeyConfig v-model="passkeyConfig" />
+
     <!-- Account Deployment Result -->
     <div
       v-if="deploymentResult"
@@ -77,16 +80,62 @@
           <code class="bg-white px-2 py-1 rounded text-xs ml-2">{{ deploymentResult.eoaSigner }}</code>
           <span class="text-xs text-gray-600 ml-2">(Anvil Rich Wallet #1)</span>
         </div>
+        <div v-if="deploymentResult.passkeyEnabled">
+          <span><strong>Passkey Enabled:</strong> Yes</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Register Passkey (if passkey-enabled deployment) -->
+    <div
+      v-if="deploymentResult && deploymentResult.passkeyEnabled && !passkeyRegistered"
+      class="bg-purple-50 p-4 rounded-lg mb-4 border border-purple-200"
+    >
+      <h2 class="text-lg font-semibold mb-3 text-purple-800">
+        Step 1: Register Passkey with Validator
+      </h2>
+      <p class="text-sm text-gray-600 mb-4">
+        The account was deployed with the WebAuthn validator installed, but the specific passkey needs to be registered.
+        This requires sending a transaction signed by the EOA signer.
+      </p>
+
+      <button
+        :disabled="loading"
+        class="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
+        @click="registerPasskey"
+      >
+        {{ loading ? 'Registering Passkey...' : 'Register Passkey' }}
+      </button>
+
+      <!-- Registration Result -->
+      <div
+        v-if="passkeyRegisterResult"
+        class="mt-4 p-3 bg-white rounded border border-purple-300"
+      >
+        <strong class="text-sm">Result:</strong>
+        <p class="text-xs text-green-600 mt-1">
+          {{ passkeyRegisterResult }}
+        </p>
+      </div>
+
+      <div
+        v-if="passkeyRegisterError"
+        class="mt-4 p-3 bg-red-50 rounded border border-red-300"
+      >
+        <strong class="text-sm text-red-800">Error:</strong>
+        <p class="text-xs text-red-600 mt-1">
+          {{ passkeyRegisterError }}
+        </p>
       </div>
     </div>
 
     <!-- Fund Smart Account -->
     <div
-      v-if="deploymentResult"
+      v-if="deploymentResult && (!deploymentResult.passkeyEnabled || passkeyRegistered)"
       class="bg-orange-50 p-4 rounded-lg mb-4 border border-orange-200"
     >
       <h2 class="text-lg font-semibold mb-3 text-orange-800">
-        Step 1: Fund Smart Account
+        {{ deploymentResult.passkeyEnabled ? 'Step 2: Fund Smart Account' : 'Step 1: Fund Smart Account' }}
       </h2>
       <p class="text-sm text-gray-600 mb-4">
         Send ETH from the EOA wallet to fund the smart account.
@@ -135,68 +184,11 @@
     </div>
 
     <!-- Send Transaction from Smart Account -->
-    <div
+    <TransactionSender
       v-if="deploymentResult && fundResult"
-      class="bg-indigo-50 p-4 rounded-lg mb-4 border border-indigo-200"
-    >
-      <h2 class="text-lg font-semibold mb-3 text-indigo-800">
-        Step 2: Send Transaction from Smart Account
-      </h2>
-      <p class="text-sm text-gray-600 mb-4">
-        Use the smart account's EOA validator to send a transaction. The EOA wallet will sign on behalf of the smart account.
-      </p>
-
-      <div class="space-y-3">
-        <div>
-          <label class="block text-sm font-medium mb-1">Recipient Address:</label>
-          <input
-            v-model="txParams.to"
-            type="text"
-            placeholder="0x..."
-            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
-          >
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-1">Amount (ETH):</label>
-          <input
-            v-model="txParams.amount"
-            type="text"
-            placeholder="0.001"
-            class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-          >
-        </div>
-
-        <button
-          :disabled="loading || !txParams.to || !txParams.amount"
-          class="w-full px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50"
-          @click="sendFromSmartAccount"
-        >
-          {{ loading ? 'Sending...' : 'Send from Smart Account' }}
-        </button>
-      </div>
-
-      <!-- Transaction Result -->
-      <div
-        v-if="txResult"
-        class="mt-4 p-3 bg-white rounded border border-indigo-300"
-      >
-        <strong class="text-sm">Transaction Hash:</strong>
-        <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">
-          {{ txResult }}
-        </code>
-      </div>
-
-      <div
-        v-if="txError"
-        class="mt-4 p-3 bg-red-50 rounded border border-red-300"
-      >
-        <strong class="text-sm text-red-800">Error:</strong>
-        <p class="text-xs text-red-600 mt-1">
-          {{ txError }}
-        </p>
-      </div>
-    </div>
+      :deployment-result="deploymentResult"
+      :passkey-config="passkeyConfig"
+    />
 
     <!-- HTTP Transport Test -->
     <div class="bg-purple-50 p-4 rounded-lg mb-4 border border-purple-200">
@@ -345,6 +337,7 @@
 <script setup>
 import { Wallet } from "ethers";
 import { ref, onMounted, computed } from "vue";
+import { hexToBytes } from "viem";
 
 // Reactive state
 const sdkLoaded = ref(false);
@@ -372,6 +365,11 @@ const addressParams = ref({
 const computedAddress = ref("");
 const addressComputeError = ref("");
 
+// Passkey registration state
+const passkeyRegistered = ref(false);
+const passkeyRegisterResult = ref("");
+const passkeyRegisterError = ref("");
+
 // Fund smart account parameters
 const fundParams = ref({
   amount: "0.1",
@@ -379,13 +377,15 @@ const fundParams = ref({
 const fundResult = ref("");
 const fundError = ref("");
 
-// Transaction parameters
-const txParams = ref({
-  to: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", // Anvil account #2
-  amount: "0.001",
+// Passkey configuration state
+const passkeyConfig = ref({
+  enabled: false,
+  credentialId: "0x2868baa08431052f6c7541392a458f64",
+  passkeyX: "0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40",
+  passkeyY: "0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501",
+  originDomain: window.location.origin,
+  validatorAddress: "",
 });
-const txResult = ref("");
-const txError = ref("");
 
 // Computed property to check if all address params are valid
 const isAddressParamsValid = computed(() => {
@@ -436,6 +436,27 @@ async function testWebSDK() {
   }
 }
 
+/**
+ * Load WebAuthn validator address from contracts.json
+ */
+async function loadWebAuthnValidatorAddress() {
+  try {
+    const response = await fetch("/contracts.json");
+    if (response.ok) {
+      const contracts = await response.json();
+      passkeyConfig.value.validatorAddress = contracts.webauthnValidator;
+      // eslint-disable-next-line no-console
+      console.log("Loaded WebAuthn validator address:", contracts.webauthnValidator);
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn("contracts.json not found, cannot load WebAuthn validator address");
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("Failed to load contracts.json:", err);
+  }
+}
+
 // Deploy a new smart account
 async function deployAccount() {
   loading.value = true;
@@ -471,6 +492,8 @@ async function deployAccount() {
         console.log("Loaded factory address from contracts.json:", factoryAddress);
         // eslint-disable-next-line no-console
         console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress);
+        // eslint-disable-next-line no-console
+        console.log("Loaded WebAuthn validator address from contracts.json:", webAuthnValidatorAddress);
       } else {
         // eslint-disable-next-line no-console
         console.warn("contracts.json not found, using default factory address");
@@ -481,13 +504,47 @@ async function deployAccount() {
     }
 
     // Add a rich Anvil wallet as an EOA signer for additional security
-    // Using Anvil account #1 (0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
-    const eoaSignerAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+    // Select which Anvil account to use based on URL parameter
+    // This allows parallel tests to use different accounts to avoid nonce conflicts
+    const urlParams = new URLSearchParams(window.location.search);
+    const accountIndex = parseInt(urlParams.get("fundingAccount") || "0", 10);
+
+    // Anvil test accounts (first 10) - private keys
+    const anvilPrivateKeys = [
+      "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // #0
+      "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // #1
+      "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", // #2
+      "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6", // #3
+      "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a", // #4
+      "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba", // #5
+      "0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e", // #6
+      "0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356", // #7
+      "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97", // #8
+      "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6", // #9
+    ];
+
+    // Corresponding public addresses
+    const anvilAddresses = [
+      "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", // #0
+      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", // #1
+      "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", // #2
+      "0x90F79bf6EB2c4f870365E785982E1f101E93b906", // #3
+      "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65", // #4
+      "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc", // #5
+      "0x976EA74026E726554dB657fA54763abd0C3a0aa9", // #6
+      "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955", // #7
+      "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f", // #8
+      "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720", // #9
+    ];
+
+    const eoaSignerAddress = anvilAddresses[accountIndex] || anvilAddresses[0];
     const eoaSignersAddresses = [eoaSignerAddress];
 
     // Use the appropriate private key based on the network
-    // Standard Anvil (port 8545): 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-    const deployerPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Anvil default account #0
+    const deployerPrivateKey = anvilPrivateKeys[accountIndex] || anvilPrivateKeys[0];
+
+    // eslint-disable-next-line no-console
+    console.log("  Using Anvil account #" + accountIndex + " for deployment");
 
     // eslint-disable-next-line no-console
     console.log("Deploying account...");
@@ -498,20 +555,69 @@ async function deployAccount() {
     // eslint-disable-next-line no-console
     console.log("  User ID:", userId);
 
+    // Create passkey payload if enabled
+    let passkeyPayload = null;
+    let webauthnValidatorAddress = null;
+
+    if (passkeyConfig.value.enabled) {
+      // eslint-disable-next-line no-console
+      console.log("Creating passkey payload...");
+
+      try {
+        const credentialId = hexToBytes(passkeyConfig.value.credentialId);
+        const passkeyX = hexToBytes(passkeyConfig.value.passkeyX);
+        const passkeyY = hexToBytes(passkeyConfig.value.passkeyY);
+
+        // Validate coordinate lengths (must be 32 bytes)
+        if (passkeyX.length !== 32) {
+          throw new Error(`Passkey X coordinate must be 32 bytes, got ${passkeyX.length}`);
+        }
+        if (passkeyY.length !== 32) {
+          throw new Error(`Passkey Y coordinate must be 32 bytes, got ${passkeyY.length}`);
+        }
+
+        // Import PasskeyPayload from SDK
+        const { PasskeyPayload } = await import("zksync-sso-web-sdk/bundler");
+        if (!PasskeyPayload) {
+          throw new Error("PasskeyPayload class not found in SDK");
+        }
+        passkeyPayload = new PasskeyPayload(
+          credentialId,
+          passkeyX,
+          passkeyY,
+          passkeyConfig.value.originDomain,
+        );
+
+        // Set the webauthn validator address if provided
+        if (passkeyConfig.value.validatorAddress) {
+          webauthnValidatorAddress = passkeyConfig.value.validatorAddress;
+        } else {
+          throw new Error("WebAuthn validator address is required when using passkeys");
+        }
+
+        // eslint-disable-next-line no-console
+        console.log("  Passkey payload created successfully");
+        // eslint-disable-next-line no-console
+        console.log("  WebAuthn Validator:", webauthnValidatorAddress);
+      } catch (err) {
+        throw new Error(`Failed to create passkey payload: ${err.message}`);
+      }
+    }
+
     // Construct the DeployAccountConfig wasm object
     const deployConfig = new DeployAccountConfig(
       rpcUrl,
       factoryAddress,
       deployerPrivateKey,
       eoaValidatorAddress,
-      null, // webauthn validator (optional)
+      webauthnValidatorAddress, // webauthn validator (null if not using passkeys)
     );
 
     // Call the deployment function with the structured config
     const deployedAddress = await deploy_account(
       userId,
       eoaSignersAddresses,
-      null, // passkey payload (optional)
+      passkeyPayload, // passkey payload (null if not using passkeys)
       deployConfig,
     );
 
@@ -524,8 +630,17 @@ async function deployAccount() {
       accountId,
       address: deployedAddress,
       eoaSigner: eoaSignerAddress,
+      passkeyEnabled: passkeyConfig.value.enabled,
     };
-    testResult.value = "Account deployed successfully with EOA signer!";
+
+    // If passkey was provided during deployment, it's automatically registered
+    if (passkeyConfig.value.enabled) {
+      passkeyRegistered.value = true;
+    }
+
+    testResult.value = passkeyConfig.value.enabled
+      ? "Account deployed successfully with EOA signer and WebAuthn passkey! (Passkey automatically registered)"
+      : "Account deployed successfully with EOA signer!";
 
     // eslint-disable-next-line no-console
     console.log("Account deployment result:", deploymentResult.value);
@@ -538,6 +653,85 @@ async function deployAccount() {
   }
 }
 
+// Register the passkey with the WebAuthn validator
+async function registerPasskey() {
+  loading.value = true;
+  passkeyRegisterError.value = "";
+  passkeyRegisterResult.value = "";
+
+  try {
+    // Import the WASM function
+    const { add_passkey_to_account, SendTransactionConfig, PasskeyPayload } = await import("zksync-sso-web-sdk/bundler");
+
+    // Load contracts.json
+    const response = await fetch("/contracts.json");
+    const contracts = await response.json();
+    const rpcUrl = contracts.rpcUrl;
+    const bundlerUrl = contracts.bundlerUrl || "http://localhost:4337";
+    const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
+    const eoaValidatorAddress = contracts.eoaValidator;
+
+    // EOA signer private key (Anvil account #1) - to authorize the passkey registration
+    const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+
+    // eslint-disable-next-line no-console
+    console.log("Registering passkey with WebAuthn validator...");
+    // eslint-disable-next-line no-console
+    console.log("  Smart Account:", deploymentResult.value.address);
+    // eslint-disable-next-line no-console
+    console.log("  WebAuthn Validator:", passkeyConfig.value.validatorAddress);
+
+    // Convert passkey coordinates to Uint8Array
+    const credentialId = hexToBytes(passkeyConfig.value.credentialId);
+    const passkeyX = hexToBytes(passkeyConfig.value.passkeyX);
+    const passkeyY = hexToBytes(passkeyConfig.value.passkeyY);
+
+    // Create PasskeyPayload
+    const passkeyPayload = new PasskeyPayload(
+      credentialId,
+      passkeyX,
+      passkeyY,
+      passkeyConfig.value.originDomain,
+    );
+
+    // Create SendTransactionConfig
+    const sendConfig = new SendTransactionConfig(
+      rpcUrl,
+      bundlerUrl,
+      entryPointAddress,
+    );
+
+    // Call the WASM function
+    const result = await add_passkey_to_account(
+      sendConfig,
+      deploymentResult.value.address,
+      passkeyPayload,
+      passkeyConfig.value.validatorAddress,
+      eoaValidatorAddress,
+      eoaSignerPrivateKey,
+    );
+
+    // eslint-disable-next-line no-console
+    console.log("  Registration result:", result);
+
+    if (result.startsWith("Failed") || result.startsWith("Error")) {
+      throw new Error(result);
+    }
+
+    passkeyRegisterResult.value = result;
+    passkeyRegistered.value = true;
+
+    // eslint-disable-next-line no-console
+    console.log("  Passkey registered successfully!");
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Passkey registration failed:", err);
+    passkeyRegisterError.value = `Failed to register passkey: ${err.message}`;
+  } finally {
+    loading.value = false;
+  }
+}
+
 // Fund the smart account with ETH from EOA wallet
 async function fundSmartAccount() {
   loading.value = true;
@@ -545,6 +739,17 @@ async function fundSmartAccount() {
   fundResult.value = "";
 
   try {
+    // Check if deployment was successful
+    if (!deploymentResult.value || !deploymentResult.value.address) {
+      throw new Error("Smart account not deployed yet");
+    }
+
+    // Validate the address looks like an Ethereum address
+    const address = deploymentResult.value.address;
+    if (!address || typeof address !== "string" || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
+      throw new Error(`Invalid smart account address: ${address}`);
+    }
+
     // Import ethers to interact with the blockchain
     const { ethers } = await import("ethers");
 
@@ -558,23 +763,48 @@ async function fundSmartAccount() {
     // eslint-disable-next-line no-console
     console.log("  From (EOA):", deploymentResult.value.eoaSigner);
     // eslint-disable-next-line no-console
-    console.log("  To (Smart Account):", deploymentResult.value.address);
+    console.log("  To (Smart Account):", address);
     // eslint-disable-next-line no-console
     console.log("  Amount:", fundParams.value.amount, "ETH");
 
     // Create provider
     const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-    // EOA signer private key (Anvil account #1)
-    const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+    // Select which Anvil account to use for funding based on URL parameter
+    // This allows parallel tests to use different accounts to avoid nonce conflicts
+    // Default to account #1, but tests can specify ?fundingAccount=2 to use account #2
+    const urlParams = new URLSearchParams(window.location.search);
+    const fundingAccountIndex = parseInt(urlParams.get("fundingAccount") || "1", 10);
+
+    // Anvil test accounts (first 10)
+    const anvilAccounts = [
+      "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // #0
+      "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // #1
+      "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", // #2
+      "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6", // #3
+      "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a", // #4
+      "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba", // #5
+      "0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e", // #6
+      "0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356", // #7
+      "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97", // #8
+      "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6", // #9
+    ];
+
+    const eoaSignerPrivateKey = anvilAccounts[fundingAccountIndex] || anvilAccounts[1];
     const eoaSigner = new ethers.Wallet(eoaSignerPrivateKey, provider);
+
+    // eslint-disable-next-line no-console
+    console.log("  Using Anvil account #" + fundingAccountIndex + " for funding");
 
     // Convert amount to wei
     const amountWei = ethers.parseEther(fundParams.value.amount);
 
+    // Ensure address is properly formatted (prevents ENS lookup on non-ENS networks)
+    const toAddress = ethers.getAddress(address);
+
     // Send transaction to fund the smart account
     const tx = await eoaSigner.sendTransaction({
-      to: deploymentResult.value.address,
+      to: toAddress,
       value: amountWei,
     });
 
@@ -597,77 +827,6 @@ async function fundSmartAccount() {
     // eslint-disable-next-line no-console
     console.error("Funding failed:", err);
     fundError.value = `Failed to fund smart account: ${err.message}`;
-  } finally {
-    loading.value = false;
-  }
-}
-
-// Send transaction from smart account using EOA validator
-async function sendFromSmartAccount() {
-  loading.value = true;
-  txError.value = "";
-  txResult.value = "";
-
-  try {
-    // Import the WASM function and SendTransactionConfig
-    const { send_transaction_eoa, SendTransactionConfig } = await import("zksync-sso-web-sdk/bundler");
-
-    // Load contracts.json
-    const response = await fetch("/contracts.json");
-    const contracts = await response.json();
-    const rpcUrl = contracts.rpcUrl;
-    const bundlerUrl = contracts.bundlerUrl || "http://localhost:4337"; // Default bundler URL
-    const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
-    const eoaValidatorAddress = contracts.eoaValidator;
-
-    // EOA signer private key (Anvil account #1) - this will sign the UserOperation
-    const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-
-    // eslint-disable-next-line no-console
-    console.log("Sending transaction from smart account using ERC-4337...");
-    // eslint-disable-next-line no-console
-    console.log("  Smart Account:", deploymentResult.value.address);
-    // eslint-disable-next-line no-console
-    console.log("  To:", txParams.value.to);
-    // eslint-disable-next-line no-console
-    console.log("  Amount:", txParams.value.amount, "ETH");
-    // eslint-disable-next-line no-console
-    console.log("  Bundler URL:", bundlerUrl);
-    // eslint-disable-next-line no-console
-    console.log("  EntryPoint:", entryPointAddress);
-    // eslint-disable-next-line no-console
-    console.log("  EOA Validator:", eoaValidatorAddress);
-
-    // Convert amount to wei (as string)
-    const amountWei = (BigInt(parseFloat(txParams.value.amount) * 1e18)).toString();
-
-    // Construct the SendTransactionConfig wasm object
-    const sendConfig = new SendTransactionConfig(
-      rpcUrl,
-      bundlerUrl,
-      entryPointAddress,
-    );
-
-    // Call the WASM function to send transaction via ERC-4337
-    // New signature: send_transaction_eoa(config, eoa_validator_address, eoa_private_key, account_address, to_address, value, data)
-    const result = await send_transaction_eoa(
-      sendConfig,
-      eoaValidatorAddress,
-      eoaSignerPrivateKey,
-      deploymentResult.value.address, // account address
-      txParams.value.to, // recipient
-      amountWei, // value as string
-      null, // data (null for simple transfer)
-    );
-
-    // eslint-disable-next-line no-console
-    console.log("  UserOperation result:", result);
-
-    txResult.value = result;
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("Transaction failed:", err);
-    txError.value = `Failed to send transaction: ${err.message}`;
   } finally {
     loading.value = false;
   }
@@ -705,6 +864,9 @@ onMounted(async () => {
     try {
       await import("zksync-sso-web-sdk/bundler");
       sdkLoaded.value = true;
+
+      // Load WebAuthn validator address from contracts.json
+      await loadWebAuthnValidatorAddress();
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("Failed to load Web SDK:", err);

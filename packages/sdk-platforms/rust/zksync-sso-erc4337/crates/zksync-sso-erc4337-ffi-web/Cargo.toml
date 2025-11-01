@@ -53,6 +53,7 @@ log.workspace = true
 # Additional dependencies for WASM
 hex = "0.4"
 getrandom = { version = "0.2", features = ["js"] }
+once_cell = "1.20"
 
 # Serialization (optional, for future use)
 serde = { workspace = true, optional = false }
@@ -69,3 +70,9 @@ getrandom = { version = "0.2", features = ["js"] }
 
 [features]
 default = []
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+eyre = { workspace = true }
+zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core", features = ["tokio-runtime", "test-utilities"] }
+alloy = { workspace = true, features = ["node-bindings"] }

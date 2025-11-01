@@ -70,6 +70,7 @@ export default defineConfig([
       file: "dist/bundler.js",
       format: "esm",
       sourcemap: true,
+      inlineDynamicImports: true,
     },
     external,
     plugins: [

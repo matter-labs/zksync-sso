@@ -155,12 +155,14 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1.5.0
 
       # Start Anvil for ERC-4337 contract deployments (standard EVM on port 8545)
+      # Uses same configuration as local development: fork mainnet, chain-id 1337
       - name: Start Anvil
         run: |
-          anvil --port 8545 --block-time 1 &
+          pnpm run anvil &
           echo "Waiting for Anvil to be ready..."
           timeout 30 bash -c 'until cast client --rpc-url http://localhost:8545 > /dev/null 2>&1; do sleep 1; done'
           echo "Anvil is ready!"
+        working-directory: packages/erc4337-contracts
 
       # Install dependencies for repo
       - name: Install dependencies
@@ -185,6 +187,18 @@ jobs:
       - name: Deploy Demo-App ERC-4337 contracts
         continue-on-error: true
         run: pnpm nx deploy-msa-factory demo-app
+
+      # Start Alto bundler with CORS proxy (same as local development)
+      # Alto runs on port 4338, CORS proxy on port 4337
+      - name: Start Alto bundler with CORS proxy
+        run: |
+          pnpm run bundler:with-proxy &
+          BUNDLER_PID=$!
+          echo "BUNDLER_PID=$BUNDLER_PID" >> $GITHUB_ENV
+          echo "Waiting for bundler to be ready on port 4337..."
+          timeout 60 bash -c 'until curl -s http://localhost:4337 > /dev/null 2>&1; do sleep 1; done'
+          echo "Bundler is ready!"
+        working-directory: packages/erc4337-contracts
 
       - name: Run tests
         run: pnpm test
