@@ -1223,19 +1223,6 @@ pub fn parse_contract_addresses(
     }
 }
 
-// Utility functions
-#[wasm_bindgen]
-pub fn bytes_to_hex(bytes: &[u8]) -> String {
-    format!("0x{}", hex::encode(bytes))
-}
-
-#[wasm_bindgen]
-pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, JsValue> {
-    let hex = hex.strip_prefix("0x").unwrap_or(hex);
-    hex::decode(hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid hex: {}", e)))
-}
-
 #[wasm_bindgen]
 pub fn console_log_from_rust(message: &str) {
     console_log!("{}", message);
@@ -1248,78 +1235,6 @@ pub fn compute_account_id(user_id: &str) -> String {
     let salt = hex::encode(user_id);
     let salt_hash = keccak256(salt);
     format!("0x{}", hex::encode(salt_hash))
-}
-
-/// Compute the smart account address (offline, without RPC calls)
-/// This requires knowing the bytecode hash and proxy address upfront
-///
-/// # Parameters
-/// - `user_id`: The unique user identifier
-/// - `deploy_wallet_address`: The address of the wallet deploying the account (hex string)
-/// - `account_factory`: The address of the AAFactory contract (hex string)  
-/// - `bytecode_hash`: The beacon proxy bytecode hash (hex string, 32 bytes)
-/// - `proxy_address`: The encoded beacon address (hex string)
-///
-/// # Returns
-/// The computed smart account address as a hex string
-#[wasm_bindgen]
-pub fn compute_smart_account_address(
-    user_id: &str,
-    deploy_wallet_address: &str,
-    account_factory: &str,
-    bytecode_hash: &str,
-    proxy_address: &str,
-) -> Result<String, JsValue> {
-    console_log!("Computing smart account address for user: {}", user_id);
-
-    // Parse addresses
-    let factory_addr: Address = account_factory.parse().map_err(|e| {
-        JsValue::from_str(&format!("Invalid factory address: {}", e))
-    })?;
-
-    let deploy_wallet_addr: Address =
-        deploy_wallet_address.parse().map_err(|e| {
-            JsValue::from_str(&format!("Invalid wallet address: {}", e))
-        })?;
-
-    // Parse bytecode hash
-    let bytecode_hash_hex =
-        bytecode_hash.strip_prefix("0x").unwrap_or(bytecode_hash);
-    let bytecode_hash_bytes = hex::decode(bytecode_hash_hex).map_err(|e| {
-        JsValue::from_str(&format!("Invalid bytecode hash: {}", e))
-    })?;
-    let bytecode_hash = FixedBytes::<32>::from_slice(&bytecode_hash_bytes);
-
-    // Parse proxy address
-    let proxy_hex = proxy_address.strip_prefix("0x").unwrap_or(proxy_address);
-    let proxy_bytes = hex::decode(proxy_hex).map_err(|e| {
-        JsValue::from_str(&format!("Invalid proxy address: {}", e))
-    })?;
-    let proxy_address = Bytes::from(proxy_bytes);
-
-    // Get account ID hash
-    let salt = hex::encode(user_id);
-    let account_id_hash = keccak256(salt);
-    console_log!("Account ID hash: 0x{}", hex::encode(account_id_hash));
-
-    // Compute unique salt
-    let wallet_address_bytes = deploy_wallet_addr.0.to_vec();
-    let mut concatenated_bytes = Vec::new();
-    concatenated_bytes.extend(account_id_hash.to_vec());
-    concatenated_bytes.extend(wallet_address_bytes);
-    let unique_salt = keccak256(concatenated_bytes);
-    console_log!("Unique salt: 0x{}", hex::encode(unique_salt));
-
-    // Compute CREATE2 address
-    let address = compute_create2_address(
-        factory_addr,
-        bytecode_hash,
-        unique_salt,
-        proxy_address,
-    );
-
-    console_log!("Computed address: 0x{}", hex::encode(address));
-    Ok(format!("0x{}", hex::encode(address)))
 }
 
 /// Compute CREATE2 address (zkSync version)

@@ -27,12 +27,6 @@ export const {
   PasskeyPayload, // Passkey credential data
   DeployAccountConfig, // Account deployment configuration
   SendTransactionConfig, // Transaction sending configuration
-
-  // ===== ADVANCED/OPTIONAL FUNCTIONS =====
-  // These may be useful for advanced use cases
-  compute_smart_account_address, // Compute account address without deploying
-  bytes_to_hex, // Convert bytes to hex string
-  hex_to_bytes, // Convert hex string to bytes
 } = wasm;
 
 // Initialize WASM module
