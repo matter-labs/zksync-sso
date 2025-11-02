@@ -102,7 +102,7 @@ pub fn test_http_transport(rpc_url: String) -> js_sys::Promise {
             }
             Err(e) => {
                 console_log!("Request failed: {}", e);
-                Ok(JsValue::from_str(&format!("RPC request failed: {}", e)))
+                Err(JsValue::from_str(&format!("RPC request failed: {}", e)))
             }
         }
     })
@@ -354,7 +354,7 @@ pub fn deploy_account(
             match deploy_account_config.factory_address.parse::<Address>() {
                 Ok(addr) => addr,
                 Err(e) => {
-                    return Ok(JsValue::from_str(&format!(
+                    return Err(JsValue::from_str(&format!(
                         "Invalid factory address: {}",
                         e
                     )));
@@ -369,7 +369,7 @@ pub fn deploy_account(
         {
             Ok(signer) => signer,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid deployer private key: {}",
                     e
                 )));
@@ -404,7 +404,7 @@ pub fn deploy_account(
                     match addr_str.parse::<Address>() {
                         Ok(addr) => parsed_addresses.push(addr),
                         Err(e) => {
-                            return Ok(JsValue::from_str(&format!(
+                            return Err(JsValue::from_str(&format!(
                                 "Invalid EOA signer address '{}': {}",
                                 addr_str, e
                             )));
@@ -415,7 +415,7 @@ pub fn deploy_account(
                 let validator_addr = match validator.parse::<Address>() {
                     Ok(addr) => addr,
                     Err(e) => {
-                        return Ok(JsValue::from_str(&format!(
+                        return Err(JsValue::from_str(&format!(
                             "Invalid validator address: {}",
                             e
                         )));
@@ -429,7 +429,7 @@ pub fn deploy_account(
             }
             (None, None) => None,
             _ => {
-                return Ok(JsValue::from_str(
+                return Err(JsValue::from_str(
                     "Both eoa_signers_addresses and eoa_validator_address must be provided together",
                 ));
             }
@@ -445,13 +445,13 @@ pub fn deploy_account(
 
                 // Convert passkey coordinates to FixedBytes<32>
                 if passkey.passkey_x.len() != 32 {
-                    return Ok(JsValue::from_str(&format!(
+                    return Err(JsValue::from_str(&format!(
                         "Invalid passkey X coordinate length: expected 32 bytes, got {}",
                         passkey.passkey_x.len()
                     )));
                 }
                 if passkey.passkey_y.len() != 32 {
-                    return Ok(JsValue::from_str(&format!(
+                    return Err(JsValue::from_str(&format!(
                         "Invalid passkey Y coordinate length: expected 32 bytes, got {}",
                         passkey.passkey_y.len()
                     )));
@@ -465,7 +465,7 @@ pub fn deploy_account(
                 let validator_addr = match validator.parse::<Address>() {
                     Ok(addr) => addr,
                     Err(e) => {
-                        return Ok(JsValue::from_str(&format!(
+                        return Err(JsValue::from_str(&format!(
                             "Invalid WebAuthn validator address: {}",
                             e
                         )));
@@ -485,7 +485,7 @@ pub fn deploy_account(
             }
             (None, None) => None,
             _ => {
-                return Ok(JsValue::from_str(
+                return Err(JsValue::from_str(
                     "Both passkey_payload and webauthn_validator_address must be provided together",
                 ));
             }
@@ -509,7 +509,7 @@ pub fn deploy_account(
             }
             Err(e) => {
                 console_log!("  Error deploying account: {}", e);
-                Ok(JsValue::from_str(&format!(
+                Err(JsValue::from_str(&format!(
                     "Failed to deploy account: {}",
                     e
                 )))
@@ -550,7 +550,7 @@ pub fn add_passkey_to_account(
         let account = match account_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid account address: {}",
                     e
                 )));
@@ -560,7 +560,7 @@ pub fn add_passkey_to_account(
         let entry_point = match config.entry_point_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid entry point address: {}",
                     e
                 )));
@@ -571,7 +571,7 @@ pub fn add_passkey_to_account(
             match webauthn_validator_address.parse::<Address>() {
                 Ok(addr) => addr,
                 Err(e) => {
-                    return Ok(JsValue::from_str(&format!(
+                    return Err(JsValue::from_str(&format!(
                         "Invalid WebAuthn validator address: {}",
                         e
                     )));
@@ -581,7 +581,7 @@ pub fn add_passkey_to_account(
         let eoa_validator = match eoa_validator_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid EOA validator address: {}",
                     e
                 )));
@@ -595,7 +595,7 @@ pub fn add_passkey_to_account(
         {
             Ok(signer) => signer,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid EOA private key: {}",
                     e
                 )));
@@ -626,7 +626,7 @@ pub fn add_passkey_to_account(
         let stub_sig = match stub_signature_eoa(eoa_validator) {
             Ok(sig) => sig,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Failed to create stub signature: {}",
                     e
                 )));
@@ -675,7 +675,7 @@ pub fn add_passkey_to_account(
             }
             Err(e) => {
                 console_log!("  Error adding passkey: {}", e);
-                Ok(JsValue::from_str(&format!(
+                Err(JsValue::from_str(&format!(
                     "Failed to add passkey: {}",
                     e
                 )))
@@ -720,7 +720,7 @@ pub fn send_transaction_eoa(
         let account = match account_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid account address: {}",
                     e
                 )));
@@ -730,7 +730,7 @@ pub fn send_transaction_eoa(
         let entry_point = match config.entry_point_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid entry point address: {}",
                     e
                 )));
@@ -740,7 +740,7 @@ pub fn send_transaction_eoa(
         let eoa_validator = match eoa_validator_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid EOA validator address: {}",
                     e
                 )));
@@ -750,7 +750,7 @@ pub fn send_transaction_eoa(
         let to = match to_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid to address: {}",
                     e
                 )));
@@ -761,7 +761,7 @@ pub fn send_transaction_eoa(
         let value_u256 = match value.parse::<U256>() {
             Ok(v) => v,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Invalid value: {}", e)));
+                return Err(JsValue::from_str(&format!("Invalid value: {}", e)));
             }
         };
 
@@ -772,7 +772,7 @@ pub fn send_transaction_eoa(
                 match hex::decode(hex_str) {
                     Ok(bytes) => Bytes::from(bytes),
                     Err(e) => {
-                        return Ok(JsValue::from_str(&format!(
+                        return Err(JsValue::from_str(&format!(
                             "Invalid data hex: {}",
                             e
                         )));
@@ -791,7 +791,7 @@ pub fn send_transaction_eoa(
         {
             Ok(signer) => signer,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid EOA private key: {}",
                     e
                 )));
@@ -854,7 +854,7 @@ pub fn send_transaction_eoa(
             }
             Err(e) => {
                 console_log!("  Error sending transaction: {}", e);
-                Ok(JsValue::from_str(&format!("Failed to send transaction: {}", e)))
+                Err(JsValue::from_str(&format!("Failed to send transaction: {}", e)))
             }
         }
     })
@@ -900,7 +900,7 @@ pub fn prepare_passkey_user_operation(
         let account = match account_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid account address: {}",
                     e
                 )));
@@ -910,7 +910,7 @@ pub fn prepare_passkey_user_operation(
         let entry_point = match config.entry_point_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid entry point address: {}",
                     e
                 )));
@@ -920,7 +920,7 @@ pub fn prepare_passkey_user_operation(
         let to = match to_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid to address: {}",
                     e
                 )));
@@ -931,7 +931,7 @@ pub fn prepare_passkey_user_operation(
         let value_u256 = match value.parse::<U256>() {
             Ok(v) => v,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Invalid value: {}", e)));
+                return Err(JsValue::from_str(&format!("Invalid value: {}", e)));
             }
         };
 
@@ -942,7 +942,7 @@ pub fn prepare_passkey_user_operation(
                 match hex::decode(hex_str) {
                     Ok(bytes) => Bytes::from(bytes),
                     Err(e) => {
-                        return Ok(JsValue::from_str(&format!(
+                        return Err(JsValue::from_str(&format!(
                             "Invalid data hex: {}",
                             e
                         )));
@@ -982,7 +982,7 @@ pub fn prepare_passkey_user_operation(
             match get_nonce(entry_point, account, nonce_key, &provider).await {
                 Ok(n) => n,
                 Err(e) => {
-                    return Ok(JsValue::from_str(&format!(
+                    return Err(JsValue::from_str(&format!(
                         "Failed to get nonce: {}",
                         e
                     )));
@@ -993,7 +993,7 @@ pub fn prepare_passkey_user_operation(
         let validator = match webauthn_validator_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid validator address: {}",
                     e
                 )));
@@ -1006,7 +1006,7 @@ pub fn prepare_passkey_user_operation(
         let stub_sig = match stub_signature_passkey(validator) {
             Ok(sig) => sig,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Failed to create stub signature: {}",
                     e
                 )));
@@ -1080,7 +1080,7 @@ pub fn prepare_passkey_user_operation(
         {
             Ok(h) => h,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Failed to get UserOp hash: {}",
                     e
                 )));
@@ -1110,7 +1110,7 @@ pub fn prepare_passkey_user_operation(
         let prepared_json = match serde_json::to_string(&prepared) {
             Ok(json) => json,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Failed to serialize UserOperation: {}",
                     e
                 )));
@@ -1152,7 +1152,7 @@ pub fn submit_passkey_user_operation(
         let prepared: PreparedUserOperation = match serde_json::from_str(&prepared_user_op_json) {
             Ok(p) => p,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid prepared UserOperation JSON: {}",
                     e
                 )));
@@ -1167,7 +1167,7 @@ pub fn submit_passkey_user_operation(
         let sender = match prepared.sender.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid sender address: {}",
                     e
                 )));
@@ -1177,7 +1177,7 @@ pub fn submit_passkey_user_operation(
         let validator_address = match prepared.validator_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid validator address: {}",
                     e
                 )));
@@ -1188,14 +1188,14 @@ pub fn submit_passkey_user_operation(
         let nonce = match prepared.nonce.parse::<U256>() {
             Ok(n) => n,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!("Invalid nonce: {}", e)));
+                return Err(JsValue::from_str(&format!("Invalid nonce: {}", e)));
             }
         };
 
         let call_gas_limit = match prepared.call_gas_limit.parse::<U256>() {
             Ok(n) => n,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid call_gas_limit: {}",
                     e
                 )));
@@ -1205,7 +1205,7 @@ pub fn submit_passkey_user_operation(
         let verification_gas_limit = match prepared.verification_gas_limit.parse::<U256>() {
             Ok(n) => n,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid verification_gas_limit: {}",
                     e
                 )));
@@ -1215,7 +1215,7 @@ pub fn submit_passkey_user_operation(
         let pre_verification_gas = match prepared.pre_verification_gas.parse::<U256>() {
             Ok(n) => n,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid pre_verification_gas: {}",
                     e
                 )));
@@ -1225,7 +1225,7 @@ pub fn submit_passkey_user_operation(
         let max_priority_fee_per_gas = match prepared.max_priority_fee_per_gas.parse::<U256>() {
             Ok(n) => n,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid max_priority_fee_per_gas: {}",
                     e
                 )));
@@ -1235,7 +1235,7 @@ pub fn submit_passkey_user_operation(
         let max_fee_per_gas = match prepared.max_fee_per_gas.parse::<U256>() {
             Ok(n) => n,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid max_fee_per_gas: {}",
                     e
                 )));
@@ -1247,7 +1247,7 @@ pub fn submit_passkey_user_operation(
         let call_data = match hex::decode(call_data_hex) {
             Ok(bytes) => Bytes::from(bytes),
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid call_data hex: {}",
                     e
                 )));
@@ -1259,7 +1259,7 @@ pub fn submit_passkey_user_operation(
         let signature = match hex::decode(sig_hex) {
             Ok(bytes) => Bytes::from(bytes),
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid signature hex: {}",
                     e
                 )));
@@ -1336,7 +1336,7 @@ pub fn submit_passkey_user_operation(
         let entry_point = match config.entry_point_address.parse::<Address>() {
             Ok(addr) => addr,
             Err(e) => {
-                return Ok(JsValue::from_str(&format!(
+                return Err(JsValue::from_str(&format!(
                     "Invalid entry point address: {}",
                     e
                 )));
@@ -1366,7 +1366,7 @@ pub fn submit_passkey_user_operation(
                     }
                     Err(e) => {
                         console_log!("  Error waiting for receipt: {}", e);
-                        Ok(JsValue::from_str(&format!(
+                        Err(JsValue::from_str(&format!(
                             "UserOperation submitted but failed to get receipt: {}",
                             e
                         )))
@@ -1375,7 +1375,7 @@ pub fn submit_passkey_user_operation(
             }
             Err(e) => {
                 console_log!("  Error submitting UserOperation: {}", e);
-                Ok(JsValue::from_str(&format!(
+                Err(JsValue::from_str(&format!(
                     "Failed to submit UserOperation: {}",
                     e
                 )))
