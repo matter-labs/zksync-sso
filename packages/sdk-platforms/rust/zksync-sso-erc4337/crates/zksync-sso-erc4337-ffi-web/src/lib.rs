@@ -46,15 +46,6 @@ macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
-// Global storage for UserOperations being prepared/signed
-use once_cell::sync::Lazy;
-use std::{collections::HashMap, sync::Mutex};
-
-// Store both the UserOp and the validator address
-static USER_OPS: Lazy<
-    Mutex<HashMap<String, (AlloyPackedUserOperation, Address)>>,
-> = Lazy::new(|| Mutex::new(HashMap::new()));
-
 // Test function to verify WASM is working
 #[wasm_bindgen]
 pub fn greet(name: &str) -> String {
@@ -249,6 +240,85 @@ impl SendTransactionConfig {
     #[wasm_bindgen(getter)]
     pub fn entry_point_address(&self) -> String {
         self.entry_point_address.clone()
+    }
+}
+
+/// Prepared UserOperation data that can be passed to submit after signing
+/// This eliminates the need for global state storage
+#[wasm_bindgen]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PreparedUserOperation {
+    sender: String,
+    nonce: String,
+    call_data: String,
+    call_gas_limit: String,
+    verification_gas_limit: String,
+    pre_verification_gas: String,
+    max_priority_fee_per_gas: String,
+    max_fee_per_gas: String,
+    validator_address: String,
+}
+
+#[wasm_bindgen]
+impl PreparedUserOperation {
+    /// Create from JSON string (for JavaScript integration)
+    #[wasm_bindgen(js_name = fromJson)]
+    pub fn from_json(json: &str) -> Result<PreparedUserOperation, JsValue> {
+        serde_json::from_str(json)
+            .map_err(|e| JsValue::from_str(&format!("Failed to parse JSON: {}", e)))
+    }
+
+    /// Convert to JSON string
+    #[wasm_bindgen(js_name = toJson)]
+    pub fn to_json(&self) -> Result<String, JsValue> {
+        serde_json::to_string(self)
+            .map_err(|e| JsValue::from_str(&format!("Failed to serialize JSON: {}", e)))
+    }
+
+    // Getters for JavaScript
+    #[wasm_bindgen(getter)]
+    pub fn sender(&self) -> String {
+        self.sender.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn nonce(&self) -> String {
+        self.nonce.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn call_data(&self) -> String {
+        self.call_data.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn call_gas_limit(&self) -> String {
+        self.call_gas_limit.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn verification_gas_limit(&self) -> String {
+        self.verification_gas_limit.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn pre_verification_gas(&self) -> String {
+        self.pre_verification_gas.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn max_priority_fee_per_gas(&self) -> String {
+        self.max_priority_fee_per_gas.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn max_fee_per_gas(&self) -> String {
+        self.max_fee_per_gas.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn validator_address(&self) -> String {
+        self.validator_address.clone()
     }
 }
 
@@ -791,9 +861,11 @@ pub fn send_transaction_eoa(
 }
 
 /// Prepare a UserOperation for passkey signing with fixed gas limits
-/// Returns the hash that needs to be signed by the passkey
+/// Returns the hash that needs to be signed by the passkey and the prepared UserOperation data
 ///
 /// This function creates a stub signature internally, so the caller doesn't need to provide one.
+/// The prepared UserOperation data should be stored by the caller and passed to submit_passkey_user_operation
+/// after the passkey signature is obtained (stateless design - no global state).
 ///
 /// # Parameters
 /// * `config` - SendTransactionConfig with RPC, bundler, and entry point
@@ -804,8 +876,9 @@ pub fn send_transaction_eoa(
 /// * `data` - Optional calldata as hex string
 ///
 /// # Returns
-/// JSON string with format: `{"hash": "0x...", "userOpId": "..."}`
-/// The hash should be signed by the passkey, then passed to `submit_passkey_user_operation`
+/// JSON string with format: `{"hash": "0x...", "userOp": {...}}`
+/// - hash: The hash that should be signed by the passkey
+/// - userOp: The prepared UserOperation data (serialize this and pass to submit_passkey_user_operation)
 #[wasm_bindgen]
 pub fn prepare_passkey_user_operation(
     config: SendTransactionConfig,
@@ -1016,19 +1089,39 @@ pub fn prepare_passkey_user_operation(
 
         console_log!("  UserOperation hash: {:?}", hash);
 
-        // Store the AlloyPackedUserOperation and validator address in a global map
-        // Use the debug format for the hashmap key (includes type wrapper)
-        let hash_key = format!("{:?}", hash);
-        // Convert to B256 to get hex format for the JSON response (just the hex bytes)
+        // Convert hash to B256 for hex format
         let hash_b256: alloy::primitives::B256 = hash.into();
         let hash_hex = format!("{:#x}", hash_b256);
-        USER_OPS.lock().unwrap().insert(hash_key.clone(), (user_op, validator));
 
-        // Return JSON with hash and userOpId
-        // hash: clean hex string for JavaScript to sign
-        // userOpId: debug format key to retrieve the UserOp later
-        let result =
-            format!(r#"{{"hash":"{}","userOpId":"{}"}}"#, hash_hex, hash_key);
+        // Create PreparedUserOperation struct to return to JavaScript (stateless design)
+        let prepared = PreparedUserOperation {
+            sender: format!("{:#x}", account),
+            nonce: user_op.nonce.to_string(),
+            call_data: format!("0x{}", hex::encode(&user_op.call_data)),
+            call_gas_limit: user_op.call_gas_limit.to_string(),
+            verification_gas_limit: user_op.verification_gas_limit.to_string(),
+            pre_verification_gas: user_op.pre_verification_gas.to_string(),
+            max_priority_fee_per_gas: user_op.max_priority_fee_per_gas.to_string(),
+            max_fee_per_gas: user_op.max_fee_per_gas.to_string(),
+            validator_address: format!("{:#x}", validator),
+        };
+
+        // Serialize to JSON
+        let prepared_json = match serde_json::to_string(&prepared) {
+            Ok(json) => json,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Failed to serialize UserOperation: {}",
+                    e
+                )));
+            }
+        };
+
+        // Return JSON with hash and prepared UserOperation data
+        let result = format!(
+            r#"{{"hash":"{}","userOp":{}}}"#,
+            hash_hex, prepared_json
+        );
 
         console_log!(
             "  Prepared UserOperation with fixed gas, waiting for passkey signature"
@@ -1041,7 +1134,7 @@ pub fn prepare_passkey_user_operation(
 ///
 /// # Parameters
 /// * `config` - SendTransactionConfig with bundler URL
-/// * `user_op_id` - The ID returned from `prepare_passkey_user_operation`
+/// * `prepared_user_op_json` - JSON string containing the prepared UserOperation data
 /// * `passkey_signature` - The signature from WebAuthn (hex string with 0x prefix)
 ///
 /// # Returns
@@ -1049,33 +1142,115 @@ pub fn prepare_passkey_user_operation(
 #[wasm_bindgen]
 pub fn submit_passkey_user_operation(
     config: SendTransactionConfig,
-    user_op_id: String,
+    prepared_user_op_json: String,
     passkey_signature: String,
 ) -> js_sys::Promise {
     future_to_promise(async move {
         console_log!("Submitting passkey-signed UserOperation...");
-        console_log!("  UserOp ID: {}", user_op_id);
 
-        // Debug: Check what's in the HashMap
-        {
-            let map = USER_OPS.lock().unwrap();
-            console_log!("  HashMap contains {} entries", map.len());
-            for key in map.keys() {
-                console_log!("    Key: {}", key);
+        // Parse the PreparedUserOperation from JSON
+        let prepared: PreparedUserOperation = match serde_json::from_str(&prepared_user_op_json) {
+            Ok(p) => p,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid prepared UserOperation JSON: {}",
+                    e
+                )));
             }
-        }
+        };
 
-        // Retrieve the AlloyPackedUserOperation and validator address from storage
-        let (mut user_op, validator_address) = {
-            let mut map = USER_OPS.lock().unwrap();
-            match map.remove(&user_op_id) {
-                Some(data) => data,
-                None => {
-                    return Ok(JsValue::from_str(&format!(
-                        "UserOperation not found for ID: {}",
-                        user_op_id
-                    )));
-                }
+        console_log!("  Parsed prepared UserOperation");
+        console_log!("    sender: {}", prepared.sender);
+        console_log!("    nonce: {}", prepared.nonce);
+
+        // Parse addresses
+        let sender = match prepared.sender.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid sender address: {}",
+                    e
+                )));
+            }
+        };
+
+        let validator_address = match prepared.validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid validator address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse numeric fields
+        let nonce = match prepared.nonce.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!("Invalid nonce: {}", e)));
+            }
+        };
+
+        let call_gas_limit = match prepared.call_gas_limit.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid call_gas_limit: {}",
+                    e
+                )));
+            }
+        };
+
+        let verification_gas_limit = match prepared.verification_gas_limit.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid verification_gas_limit: {}",
+                    e
+                )));
+            }
+        };
+
+        let pre_verification_gas = match prepared.pre_verification_gas.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid pre_verification_gas: {}",
+                    e
+                )));
+            }
+        };
+
+        let max_priority_fee_per_gas = match prepared.max_priority_fee_per_gas.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid max_priority_fee_per_gas: {}",
+                    e
+                )));
+            }
+        };
+
+        let max_fee_per_gas = match prepared.max_fee_per_gas.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid max_fee_per_gas: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse call data
+        let call_data_hex = prepared.call_data.trim_start_matches("0x");
+        let call_data = match hex::decode(call_data_hex) {
+            Ok(bytes) => Bytes::from(bytes),
+            Err(e) => {
+                return Ok(JsValue::from_str(&format!(
+                    "Invalid call_data hex: {}",
+                    e
+                )));
             }
         };
 
@@ -1115,8 +1290,24 @@ pub fn submit_passkey_user_operation(
             signature.as_ref().get(signature.len().saturating_sub(32)..)
         );
 
-        // Update UserOperation with full signature (validator address + passkey signature)
-        user_op.signature = Bytes::from(full_signature.clone());
+        // Create UserOperation with the real signature
+        let user_op = AlloyPackedUserOperation {
+            sender,
+            nonce,
+            call_data,
+            signature: Bytes::from(full_signature.clone()),
+            paymaster: None,
+            paymaster_verification_gas_limit: None,
+            paymaster_data: None,
+            paymaster_post_op_gas_limit: None,
+            call_gas_limit,
+            max_priority_fee_per_gas,
+            max_fee_per_gas,
+            pre_verification_gas,
+            verification_gas_limit,
+            factory: None,
+            factory_data: None,
+        };
 
         // Log UserOperation details before submission
         console_log!("  UserOperation details:");

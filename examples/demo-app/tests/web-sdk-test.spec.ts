@@ -28,11 +28,14 @@ test.beforeEach(async ({ page }) => {
   });
 
   await waitForServicesToLoad(page);
-  await page.goto("/web-sdk-test");
-  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+  // Note: Each test will navigate with its own fundingAccount parameter
 });
 
 test("Deploy, fund, and transfer from smart account", async ({ page }) => {
+  // Use Anvil account #2 for this test to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=2");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
   // Wait for SDK to load
   await expect(page.getByText("SDK Loaded:")).toBeVisible();
   await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
@@ -105,6 +108,10 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
 });
 
 test("Deploy with passkey and send transaction using passkey", async ({ page }) => {
+  // Use Anvil account #3 for this test to avoid nonce conflicts with the first test
+  await page.goto("/web-sdk-test?fundingAccount=3");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
   // Wait for SDK to load
   await expect(page.getByText("SDK Loaded:")).toBeVisible();
   await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });

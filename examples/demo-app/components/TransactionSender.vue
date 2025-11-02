@@ -349,13 +349,13 @@ async function sendFromSmartAccountWithPasskey() {
     throw new Error(prepareResult);
   }
 
-  // Parse the result JSON to get the hash
-  const { hash, userOpId } = JSON.parse(prepareResult);
+  // Parse the result JSON to get the hash and UserOp data
+  const { hash, userOp } = JSON.parse(prepareResult);
 
   // eslint-disable-next-line no-console
   console.log("  UserOp hash (from prepare):", hash);
   // eslint-disable-next-line no-console
-  console.log("  UserOp ID:", userOpId);
+  console.log("  UserOp data (stateless):", userOp);
 
   // Step 1: Sign the hash with passkey using SDK helper (replaces ~170 lines of manual encoding)
   // eslint-disable-next-line no-console
@@ -387,13 +387,13 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("    Origin:", props.passkeyConfig.originDomain);
 
-  // Step 2: Submit the signed UserOperation
+  // Step 2: Submit the signed UserOperation with the prepared UserOp data
   // Note: The Rust submit function will prepend the validator address,
   // so we only pass the ABI-encoded WebAuthn signature (no validator prefix)
   // eslint-disable-next-line no-console
   console.log("Step 2: Submitting signed UserOperation...");
   // eslint-disable-next-line no-console
-  console.log("  UserOp ID:", userOpId);
+  console.log("  Using prepared UserOp data (stateless design)");
 
   // Create a new config for submit (the previous one was consumed by prepare)
   const submitConfig = new SendTransactionConfig(
@@ -401,9 +401,13 @@ async function sendFromSmartAccountWithPasskey() {
     bundlerUrl,
     entryPointAddress,
   );
+
+  // Convert userOp object back to JSON string for WASM
+  const userOpJson = JSON.stringify(userOp);
+
   const result = await submit_passkey_user_operation(
     submitConfig,
-    userOpId,
+    userOpJson, // Pass the serialized PreparedUserOperation (not an ID)
     signatureEncoded, // Pass ONLY the ABI-encoded WebAuthn signature (Rust will prepend validator)
   );
 
