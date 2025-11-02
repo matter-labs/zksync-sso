@@ -190,57 +190,6 @@
       :passkey-config="passkeyConfig"
     />
 
-    <!-- HTTP Transport Test -->
-    <div class="bg-purple-50 p-4 rounded-lg mb-4 border border-purple-200">
-      <h2 class="text-lg font-semibold mb-3 text-purple-800">
-        Test HTTP Transport (reqwasm)
-      </h2>
-      <p class="text-sm text-gray-600 mb-4">
-        Test that reqwasm can make HTTP calls from WASM. This makes a simple eth_chainId RPC call.
-      </p>
-
-      <div class="space-y-3">
-        <div>
-          <label class="block text-sm font-medium mb-1">RPC URL:</label>
-          <input
-            v-model="httpTestParams.rpcUrl"
-            type="text"
-            placeholder="https://..."
-            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
-          >
-        </div>
-
-        <button
-          :disabled="loading || !sdkLoaded || !httpTestParams.rpcUrl"
-          class="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
-          @click="testHttpTransport"
-        >
-          {{ loading ? 'Testing...' : 'Test HTTP Transport' }}
-        </button>
-      </div>
-
-      <!-- HTTP Test Result -->
-      <div
-        v-if="httpTestResult"
-        class="mt-4 p-3 bg-white rounded border border-purple-300"
-      >
-        <strong class="text-sm">Result:</strong>
-        <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">
-          {{ httpTestResult }}
-        </code>
-      </div>
-
-      <div
-        v-if="httpTestError"
-        class="mt-4 p-3 bg-red-50 rounded border border-red-300"
-      >
-        <strong class="text-sm text-red-800">Error:</strong>
-        <p class="text-xs text-red-600 mt-1">
-          {{ httpTestError }}
-        </p>
-      </div>
-    </div>
-
     <!-- Address Computation Testing -->
     <div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
       <h2 class="text-lg font-semibold mb-3 text-blue-800">
@@ -335,7 +284,6 @@
 </template>
 
 <script setup>
-import { Wallet } from "ethers";
 import { ref, onMounted, computed } from "vue";
 import { hexToBytes } from "viem";
 
@@ -345,13 +293,6 @@ const testResult = ref("");
 const error = ref("");
 const loading = ref(false);
 const deploymentResult = ref(null);
-
-// HTTP transport test parameters
-const httpTestParams = ref({
-  rpcUrl: "https://sepolia.era.zksync.dev",
-});
-const httpTestResult = ref("");
-const httpTestError = ref("");
 
 // Address computation parameters
 const addressParams = ref({
@@ -406,27 +347,23 @@ async function testWebSDK() {
   testResult.value = "";
 
   try {
-    // Import the web SDK (dynamic import for client-side only)
-    const { ZkSyncSsoClient } = await import("zksync-sso-web-sdk/bundler");
+    // Import the web SDK utility functions
+    const { compute_account_id } = await import("zksync-sso-web-sdk/bundler");
 
-    // Test basic configuration
-    const config = {
-      rpcUrl: "https://sepolia.era.zksync.dev",
-      bundlerUrl: "https://bundler.example.com",
-      contracts: {
-        entryPoint: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-        accountFactory: "0x9406Cc6185a346906296840746125a0E44976454",
-      },
-    };
-
-    // Create client instance (this will use stub implementation for now)
-    // For demo purposes, use a dummy private key (DO NOT use in production)
-    const dummyPrivateKey = Wallet.createRandom().privateKey;
-    const client = new ZkSyncSsoClient(config, dummyPrivateKey);
-
-    testResult.value = "Web SDK client created successfully!";
+    // Test the compute_account_id function
+    const testUserId = "test-user-123";
+    const accountId = compute_account_id(testUserId);
     // eslint-disable-next-line no-console
-    console.log("ZKSync SSO Web SDK client:", client);
+    console.log("Computed account ID:", accountId);
+
+    // Verify the account ID is a valid hex string
+    if (!accountId.startsWith("0x") || accountId.length !== 66) {
+      throw new Error("Invalid account ID format");
+    }
+
+    testResult.value = `✅ SDK functions working! Account ID: ${accountId.substring(0, 10)}...`;
+    // eslint-disable-next-line no-console
+    console.log("Web SDK utility functions tested successfully");
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("Web SDK test failed:", err);
@@ -827,31 +764,6 @@ async function fundSmartAccount() {
     // eslint-disable-next-line no-console
     console.error("Funding failed:", err);
     fundError.value = `Failed to fund smart account: ${err.message}`;
-  } finally {
-    loading.value = false;
-  }
-}
-
-// Test HTTP transport with reqwasm
-async function testHttpTransport() {
-  loading.value = true;
-  httpTestError.value = "";
-  httpTestResult.value = "";
-
-  try {
-    // Import the test function
-    const { test_http_transport } = await import("zksync-sso-web-sdk/bundler");
-
-    // Call the WASM function
-    const result = await test_http_transport(httpTestParams.value.rpcUrl);
-
-    httpTestResult.value = result;
-    // eslint-disable-next-line no-console
-    console.log("HTTP transport test result:", result);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("HTTP transport test failed:", err);
-    httpTestError.value = `Failed to test HTTP transport: ${err.message}`;
   } finally {
     loading.value = false;
   }
