@@ -264,15 +264,17 @@ impl PreparedUserOperation {
     /// Create from JSON string (for JavaScript integration)
     #[wasm_bindgen(js_name = fromJson)]
     pub fn from_json(json: &str) -> Result<PreparedUserOperation, JsValue> {
-        serde_json::from_str(json)
-            .map_err(|e| JsValue::from_str(&format!("Failed to parse JSON: {}", e)))
+        serde_json::from_str(json).map_err(|e| {
+            JsValue::from_str(&format!("Failed to parse JSON: {}", e))
+        })
     }
 
     /// Convert to JSON string
     #[wasm_bindgen(js_name = toJson)]
     pub fn to_json(&self) -> Result<String, JsValue> {
-        serde_json::to_string(self)
-            .map_err(|e| JsValue::from_str(&format!("Failed to serialize JSON: {}", e)))
+        serde_json::to_string(self).map_err(|e| {
+            JsValue::from_str(&format!("Failed to serialize JSON: {}", e))
+        })
     }
 
     // Getters for JavaScript
@@ -761,7 +763,10 @@ pub fn send_transaction_eoa(
         let value_u256 = match value.parse::<U256>() {
             Ok(v) => v,
             Err(e) => {
-                return Err(JsValue::from_str(&format!("Invalid value: {}", e)));
+                return Err(JsValue::from_str(&format!(
+                    "Invalid value: {}",
+                    e
+                )));
             }
         };
 
@@ -931,7 +936,10 @@ pub fn prepare_passkey_user_operation(
         let value_u256 = match value.parse::<U256>() {
             Ok(v) => v,
             Err(e) => {
-                return Err(JsValue::from_str(&format!("Invalid value: {}", e)));
+                return Err(JsValue::from_str(&format!(
+                    "Invalid value: {}",
+                    e
+                )));
             }
         };
 
@@ -1101,7 +1109,9 @@ pub fn prepare_passkey_user_operation(
             call_gas_limit: user_op.call_gas_limit.to_string(),
             verification_gas_limit: user_op.verification_gas_limit.to_string(),
             pre_verification_gas: user_op.pre_verification_gas.to_string(),
-            max_priority_fee_per_gas: user_op.max_priority_fee_per_gas.to_string(),
+            max_priority_fee_per_gas: user_op
+                .max_priority_fee_per_gas
+                .to_string(),
             max_fee_per_gas: user_op.max_fee_per_gas.to_string(),
             validator_address: format!("{:#x}", validator),
         };
@@ -1118,10 +1128,8 @@ pub fn prepare_passkey_user_operation(
         };
 
         // Return JSON with hash and prepared UserOperation data
-        let result = format!(
-            r#"{{"hash":"{}","userOp":{}}}"#,
-            hash_hex, prepared_json
-        );
+        let result =
+            format!(r#"{{"hash":"{}","userOp":{}}}"#, hash_hex, prepared_json);
 
         console_log!(
             "  Prepared UserOperation with fixed gas, waiting for passkey signature"
@@ -1149,15 +1157,16 @@ pub fn submit_passkey_user_operation(
         console_log!("Submitting passkey-signed UserOperation...");
 
         // Parse the PreparedUserOperation from JSON
-        let prepared: PreparedUserOperation = match serde_json::from_str(&prepared_user_op_json) {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid prepared UserOperation JSON: {}",
-                    e
-                )));
-            }
-        };
+        let prepared: PreparedUserOperation =
+            match serde_json::from_str(&prepared_user_op_json) {
+                Ok(p) => p,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid prepared UserOperation JSON: {}",
+                        e
+                    )));
+                }
+            };
 
         console_log!("  Parsed prepared UserOperation");
         console_log!("    sender: {}", prepared.sender);
@@ -1174,21 +1183,25 @@ pub fn submit_passkey_user_operation(
             }
         };
 
-        let validator_address = match prepared.validator_address.parse::<Address>() {
-            Ok(addr) => addr,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid validator address: {}",
-                    e
-                )));
-            }
-        };
+        let validator_address =
+            match prepared.validator_address.parse::<Address>() {
+                Ok(addr) => addr,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid validator address: {}",
+                        e
+                    )));
+                }
+            };
 
         // Parse numeric fields
         let nonce = match prepared.nonce.parse::<U256>() {
             Ok(n) => n,
             Err(e) => {
-                return Err(JsValue::from_str(&format!("Invalid nonce: {}", e)));
+                return Err(JsValue::from_str(&format!(
+                    "Invalid nonce: {}",
+                    e
+                )));
             }
         };
 
@@ -1202,35 +1215,38 @@ pub fn submit_passkey_user_operation(
             }
         };
 
-        let verification_gas_limit = match prepared.verification_gas_limit.parse::<U256>() {
-            Ok(n) => n,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid verification_gas_limit: {}",
-                    e
-                )));
-            }
-        };
+        let verification_gas_limit =
+            match prepared.verification_gas_limit.parse::<U256>() {
+                Ok(n) => n,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid verification_gas_limit: {}",
+                        e
+                    )));
+                }
+            };
 
-        let pre_verification_gas = match prepared.pre_verification_gas.parse::<U256>() {
-            Ok(n) => n,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid pre_verification_gas: {}",
-                    e
-                )));
-            }
-        };
+        let pre_verification_gas =
+            match prepared.pre_verification_gas.parse::<U256>() {
+                Ok(n) => n,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid pre_verification_gas: {}",
+                        e
+                    )));
+                }
+            };
 
-        let max_priority_fee_per_gas = match prepared.max_priority_fee_per_gas.parse::<U256>() {
-            Ok(n) => n,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid max_priority_fee_per_gas: {}",
-                    e
-                )));
-            }
-        };
+        let max_priority_fee_per_gas =
+            match prepared.max_priority_fee_per_gas.parse::<U256>() {
+                Ok(n) => n,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid max_priority_fee_per_gas: {}",
+                        e
+                    )));
+                }
+            };
 
         let max_fee_per_gas = match prepared.max_fee_per_gas.parse::<U256>() {
             Ok(n) => n,
