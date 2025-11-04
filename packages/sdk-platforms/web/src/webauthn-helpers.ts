@@ -208,3 +208,105 @@ export async function signWithPasskey(
     s: sPadded,
   };
 }
+
+/**
+ * Send a transaction from a smart account using passkey authentication
+ *
+ * This is a high-level convenience function that handles the complete flow:
+ * 1. Prepare UserOperation (with stub signature)
+ * 2. Request passkey signature from user
+ * 3. Submit signed UserOperation
+ *
+ * For advanced use cases where you need more control over the signing process,
+ * use prepare_passkey_user_operation + signWithPasskey + submit_passkey_user_operation directly.
+ *
+ * @param config - Transaction configuration (RPC URL, bundler URL, entry point)
+ * @param passkeyConfig - Passkey configuration (credential ID, rpId, origin, validator address)
+ * @param accountAddress - The smart account address
+ * @param toAddress - The recipient address
+ * @param value - Amount to send (as string, e.g., "1000000000000000000" for 1 ETH)
+ * @param data - Optional calldata as hex string (for contract calls)
+ * @returns Promise resolving to transaction result
+ */
+export async function sendTransactionWithPasskey(options: {
+  rpcUrl: string;
+  bundlerUrl: string;
+  entryPointAddress: string;
+  webauthnValidatorAddress: string;
+  accountAddress: string;
+  toAddress: string;
+  value: string;
+  data?: string | null;
+  credentialId: string;
+  rpId: string;
+  origin: string;
+}): Promise<string> {
+  const {
+    rpcUrl,
+    bundlerUrl,
+    entryPointAddress,
+    webauthnValidatorAddress,
+    accountAddress,
+    toAddress,
+    value,
+    data,
+    credentialId,
+    rpId,
+    origin,
+  } = options;
+
+  // Import WASM functions
+  const {
+    prepare_passkey_user_operation,
+    submit_passkey_user_operation,
+    SendTransactionConfig,
+  } = await import("../pkg-bundler/zksync_sso_erc4337_web_ffi");
+
+  // Step 1: Prepare UserOperation to get hash
+  const prepareConfig = new SendTransactionConfig(
+    rpcUrl,
+    bundlerUrl,
+    entryPointAddress,
+  );
+
+  const prepareResult = await prepare_passkey_user_operation(
+    prepareConfig,
+    webauthnValidatorAddress,
+    accountAddress,
+    toAddress,
+    value,
+    data || null,
+  );
+
+  // Check for errors
+  if (prepareResult.startsWith("Failed to") || prepareResult.startsWith("Error")) {
+    throw new Error(prepareResult);
+  }
+
+  // Parse the result to get hash and UserOp data
+  const { hash, userOp } = JSON.parse(prepareResult);
+
+  // Step 2: Sign with passkey
+  const { signature } = await signWithPasskey({
+    hash,
+    credentialId,
+    rpId,
+    origin,
+  });
+
+  // Step 3: Submit signed UserOperation
+  const submitConfig = new SendTransactionConfig(
+    rpcUrl,
+    bundlerUrl,
+    entryPointAddress,
+  );
+
+  const userOpJson = JSON.stringify(userOp);
+  const result = await submit_passkey_user_operation(
+    submitConfig,
+    userOpJson,
+    signature,
+  );
+
+  return result;
+}
