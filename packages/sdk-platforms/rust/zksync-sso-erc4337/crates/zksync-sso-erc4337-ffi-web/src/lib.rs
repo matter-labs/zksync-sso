@@ -1480,14 +1480,8 @@ pub fn encode_passkey_signature(
         )));
     }
 
-    let r_fixed: [u8; 32] = r.try_into().expect(&format!(
-        "Failed to convert r to [u8; 32], got length {}",
-        r.len()
-    ));
-    let s_fixed: [u8; 32] = s.try_into().expect(&format!(
-        "Failed to convert s to [u8; 32], got length {}",
-        s.len()
-    ));
+    let r_fixed: [u8; 32] = r.try_into().unwrap();
+    let s_fixed: [u8; 32] = s.try_into().unwrap();
 
     // ABI encode: (bytes, string, bytes32[2], bytes)
     let encoded = (
