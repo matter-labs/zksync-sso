@@ -189,13 +189,15 @@ export async function signWithPasskey(
   const rPadded = padTo32Bytes(r);
   const sPadded = padTo32Bytes(s);
 
-  // ABI encode the signature using ethers.js
+  // ABI encode the signature using Rust function (now fixed to match ethers.js)
   // Format: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-  const { AbiCoder } = await import("ethers");
-  const abiCoder = AbiCoder.defaultAbiCoder();
-  const signature = abiCoder.encode(
-    ["bytes", "string", "bytes32[2]", "bytes"],
-    [authenticatorData, clientDataJSON, [rPadded, sPadded], credentialIdBytes],
+  const { encode_passkey_signature } = await import("../pkg-bundler/zksync_sso_erc4337_web_ffi");
+  const signature = encode_passkey_signature(
+    authenticatorData,
+    clientDataJSON,
+    rPadded,
+    sPadded,
+    credentialIdBytes,
   );
 
   return {
