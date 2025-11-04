@@ -54,6 +54,9 @@
     <!-- Passkey Configuration (Optional) -->
     <PasskeyConfig v-model="passkeyConfig" />
 
+    <!-- Wallet Configuration -->
+    <WalletConfig v-model="walletConfig" />
+
     <!-- Account Deployment Result -->
     <div
       v-if="deploymentResult"
@@ -328,11 +331,13 @@ const passkeyConfig = ref({
   validatorAddress: "",
 });
 
-// Get funding account from query parameter (for test isolation)
-const route = useRoute();
-const fundingAccountIndex = computed(() => {
-  const param = route.query.fundingAccount;
-  return param ? parseInt(param, 10) : 0;
+// Wallet configuration state
+const walletConfig = ref({
+  source: "anvil", // 'anvil' | 'private-key' | 'browser-wallet'
+  anvilAccountIndex: 0,
+  privateKey: "",
+  connectedAddress: "",
+  isReady: false,
 });
 
 // Anvil private keys for accounts 0-9
@@ -348,6 +353,52 @@ const anvilPrivateKeys = [
   "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97", // Account #8
   "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6", // Account #9
 ];
+
+/**
+ * Get the private key for funding based on wallet configuration
+ */
+function getFundingPrivateKey() {
+  if (walletConfig.value.source === "anvil") {
+    const index = walletConfig.value.anvilAccountIndex;
+    return anvilPrivateKeys[index];
+  } else if (walletConfig.value.source === "private-key") {
+    return walletConfig.value.privateKey;
+  } else if (walletConfig.value.source === "browser-wallet") {
+    // For browser wallet, we'll need to use a different approach (sign with provider)
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Get a signer for funding transactions
+ * Returns either a Wallet (for private key) or a BrowserProvider signer (for browser wallet)
+ */
+async function getFundingSigner() {
+  const { ethers } = await import("ethers");
+
+  // Load contracts.json to get RPC URL
+  const response = await fetch("/contracts.json");
+  const contracts = await response.json();
+  const rpcUrl = contracts.rpcUrl;
+
+  if (walletConfig.value.source === "browser-wallet") {
+    // Use browser wallet provider
+    if (!window.ethereum) {
+      throw new Error("No Ethereum wallet detected");
+    }
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    return await provider.getSigner();
+  } else {
+    // Use private key (anvil or manual entry)
+    const privateKey = getFundingPrivateKey();
+    if (!privateKey) {
+      throw new Error("No private key available");
+    }
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    return new ethers.Wallet(privateKey, provider);
+  }
+}
 
 // Computed property to check if all address params are valid
 const isAddressParamsValid = computed(() => {
@@ -466,17 +517,23 @@ async function deployAccount() {
     const eoaSignerAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
     const eoaSignersAddresses = [eoaSignerAddress];
 
-    // Use the appropriate private key based on the network
-    // Use the funding account from query parameter (default to account #0)
-    const deployerPrivateKey = anvilPrivateKeys[fundingAccountIndex.value];
+    // Get the deployer private key from wallet configuration
+    const deployerPrivateKey = getFundingPrivateKey();
     if (!deployerPrivateKey) {
-      throw new Error(`Invalid funding account index: ${fundingAccountIndex.value}`);
+      throw new Error("No private key available. Please configure wallet settings.");
+    }
+    if (!walletConfig.value.isReady) {
+      throw new Error("Wallet configuration incomplete. Please configure wallet settings.");
     }
 
     // eslint-disable-next-line no-console
     console.log("Deploying account...");
     // eslint-disable-next-line no-console
-    console.log("  Using Anvil account #" + fundingAccountIndex.value + " as deployer");
+    console.log("  Funding Source:", walletConfig.value.source);
+    if (walletConfig.value.source === "anvil") {
+      // eslint-disable-next-line no-console
+      console.log("  Using Anvil account #" + walletConfig.value.anvilAccountIndex + " as deployer");
+    }
     // eslint-disable-next-line no-console
     console.log("  RPC URL:", rpcUrl);
     // eslint-disable-next-line no-console
@@ -673,6 +730,11 @@ async function fundSmartAccount() {
       throw new Error("Smart account not deployed yet");
     }
 
+    // Check if wallet is configured
+    if (!walletConfig.value.isReady) {
+      throw new Error("Wallet not configured. Please configure wallet settings.");
+    }
+
     // Validate the address looks like an Ethereum address
     const address = deploymentResult.value.address;
     if (!address || typeof address !== "string" || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
@@ -682,26 +744,21 @@ async function fundSmartAccount() {
     // Import ethers to interact with the blockchain
     const { ethers } = await import("ethers");
 
-    // Load contracts.json to get RPC URL
-    const response = await fetch("/contracts.json");
-    const contracts = await response.json();
-    const rpcUrl = contracts.rpcUrl;
-
     // eslint-disable-next-line no-console
     console.log("Funding smart account...");
     // eslint-disable-next-line no-console
-    console.log("  From (EOA):", deploymentResult.value.eoaSigner);
+    console.log("  Funding Source:", walletConfig.value.source);
     // eslint-disable-next-line no-console
     console.log("  To (Smart Account):", address);
     // eslint-disable-next-line no-console
     console.log("  Amount:", fundParams.value.amount, "ETH");
 
-    // Create provider
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    // Get the signer based on wallet configuration
+    const signer = await getFundingSigner();
+    const signerAddress = await signer.getAddress();
 
-    // EOA signer private key (Anvil account #1)
-    const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-    const eoaSigner = new ethers.Wallet(eoaSignerPrivateKey, provider);
+    // eslint-disable-next-line no-console
+    console.log("  From (Funding Wallet):", signerAddress);
 
     // Convert amount to wei
     const amountWei = ethers.parseEther(fundParams.value.amount);
@@ -710,7 +767,7 @@ async function fundSmartAccount() {
     const toAddress = ethers.getAddress(address);
 
     // Send transaction to fund the smart account
-    const tx = await eoaSigner.sendTransaction({
+    const tx = await signer.sendTransaction({
       to: toAddress,
       value: amountWei,
     });
@@ -727,6 +784,7 @@ async function fundSmartAccount() {
     fundResult.value = tx.hash;
 
     // Check the balance
+    const provider = signer.provider;
     const balance = await provider.getBalance(deploymentResult.value.address);
     // eslint-disable-next-line no-console
     console.log("  Smart account balance:", ethers.formatEther(balance), "ETH");
