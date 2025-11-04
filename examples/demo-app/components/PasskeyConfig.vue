@@ -126,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 // Props
 const props = defineProps({
