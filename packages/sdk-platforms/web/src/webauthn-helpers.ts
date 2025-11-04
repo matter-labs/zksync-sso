@@ -5,6 +5,13 @@
 
 import { startAuthentication } from "@simplewebauthn/browser";
 
+import {
+  encode_passkey_signature,
+  prepare_passkey_user_operation,
+  SendTransactionConfig,
+  submit_passkey_user_operation,
+} from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
+
 /**
  * Convert hex string to Uint8Array
  *
@@ -191,7 +198,6 @@ export async function signWithPasskey(
 
   // ABI encode the signature using Rust function (now fixed to match ethers.js)
   // Format: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-  const { encode_passkey_signature } = await import("../pkg-bundler/zksync_sso_erc4337_web_ffi");
   const signature = encode_passkey_signature(
     authenticatorData,
     clientDataJSON,
@@ -254,13 +260,6 @@ export async function sendTransactionWithPasskey(options: {
     rpId,
     origin,
   } = options;
-
-  // Import WASM functions
-  const {
-    prepare_passkey_user_operation,
-    submit_passkey_user_operation,
-    SendTransactionConfig,
-  } = await import("../pkg-bundler/zksync_sso_erc4337_web_ffi");
 
   // Step 1: Prepare UserOperation to get hash
   const prepareConfig = new SendTransactionConfig(
