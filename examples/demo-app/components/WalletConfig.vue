@@ -252,7 +252,7 @@ watch(isReady, (ready) => {
   if (config.value.source === "browser-wallet") {
     config.value.connectedAddress = connectedAddress.value;
   }
-});
+}, { immediate: true, flush: "sync" });
 
 /**
  * Connect to browser wallet (MetaMask, etc.)
@@ -317,9 +317,10 @@ function handleAccountsChanged(accounts) {
 }
 
 /**
- * Detect network environment
+ * Detect network environment and check for query parameters
  */
 async function detectEnvironment() {
+  // First, detect if we're on Anvil
   try {
     const response = await fetch("/contracts.json");
     if (response.ok) {
@@ -337,6 +338,24 @@ async function detectEnvironment() {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn("Could not load contracts.json:", err);
+  }
+
+  // Then, check for fundingAccount query parameter (for E2E tests)
+  // This must happen after we've detected isAnvil
+  if (typeof window !== "undefined") {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fundingAccountParam = urlParams.get("fundingAccount");
+    if (fundingAccountParam !== null) {
+      const accountIndex = parseInt(fundingAccountParam, 10);
+      if (!isNaN(accountIndex) && accountIndex >= 0 && accountIndex <= 9) {
+        // eslint-disable-next-line no-console
+        console.log("Setting Anvil account from query parameter:", accountIndex);
+        config.value.source = "anvil";
+        config.value.anvilAccountIndex = accountIndex;
+        // Since isAnvil might already be true from detectEnvironment,
+        // the isReady computed property should now evaluate to true
+      }
+    }
   }
 }
 

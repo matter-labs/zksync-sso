@@ -101,6 +101,31 @@ function parseDerSignature(signatureBytes: Uint8Array): { r: Uint8Array; s: Uint
     throw new Error(`Invalid signature component length: r=${r.length}, s=${s.length}`);
   }
 
+  // Normalize s to low-s form for EVM compatibility
+  // secp256r1 curve order (n): 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+  const secp256r1_n = BigInt("0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551");
+  const secp256r1_n_half = secp256r1_n / 2n;
+
+  // Convert s to BigInt
+  let sBigInt = 0n;
+  for (let i = 0; i < s.length; i++) {
+    sBigInt = (sBigInt << 8n) | BigInt(s[i]);
+  }
+
+  // If s > n/2, use n - s instead (low-s form)
+  if (sBigInt > secp256r1_n_half) {
+    sBigInt = secp256r1_n - sBigInt;
+
+    // Convert back to Uint8Array
+    const sBytes: number[] = [];
+    let temp = sBigInt;
+    while (temp > 0n) {
+      sBytes.unshift(Number(temp & 0xFFn));
+      temp = temp >> 8n;
+    }
+    s = new Uint8Array(sBytes);
+  }
+
   return { r, s };
 }
 
