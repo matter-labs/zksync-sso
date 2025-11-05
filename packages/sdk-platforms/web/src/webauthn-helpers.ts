@@ -5,6 +5,13 @@
 
 import { startAuthentication } from "@simplewebauthn/browser";
 
+import {
+  encode_passkey_signature,
+  prepare_passkey_user_operation,
+  SendTransactionConfig,
+  submit_passkey_user_operation,
+} from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
+
 /**
  * Convert hex string to Uint8Array
  *
@@ -92,6 +99,31 @@ function parseDerSignature(signatureBytes: Uint8Array): { r: Uint8Array; s: Uint
   // Ensure values fit in 32 bytes
   if (r.length > 32 || s.length > 32) {
     throw new Error(`Invalid signature component length: r=${r.length}, s=${s.length}`);
+  }
+
+  // Normalize s to low-s form for EVM compatibility
+  // secp256r1 curve order (n): 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+  const secp256r1_n = BigInt("0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551");
+  const secp256r1_n_half = secp256r1_n / 2n;
+
+  // Convert s to BigInt
+  let sBigInt = 0n;
+  for (let i = 0; i < s.length; i++) {
+    sBigInt = (sBigInt << 8n) | BigInt(s[i]);
+  }
+
+  // If s > n/2, use n - s instead (low-s form)
+  if (sBigInt > secp256r1_n_half) {
+    sBigInt = secp256r1_n - sBigInt;
+
+    // Convert back to Uint8Array
+    const sBytes: number[] = [];
+    let temp = sBigInt;
+    while (temp > 0n) {
+      sBytes.unshift(Number(temp & 0xFFn));
+      temp = temp >> 8n;
+    }
+    s = new Uint8Array(sBytes);
   }
 
   return { r, s };
@@ -189,13 +221,14 @@ export async function signWithPasskey(
   const rPadded = padTo32Bytes(r);
   const sPadded = padTo32Bytes(s);
 
-  // ABI encode the signature using ethers.js
+  // ABI encode the signature using Rust function (now fixed to match ethers.js)
   // Format: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-  const { AbiCoder } = await import("ethers");
-  const abiCoder = AbiCoder.defaultAbiCoder();
-  const signature = abiCoder.encode(
-    ["bytes", "string", "bytes32[2]", "bytes"],
-    [authenticatorData, clientDataJSON, [rPadded, sPadded], credentialIdBytes],
+  const signature = encode_passkey_signature(
+    authenticatorData,
+    clientDataJSON,
+    rPadded,
+    sPadded,
+    credentialIdBytes,
   );
 
   return {
@@ -205,4 +238,99 @@ export async function signWithPasskey(
     r: rPadded,
     s: sPadded,
   };
+}
+
+/**
+ * Send a transaction from a smart account using passkey authentication
+ *
+ * This is a high-level convenience function that handles the complete flow:
+ * 1. Prepare UserOperation (with stub signature)
+ * 2. Request passkey signature from user
+ * 3. Submit signed UserOperation
+ *
+ * For advanced use cases where you need more control over the signing process,
+ * use prepare_passkey_user_operation + signWithPasskey + submit_passkey_user_operation directly.
+ *
+ * @param config - Transaction configuration (RPC URL, bundler URL, entry point)
+ * @param passkeyConfig - Passkey configuration (credential ID, rpId, origin, validator address)
+ * @param accountAddress - The smart account address
+ * @param toAddress - The recipient address
+ * @param value - Amount to send (as string, e.g., "1000000000000000000" for 1 ETH)
+ * @param data - Optional calldata as hex string (for contract calls)
+ * @returns Promise resolving to transaction result
+ */
+export async function sendTransactionWithPasskey(options: {
+  rpcUrl: string;
+  bundlerUrl: string;
+  entryPointAddress: string;
+  webauthnValidatorAddress: string;
+  accountAddress: string;
+  toAddress: string;
+  value: string;
+  data?: string | null;
+  credentialId: string;
+  rpId: string;
+  origin: string;
+}): Promise<string> {
+  const {
+    rpcUrl,
+    bundlerUrl,
+    entryPointAddress,
+    webauthnValidatorAddress,
+    accountAddress,
+    toAddress,
+    value,
+    data,
+    credentialId,
+    rpId,
+    origin,
+  } = options;
+
+  // Step 1: Prepare UserOperation to get hash
+  const prepareConfig = new SendTransactionConfig(
+    rpcUrl,
+    bundlerUrl,
+    entryPointAddress,
+  );
+
+  const prepareResult = await prepare_passkey_user_operation(
+    prepareConfig,
+    webauthnValidatorAddress,
+    accountAddress,
+    toAddress,
+    value,
+    data || null,
+  );
+
+  // Check for errors
+  if (prepareResult.startsWith("Failed to") || prepareResult.startsWith("Error")) {
+    throw new Error(prepareResult);
+  }
+
+  // Parse the result to get hash and UserOp data
+  const { hash, userOp } = JSON.parse(prepareResult);
+
+  // Step 2: Sign with passkey
+  const { signature } = await signWithPasskey({
+    hash,
+    credentialId,
+    rpId,
+    origin,
+  });
+
+  // Step 3: Submit signed UserOperation
+  const submitConfig = new SendTransactionConfig(
+    rpcUrl,
+    bundlerUrl,
+    entryPointAddress,
+  );
+
+  const userOpJson = JSON.stringify(userOp);
+  const result = await submit_passkey_user_operation(
+    submitConfig,
+    userOpJson,
+    signature,
+  );
+
+  return result;
 }

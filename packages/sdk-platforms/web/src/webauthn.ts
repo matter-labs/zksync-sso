@@ -8,6 +8,22 @@
  * @module webauthn
  */
 
+// Lazy-loaded SimpleWebAuthn - only loaded when needed
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let simpleWebAuthnModule: any = null;
+async function getSimpleWebAuthn() {
+  if (!simpleWebAuthnModule) {
+    try {
+      simpleWebAuthnModule = await import("@simplewebauthn/browser");
+    } catch {
+      throw new Error(
+        "SimpleWebAuthn is not installed. Please install @simplewebauthn/browser: npm install @simplewebauthn/browser",
+      );
+    }
+  }
+  return simpleWebAuthnModule;
+}
+
 /**
  * Configuration options for creating a WebAuthn credential
  */
@@ -128,17 +144,9 @@ function base64urlToBuffer(base64url: string): Uint8Array {
 export async function createWebAuthnCredential(
   options: CreateCredentialOptions = {},
 ): Promise<WebAuthnCredential> {
-  // Try to import SimpleWebAuthn (optional peer dependency)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let startRegistration: any;
-  try {
-    const simpleWebAuthn = await import("@simplewebauthn/browser");
-    startRegistration = simpleWebAuthn.startRegistration;
-  } catch {
-    throw new Error(
-      "SimpleWebAuthn is not installed. Please install @simplewebauthn/browser: npm install @simplewebauthn/browser",
-    );
-  }
+  // Get SimpleWebAuthn (lazy loaded and cached)
+  const simpleWebAuthn = await getSimpleWebAuthn();
+  const startRegistration = simpleWebAuthn.startRegistration;
 
   // Check if WebAuthn is supported
   if (!window.PublicKeyCredential) {

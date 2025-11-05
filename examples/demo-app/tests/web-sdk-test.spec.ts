@@ -97,6 +97,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
   // Wait for transaction to complete - look for transaction hash in the send section
   // We need to find the second occurrence of "Transaction Hash:" since fund also has one
   await expect(page.locator("strong:has-text(\"Transaction Hash:\")").nth(1)).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction failed: Failed to submit UserOperation:")).not.toBeVisible();
 
   // Verify we have a transaction hash for the send
   const sendTxHash = page.locator("code").filter({ hasText: /^0x[a-fA-F0-9]{64}/ }).nth(1);
@@ -196,7 +197,8 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   await page.getByRole("button", { name: "Send with Passkey" }).click();
 
   // Wait for transaction to complete
-  await expect(page.locator("strong:has-text(\"Transaction Hash:\")").nth(1)).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Transaction confirmed! UserOp hash:")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Transaction failed: Failed to submit UserOperation:")).not.toBeVisible();
 
   // Verify we have a transaction hash for the send
   const sendTxHash = page.locator("code").filter({ hasText: /^0x[a-fA-F0-9]{64}/ }).nth(1);

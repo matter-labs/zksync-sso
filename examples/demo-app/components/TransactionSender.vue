@@ -242,12 +242,8 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("Sending transaction from smart account using Passkey...");
 
-  // Import WASM functions
-  const {
-    prepare_passkey_user_operation,
-    submit_passkey_user_operation,
-    SendTransactionConfig,
-  } = await import("zksync-sso-web-sdk/bundler");
+  // Import simplified SDK function
+  const { sendTransactionWithPasskey } = await import("zksync-sso-web-sdk/bundler");
 
   // Load contracts.json
   const response = await fetch("/contracts.json");
@@ -318,98 +314,23 @@ async function sendFromSmartAccountWithPasskey() {
   // Convert amount to wei (as string)
   const amountWei = (BigInt(parseFloat(amount.value) * 1e18)).toString();
 
-  // Step 0: Build UserOperation to get hash
+  // Send transaction using simplified SDK function (handles prepare → sign → submit)
   // eslint-disable-next-line no-console
-  console.log("Step 0: Building UserOperation to get hash...");
+  console.log("Sending transaction with passkey (SDK handles full flow)...");
 
-  // Import the SDK helper function (stub signature is created internally by Rust)
-  const { signWithPasskey } = await import("zksync-sso-web-sdk/bundler");
-
-  // Prepare UserOperation - stub signature is created internally
-  const sendConfig = new SendTransactionConfig(
+  const result = await sendTransactionWithPasskey({
     rpcUrl,
     bundlerUrl,
     entryPointAddress,
-  );
-
-  const prepareResult = await prepare_passkey_user_operation(
-    sendConfig,
     webauthnValidatorAddress,
-    props.deploymentResult.address,
-    to.value,
-    amountWei,
-    null, // data (null for simple transfer)
-  );
-
-  // eslint-disable-next-line no-console
-  console.log("  Prepare result:", prepareResult);
-
-  // Check if it's an error message
-  if (prepareResult.startsWith("Failed to") || prepareResult.startsWith("Error")) {
-    throw new Error(prepareResult);
-  }
-
-  // Parse the result JSON to get the hash and UserOp data
-  const { hash, userOp } = JSON.parse(prepareResult);
-
-  // eslint-disable-next-line no-console
-  console.log("  UserOp hash (from prepare):", hash);
-  // eslint-disable-next-line no-console
-  console.log("  UserOp data (stateless):", userOp);
-
-  // Step 1: Sign the hash with passkey using SDK helper (replaces ~170 lines of manual encoding)
-  // eslint-disable-next-line no-console
-  console.log("Step 1: Requesting passkey signature for the real hash...");
-  // eslint-disable-next-line no-console
-  console.log("  Please touch your security key...");
-
-  const { signature: signatureEncoded } = await signWithPasskey({
-    hash,
+    accountAddress: props.deploymentResult.address,
+    toAddress: to.value,
+    value: amountWei,
+    data: null,
     credentialId: props.passkeyConfig.credentialId,
     rpId: window.location.hostname,
     origin: window.location.origin,
   });
-
-  // eslint-disable-next-line no-console
-  console.log("  Passkey signature received and encoded");
-  // eslint-disable-next-line no-console
-  console.log("  ABI-encoded signature length:", signatureEncoded.length);
-
-  // Optional: Log debug info (the SDK handles all the encoding internally)
-  // eslint-disable-next-line no-console
-  console.log("  Debug info:");
-  // eslint-disable-next-line no-console
-  console.log("    Credential ID:", props.passkeyConfig.credentialId);
-  // eslint-disable-next-line no-console
-  console.log("    Public key X:", props.passkeyConfig.passkeyX);
-  // eslint-disable-next-line no-console
-  console.log("    Public key Y:", props.passkeyConfig.passkeyY);
-  // eslint-disable-next-line no-console
-  console.log("    Origin:", props.passkeyConfig.originDomain);
-
-  // Step 2: Submit the signed UserOperation with the prepared UserOp data
-  // Note: The Rust submit function will prepend the validator address,
-  // so we only pass the ABI-encoded WebAuthn signature (no validator prefix)
-  // eslint-disable-next-line no-console
-  console.log("Step 2: Submitting signed UserOperation...");
-  // eslint-disable-next-line no-console
-  console.log("  Using prepared UserOp data (stateless design)");
-
-  // Create a new config for submit (the previous one was consumed by prepare)
-  const submitConfig = new SendTransactionConfig(
-    rpcUrl,
-    bundlerUrl,
-    entryPointAddress,
-  );
-
-  // Convert userOp object back to JSON string for WASM
-  const userOpJson = JSON.stringify(userOp);
-
-  const result = await submit_passkey_user_operation(
-    submitConfig,
-    userOpJson, // Pass the serialized PreparedUserOperation (not an ID)
-    signatureEncoded, // Pass ONLY the ABI-encoded WebAuthn signature (Rust will prepend validator)
-  );
 
   // eslint-disable-next-line no-console
   console.log("  Transaction result:", result);
