@@ -1,0 +1,13 @@
+{
+  "name": "test-data-generator",
+  "version": "1.0.0",
+  "description": "Utility to generate test data for comparing Rust encoding with ethers.js",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "ethers": "^6.15.0"
+  },
+  "scripts": {
+    "generate": "node generate-ethers-encoding.mjs > ethers-test-data.json"
+  }
+}

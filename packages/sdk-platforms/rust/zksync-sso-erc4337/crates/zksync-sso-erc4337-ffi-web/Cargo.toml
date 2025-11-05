@@ -69,3 +69,9 @@ getrandom = { version = "0.2", features = ["js"] }
 
 [features]
 default = []
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+eyre = { workspace = true }
+zksync-sso-erc4337-core = { path = "../zksync-sso-erc4337-core", features = ["tokio-runtime", "test-utilities"] }
+alloy = { workspace = true, features = ["node-bindings"] }

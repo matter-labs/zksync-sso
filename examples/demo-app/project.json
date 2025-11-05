@@ -157,6 +157,14 @@
       },
       "dependsOn": ["e2e:setup:erc4337"]
     },
+    "ci:erc4337": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "PW_TEST_HTML_REPORT_OPEN=never playwright test --config=playwright-erc4337.config.ts --reporter=list"
+      },
+      "dependsOn": ["e2e:setup:erc4337"]
+    },
     "e2e:debug": {
       "executor": "nx:run-commands",
       "options": {

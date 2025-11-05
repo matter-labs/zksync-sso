@@ -36,7 +36,7 @@ pub struct MSADeployAccount(deployAccountCall);
 
 impl MSADeployAccount {
     pub fn new(account_id: FixedBytes<32>, init_data: Bytes) -> Self {
-        Self(deployAccountCall { accountId: account_id, initData: init_data })
+        Self(deployAccountCall { salt: account_id, initData: init_data })
     }
 
     pub fn encode(&self) -> Vec<u8> {
