@@ -9,6 +9,7 @@ import { toPasskeyAccount } from "./account.js";
 import { requestPasskeyAuthentication } from "./actions/passkey.js";
 import { type ZksyncSsoPasskeyActions, zksyncSsoPasskeyActions } from "./decorators/passkey.js";
 import { zksyncSsoPasskeyWalletActions } from "./decorators/wallet.js";
+import { type WebSdkActions, webSdkActions } from "./decorators/webSdk.js";
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
@@ -55,15 +56,21 @@ export function createZksyncPasskeyClient<
       userName: parameters.userName,
       userDisplayName: parameters.userDisplayName,
       contracts: parameters.contracts,
+      credential: parameters.credential,
+      // NEW: Add web-SDK configuration
+      bundlerUrl: parameters.bundlerUrl,
+      entryPointAddress: parameters.entryPointAddress,
     }))
     .extend(publicActions)
     .extend(walletActions)
     .extend(eip712WalletActions())
     .extend(zksyncSsoPasskeyActions)
     .extend(zksyncSsoPasskeyWalletActions)
+    .extend(webSdkActions) // NEW: Add Web-SDK transaction actions
     .extend(erc7739Actions({
       verifier: account.address,
-    }));
+    }))
+    .extend(webSdkActions); // NEW: Add Web-SDK transaction actions
   return client;
 }
 
@@ -81,6 +88,10 @@ type ZksyncSsoPasskeyData = {
   userDisplayName: string; // Also option required for webauthn
   contracts: PasskeyRequiredContracts;
   paymasterHandler?: CustomPaymasterHandler;
+  // NEW: Web-SDK / ERC-4337 configuration
+  bundlerUrl?: string; // Bundler URL for ERC-4337 UserOperations
+  entryPointAddress?: Address; // EntryPoint contract address
+  credential?: PublicKeyCredentialDescriptorJSON; // Credential ID for passkey
 };
 
 export type ClientWithZksyncSsoPasskeyData<
@@ -101,7 +112,7 @@ export type ZksyncSsoPasskeyClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    PublicActions<transport, chain, account> & WalletActions<chain, account> & ZksyncSsoPasskeyActions
+    PublicActions<transport, chain, account> & WalletActions<chain, account> & ZksyncSsoPasskeyActions & WebSdkActions<chain, account>
   > & ZksyncSsoPasskeyData
 >;
 
@@ -119,4 +130,7 @@ export interface ZksyncSsoPasskeyClientConfig<
   credential?: PublicKeyCredentialDescriptorJSON;
   key?: string;
   name?: string;
+  // NEW: Web-SDK / ERC-4337 configuration (optional)
+  bundlerUrl?: string;
+  entryPointAddress?: Address;
 }
