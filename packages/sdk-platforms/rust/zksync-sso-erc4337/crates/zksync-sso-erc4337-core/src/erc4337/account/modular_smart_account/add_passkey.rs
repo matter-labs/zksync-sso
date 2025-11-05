@@ -1,7 +1,10 @@
 use crate::erc4337::{
     account::{
         erc7579::{Execution, calls::encode_calls},
-        modular_smart_account::{WebAuthnValidator, send::send_transaction},
+        modular_smart_account::{
+            WebAuthnValidator,
+            send::{SendParams, send_transaction},
+        },
     },
     bundler::pimlico::client::BundlerClient,
     signer::Signer,
@@ -35,15 +38,16 @@ pub async fn add_passkey<P: Provider + Send + Sync + Clone>(
 ) -> eyre::Result<()> {
     let call_data = add_passkey_call_data(passkey, webauthn_validator);
 
-    send_transaction(
-        account_address,
-        entry_point_address,
+    send_transaction(SendParams {
+        account: account_address,
+        entry_point: entry_point_address,
         call_data,
-        None,
+        nonce_key: None,
+        paymaster: None,
         bundler_client,
-        provider.clone(),
+        provider,
         signer,
-    )
+    })
     .await?;
 
     Ok(())
@@ -91,8 +95,9 @@ mod tests {
                     module_installed::is_module_installed,
                 },
                 modular_smart_account::{
-                    deploy::{EOASigners, deploy_account},
+                    deploy::{DeployAccountParams, EOASigners, deploy_account},
                     signature::{eoa_signature, stub_signature_eoa},
+                    test_utilities::fund_account_with_default_amount,
                 },
             },
             signer::Signer,
@@ -102,11 +107,7 @@ mod tests {
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::{
-        primitives::{FixedBytes, U256, address, bytes, fixed_bytes},
-        providers::Provider,
-        rpc::types::TransactionRequest,
-    };
+    use alloy::primitives::{FixedBytes, address, bytes, fixed_bytes};
     use std::sync::Arc;
 
     #[tokio::test]
@@ -144,12 +145,13 @@ mod tests {
             validator_address: eoa_validator_address,
         };
 
-        let address = deploy_account(
+        let address = deploy_account(DeployAccountParams {
             factory_address,
-            Some(eoa_signers),
-            None,
-            provider.clone(),
-        )
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            id: None,
+            provider: provider.clone(),
+        })
         .await?;
 
         println!("Account deployed");
@@ -161,13 +163,7 @@ mod tests {
         )
         .await?;
         eyre::ensure!(is_module_installed, "Module is not installed");
-
-        {
-            let fund_tx = TransactionRequest::default()
-                .to(address)
-                .value(U256::from(10000000000000000000u64));
-            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        }
+        fund_account_with_default_amount(address, provider.clone()).await?;
 
         let webauthn_module = contracts.webauthn_validator;
         {

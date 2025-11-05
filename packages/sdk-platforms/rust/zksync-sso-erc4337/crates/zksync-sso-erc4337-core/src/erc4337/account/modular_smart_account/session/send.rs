@@ -16,8 +16,8 @@ mod tests {
                     module_installed::is_module_installed,
                 },
                 modular_smart_account::{
-                    deploy::{EOASigners, deploy_account},
-                    send::send_transaction,
+                    deploy::{DeployAccountParams, EOASigners, deploy_account},
+                    send::{SendParams, send_transaction},
                     session::{
                         create::create_session,
                         session_lib::session_spec::{
@@ -29,6 +29,7 @@ mod tests {
                     signature::{
                         eoa_signature, session_signature, stub_signature_eoa,
                     },
+                    test_utilities::fund_account_with_default_amount,
                 },
             },
             signer::Signer,
@@ -40,8 +41,6 @@ mod tests {
     };
     use alloy::{
         primitives::{Bytes, FixedBytes, U256, Uint, address},
-        providers::Provider,
-        rpc::types::TransactionRequest,
         signers::local::PrivateKeySigner,
     };
     use std::{str::FromStr, sync::Arc};
@@ -109,12 +108,13 @@ mod tests {
             validator_address: eoa_validator_address,
         };
 
-        let address = deploy_account(
+        let address = deploy_account(DeployAccountParams {
             factory_address,
-            Some(eoa_signers),
-            None,
-            provider.clone(),
-        )
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            id: None,
+            provider: provider.clone(),
+        })
         .await?;
 
         println!("Account deployed");
@@ -131,12 +131,7 @@ mod tests {
             "is_eoa_module_installed is not installed"
         );
 
-        {
-            let fund_tx = TransactionRequest::default()
-                .to(address)
-                .value(U256::from(10000000000000000000u64));
-            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        }
+        fund_account_with_default_amount(address, provider.clone()).await?;
 
         {
             let stub_sig = stub_signature_eoa(eoa_validator_address)?;
@@ -249,15 +244,16 @@ mod tests {
 
         let keyed_nonce = keyed_nonce(session_signer_address);
 
-        send_transaction(
-            address,
-            entry_point_address,
-            calldata,
-            Some(keyed_nonce),
+        send_transaction(SendParams {
+            account: address,
+            entry_point: entry_point_address,
+            call_data: calldata,
+            nonce_key: Some(keyed_nonce),
+            paymaster: None,
             bundler_client,
-            provider.clone(),
-            session_signer,
-        )
+            provider,
+            signer: session_signer,
+        })
         .await?;
 
         println!("Session transaction successfully sent");

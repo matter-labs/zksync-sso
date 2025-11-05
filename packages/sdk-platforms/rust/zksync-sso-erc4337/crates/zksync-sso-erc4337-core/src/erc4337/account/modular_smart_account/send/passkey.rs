@@ -1,5 +1,7 @@
 use crate::erc4337::{
-    account::modular_smart_account::send::send_transaction as send_transaction_base,
+    account::modular_smart_account::send::{
+        PaymasterParams, SendParams, send_transaction as send_transaction_base,
+    },
     bundler::pimlico::client::BundlerClient,
     signer::{SignatureProvider, Signer},
 };
@@ -8,29 +10,50 @@ use alloy::{
     providers::Provider,
 };
 
-pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
-    account: Address,
-    _webauthn_validator: Address,
-    entry_point: Address,
-    call_data: Bytes,
-    bundler_client: BundlerClient,
-    provider: P,
-    signature_provider: SignatureProvider,
-) -> eyre::Result<()> {
+#[derive(Clone)]
+pub struct PasskeySendParams<P: Provider + Send + Sync + Clone> {
+    pub account: Address,
+    pub _webauthn_validator: Address,
+    pub entry_point: Address,
+    pub call_data: Bytes,
+    pub paymaster: Option<PaymasterParams>,
+    pub bundler_client: BundlerClient,
+    pub provider: P,
+    pub signature_provider: SignatureProvider,
+}
+
+pub async fn send_transaction<P>(
+    params: PasskeySendParams<P>,
+) -> eyre::Result<()>
+where
+    P: Provider + Send + Sync + Clone,
+{
+    let PasskeySendParams {
+        account,
+        _webauthn_validator,
+        entry_point,
+        call_data,
+        paymaster,
+        bundler_client,
+        provider,
+        signature_provider,
+    } = params;
+
     let stub_sig = signature_provider(FixedBytes::<32>::default())?;
 
     let signer =
         Signer { provider: signature_provider, stub_signature: stub_sig };
 
-    send_transaction_base(
+    send_transaction_base(SendParams {
         account,
         entry_point,
         call_data,
-        None,
+        nonce_key: None,
+        paymaster,
         bundler_client,
         provider,
         signer,
-    )
+    })
     .await
 }
 
@@ -45,8 +68,9 @@ pub mod tests {
             },
             modular_smart_account::{
                 add_passkey::{PasskeyPayload, add_passkey},
-                deploy::{EOASigners, deploy_account},
+                deploy::{DeployAccountParams, EOASigners, deploy_account},
                 signature::{eoa_signature, stub_signature_eoa},
+                test_utilities::fund_account_with_default_amount,
             },
         },
         utils::alloy_utilities::test_utilities::{
@@ -140,12 +164,13 @@ pub mod tests {
             validator_address: eoa_validator_address,
         };
 
-        let address = deploy_account(
+        let address = deploy_account(DeployAccountParams {
             factory_address,
-            Some(eoa_signers),
-            None,
-            provider.clone(),
-        )
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            id: None,
+            provider: provider.clone(),
+        })
         .await?;
 
         println!("Account deployed");
@@ -162,12 +187,7 @@ pub mod tests {
             "is_eoa_module_installed is not installed"
         );
 
-        {
-            let fund_tx = TransactionRequest::default()
-                .to(address)
-                .value(U256::from(10000000000000000000u64));
-            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        }
+        fund_account_with_default_amount(address, provider.clone()).await?;
 
         let webauthn_module = contracts.webauthn_validator;
 
@@ -244,15 +264,16 @@ pub mod tests {
                 Ok(result)
             });
 
-        send_transaction(
-            address,
-            webauthn_module,
-            entry_point_address,
-            calldata,
+        send_transaction(PasskeySendParams {
+            account: address,
+            _webauthn_validator: webauthn_module,
+            entry_point: entry_point_address,
+            call_data: calldata,
+            paymaster: None,
             bundler_client,
-            provider.clone(),
+            provider: provider.clone(),
             signature_provider,
-        )
+        })
         .await?;
 
         println!("Passkey transaction successfully sent");
@@ -309,12 +330,13 @@ pub mod tests {
             validator_address: eoa_validator_address,
         };
 
-        let address = deploy_account(
+        let address = deploy_account(DeployAccountParams {
             factory_address,
-            Some(eoa_signers),
-            None,
-            provider.clone(),
-        )
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            id: None,
+            provider: provider.clone(),
+        })
         .await?;
 
         println!("Account deployed: {:?}", address);

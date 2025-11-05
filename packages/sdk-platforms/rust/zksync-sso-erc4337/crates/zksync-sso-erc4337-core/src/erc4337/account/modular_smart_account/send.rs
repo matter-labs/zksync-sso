@@ -1,75 +1,67 @@
+pub mod eoa;
+pub mod passkey;
+
 use crate::erc4337::{
-    account::modular_smart_account::{
-        nonce::get_nonce,
-        signature::{eoa_signature, stub_signature_eoa},
-    },
+    account::modular_smart_account::nonce::get_nonce,
     bundler::{Bundler, pimlico::client::BundlerClient},
     entry_point::EntryPoint,
+    paymaster::params::{PaymasterParams, build_paymaster_and_data},
     signer::Signer,
     user_operation::hash::v08::get_user_operation_hash_entry_point,
 };
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes, U256, Uint},
+    primitives::{Address, Bytes, U256, Uint},
     providers::Provider,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
 };
 use std::sync::Arc;
 
-pub mod passkey;
-
-pub async fn send_transaction_eoa<P: Provider + Send + Sync + Clone>(
-    account: Address,
-    eoa_validator: Address,
-    entry_point: Address,
-    call_data: Bytes,
-    bundler_client: BundlerClient,
-    provider: P,
-    private_key_hex: String,
-) -> eyre::Result<()> {
-    let stub_sig = stub_signature_eoa(eoa_validator)?;
-
-    let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-        eoa_signature(&private_key_hex, eoa_validator, hash)
-    });
-
-    let signer =
-        Signer { stub_signature: stub_sig, provider: signature_provider };
-
-    send_transaction(
-        account,
-        entry_point,
-        call_data,
-        None,
-        bundler_client,
-        provider,
-        signer,
-    )
-    .await
+#[derive(Clone)]
+pub struct SendParams<P: Provider + Send + Sync + Clone> {
+    pub account: Address,
+    pub entry_point: Address,
+    pub call_data: Bytes,
+    pub nonce_key: Option<Uint<192, 3>>,
+    pub paymaster: Option<PaymasterParams>,
+    pub bundler_client: BundlerClient,
+    pub provider: P,
+    pub signer: Signer,
 }
 
 pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
-    account: Address,
-    entry_point: Address,
-    call_data: Bytes,
-    nonce_key: Option<Uint<192, 3>>,
-    bundler_client: BundlerClient,
-    provider: P,
-    signer: Signer,
+    params: SendParams<P>,
 ) -> eyre::Result<()> {
+    let SendParams {
+        account,
+        entry_point,
+        call_data,
+        nonce_key,
+        paymaster,
+        bundler_client,
+        provider,
+        signer,
+    } = params;
+
     let nonce_key = nonce_key.unwrap_or_else(|| Uint::from(0));
 
     let nonce = get_nonce(entry_point, account, nonce_key, &provider).await?;
 
     let (estimated_gas, mut user_op) = {
         let alloy_user_op = {
-            let stub_sig = signer.stub_signature;
+            let stub_sig = signer.stub_signature.clone();
             AlloyPackedUserOperation {
                 sender: account,
                 nonce,
-                paymaster: None,
-                paymaster_verification_gas_limit: None,
-                paymaster_data: None,
-                paymaster_post_op_gas_limit: None,
+                paymaster: paymaster.as_ref().map(|params| params.address),
+                paymaster_verification_gas_limit: paymaster
+                    .as_ref()
+                    .and_then(|params| params.verification_gas_limit),
+                paymaster_data: paymaster
+                    .as_ref()
+                    .map(|params| params.data.clone()),
+                paymaster_post_op_gas_limit: paymaster
+                    .as_ref()
+                    .and_then(|params| params.post_op_gas_limit),
                 call_gas_limit: Default::default(),
                 max_priority_fee_per_gas: Default::default(),
                 max_fee_per_gas: Default::default(),
@@ -97,6 +89,17 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     user_op.max_priority_fee_per_gas = U256::from(0x77359400);
     user_op.max_fee_per_gas = U256::from(0x82e08afeu64);
 
+    if let Some(paymaster) = paymaster.as_ref() {
+        user_op.paymaster = Some(paymaster.address);
+        user_op.paymaster_data = Some(paymaster.data.clone());
+        user_op.paymaster_verification_gas_limit = estimated_gas
+            .paymaster_verification_gas_limit
+            .or(paymaster.verification_gas_limit);
+        user_op.paymaster_post_op_gas_limit = estimated_gas
+            .paymaster_post_op_gas_limit
+            .or(paymaster.post_op_gas_limit);
+    }
+
     let packed_gas_limits: U256 =
         (user_op.verification_gas_limit << 128) | user_op.call_gas_limit;
 
@@ -111,7 +114,12 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
         accountGasLimits: packed_gas_limits.to_be_bytes().into(),
         preVerificationGas: user_op.pre_verification_gas,
         gasFees: gas_fees.to_be_bytes().into(),
-        paymasterAndData: Bytes::default(),
+        paymasterAndData: build_paymaster_and_data(
+            user_op.paymaster,
+            user_op.paymaster_verification_gas_limit,
+            user_op.paymaster_post_op_gas_limit,
+            user_op.paymaster_data.as_ref(),
+        ),
         signature: user_op.signature.clone(),
     };
 
@@ -122,7 +130,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     )
     .await?;
 
-    let signature_provider = signer.provider;
+    let signature_provider = Arc::clone(&signer.provider);
     let signature = signature_provider(hash.0)?;
     user_op.signature = signature;
 
@@ -132,114 +140,4 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     bundler_client.wait_for_user_operation_receipt(user_op_hash).await?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{
-        erc4337::account::{
-            erc7579::{
-                Execution, calls::encode_calls,
-                module_installed::is_module_installed,
-            },
-            modular_smart_account::deploy::{EOASigners, deploy_account},
-        },
-        utils::alloy_utilities::test_utilities::{
-            TestInfraConfig,
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
-        },
-    };
-    use alloy::{
-        primitives::{Bytes, U256, address},
-        rpc::types::TransactionRequest,
-    };
-
-    #[tokio::test]
-    async fn test_send_transaction_contracts() -> eyre::Result<()> {
-        let (
-            _,
-            anvil_instance,
-            provider,
-            contracts,
-            signer_private_key,
-            bundler,
-            bundler_client,
-        ) = {
-            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
-                &TestInfraConfig {
-                    signer_private_key: signer_private_key.clone(),
-                },
-            )
-            .await?
-        };
-
-        let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
-
-        let factory_address = contracts.account_factory;
-        let eoa_validator_address = contracts.eoa_validator;
-
-        let signers =
-            vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
-
-        let eoa_signers = EOASigners {
-            addresses: signers,
-            validator_address: eoa_validator_address,
-        };
-
-        let address = deploy_account(
-            factory_address,
-            Some(eoa_signers),
-            None,
-            provider.clone(),
-        )
-        .await?;
-
-        println!("Account deployed");
-
-        let is_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
-
-        eyre::ensure!(is_module_installed, "Module is not installed");
-
-        let call = {
-            let target = address;
-            let value = U256::from(1);
-            let data = Bytes::default();
-            Execution { target, value, data }
-        };
-
-        let calls = vec![call];
-
-        {
-            let fund_tx = TransactionRequest::default()
-                .to(address)
-                .value(U256::from(10000000000000000000u64));
-            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        }
-
-        let encoded_calls: Bytes = encode_calls(calls).into();
-
-        send_transaction_eoa(
-            address,
-            eoa_validator_address,
-            entry_point_address,
-            encoded_calls,
-            bundler_client,
-            provider.clone(),
-            signer_private_key.to_string(),
-        )
-        .await?;
-
-        drop(bundler);
-        drop(anvil_instance);
-
-        Ok(())
-    }
 }
