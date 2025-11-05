@@ -829,6 +829,9 @@ importers:
       ms:
         specifier: ^2.1.3
         version: 2.1.3
+      zksync-sso-web-sdk:
+        specifier: workspace:*
+        version: link:../sdk-platforms/web
     devDependencies:
       '@types/ms':
         specifier: ^0.7.34
