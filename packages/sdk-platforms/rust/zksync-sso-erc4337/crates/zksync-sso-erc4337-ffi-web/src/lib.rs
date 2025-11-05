@@ -16,8 +16,9 @@ use zksync_sso_erc4337_core::{
             add_passkey::PasskeyPayload as CorePasskeyPayload,
             deploy::{
                 EOASigners as CoreEOASigners,
-                WebauthNSigner as CoreWebauthNSigner,
+                WebAuthNSigner as CoreWebauthNSigner,
             },
+            send::eoa::EOASendParams,
         },
         entry_point::version::EntryPointVersion,
     },
@@ -497,10 +498,13 @@ pub fn deploy_account(
 
         // Use the core crate's deploy_account function
         match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::deploy_account(
-            factory_addr,
-            eoa_signers,
-            webauthn_signer,
-            provider,
+            zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::DeployAccountParams {
+                factory_address: factory_addr,
+                eoa_signers,
+                webauthn_signer,
+                id: None,
+                provider,
+            }
         )
         .await
         {
@@ -841,16 +845,17 @@ pub fn send_transaction_eoa(
             "  Encoded call data, calling core send_transaction_eoa..."
         );
 
-        // Use the core crate's send_transaction_eoa function
-        match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::send::send_transaction_eoa(
+        match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::send::eoa::eoa_send_transaction(EOASendParams {
             account,
-            eoa_validator,
             entry_point,
-            encoded_calls,
+            call_data: encoded_calls,
+            nonce_key: None,
+            paymaster: None,
             bundler_client,
             provider,
-            eoa_private_key,
-        )
+            eoa_validator,
+            private_key_hex: eoa_private_key,
+        })
         .await
         {
             Ok(_) => {
@@ -1722,7 +1727,7 @@ mod tests {
             erc7579::{Execution, module_installed::is_module_installed},
             modular_smart_account::{
                 add_passkey::PasskeyPayload as CorePasskeyPayload,
-                deploy::deploy_account,
+                deploy::{DeployAccountParams, WebAuthNSigner, deploy_account},
             },
         },
         utils::alloy_utilities::test_utilities::{
@@ -1820,19 +1825,18 @@ mod tests {
             origin_domain: origin_domain.clone(),
         };
 
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::WebauthNSigner;
-
-        let webauthn_signer = WebauthNSigner {
+        let webauthn_signer = WebAuthNSigner {
             passkey: passkey_payload.clone(),
             validator_address: webauthn_module,
         };
 
-        let account_address = deploy_account(
+        let account_address = deploy_account(DeployAccountParams {
             factory_address,
-            None, // No EOA signer
-            Some(webauthn_signer),
-            provider.clone(),
-        )
+            eoa_signers: None, // No EOA signer
+            webauthn_signer: Some(webauthn_signer),
+            id: None,
+            provider: provider.clone(),
+        })
         .await?;
 
         println!("Account deployed with passkey: {:?}", account_address);

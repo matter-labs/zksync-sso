@@ -48,37 +48,57 @@ fn encode_signers_params(signers: Vec<Address>) -> Vec<u8> {
     SignersParams { signers: signers.to_vec() }.abi_encode_params()
 }
 
+#[derive(Clone)]
 pub struct EOASigners {
     pub addresses: Vec<Address>,
     pub validator_address: Address,
 }
 
-pub struct WebauthNSigner {
+#[derive(Clone)]
+pub struct WebAuthNSigner {
     pub passkey: PasskeyPayload,
     pub validator_address: Address,
 }
 
-pub async fn deploy_account<P: Provider + Send + Sync + Clone>(
-    factory_address: Address,
-    eoa_signers: Option<EOASigners>,
-    webauthn_signer: Option<WebauthNSigner>,
-    provider: P,
-) -> eyre::Result<Address> {
+#[derive(Clone)]
+pub struct DeployAccountParams<P: Provider + Send + Sync + Clone> {
+    pub factory_address: Address,
+    pub eoa_signers: Option<EOASigners>,
+    pub webauthn_signer: Option<WebAuthNSigner>,
+    pub id: Option<FixedBytes<32>>,
+    pub provider: P,
+}
+
+pub async fn deploy_account<P>(
+    params: DeployAccountParams<P>,
+) -> eyre::Result<Address>
+where
+    P: Provider + Send + Sync + Clone,
+{
+    let DeployAccountParams {
+        factory_address,
+        eoa_signers,
+        webauthn_signer,
+        id,
+        provider,
+    } = params;
+
     let factory = MSAFactory::new(factory_address, provider.clone());
 
-    let random_id = {
-        use rand::Rng;
+    let account_id = id.unwrap_or({
+        let random_id = {
+            use rand::Rng;
 
-        pub fn generate_random_id() -> [u8; 32] {
-            let mut random_bytes = [0u8; 32];
-            rand::thread_rng().fill(&mut random_bytes);
-            random_bytes
-        }
+            pub fn generate_random_id() -> [u8; 32] {
+                let mut random_bytes = [0u8; 32];
+                rand::thread_rng().fill(&mut random_bytes);
+                random_bytes
+            }
 
-        generate_random_id()
-    };
-
-    let account_id = FixedBytes::<32>::from_slice(&random_id);
+            generate_random_id()
+        };
+        FixedBytes::<32>::from_slice(&random_id)
+    });
 
     let (mut data, mut modules) = if let Some(signers) = eoa_signers {
         let eoa_signer_encoded =
@@ -144,8 +164,14 @@ mod tests {
 
         let factory_address = contracts.account_factory;
 
-        _ = deploy_account(factory_address, None, None, provider.clone())
-            .await?;
+        _ = deploy_account(DeployAccountParams {
+            factory_address,
+            eoa_signers: None,
+            webauthn_signer: None,
+            id: None,
+            provider: provider.clone(),
+        })
+        .await?;
 
         drop(anvil_instance);
 
@@ -168,12 +194,13 @@ mod tests {
             validator_address: eoa_validator_address,
         };
 
-        let address = deploy_account(
+        let address = deploy_account(DeployAccountParams {
             factory_address,
-            Some(eoa_signers),
-            None,
-            provider.clone(),
-        )
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            id: None,
+            provider: provider.clone(),
+        })
         .await?;
 
         println!("Account deployed");

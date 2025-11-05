@@ -5,6 +5,9 @@ pub mod send;
 pub mod session;
 pub mod signature;
 
+#[cfg(test)]
+pub mod test_utilities;
+
 use alloy::sol;
 
 sol!(

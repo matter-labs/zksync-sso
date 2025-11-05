@@ -2,7 +2,7 @@ use crate::erc4337::{
     account::{
         erc7579::{Execution, calls::encode_calls},
         modular_smart_account::{
-            send::send_transaction,
+            send::{SendParams, send_transaction},
             session::{
                 SessionKeyValidator, session_lib::session_spec::SessionSpec,
             },
@@ -28,15 +28,16 @@ pub async fn create_session<P: Provider + Send + Sync + Clone>(
 ) -> eyre::Result<()> {
     let call_data = add_session_call_data(spec, session_key_validator);
 
-    send_transaction(
-        account_address,
-        entry_point_address,
+    send_transaction(SendParams {
+        account: account_address,
+        entry_point: entry_point_address,
         call_data,
-        None,
+        nonce_key: None,
+        paymaster: None,
         bundler_client,
-        provider.clone(),
+        provider,
         signer,
-    )
+    })
     .await?;
 
     Ok(())
@@ -74,13 +75,17 @@ mod tests {
                 },
                 modular_smart_account::{
                     add_passkey::PasskeyPayload,
-                    deploy::{EOASigners, WebauthNSigner, deploy_account},
+                    deploy::{
+                        DeployAccountParams, EOASigners, WebAuthNSigner,
+                        deploy_account,
+                    },
                     send::passkey::tests::get_signature_from_js,
                     session::session_lib::session_spec::{
                         limit_type::LimitType, transfer_spec::TransferSpec,
                         usage_limit::UsageLimit,
                     },
                     signature::{eoa_signature, stub_signature_eoa},
+                    test_utilities::fund_account_with_default_amount,
                 },
             },
             signer::Signer,
@@ -90,10 +95,8 @@ mod tests {
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::{
-        primitives::{FixedBytes, U256, Uint, address, bytes, fixed_bytes},
-        providers::Provider,
-        rpc::types::TransactionRequest,
+    use alloy::primitives::{
+        FixedBytes, U256, Uint, address, bytes, fixed_bytes,
     };
     use std::sync::Arc;
 
@@ -133,12 +136,13 @@ mod tests {
             validator_address: eoa_validator_address,
         };
 
-        let address = deploy_account(
+        let address = deploy_account(DeployAccountParams {
             factory_address,
-            Some(eoa_signers),
-            None,
-            provider.clone(),
-        )
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            id: None,
+            provider: provider.clone(),
+        })
         .await?;
 
         println!("Account deployed");
@@ -155,12 +159,7 @@ mod tests {
             "is_eoa_module_installed is not installed"
         );
 
-        {
-            let fund_tx = TransactionRequest::default()
-                .to(address)
-                .value(U256::from(10000000000000000000u64));
-            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        }
+        fund_account_with_default_amount(address, provider.clone()).await?;
 
         {
             let stub_sig = stub_signature_eoa(eoa_validator_address)?;
@@ -292,17 +291,18 @@ mod tests {
         let origin_domain = "https://example.com".to_string();
         let passkey = PasskeyPayload { credential_id, passkey, origin_domain };
 
-        let passkey_signer = WebauthNSigner {
+        let passkey_signer = WebAuthNSigner {
             passkey,
             validator_address: webauthn_validator_address,
         };
 
-        let address = deploy_account(
+        let address = deploy_account(DeployAccountParams {
             factory_address,
-            None,
-            Some(passkey_signer),
-            provider.clone(),
-        )
+            eoa_signers: None,
+            webauthn_signer: Some(passkey_signer),
+            id: None,
+            provider: provider.clone(),
+        })
         .await?;
 
         println!("Account deployed");
@@ -319,12 +319,7 @@ mod tests {
             "is_passkey_module_installed is not installed"
         );
 
-        {
-            let fund_tx = TransactionRequest::default()
-                .to(address)
-                .value(U256::from(10000000000000000000u64));
-            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        }
+        fund_account_with_default_amount(address, provider.clone()).await?;
 
         let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
             let result = get_signature_from_js(hash.to_string())?;

@@ -1,7 +1,7 @@
 use crate::erc4337::{
     account::{
         erc7579::{IERC7579Account, module_installed::is_module_installed},
-        modular_smart_account::send::send_transaction,
+        modular_smart_account::send::{SendParams, send_transaction},
     },
     bundler::pimlico::client::BundlerClient,
     signer::Signer,
@@ -27,15 +27,16 @@ pub async fn add_module<P: Provider + Send + Sync + Clone>(
     let call_data =
         add_module_call_data(module_address, module_type_id, init_data);
 
-    send_transaction(
-        account_address,
-        entry_point_address,
+    send_transaction(SendParams {
+        account: account_address,
+        entry_point: entry_point_address,
         call_data,
-        None,
+        nonce_key: None,
+        paymaster: None,
         bundler_client,
-        provider.clone(),
+        provider: provider.clone(),
         signer,
-    )
+    })
     .await?;
 
     let is_expected_module_installed =
@@ -70,18 +71,16 @@ mod tests {
     use super::*;
     use crate::{
         erc4337::account::modular_smart_account::{
-            deploy::{EOASigners, deploy_account},
+            deploy::{DeployAccountParams, EOASigners, deploy_account},
             signature::{eoa_signature, stub_signature_eoa},
+            test_utilities::fund_account_with_default_amount,
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::{
-        primitives::{FixedBytes, U256, address},
-        rpc::types::TransactionRequest,
-    };
+    use alloy::primitives::{FixedBytes, address};
     use std::sync::Arc;
 
     #[tokio::test]
@@ -119,12 +118,13 @@ mod tests {
             validator_address: eoa_validator_address,
         };
 
-        let account_address = deploy_account(
+        let account_address = deploy_account(DeployAccountParams {
             factory_address,
-            Some(eoa_signers),
-            None,
-            provider.clone(),
-        )
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            id: None,
+            provider: provider.clone(),
+        })
         .await?;
 
         println!("Account deployed");
@@ -141,12 +141,9 @@ mod tests {
             "is_eoa_module_installed is not installed"
         );
 
-        {
-            let fund_tx = TransactionRequest::default()
-                .to(account_address)
-                .value(U256::from(10000000000000000000u64));
-            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        }
+        fund_account_with_default_amount(account_address, provider.clone())
+            .await?;
+
         let module_address = contracts.webauthn_validator;
 
         let stub_sig = stub_signature_eoa(eoa_validator_address)?;
