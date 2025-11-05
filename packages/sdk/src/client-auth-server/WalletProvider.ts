@@ -5,7 +5,6 @@ import { toHex } from "viem";
 import type { Communicator } from "../communicator/index.js";
 import { PopupCommunicator } from "../communicator/PopupCommunicator.js";
 import { serializeError, standardErrors } from "../errors/index.js";
-import type { CustomPaymasterHandler } from "../paymaster/index.js";
 import { getFavicon, getWebsiteName } from "../utils/helpers.js";
 import type { SessionStateEvent } from "../utils/session.js";
 import type { StorageLike } from "../utils/storage.js";
@@ -26,7 +25,6 @@ export type WalletProviderConstructorOptions = {
   transports?: Record<number, Transport>;
   session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   authServerUrl?: string;
-  paymasterHandler?: CustomPaymasterHandler;
   onSessionStateChange?: (state: { address: Address; chainId: number; state: SessionStateEvent }) => void;
   skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
   customCommunicator?: Communicator;
@@ -37,7 +35,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
   readonly isZksyncSso = true;
   private signer: Signer;
 
-  constructor({ metadata, chains, transports, session, authServerUrl, paymasterHandler, onSessionStateChange, skipPreTransactionStateValidation, customCommunicator, storage }: WalletProviderConstructorOptions) {
+  constructor({ metadata, chains, transports, session, authServerUrl, onSessionStateChange, skipPreTransactionStateValidation, customCommunicator, storage }: WalletProviderConstructorOptions) {
     super();
     const communicator = customCommunicator ?? new PopupCommunicator(authServerUrl || DEFAULT_AUTH_SERVER_URL);
     this.signer = new Signer({
@@ -51,7 +49,6 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       chains,
       transports,
       session: typeof session === "object" ? () => session : session,
-      paymasterHandler,
       onSessionStateChange,
       skipPreTransactionStateValidation,
       storage,

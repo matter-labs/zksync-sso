@@ -2,13 +2,12 @@ import { type PublicKeyCredentialDescriptorJSON, startAuthentication, startRegis
 import type { AuthenticationResponseJSON, GenerateAuthenticationOptionsOpts, GenerateRegistrationOptionsOpts, PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON, RegistrationResponseJSON, VerifiedRegistrationResponse } from "@simplewebauthn/server";
 import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
 import type { Account, Address, Chain, Client, Hash, Hex, TransactionReceipt, Transport } from "viem";
-import { encodeFunctionData, toBytes, toHex } from "viem";
-import { waitForTransactionReceipt } from "viem/actions";
-import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
+import { toBytes } from "viem";
+import { sendTransaction, waitForTransactionReceipt } from "viem/actions";
 
-import { WebAuthValidatorAbi } from "../../../abi/WebAuthValidator.js";
 import { noThrow } from "../../../utils/helpers.js";
 import { base64UrlToUint8Array } from "../../../utils/passkey.js";
+import { encodeAddValidationKeyCallData } from "../../../utils/wasm.js";
 
 const identifyPasskeyParams = () => {
   let rpName: string | undefined;
@@ -164,10 +163,6 @@ export type AddAccountOwnerPasskeyArgs = {
   rawPublicKey: readonly [Hex, Hex];
   origin: string;
   contracts: { passkey: Address };
-  paymaster?: {
-    address: Address;
-    paymasterInput?: Hex;
-  };
   onTransactionSent?: (hash: Hash) => void;
 };
 export type AddAccountOwnerPasskeyReturnType = {
@@ -178,23 +173,23 @@ export const addAccountOwnerPasskey = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: AddAccountOwnerPasskeyArgs): Promise<AddAccountOwnerPasskeyReturnType> => {
-  const callData = encodeFunctionData({
-    abi: WebAuthValidatorAbi,
-    functionName: "addValidationKey",
-    args: [toHex(base64UrlToUint8Array(args.credentialId)), args.rawPublicKey, args.origin],
+  // Convert passkey parameters to WASM format and encode
+  const credentialIdBytes = base64UrlToUint8Array(args.credentialId);
+  const passkeyXBytes = toBytes(args.rawPublicKey[0]);
+  const passkeyYBytes = toBytes(args.rawPublicKey[1]);
+
+  const callData = await encodeAddValidationKeyCallData({
+    credentialId: credentialIdBytes,
+    passkeyX: passkeyXBytes,
+    passkeyY: passkeyYBytes,
+    originDomain: args.origin,
   });
 
-  const sendTransactionArgs = {
-    account: client.account,
+  const transactionHash = await sendTransaction(client, {
     to: args.contracts.passkey,
-    paymaster: args.paymaster?.address,
-    paymasterInput: args.paymaster?.address ? (args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" })) : undefined,
     data: callData,
     gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
-
-  const transactionHash = await sendTransaction(client, sendTransactionArgs);
+  } as any);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }

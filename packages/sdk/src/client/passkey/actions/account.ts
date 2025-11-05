@@ -1,41 +1,21 @@
-import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, keccak256, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
-import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
-import { getGeneralPaymasterInput } from "viem/zksync";
+import { type Account, type Address, type Chain, type Client, getAddress, type Hash, keccak256, parseEventLogs, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import { readContract, sendTransaction, waitForTransactionReceipt } from "viem/actions";
 
 import { AAFactoryAbi } from "../../../abi/AAFactory.js";
 import { WebAuthValidatorAbi } from "../../../abi/WebAuthValidator.js";
-import { encodeModuleData, encodePasskeyModuleParameters, encodeSession } from "../../../utils/encoding.js";
+import { encodeSession } from "../../../utils/encoding.js";
 import { noThrow } from "../../../utils/helpers.js";
 import { base64UrlToUint8Array, getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../../utils/passkey.js";
 import type { SessionConfig } from "../../../utils/session.js";
+import { encodeDeployAccountCalldata } from "../../../utils/wasm.js";
 
+// Deprecated: Use encodeDeployAccountCalldata from utils/wasm.js instead
+// This function was using multiple encoding steps, replaced by single calldata function
 export type DeployAccountPasskeyArgs = {
   location: Address; // module address
   credentialId: string; // Unique id of the passkey public key (base64)
   credentialPublicKey: Uint8Array; // Public key of the previously registered
   expectedOrigin?: string; // Expected origin of the passkey
-};
-export const encodePasskeyModuleData = async (
-  args: DeployAccountPasskeyArgs,
-): Promise<Hash> => {
-  let origin: string | undefined = args.expectedOrigin;
-  if (!origin) {
-    try {
-      origin = window.location.origin;
-    } catch {
-      throw new Error("Can't identify expectedOrigin, please provide it manually");
-    }
-  }
-  const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
-  const encodedPasskeyParameters = encodePasskeyModuleParameters({
-    credentialId: args.credentialId,
-    passkeyPublicKey,
-    expectedOrigin: origin,
-  });
-  return encodeModuleData({
-    address: args.location,
-    parameters: encodedPasskeyParameters,
-  });
 };
 
 /* TODO: try to get rid of most of the contract params like passkey, session */
@@ -43,8 +23,6 @@ export const encodePasskeyModuleData = async (
 export type DeployAccountArgs = {
   credentialId: string; // Unique id of the passkey public key (base64)
   credentialPublicKey: Uint8Array; // Public key of the previously registered
-  paymasterAddress?: Address; // Paymaster used to pay the fees of creating accounts
-  paymasterInput?: Hex; // Input for paymaster (if provided)
   expectedOrigin?: string; // Expected origin of the passkey
   uniqueAccountId?: string; // Unique account ID, can be omitted if you don't need it
   contracts: {
@@ -97,54 +75,43 @@ export const deployAccount = async <
   }
 
   const passkeyPublicKey = getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
-  const encodedPasskeyParameters = encodePasskeyModuleParameters({
-    credentialId: args.credentialId,
-    passkeyPublicKey,
-    expectedOrigin: origin,
+
+  // Prepare passkey payload
+  const credentialIdBytes = base64UrlToUint8Array(args.credentialId);
+  // Buffer is a subclass of Uint8Array, can be used directly
+  const passkeyXBytes = Uint8Array.from(passkeyPublicKey[0]);
+  const passkeyYBytes = Uint8Array.from(passkeyPublicKey[1]);
+
+  const passkeyPayload = {
+    credentialId: credentialIdBytes,
+    passkeyX: passkeyXBytes,
+    passkeyY: passkeyYBytes,
+    originDomain: origin,
+  };
+
+  // Use unique account ID or hash of passkey credentials as fallback
+  const accountIdInput = args.uniqueAccountId || toHex(credentialIdBytes);
+  const accountId = keccak256(toHex(accountIdInput));
+
+  // Encode session data if provided
+  const sessionData = args.initialSession ? encodeSession(args.initialSession) : undefined;
+
+  // Use single WASM function to encode complete calldata
+  const calldata = await encodeDeployAccountCalldata({
+    accountId,
+    passkeyPayload,
+    passkeyValidatorAddress: args.contracts.passkey,
+    sessionValidatorAddress: args.contracts.session,
+    sessionData,
+    recoveryValidatorAddress: args.contracts.recovery,
+    oidcRecoveryValidatorAddress: args.contracts.recoveryOidc,
   });
-  const encodedPasskeyModuleData = encodeModuleData({
-    address: args.contracts.passkey,
-    parameters: encodedPasskeyParameters,
-  });
-  const accountId = args.uniqueAccountId || encodedPasskeyParameters;
 
-  const encodedSessionKeyModuleData = encodeModuleData({
-    address: args.contracts.session,
-    parameters: args.initialSession ? encodeSession(args.initialSession) : "0x",
-  });
-
-  const encodedGuardianRecoveryModuleData = encodeModuleData({
-    address: args.contracts.recovery,
-    parameters: "0x",
-  });
-
-  const encodedOidcRecoveryModuleData = encodeModuleData({
-    address: args.contracts.recoveryOidc,
-    parameters: "0x",
-  });
-
-  let deployProxyArgs = {
-    account: client.account!,
-    chain: client.chain!,
-    address: args.contracts.accountFactory,
-    abi: AAFactoryAbi,
-    functionName: "deployProxySsoAccount",
-    args: [
-      keccak256(toHex(accountId)),
-      [encodedPasskeyModuleData, encodedSessionKeyModuleData, encodedGuardianRecoveryModuleData, encodedOidcRecoveryModuleData],
-      [],
-    ],
-  } as any;
-
-  if (args.paymasterAddress) {
-    deployProxyArgs = {
-      ...deployProxyArgs,
-      paymaster: args.paymasterAddress,
-      paymasterInput: args.paymasterInput ?? getGeneralPaymasterInput({ innerInput: "0x" }),
-    };
-  }
-
-  const transactionHash = await writeContract(client, deployProxyArgs);
+  // Send transaction
+  const transactionHash = await sendTransaction(client, {
+    to: args.contracts.accountFactory,
+    data: calldata,
+  } as any);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }

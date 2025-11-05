@@ -1,9 +1,7 @@
 import type { Address } from "abitype";
-import { type Chain, type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, type LocalAccount, type Transport } from "viem";
+import { type Chain, type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, type LocalAccount, serializeTransaction, type Transport } from "viem";
 import { toAccount } from "viem/accounts";
-import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
 
-import { getEip712Domain } from "../utils/getEip712Domain.js";
 import type { PasskeyRequiredContracts } from "./client.js";
 
 export type ToPasskeyAccountParameters<
@@ -16,6 +14,9 @@ export type ToPasskeyAccountParameters<
   chain: NonNullable<chain>;
   transport: transport;
   contracts: PasskeyRequiredContracts;
+  credentialId: Hex;
+  rpId?: string;
+  origin?: string;
 };
 
 export type PasskeyAccount = LocalAccount<"ssoPasskeyAccount"> & {
@@ -44,21 +45,9 @@ export function toPasskeyAccount<
       });
     },
     async signTransaction(transaction) {
-      const signableTransaction = {
-        ...transaction,
-        from: this.address!,
-        type: "eip712",
-      } as ZksyncTransactionSerializableEIP712;
-
-      const eip712DomainAndMessage = getEip712Domain(signableTransaction);
-      const digest = hashTypedData(eip712DomainAndMessage);
-
-      return serializeTransaction({
-        ...signableTransaction,
-        customSignature: await sign({
-          hash: digest,
-        }),
-      });
+      // Transaction signing is handled by viem's standard flow
+      // The account's sign function will be called automatically by viem
+      return serializeTransaction(transaction as any);
     },
   });
 

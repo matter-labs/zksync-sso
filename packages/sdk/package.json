@@ -14,7 +14,8 @@
     "url": "git+https://github.com/matter-labs/zksync-sso.git"
   },
   "scripts": {
-    "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:types",
+    "build": "npm run build:wasm && npm run clean && npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:wasm": "cd ../sdk-platforms/web && npm run build",
     "build:esm": "tsc --project tsconfig.build.json --module es2020 --outDir ./dist/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/_esm/package.json",
     "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
     "build:types": "tsc --project ./tsconfig.build.json --module esnext --declarationDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
@@ -174,6 +175,7 @@
     "abitype": "^1.0.6",
     "bigint-conversion": "^2.4.3",
     "buffer": "^6.0.3",
-    "ms": "^2.1.3"
+    "ms": "^2.1.3",
+    "zksync-sso-web-sdk": "workspace:*"
   }
 }

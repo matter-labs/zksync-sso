@@ -20,7 +20,6 @@ import type { ZksyncSsoSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/interface.js";
 import { EthereumProviderError } from "../errors/errors.js";
 import { type AppMetadata, type ProviderInterface, type SessionPreferences, WalletProvider } from "../index.js";
-import type { CustomPaymasterHandler } from "../paymaster/index.js";
 export { callPolicy } from "../client-auth-server/index.js";
 
 export type ConnectorMetadata = {
@@ -34,7 +33,6 @@ export type ZksyncSsoConnectorOptions = {
   metadata?: Partial<AppMetadata>;
   session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   authServerUrl?: string;
-  paymasterHandler?: CustomPaymasterHandler;
   communicator?: Communicator;
   provider?: ProviderInterface;
   connectorMetadata?: ConnectorMetadata;
@@ -154,7 +152,6 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
           session: parameters.session,
           transports: config.transports,
           chains: config.chains,
-          paymasterHandler: parameters.paymasterHandler,
           customCommunicator: parameters.communicator,
         });
       }

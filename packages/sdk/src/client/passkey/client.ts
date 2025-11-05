@@ -1,12 +1,9 @@
 import { type PublicKeyCredentialDescriptorJSON } from "@simplewebauthn/browser";
-import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Hex, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
 import { erc7739Actions } from "viem/experimental";
-import { eip712WalletActions } from "viem/zksync";
 
-import type { CustomPaymasterHandler } from "../../paymaster/index.js";
-import { passkeyHashSignatureResponseFormat } from "../../utils/passkey.js";
+import { signWithPasskey } from "../../utils/wasm.js";
 import { toPasskeyAccount } from "./account.js";
-import { requestPasskeyAuthentication } from "./actions/passkey.js";
 import { type ZksyncSsoPasskeyActions, zksyncSsoPasskeyActions } from "./decorators/passkey.js";
 import { zksyncSsoPasskeyWalletActions } from "./decorators/wallet.js";
 
@@ -31,18 +28,19 @@ export function createZksyncPasskeyClient<
     chain: parameters.chain,
     contracts: parameters.contracts,
     transport: parameters.transport,
+    credentialId: parameters.credentialId,
+    rpId: parameters.rpId,
+    origin: parameters.origin,
     sign: async ({ hash }) => {
-      const passkeySignature = await requestPasskeyAuthentication({
-        challenge: hash,
-        credentialPublicKey: parameters.credentialPublicKey,
-        credential: parameters.credential,
+      // Use WASM-based signing from Rust
+      const { signature } = await signWithPasskey({
+        hash,
+        credentialId: parameters.credentialId,
+        rpId: parameters.rpId || (typeof window !== "undefined" ? window.location.hostname : ""),
+        origin: parameters.origin || (typeof window !== "undefined" ? window.location.origin : ""),
       });
 
-      return passkeyHashSignatureResponseFormat(
-        passkeySignature.passkeyAuthenticationResponse.id,
-        passkeySignature.passkeyAuthenticationResponse.response,
-        parameters.contracts,
-      );
+      return signature;
     },
   });
   const client = createClient<transport, chain, Account, rpcSchema>({
@@ -58,7 +56,6 @@ export function createZksyncPasskeyClient<
     }))
     .extend(publicActions)
     .extend(walletActions)
-    .extend(eip712WalletActions())
     .extend(zksyncSsoPasskeyActions)
     .extend(zksyncSsoPasskeyWalletActions)
     .extend(erc7739Actions({
@@ -80,7 +77,6 @@ type ZksyncSsoPasskeyData = {
   userName: string; // Basically unique user id (which is called `userName` in webauthn)
   userDisplayName: string; // Also option required for webauthn
   contracts: PasskeyRequiredContracts;
-  paymasterHandler?: CustomPaymasterHandler;
 };
 
 export type ClientWithZksyncSsoPasskeyData<
@@ -113,10 +109,13 @@ export interface ZksyncSsoPasskeyClientConfig<
   chain: NonNullable<chain>;
   address: Address;
   credentialPublicKey: Uint8Array;
+  credentialId: Hex; // Credential ID in hex format
   userName: string;
   userDisplayName: string;
   contracts: PasskeyRequiredContracts;
   credential?: PublicKeyCredentialDescriptorJSON;
+  rpId?: string; // Relying party ID (defaults to window.location.hostname)
+  origin?: string; // Origin URL (defaults to window.location.origin)
   key?: string;
   name?: string;
 }

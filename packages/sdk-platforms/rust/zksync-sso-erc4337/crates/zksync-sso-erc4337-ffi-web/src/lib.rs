@@ -13,10 +13,20 @@ use zksync_sso_erc4337_core::{
     config::contracts::Contracts as CoreContracts,
     erc4337::{
         account::modular_smart_account::{
-            add_passkey::PasskeyPayload as CorePasskeyPayload,
+            add_passkey::{
+                PasskeyPayload as CorePasskeyPayload,
+                add_passkey_call_data, add_validation_key_call_data,
+            },
             deploy::{
                 EOASigners as CoreEOASigners,
                 WebauthNSigner as CoreWebauthNSigner,
+                encode_deploy_account_call_data,
+            },
+            session::{
+                create::add_session_call_data,
+                hash::hash_session,
+                revoke::revoke_session_call_data,
+                session_lib::session_spec::SessionSpec,
             },
         },
         entry_point::version::EntryPointVersion,
@@ -1708,6 +1718,302 @@ impl Client {
     pub fn config(&self) -> Config {
         self.config.clone()
     }
+}
+
+// ===== SESSION MANAGEMENT ENCODERS =====
+
+/// Encode call data for creating a session
+///
+/// # Parameters
+/// * `session_spec_json` - JSON string representing the SessionSpec
+/// * `session_key_validator_address` - Address of the session key validator contract
+///
+/// # Returns
+/// Hex-encoded call data for creating a session
+#[wasm_bindgen]
+pub fn encode_create_session_call_data(
+    session_spec_json: String,
+    session_key_validator_address: String,
+) -> Result<String, JsValue> {
+    // Parse SessionSpec from JSON
+    let session_spec: SessionSpec = serde_json::from_str(&session_spec_json)
+        .map_err(|e| {
+            JsValue::from_str(&format!("Failed to parse SessionSpec JSON: {}", e))
+        })?;
+
+    // Parse validator address
+    let validator = session_key_validator_address.parse::<Address>().map_err(
+        |e| {
+            JsValue::from_str(&format!(
+                "Invalid session validator address: {}",
+                e
+            ))
+        },
+    )?;
+
+    // Call the encoding function
+    let call_data = add_session_call_data(session_spec, validator);
+
+    // Return hex-encoded result
+    Ok(format!("0x{}", hex::encode(call_data)))
+}
+
+/// Encode call data for revoking a session
+///
+/// # Parameters
+/// * `session_hash` - Hash of the session to revoke (hex string with 0x prefix)
+/// * `session_key_validator_address` - Address of the session key validator contract
+///
+/// # Returns
+/// Hex-encoded call data for revoking a session
+#[wasm_bindgen]
+pub fn encode_revoke_session_call_data(
+    session_hash: String,
+    session_key_validator_address: String,
+) -> Result<String, JsValue> {
+    // Parse session hash
+    let hash_hex = session_hash.trim_start_matches("0x");
+    let hash_bytes = hex::decode(hash_hex).map_err(|e| {
+        JsValue::from_str(&format!("Invalid session hash hex: {}", e))
+    })?;
+
+    if hash_bytes.len() != 32 {
+        return Err(JsValue::from_str(&format!(
+            "Session hash must be 32 bytes, got {}",
+            hash_bytes.len()
+        )));
+    }
+
+    let session_hash = FixedBytes::<32>::from_slice(&hash_bytes);
+
+    // Parse validator address
+    let validator = session_key_validator_address.parse::<Address>().map_err(
+        |e| {
+            JsValue::from_str(&format!(
+                "Invalid session validator address: {}",
+                e
+            ))
+        },
+    )?;
+
+    // Call the encoding function
+    let call_data = revoke_session_call_data(session_hash, validator);
+
+    // Return hex-encoded result
+    Ok(format!("0x{}", hex::encode(call_data)))
+}
+
+/// Compute hash of a session spec
+///
+/// # Parameters
+/// * `session_spec_json` - JSON string representing the SessionSpec
+///
+/// # Returns
+/// Hex-encoded hash of the session spec
+#[wasm_bindgen]
+pub fn compute_session_hash(session_spec_json: String) -> Result<String, JsValue> {
+    // Parse SessionSpec from JSON
+    let session_spec: SessionSpec = serde_json::from_str(&session_spec_json)
+        .map_err(|e| {
+            JsValue::from_str(&format!("Failed to parse SessionSpec JSON: {}", e))
+        })?;
+
+    // Compute hash
+    let hash = hash_session(session_spec);
+
+    // Return hex-encoded result
+    Ok(format!("0x{}", hex::encode(hash)))
+}
+
+// ===== PASSKEY MANAGEMENT ENCODERS =====
+
+/// Encode call data for adding a passkey to an account
+///
+/// # Parameters
+/// * `passkey_payload` - The PasskeyPayload containing credential info
+/// * `webauthn_validator_address` - Address of the WebAuthn validator contract
+///
+/// # Returns
+/// Hex-encoded call data for adding a passkey
+#[wasm_bindgen]
+pub fn encode_add_passkey_call_data(
+    passkey_payload: PasskeyPayload,
+    webauthn_validator_address: String,
+) -> Result<String, JsValue> {
+    // Parse validator address
+    let validator = webauthn_validator_address.parse::<Address>().map_err(
+        |e| {
+            JsValue::from_str(&format!(
+                "Invalid WebAuthn validator address: {}",
+                e
+            ))
+        },
+    )?;
+
+    // Convert WASM PasskeyPayload to core type
+    let passkey_x = FixedBytes::<32>::from_slice(&passkey_payload.passkey_x);
+    let passkey_y = FixedBytes::<32>::from_slice(&passkey_payload.passkey_y);
+
+    let core_passkey = CorePasskeyPayload {
+        credential_id: Bytes::from(passkey_payload.credential_id),
+        passkey: [passkey_x, passkey_y],
+        origin_domain: passkey_payload.origin_domain,
+    };
+
+    // Call the encoding function
+    let call_data = add_passkey_call_data(core_passkey, validator);
+
+    // Return hex-encoded result
+    Ok(format!("0x{}", hex::encode(call_data)))
+}
+
+/// Encode call data for adding a validation key (passkey) to the WebAuthn validator
+///
+/// # Parameters
+/// * `passkey_payload` - The PasskeyPayload containing credential info
+///
+/// # Returns
+/// Hex-encoded call data for adding a validation key
+#[wasm_bindgen]
+pub fn encode_add_validation_key_call_data(
+    passkey_payload: PasskeyPayload,
+) -> Result<String, JsValue> {
+    // Convert WASM PasskeyPayload to core type
+    let passkey_x = FixedBytes::<32>::from_slice(&passkey_payload.passkey_x);
+    let passkey_y = FixedBytes::<32>::from_slice(&passkey_payload.passkey_y);
+
+    let core_passkey = CorePasskeyPayload {
+        credential_id: Bytes::from(passkey_payload.credential_id),
+        passkey: [passkey_x, passkey_y],
+        origin_domain: passkey_payload.origin_domain,
+    };
+
+    // Call the encoding function
+    let call_data = add_validation_key_call_data(core_passkey);
+
+    // Return hex-encoded result
+    Ok(format!("0x{}", hex::encode(call_data)))
+}
+
+// ===== DEPLOYMENT ENCODERS =====
+
+/// Encode complete calldata for deployProxySsoAccount
+/// This is the single function to use for account deployment
+///
+/// # Parameters
+/// * `account_id` - Unique account ID (hex string with 0x prefix, 32 bytes)
+/// * `passkey_payload` - Optional passkey payload for the account
+/// * `passkey_validator_address` - Address of passkey validator (required if passkey is provided)
+/// * `session_validator_address` - Address of session validator
+/// * `session_data` - Optional hex-encoded session initialization data
+/// * `recovery_validator_address` - Address of guardian recovery validator
+/// * `oidc_recovery_validator_address` - Address of OIDC recovery validator
+///
+/// # Returns
+/// Hex-encoded calldata ready to send to the factory contract
+#[wasm_bindgen]
+pub fn encode_deploy_account_calldata(
+    account_id: String,
+    passkey_payload: Option<PasskeyPayload>,
+    passkey_validator_address: Option<String>,
+    session_validator_address: String,
+    session_data: Option<String>,
+    recovery_validator_address: String,
+    oidc_recovery_validator_address: String,
+) -> Result<String, JsValue> {
+    // Parse account ID
+    let account_id_hex = account_id.trim_start_matches("0x");
+    let account_id_bytes = hex::decode(account_id_hex).map_err(|e| {
+        JsValue::from_str(&format!("Invalid account ID hex: {}", e))
+    })?;
+    if account_id_bytes.len() != 32 {
+        return Err(JsValue::from_str(&format!(
+            "Account ID must be 32 bytes, got {}",
+            account_id_bytes.len()
+        )));
+    }
+    let account_id_fixed = FixedBytes::<32>::from_slice(&account_id_bytes);
+
+    // Convert passkey payload if provided
+    let core_passkey = if let Some(passkey) = passkey_payload {
+        let passkey_x = FixedBytes::<32>::from_slice(&passkey.passkey_x);
+        let passkey_y = FixedBytes::<32>::from_slice(&passkey.passkey_y);
+        Some(CorePasskeyPayload {
+            credential_id: Bytes::from(passkey.credential_id),
+            passkey: [passkey_x, passkey_y],
+            origin_domain: passkey.origin_domain,
+        })
+    } else {
+        None
+    };
+
+    // Parse passkey validator address if provided
+    let passkey_validator = if let Some(addr) = passkey_validator_address {
+        Some(addr.parse::<Address>().map_err(|e| {
+            JsValue::from_str(&format!("Invalid passkey validator address: {}", e))
+        })?)
+    } else {
+        None
+    };
+
+    // Parse session validator address
+    let session_validator = session_validator_address.parse::<Address>().map_err(
+        |e| {
+            JsValue::from_str(&format!(
+                "Invalid session validator address: {}",
+                e
+            ))
+        },
+    )?;
+
+    // Parse session data if provided
+    let session_bytes = if let Some(data) = session_data {
+        let data_hex = data.trim_start_matches("0x");
+        if data_hex.is_empty() {
+            None
+        } else {
+            let bytes = hex::decode(data_hex).map_err(|e| {
+                JsValue::from_str(&format!("Invalid session data hex: {}", e))
+            })?;
+            Some(Bytes::from(bytes))
+        }
+    } else {
+        None
+    };
+
+    // Parse recovery validator address
+    let recovery_validator = recovery_validator_address.parse::<Address>().map_err(
+        |e| {
+            JsValue::from_str(&format!(
+                "Invalid recovery validator address: {}",
+                e
+            ))
+        },
+    )?;
+
+    // Parse OIDC recovery validator address
+    let oidc_recovery_validator = oidc_recovery_validator_address
+        .parse::<Address>()
+        .map_err(|e| {
+            JsValue::from_str(&format!(
+                "Invalid OIDC recovery validator address: {}",
+                e
+            ))
+        })?;
+
+    // Call the core encoding function
+    let calldata = encode_deploy_account_call_data(
+        account_id_fixed,
+        core_passkey,
+        passkey_validator,
+        session_validator,
+        session_bytes,
+        recovery_validator,
+        oidc_recovery_validator,
+    );
+
+    // Return hex-encoded result
+    Ok(format!("0x{}", hex::encode(calldata)))
 }
 
 #[cfg(test)]

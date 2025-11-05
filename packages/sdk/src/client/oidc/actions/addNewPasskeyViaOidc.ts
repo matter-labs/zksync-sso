@@ -6,8 +6,7 @@ import {
   type Prettify, type TransactionReceipt,
   type Transport,
 } from "viem";
-import { waitForTransactionReceipt } from "viem/actions";
-import { sendTransaction } from "viem/zksync";
+import { sendTransaction, waitForTransactionReceipt } from "viem/actions";
 
 import { WebAuthValidatorAbi } from "../../../abi/index.js";
 
@@ -33,16 +32,11 @@ export async function addNewPasskeyViaOidc<
     args: [args.credentialId, args.passkeyPubKey, args.passkeyDomain],
   });
 
-  const sendTransactionArgs = {
-    account: client.account,
+  const transactionHash = await sendTransaction(client, {
     to: args.contracts.passkey,
     data: callData,
     gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
-    type: "eip712",
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
-
-  const transactionHash = await sendTransaction(client, sendTransactionArgs);
+  } as any);
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
 

@@ -1,10 +1,15 @@
-import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, keccak256, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
-import { waitForTransactionReceipt } from "viem/actions";
-import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
+// TODO: Guardian recovery functions are not yet implemented in the Rust SDK
+// Once the Rust SDK supports guardian recovery encoding, uncomment and update these functions
+// to use WASM encoders instead of TypeScript encoding
 
-import { GuardianRecoveryValidatorAbi } from "../../../abi/GuardianRecoveryValidator.js";
-import { noThrow } from "../../../utils/helpers.js";
+// Imports will be needed when functions are uncommented
+// import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, keccak256, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+// import { waitForTransactionReceipt } from "viem/actions";
+// import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
+// import { GuardianRecoveryValidatorAbi } from "../../../abi/GuardianRecoveryValidator.js";
+// import { noThrow } from "../../../utils/helpers.js";
 
+/*
 export type ProposeGuardianArgs = {
   newGuardian: Address;
   contracts: {
@@ -62,6 +67,8 @@ export const proposeGuardian = async <
     transactionReceipt,
   };
 };
+*/
+/*
 export type ConfirmGuardianArgs = {
   accountToGuard: Address;
   contracts: {
@@ -118,6 +125,8 @@ export const confirmGuardian = async <
     transactionReceipt,
   };
 };
+*/
+/*
 export type RemoveGuardianArgs = {
   guardian: Address;
   contracts: {
@@ -174,3 +183,7 @@ export const removeGuardian = async <
     transactionReceipt,
   };
 };
+*/
+
+// Export an empty object to avoid import errors
+export {};

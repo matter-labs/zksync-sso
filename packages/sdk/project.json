@@ -13,7 +13,7 @@
         "cwd": "packages/sdk",
         "command": "pnpm run build"
       },
-      "dependsOn": ["build:esm+types", "build:cjs", "build:types"],
+      "dependsOn": ["^build"],
       "inputs": ["production"],
       "outputs": ["{projectRoot}/dist"]
     },

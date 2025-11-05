@@ -1,9 +1,7 @@
 import { type Address, type Chain, createWalletClient, custom, type Hash, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport, type WalletClient } from "viem";
-import type { TransactionRequestEIP712 } from "viem/chains";
 
 import { createZksyncSessionClient, type ZksyncSsoSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
-import { type CustomPaymasterHandler, getTransactionWithPaymasterData } from "../paymaster/index.js";
 import type { SessionStateEvent } from "../utils/session.js";
 import { StorageItem, type StorageLike } from "../utils/storage.js";
 import type { AppMetadata, RequestArguments } from "./interface.js";
@@ -41,7 +39,6 @@ type SignerConstructorParams = {
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
   session?: () => SessionPreferences | Promise<SessionPreferences>;
-  paymasterHandler?: CustomPaymasterHandler;
   onSessionStateChange?: (event: { address: Address; chainId: number; state: SessionStateEvent }) => void;
   skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
   storage?: StorageLike;
@@ -56,7 +53,6 @@ export class Signer implements SignerInterface {
   private readonly chains: readonly Chain[];
   private readonly transports: Record<number, Transport> = {};
   private readonly sessionParameters?: () => (SessionPreferences | Promise<SessionPreferences>);
-  private readonly paymasterHandler?: CustomPaymasterHandler;
   private readonly onSessionStateChange?: SignerConstructorParams["onSessionStateChange"];
   private readonly skipPreTransactionStateValidation?: boolean;
 
@@ -64,7 +60,7 @@ export class Signer implements SignerInterface {
   private _chainsInfo: StorageItem<ChainsInfo>;
   private client: { instance: ZksyncSsoSessionClient; type: "session" } | { instance: WalletClient; type: "auth-server" } | undefined;
 
-  constructor({ metadata, communicator, updateListener, session, chains, transports, paymasterHandler, onSessionStateChange, skipPreTransactionStateValidation, storage }: SignerConstructorParams) {
+  constructor({ metadata, communicator, updateListener, session, chains, transports, onSessionStateChange, skipPreTransactionStateValidation, storage }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
 
     this.getMetadata = metadata;
@@ -73,7 +69,6 @@ export class Signer implements SignerInterface {
     this.sessionParameters = session;
     this.chains = chains;
     this.transports = transports || {};
-    this.paymasterHandler = paymasterHandler;
     this.onSessionStateChange = onSessionStateChange;
     this.skipPreTransactionStateValidation = skipPreTransactionStateValidation;
 
@@ -151,7 +146,6 @@ export class Signer implements SignerInterface {
           contracts: chainInfo.contracts,
           chain,
           transport: this.transports[chain.id] || http(),
-          paymasterHandler: this.paymasterHandler,
           onSessionStateChange: (event: SessionStateEvent) => {
             if (!this.onSessionStateChange) return;
             this.onSessionStateChange({
@@ -291,23 +285,6 @@ export class Signer implements SignerInterface {
   >(request: RequestArguments<TMethod, TSchema>): Promise<RPCResponseMessage<ExtractReturnType<TMethod, TSchema>>> {
     // Open popup immediately to make sure popup won't be blocked by Safari
     await this.communicator.ready();
-
-    if (request.method === "eth_sendTransaction") {
-      const params = request.params![0] as TransactionRequestEIP712;
-      if (params) {
-        /* eslint-disable @typescript-eslint/no-unused-vars */
-        const { chainId: _, ...transaction } = await getTransactionWithPaymasterData(
-          this.chain.id,
-          params.from!,
-          params,
-          this.paymasterHandler,
-        );
-        request = {
-          method: request.method,
-          params: [transaction] as ExtractParams<TMethod, TSchema>,
-        };
-      }
-    }
 
     const message = this.createRequestMessage<TMethod, TSchema>({
       action: request,

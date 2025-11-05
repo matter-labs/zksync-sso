@@ -4,7 +4,6 @@ import {
   type Chain,
   createWalletClient, custom,
   type EIP1193Provider,
-  hashTypedData,
   type LocalAccount,
   type OneOf,
   type Transport,
@@ -12,9 +11,6 @@ import {
 import { toAccount } from "viem/accounts";
 import { signTypedData } from "viem/actions";
 import { getAction } from "viem/utils";
-import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
-
-import { getEip712Domain } from "../utils/getEip712Domain.js";
 
 export type Signer = OneOf<
   | EIP1193Provider
@@ -81,21 +77,7 @@ export async function toOwner<provider extends EthereumProvider>({
       return walletClient.signMessage({ message });
     },
     async signTransaction(transaction) {
-      const signableTransaction = {
-        ...transaction,
-        from: this.address!,
-        type: "eip712",
-      } as ZksyncTransactionSerializableEIP712;
-
-      const eip712DomainAndMessage = getEip712Domain(signableTransaction);
-      const digest = hashTypedData(eip712DomainAndMessage);
-
-      const signedMessage = await walletClient.signMessage({ message: digest });
-
-      return serializeTransaction({
-        ...signableTransaction,
-        customSignature: signedMessage,
-      });
+      return walletClient.signTransaction(transaction as any);
     },
     async signTypedData(typedData) {
       return getAction(
