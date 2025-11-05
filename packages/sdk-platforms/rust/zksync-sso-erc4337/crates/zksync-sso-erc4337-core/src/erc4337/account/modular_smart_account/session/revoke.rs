@@ -40,7 +40,7 @@ pub async fn revoke_session<P: Provider + Send + Sync + Clone>(
     Ok(())
 }
 
-fn revoke_session_call_data(
+pub fn revoke_session_call_data(
     session_hash: FixedBytes<32>,
     session_key_validator: Address,
 ) -> Bytes {

@@ -1,9 +1,6 @@
 import type { Address } from "abitype";
 import { type CustomSource, type Hash, hashTypedData, type Hex, type LocalAccount } from "viem";
 import { toAccount } from "viem/accounts";
-import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
-
-import { getEip712Domain } from "../utils/getEip712Domain.js";
 
 export type ToSessionAccountParameters = {
   /** Address of the deployed Account's Contract implementation. */
@@ -23,23 +20,36 @@ export function toSessionAccount(
   const account = toAccount({
     address,
     async signTransaction(transaction) {
-      const signableTransaction = {
-        ...transaction,
-        from: this.address!,
-        type: "eip712",
-      } as ZksyncTransactionSerializableEIP712;
-
-      const eip712DomainAndMessage = getEip712Domain(signableTransaction);
-      const digest = hashTypedData(eip712DomainAndMessage);
-
-      return serializeTransaction({
-        ...signableTransaction,
-        customSignature: await signTransaction({
-          hash: digest,
-          to: signableTransaction.to!,
-          callData: signableTransaction.data,
-        }),
+      const digest = hashTypedData({
+        domain: {
+          name: "Session",
+          version: "1",
+          chainId: transaction.chainId,
+          verifyingContract: transaction.to!,
+        },
+        types: {
+          Transaction: [
+            { name: "to", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "data", type: "bytes" },
+          ],
+        },
+        primaryType: "Transaction",
+        message: {
+          to: transaction.to!,
+          value: transaction.value || 0n,
+          data: transaction.data || "0x",
+        },
       });
+
+      const signature = await signTransaction({
+        hash: digest,
+        to: transaction.to!,
+        callData: transaction.data,
+      });
+
+      // Return transaction with custom signature
+      return signature;
     },
     sign: async () => {
       throw new Error(`account.sign not supported for SSO Session Client`);

@@ -49,7 +49,7 @@ pub async fn add_passkey<P: Provider + Send + Sync + Clone>(
     Ok(())
 }
 
-fn add_passkey_call_data(
+pub fn add_passkey_call_data(
     passkey: PasskeyPayload,
     webauthn_validator: Address,
 ) -> Bytes {
@@ -66,7 +66,7 @@ fn add_passkey_call_data(
     encode_calls(calls).into()
 }
 
-fn add_validation_key_call_data(passkey: PasskeyPayload) -> Bytes {
+pub fn add_validation_key_call_data(passkey: PasskeyPayload) -> Bytes {
     let credential_id = passkey.credential_id;
     let origin_domain = passkey.origin_domain;
     let new_key = passkey.passkey;

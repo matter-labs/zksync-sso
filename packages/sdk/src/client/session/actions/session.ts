@@ -1,24 +1,62 @@
-import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Hex, type Prettify, type TransactionReceipt, type Transport } from "viem";
-import { readContract, waitForTransactionReceipt } from "viem/actions";
-import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
+import { type Account, type Address, type Chain, type Client, type Hash, type Prettify, type TransactionReceipt, type Transport } from "viem";
+import { readContract, sendTransaction, waitForTransactionReceipt } from "viem/actions";
 
 import { SessionKeyValidatorAbi } from "../../../abi/SessionKeyValidator.js";
-import { type CustomPaymasterHandler, getTransactionWithPaymasterData } from "../../../paymaster/index.js";
 import { noThrow } from "../../../utils/helpers.js";
 import type { SessionConfig, SessionState, SessionStateEventCallback } from "../../../utils/session.js";
 import { SessionEventType, SessionStatus } from "../../../utils/session.js";
+import { encodeCreateSessionCallData, encodeRevokeSessionCallData, type SessionSpec } from "../../../utils/wasm.js";
+
+/**
+ * Convert SessionConfig (TypeScript with bigint) to SessionSpec (WASM with strings)
+ */
+function sessionConfigToSpec(config: SessionConfig): SessionSpec {
+  return {
+    signer: config.signer,
+    expiresAt: config.expiresAt.toString(),
+    feeLimit: {
+      limitType: config.feeLimit.limitType as any,
+      limit: config.feeLimit.limit.toString(),
+      period: config.feeLimit.period.toString(),
+    },
+    callPolicies: config.callPolicies.map((policy) => ({
+      target: policy.target,
+      selector: policy.selector,
+      maxValuePerUse: policy.maxValuePerUse.toString(),
+      valueLimit: {
+        limitType: policy.valueLimit.limitType as any,
+        limit: policy.valueLimit.limit.toString(),
+        period: policy.valueLimit.period.toString(),
+      },
+      constraints: policy.constraints.map((constraint) => ({
+        condition: constraint.condition as any,
+        index: Number(constraint.index),
+        refValue: constraint.refValue,
+        limit: {
+          limitType: constraint.limit.limitType as any,
+          limit: constraint.limit.limit.toString(),
+          period: constraint.limit.period.toString(),
+        },
+      })),
+    })),
+    transferPolicies: config.transferPolicies.map((policy) => ({
+      target: policy.target,
+      maxValuePerUse: policy.maxValuePerUse.toString(),
+      valueLimit: {
+        limitType: policy.valueLimit.limitType as any,
+        limit: policy.valueLimit.limit.toString(),
+        period: policy.valueLimit.period.toString(),
+      },
+    })),
+  };
+}
 
 export type CreateSessionArgs = {
   sessionConfig: SessionConfig;
   contracts: {
     session: Address; // session module
   };
-  paymaster?: {
-    address: Address;
-    paymasterInput?: Hex;
-  };
   onTransactionSent?: (hash: Hash) => void;
-  paymasterHandler?: CustomPaymasterHandler;
 };
 export type CreateSessionReturnType = {
   transactionReceipt: TransactionReceipt;
@@ -28,30 +66,14 @@ export const createSession = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<CreateSessionArgs>): Promise<Prettify<CreateSessionReturnType>> => {
-  const callData = encodeFunctionData({
-    abi: SessionKeyValidatorAbi,
-    functionName: "createSession",
-    args: [args.sessionConfig],
-  });
+  // Convert SessionConfig to SessionSpec and encode using WASM
+  const sessionSpec = sessionConfigToSpec(args.sessionConfig);
+  const callData = await encodeCreateSessionCallData(sessionSpec, args.contracts.session);
 
-  const sendTransactionArgs = {
-    account: client.account,
+  const transactionHash = await sendTransaction(client, {
     to: args.contracts.session,
-    paymaster: args.paymaster?.address,
-    paymasterInput: args.paymaster?.address ? (args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" })) : undefined,
     data: callData,
-    gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
-
-  const transactionWithPaymasterData: any = await getTransactionWithPaymasterData(
-    client.chain.id,
-    client.account.address,
-    sendTransactionArgs,
-    args.paymasterHandler,
-  );
-
-  const transactionHash = await sendTransaction(client, transactionWithPaymasterData);
+  } as any);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }
@@ -69,12 +91,7 @@ export type RevokeSessionArgs = {
   contracts: {
     session: Address; // session module
   };
-  paymaster?: {
-    address: Address;
-    paymasterInput?: Hex;
-  };
   onTransactionSent?: (hash: Hash) => void;
-  paymasterHandler?: CustomPaymasterHandler;
 };
 export type RevokeSessionReturnType = {
   transactionReceipt: TransactionReceipt;
@@ -84,30 +101,13 @@ export const revokeSession = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<RevokeSessionArgs>): Promise<Prettify<RevokeSessionReturnType>> => {
-  const callData = encodeFunctionData({
-    abi: SessionKeyValidatorAbi,
-    functionName: "revokeKey",
-    args: [args.sessionId],
-  });
+  // Encode using WASM
+  const callData = await encodeRevokeSessionCallData(args.sessionId, args.contracts.session);
 
-  const sendTransactionArgs = {
-    account: client.account,
+  const transactionHash = await sendTransaction(client, {
     to: args.contracts.session,
-    paymaster: args.paymaster?.address,
-    paymasterInput: args.paymaster?.address ? (args.paymaster?.paymasterInput || getGeneralPaymasterInput({ innerInput: "0x" })) : undefined,
     data: callData,
-    gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
-
-  const transactionWithPaymasterData: any = await getTransactionWithPaymasterData(
-    client.chain.id,
-    client.account.address,
-    sendTransactionArgs,
-    args.paymasterHandler,
-  );
-
-  const transactionHash = await sendTransaction(client, transactionWithPaymasterData);
+  } as any);
 
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));

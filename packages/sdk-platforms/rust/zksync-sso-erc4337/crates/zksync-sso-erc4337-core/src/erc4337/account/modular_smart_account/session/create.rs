@@ -42,7 +42,7 @@ pub async fn create_session<P: Provider + Send + Sync + Clone>(
     Ok(())
 }
 
-fn add_session_call_data(
+pub fn add_session_call_data(
     spec: SessionSpec,
     session_key_validator: Address,
 ) -> Bytes {

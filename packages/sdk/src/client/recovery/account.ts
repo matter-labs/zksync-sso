@@ -1,9 +1,6 @@
 import type { Address } from "abitype";
 import { type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, type LocalAccount } from "viem";
 import { toAccount } from "viem/accounts";
-import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
-
-import { getEip712Domain } from "../utils/getEip712Domain.js";
 
 export type ToRecoveryAccountParameters = {
   /** Address of the deployed Account's Contract implementation. */
@@ -23,21 +20,29 @@ export function toRecoveryAccount(
   const account = toAccount({
     address,
     async signTransaction(transaction) {
-      const signableTransaction = {
-        ...transaction,
-        from: this.address!,
-        type: "eip712",
-      } as ZksyncTransactionSerializableEIP712;
-
-      const eip712DomainAndMessage = getEip712Domain(signableTransaction);
-      const digest = hashTypedData(eip712DomainAndMessage);
-
-      return serializeTransaction({
-        ...signableTransaction,
-        customSignature: await signTransaction({
-          hash: digest,
-        }),
+      const digest = hashTypedData({
+        domain: {
+          name: "Recovery",
+          version: "1",
+          chainId: transaction.chainId,
+          verifyingContract: transaction.to!,
+        },
+        types: {
+          Transaction: [
+            { name: "to", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "data", type: "bytes" },
+          ],
+        },
+        primaryType: "Transaction",
+        message: {
+          to: transaction.to!,
+          value: transaction.value || 0n,
+          data: transaction.data || "0x",
+        },
       });
+
+      return signTransaction({ hash: digest });
     },
     async sign({ hash }) {
       return signTransaction({ hash });

@@ -1,9 +1,7 @@
 import type { Address } from "abitype";
 import type { CustomSource, LocalAccount } from "viem";
 import { toAccount } from "viem/accounts";
-import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
 
-import { getEip712Domain } from "../utils/getEip712Domain.js";
 import { type Signer, toOwner } from "./types.js";
 
 export type ToEcdsaAccountParameters = {
@@ -30,19 +28,7 @@ export async function toEcdsaAccount(
       return localOwner.signMessage({ message });
     },
     async signTransaction(transaction) {
-      const signableTransaction = {
-        ...transaction,
-        from: this.address!,
-        type: "eip712",
-      } as ZksyncTransactionSerializableEIP712;
-
-      const eip712DomainAndMessage = getEip712Domain(signableTransaction);
-      const signature = await localOwner.signTypedData(eip712DomainAndMessage);
-
-      return serializeTransaction({
-        ...signableTransaction,
-        customSignature: signature,
-      });
+      return localOwner.signTransaction(transaction);
     },
     async signTypedData(typedData) {
       return localOwner.signTypedData(typedData);

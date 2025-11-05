@@ -16,6 +16,16 @@ export const {
   submit_passkey_user_operation, // Submit signed transaction to bundler
   compute_account_id, // Generate unique account ID from passkey
 
+  // ===== ENCODING FUNCTIONS =====
+  // Low-level encoding functions for custom SDK integrations
+  encode_create_session_call_data, // Encode session creation call data
+  encode_revoke_session_call_data, // Encode session revocation call data
+  compute_session_hash, // Compute hash of session spec
+  encode_add_passkey_call_data, // Encode add passkey call data
+  encode_add_validation_key_call_data, // Encode add validation key call data
+  encode_passkey_signature, // Encode passkey signature for verification
+  encode_deploy_account_calldata, // Encode complete deployment calldata for factory
+
   // ===== CONFIGURATION TYPES =====
   // TypeScript interfaces for configuration objects
   PasskeyPayload, // Passkey credential data

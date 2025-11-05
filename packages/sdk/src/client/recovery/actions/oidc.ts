@@ -1,24 +1,29 @@
-import {
-  type Account,
-  type Address,
-  type Chain,
-  type Client,
-  encodeFunctionData,
-  type Hash,
-  type Hex,
-  type Prettify,
-  type TransactionReceipt,
-  type Transport,
-} from "viem";
-import { waitForTransactionReceipt } from "viem/actions";
-import {
-  getGeneralPaymasterInput,
-  sendTransaction,
-} from "viem/zksync";
+// TODO: OIDC recovery functions are not yet implemented in the Rust SDK
+// Once the Rust SDK supports OIDC recovery encoding, uncomment and update these functions
+// to use WASM encoders instead of TypeScript encoding
 
-import { OidcRecoveryValidatorAbi } from "../../../abi/index.js";
-import { noThrow } from "../../../utils/helpers.js";
+// Imports will be needed when functions are uncommented
+// import {
+//   type Account,
+//   type Address,
+//   type Chain,
+//   type Client,
+//   encodeFunctionData,
+//   type Hash,
+//   type Hex,
+//   type Prettify,
+//   type TransactionReceipt,
+//   type Transport,
+// } from "viem";
+// import { waitForTransactionReceipt } from "viem/actions";
+// import {
+//   getGeneralPaymasterInput,
+//   sendTransaction,
+// } from "viem/zksync";
+// import { OidcRecoveryValidatorAbi } from "../../../abi/index.js";
+// import { noThrow } from "../../../utils/helpers.js";
 
+/*
 export type AddOidcAccountArgs = {
   contracts: {
     recoveryOidc: Address; // oidc recovery module
@@ -83,7 +88,9 @@ export const addOidcAccount = async <
     transactionReceipt,
   };
 };
+*/
 
+/*
 export type RemoveOidcAccountArgs = {
   contracts: {
     recoveryOidc: Address; // oidc recovery module
@@ -117,3 +124,7 @@ export const removeOidcAccount = async <
 
   return transactionReceipt;
 };
+*/
+
+// Export an empty object to avoid import errors
+export {};

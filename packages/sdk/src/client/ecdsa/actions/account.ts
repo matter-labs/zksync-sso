@@ -1,10 +1,8 @@
-import type { Account, Address, Chain, Client, Hash, Hex, Prettify, TransactionReceipt, Transport } from "viem";
+import type { Account, Address, Chain, Client, Hash, Prettify, TransactionReceipt, Transport } from "viem";
 import { concat, encodePacked, getAddress, keccak256, parseEventLogs, toHex } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
-import { getGeneralPaymasterInput } from "viem/zksync";
 
 import { AAFactoryAbi } from "../../../abi/AAFactory.js";
-import { type CustomPaymasterHandler } from "../../../paymaster/index.js";
 import { encodeModuleData, encodeSession } from "../../../utils/encoding.js";
 import { noThrow } from "../../../utils/helpers.js";
 import type { SessionConfig } from "../../../utils/session.js";
@@ -19,11 +17,6 @@ export type DeployAccountArgs = {
   salt?: Uint8Array; // Random 32 bytes
   prefix?: string; // vendor prefix
   onTransactionSent?: (hash: Hash) => void;
-  paymasterHandler?: CustomPaymasterHandler;
-  paymaster?: {
-    address: Address;
-    paymasterInput?: Hex;
-  };
 };
 
 export type DeployAccountReturnType = {
@@ -68,7 +61,7 @@ export const deployAccount = async <
     parameters: args.initialSession ? encodeSession(args.initialSession) : "0x",
   });
 
-  let deployProxyArgs = {
+  const transactionHash = await writeContract(client, {
     account: client.account!,
     chain: client.chain!,
     address: args.contracts.accountFactory,
@@ -79,18 +72,7 @@ export const deployAccount = async <
       [encodedSessionKeyModuleData],
       [args.owner],
     ],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
-
-  if (args.paymaster) {
-    deployProxyArgs = {
-      ...deployProxyArgs,
-      paymaster: args.paymaster.address,
-      paymasterInput: args.paymaster.paymasterInput ?? getGeneralPaymasterInput({ innerInput: "0x" }),
-    };
-  }
-
-  const transactionHash = await writeContract(client, deployProxyArgs);
+  } as any);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }

@@ -14,6 +14,14 @@ use alloy::{
     sol_types::{SolCall, SolEvent, SolValue},
 };
 
+// For encoding module data compatible with deployProxySsoAccount
+sol! {
+    struct ModuleData {
+        address module_address;
+        bytes parameters;
+    }
+}
+
 pub struct MSAInitializeAccount(initializeAccountCall);
 
 impl MSAInitializeAccount {
@@ -126,6 +134,67 @@ fn get_account_created_address(
     let event = log.inner.topics()[1];
     let address = Address::from_slice(&event[12..]);
     Ok(address)
+}
+
+// ===== ENCODING FUNCTIONS FOR TYPESCRIPT SDK =====
+
+/// Encode complete calldata for deployProxySsoAccount
+/// This is the single function that should be used from TypeScript
+///
+/// # Parameters
+/// * `account_id` - Unique account ID (bytes32)
+/// * `passkey` - Optional passkey payload
+/// * `passkey_validator` - Address of passkey validator (required if passkey is provided)
+/// * `session_validator` - Address of session validator
+/// * `session_data` - Optional session initialization data (already encoded)
+/// * `recovery_validator` - Address of recovery validator
+/// * `oidc_recovery_validator` - Address of OIDC recovery validator
+///
+/// # Returns
+/// Complete calldata for calling deployProxySsoAccount on the factory
+pub fn encode_deploy_account_call_data(
+    account_id: FixedBytes<32>,
+    passkey: Option<PasskeyPayload>,
+    passkey_validator: Option<Address>,
+    session_validator: Address,
+    session_data: Option<Bytes>,
+    recovery_validator: Address,
+    oidc_recovery_validator: Address,
+) -> Bytes {
+    let mut modules: Vec<Address> = Vec::new();
+    let mut data: Vec<Bytes> = Vec::new();
+
+    // Add passkey validator if provided
+    if let Some(passkey_payload) = passkey {
+        let passkey_params = passkey_payload.abi_encode_params();
+        modules.push(passkey_validator.expect("passkey_validator required when passkey is provided"));
+        data.push(passkey_params.into());
+    }
+
+    // Add session validator
+    let session_params = session_data.unwrap_or_else(|| Bytes::new());
+    modules.push(session_validator);
+    data.push(session_params);
+
+    // Add guardian recovery validator
+    modules.push(recovery_validator);
+    data.push(Bytes::new());
+
+    // Add OIDC recovery validator
+    modules.push(oidc_recovery_validator);
+    data.push(Bytes::new());
+
+    // Encode the complete call to deployAccount
+    // deployAccount(bytes32 accountId, bytes initData)
+    // The initData contains the MSAInitializeAccount call
+    let init_data: Bytes = MSAInitializeAccount::new(modules, data).encode().into();
+
+    MSAFactory::deployAccountCall {
+        accountId: account_id,
+        initData: init_data,
+    }
+    .abi_encode()
+    .into()
 }
 
 #[cfg(test)]

@@ -1,16 +1,17 @@
-import { type Chain, type TransactionReceipt, type Transport } from "viem";
+import { type Chain, type Transport } from "viem";
 
-import {
-  addOidcAccount,
-  type AddOidcAccountArgs,
-  type AddOidcAccountReturnType,
-  removeOidcAccount,
-} from "../../recovery/actions/oidc.js";
-import {
-  confirmGuardian, type ConfirmGuardianArgs, type ConfirmGuardianReturnType,
-  proposeGuardian, type ProposeGuardianArgs, type ProposeGuardianReturnType,
-  removeGuardian, type RemoveGuardianArgs, type RemoveGuardianReturnType,
-} from "../../recovery/actions/recovery.js";
+// TODO: Uncomment these imports when guardian and OIDC recovery are implemented in Rust SDK
+// import {
+//   addOidcAccount,
+//   type AddOidcAccountArgs,
+//   type AddOidcAccountReturnType,
+//   removeOidcAccount,
+// } from "../../recovery/actions/oidc.js";
+// import {
+//   confirmGuardian, type ConfirmGuardianArgs, type ConfirmGuardianReturnType,
+//   proposeGuardian, type ProposeGuardianArgs, type ProposeGuardianReturnType,
+//   removeGuardian, type RemoveGuardianArgs, type RemoveGuardianReturnType,
+// } from "../../recovery/actions/recovery.js";
 import {
   createSession, type CreateSessionArgs, type CreateSessionReturnType,
   revokeSession, type RevokeSessionArgs, type RevokeSessionReturnType,
@@ -20,11 +21,12 @@ import type { ClientWithZksyncSsoPasskeyData } from "../client.js";
 export type ZksyncSsoPasskeyActions = {
   createSession: (args: Omit<CreateSessionArgs, "contracts">) => Promise<CreateSessionReturnType>;
   revokeSession: (args: Omit<RevokeSessionArgs, "contracts">) => Promise<RevokeSessionReturnType>;
-  proposeGuardian: (args: Omit<ProposeGuardianArgs, "contracts">) => Promise<ProposeGuardianReturnType>;
-  confirmGuardian: (args: Omit<ConfirmGuardianArgs, "contracts">) => Promise<ConfirmGuardianReturnType>;
-  removeGuardian: (args: Omit<RemoveGuardianArgs, "contracts">) => Promise<RemoveGuardianReturnType>;
-  addOidcAccount: (args: Omit<AddOidcAccountArgs, "contracts">) => Promise<AddOidcAccountReturnType>;
-  removeOidcAccount: () => Promise<TransactionReceipt>;
+  // TODO: Uncomment these when guardian and OIDC recovery are implemented in Rust SDK
+  // proposeGuardian: (args: Omit<ProposeGuardianArgs, "contracts">) => Promise<ProposeGuardianReturnType>;
+  // confirmGuardian: (args: Omit<ConfirmGuardianArgs, "contracts">) => Promise<ConfirmGuardianReturnType>;
+  // removeGuardian: (args: Omit<RemoveGuardianArgs, "contracts">) => Promise<RemoveGuardianReturnType>;
+  // addOidcAccount: (args: Omit<AddOidcAccountArgs, "contracts">) => Promise<AddOidcAccountReturnType>;
+  // removeOidcAccount: () => Promise<TransactionReceipt>;
 };
 
 export function zksyncSsoPasskeyActions<
@@ -44,34 +46,35 @@ export function zksyncSsoPasskeyActions<
         contracts: client.contracts,
       });
     },
-    proposeGuardian: async (args: Omit<ProposeGuardianArgs, "contracts">) => {
-      return await proposeGuardian(client, {
-        ...args,
-        contracts: client.contracts,
-      });
-    },
-    confirmGuardian: async (args: Omit<ConfirmGuardianArgs, "contracts">) => {
-      return await confirmGuardian(client, {
-        ...args,
-        contracts: client.contracts,
-      });
-    },
-    removeGuardian: async (args: Omit<RemoveGuardianArgs, "contracts">) => {
-      return await removeGuardian(client, {
-        ...args,
-        contracts: client.contracts,
-      });
-    },
-    addOidcAccount: async (args: Omit<AddOidcAccountArgs, "contracts">) => {
-      return await addOidcAccount(client, {
-        ...args,
-        contracts: client.contracts,
-      });
-    },
-    removeOidcAccount: async () => {
-      return await removeOidcAccount(client, {
-        contracts: client.contracts,
-      });
-    },
+    // TODO: Uncomment these when guardian and OIDC recovery are implemented in Rust SDK
+    // proposeGuardian: async (args: Omit<ProposeGuardianArgs, "contracts">) => {
+    //   return await proposeGuardian(client, {
+    //     ...args,
+    //     contracts: client.contracts,
+    //   });
+    // },
+    // confirmGuardian: async (args: Omit<ConfirmGuardianArgs, "contracts">) => {
+    //   return await confirmGuardian(client, {
+    //     ...args,
+    //     contracts: client.contracts,
+    //   });
+    // },
+    // removeGuardian: async (args: Omit<RemoveGuardianArgs, "contracts">) => {
+    //   return await removeGuardian(client, {
+    //     ...args,
+    //     contracts: client.contracts,
+    //   });
+    // },
+    // addOidcAccount: async (args: Omit<AddOidcAccountArgs, "contracts">) => {
+    //   return await addOidcAccount(client, {
+    //     ...args,
+    //     contracts: client.contracts,
+    //   });
+    // },
+    // removeOidcAccount: async () => {
+    //   return await removeOidcAccount(client, {
+    //     contracts: client.contracts,
+    //   });
+    // },
   };
 }
