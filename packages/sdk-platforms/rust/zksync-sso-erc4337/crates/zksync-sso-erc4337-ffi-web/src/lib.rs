@@ -1,6 +1,6 @@
 use alloy::{
     network::EthereumWallet,
-    primitives::{Address, Bytes, FixedBytes, U256, keccak256},
+    primitives::{Address, Bytes, FixedBytes, U256, keccak256, aliases::U48},
     providers::ProviderBuilder,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
     signers::local::PrivateKeySigner,
@@ -19,6 +19,12 @@ use zksync_sso_erc4337_core::{
                 WebAuthNSigner as CoreWebauthNSigner,
             },
             send::eoa::EOASendParams,
+            session::session_lib::session_spec::{
+                SessionSpec as CoreSessionSpec,
+                transfer_spec::TransferSpec as CoreTransferSpec,
+                usage_limit::UsageLimit as CoreUsageLimit,
+                limit_type::LimitType as CoreLimitType,
+            },
         },
         entry_point::version::EntryPointVersion,
     },
@@ -152,6 +158,117 @@ impl PasskeyPayload {
     }
 }
 
+// Session payload for WASM
+#[wasm_bindgen]
+#[derive(Debug, Clone)]
+pub struct TransferPayload {
+    target: String,
+    value_limit_value: String,
+    value_limit_type: u8,
+    value_limit_period: String,
+}
+
+#[wasm_bindgen]
+impl TransferPayload {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        target: String,
+        value_limit_value: String,
+        value_limit_type: u8,
+        value_limit_period: String,
+    ) -> Self {
+        Self {
+            target,
+            value_limit_value,
+            value_limit_type,
+            value_limit_period,
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn target(&self) -> String {
+        self.target.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn value_limit_value(&self) -> String {
+        self.value_limit_value.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn value_limit_type(&self) -> u8 {
+        self.value_limit_type
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn value_limit_period(&self) -> String {
+        self.value_limit_period.clone()
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Clone)]
+pub struct SessionPayload {
+    signer: String,
+    expires_at: String,
+    fee_limit_value: String,
+    fee_limit_type: u8,
+    fee_limit_period: String,
+    transfers: Vec<TransferPayload>,
+}
+
+#[wasm_bindgen]
+impl SessionPayload {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        signer: String,
+        expires_at: String,
+        fee_limit_value: String,
+        fee_limit_type: u8,
+        fee_limit_period: String,
+        transfers: Vec<TransferPayload>,
+    ) -> Self {
+        Self {
+            signer,
+            expires_at,
+            fee_limit_value,
+            fee_limit_type,
+            fee_limit_period,
+            transfers,
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn signer(&self) -> String {
+        self.signer.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn expires_at(&self) -> String {
+        self.expires_at.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn fee_limit_value(&self) -> String {
+        self.fee_limit_value.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn fee_limit_type(&self) -> u8 {
+        self.fee_limit_type
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn fee_limit_period(&self) -> String {
+        self.fee_limit_period.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn transfers(&self) -> Vec<TransferPayload> {
+        self.transfers.clone()
+    }
+}
+
 // Config for WASM account deployments
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
@@ -161,6 +278,7 @@ pub struct DeployAccountConfig {
     deployer_private_key: String,
     eoa_validator_address: Option<String>,
     webauthn_validator_address: Option<String>,
+    session_validator_address: Option<String>,
 }
 
 #[wasm_bindgen]
@@ -172,6 +290,7 @@ impl DeployAccountConfig {
         deployer_private_key: String,
         eoa_validator_address: Option<String>,
         webauthn_validator_address: Option<String>,
+        session_validator_address: Option<String>,
     ) -> Self {
         Self {
             rpc_url,
@@ -179,6 +298,7 @@ impl DeployAccountConfig {
             deployer_private_key,
             eoa_validator_address,
             webauthn_validator_address,
+            session_validator_address,
         }
     }
 
@@ -205,6 +325,11 @@ impl DeployAccountConfig {
     #[wasm_bindgen(getter)]
     pub fn webauthn_validator_address(&self) -> Option<String> {
         self.webauthn_validator_address.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn session_validator_address(&self) -> Option<String> {
+        self.session_validator_address.clone()
     }
 }
 
@@ -328,14 +453,11 @@ impl PreparedUserOperation {
 /// Deploy a smart account using the factory
 ///
 /// # Arguments
-/// * `rpc_url` - The RPC endpoint URL
-/// * `factory_address` - The address of the MSA factory contract
 /// * `user_id` - A unique identifier for the user (will be hashed to create account_id)
-/// * `deployer_private_key` - Private key of the account that will pay for deployment (0x-prefixed hex string)
 /// * `eoa_signers_addresses` - Optional array of EOA signer addresses (as hex strings)
-/// * `eoa_validator_address` - Optional EOA validator module address (required if eoa_signers_addresses is provided)
 /// * `passkey_payload` - Optional WebAuthn passkey payload
-/// * `webauthn_validator_address` - Optional WebAuthn validator module address (required if passkey_payload is provided)
+/// * `session_payload` - Optional session configuration
+/// * `deploy_account_config` - Deployment configuration including RPC URL, factory address, and validator addresses
 ///
 /// # Returns
 /// Promise that resolves to the deployed account address as a hex string
@@ -344,6 +466,7 @@ pub fn deploy_account(
     user_id: String,
     eoa_signers_addresses: Option<Vec<String>>,
     passkey_payload: Option<PasskeyPayload>,
+    session_payload: Option<SessionPayload>,
     deploy_account_config: DeployAccountConfig,
 ) -> js_sys::Promise {
     future_to_promise(async move {
@@ -493,6 +616,25 @@ pub fn deploy_account(
                 ));
             }
         };
+
+        // TODO: Session support during deployment
+        // Currently, the core deploy_account function does not support installing sessions
+        // during initial deployment. Sessions must be added post-deployment using a separate
+        // function (similar to add_passkey_to_account). Once core support is added, this
+        // conversion logic should be uncommented and used.
+        //
+        // Planned conversion logic:
+        // if let Some(session) = session_payload {
+        //     let signer = session.signer.parse::<Address>()?;
+        //     let expires_at = U48::from_str_radix(&session.expires_at, 10)?;
+        //     let fee_limit = CoreUsageLimit { ... };
+        //     let transfers = session.transfers.iter().map(|t| CoreTransferSpec { ... }).collect();
+        //     let session_spec = Some(CoreSessionSpec { signer, expires_at, fee_limit, ... });
+        // }
+        if session_payload.is_some() {
+            console_log!("  Warning: Session payload provided but session installation during deployment is not yet supported");
+            console_log!("  Please use add_session_to_account() after deployment (to be implemented)");
+        }
 
         console_log!("  Calling core deploy_account...");
 
