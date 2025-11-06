@@ -3,7 +3,10 @@ pub mod passkey;
 
 use crate::erc4337::{
     account::modular_smart_account::nonce::get_nonce,
-    bundler::{Bundler, pimlico::client::BundlerClient},
+    bundler::{
+        Bundler, models::receipt::UserOperationReceipt,
+        pimlico::client::BundlerClient,
+    },
     entry_point::EntryPoint,
     paymaster::params::{PaymasterParams, build_paymaster_and_data},
     signer::Signer,
@@ -17,9 +20,16 @@ use alloy::{
 use std::sync::Arc;
 
 #[derive(Clone)]
+pub struct FactoryPayload {
+    pub factory: Address,
+    pub factory_data: Option<Bytes>,
+}
+
+#[derive(Clone)]
 pub struct SendParams<P: Provider + Send + Sync + Clone> {
     pub account: Address,
     pub entry_point: Address,
+    pub factory_payload: Option<FactoryPayload>,
     pub call_data: Bytes,
     pub nonce_key: Option<Uint<192, 3>>,
     pub paymaster: Option<PaymasterParams>,
@@ -28,12 +38,16 @@ pub struct SendParams<P: Provider + Send + Sync + Clone> {
     pub signer: Signer,
 }
 
-pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
+pub async fn send_transaction<P>(
     params: SendParams<P>,
-) -> eyre::Result<()> {
+) -> eyre::Result<UserOperationReceipt>
+where
+    P: Provider + Send + Sync + Clone,
+{
     let SendParams {
         account,
         entry_point,
+        factory_payload,
         call_data,
         nonce_key,
         paymaster,
@@ -52,6 +66,12 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
             AlloyPackedUserOperation {
                 sender: account,
                 nonce,
+                factory: factory_payload
+                    .as_ref()
+                    .map(|payload| payload.factory),
+                factory_data: factory_payload
+                    .as_ref()
+                    .and_then(|payload| payload.factory_data.clone()),
                 paymaster: paymaster.as_ref().map(|params| params.address),
                 paymaster_verification_gas_limit: paymaster
                     .as_ref()
@@ -67,8 +87,6 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
                 max_fee_per_gas: Default::default(),
                 pre_verification_gas: Default::default(),
                 verification_gas_limit: Default::default(),
-                factory: None,
-                factory_data: None,
                 call_data,
                 signature: stub_sig,
             }
@@ -106,10 +124,24 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     let gas_fees: U256 =
         (user_op.max_priority_fee_per_gas << 128) | user_op.max_fee_per_gas;
 
+    let init_code = if let Some(payload) = factory_payload.as_ref() {
+        let address_bytes = payload.factory.as_slice();
+        let data_len =
+            payload.factory_data.as_ref().map(|data| data.len()).unwrap_or(0);
+        let mut bytes = Vec::with_capacity(address_bytes.len() + data_len);
+        bytes.extend_from_slice(address_bytes);
+        if let Some(data) = payload.factory_data.as_ref() {
+            bytes.extend_from_slice(data.as_ref());
+        }
+        Bytes::from(bytes)
+    } else {
+        Bytes::default()
+    };
+
     let packed_user_op = EntryPoint::PackedUserOperation {
         sender: user_op.sender,
         nonce: user_op.nonce,
-        initCode: Bytes::default(),
+        initCode: init_code,
         callData: user_op.call_data.clone(),
         accountGasLimits: packed_gas_limits.to_be_bytes().into(),
         preVerificationGas: user_op.pre_verification_gas,
@@ -126,7 +158,7 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     let hash = get_user_operation_hash_entry_point(
         &packed_user_op,
         &entry_point,
-        provider,
+        provider.clone(),
     )
     .await?;
 
@@ -137,7 +169,12 @@ pub async fn send_transaction<P: Provider + Send + Sync + Clone>(
     let user_op_hash =
         bundler_client.send_user_operation(entry_point, user_op).await?;
 
-    bundler_client.wait_for_user_operation_receipt(user_op_hash).await?;
+    let receipt =
+        bundler_client.wait_for_user_operation_receipt(user_op_hash).await?;
 
-    Ok(())
+    if !receipt.success {
+        return Err(eyre::eyre!("User operation execution failed"));
+    }
+
+    Ok(receipt)
 }

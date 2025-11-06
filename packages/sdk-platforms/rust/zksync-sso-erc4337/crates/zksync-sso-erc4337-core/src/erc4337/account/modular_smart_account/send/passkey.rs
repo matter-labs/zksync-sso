@@ -1,8 +1,7 @@
 use crate::erc4337::{
-    account::modular_smart_account::send::{
-        PaymasterParams, SendParams, send_transaction as send_transaction_base,
-    },
+    account::modular_smart_account::send::{SendParams, send_transaction},
     bundler::pimlico::client::BundlerClient,
+    paymaster::params::PaymasterParams,
     signer::{SignatureProvider, Signer},
 };
 use alloy::{
@@ -22,7 +21,7 @@ pub struct PasskeySendParams<P: Provider + Send + Sync + Clone> {
     pub signature_provider: SignatureProvider,
 }
 
-pub async fn send_transaction<P>(
+pub async fn passkey_send_transaction<P>(
     params: PasskeySendParams<P>,
 ) -> eyre::Result<()>
 where
@@ -44,9 +43,10 @@ where
     let signer =
         Signer { provider: signature_provider, stub_signature: stub_sig };
 
-    send_transaction_base(SendParams {
+    _ = send_transaction(SendParams {
         account,
         entry_point,
+        factory_payload: None,
         call_data,
         nonce_key: None,
         paymaster,
@@ -54,7 +54,9 @@ where
         provider,
         signer,
     })
-    .await
+    .await?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -264,7 +266,7 @@ pub mod tests {
                 Ok(result)
             });
 
-        send_transaction(PasskeySendParams {
+        passkey_send_transaction(PasskeySendParams {
             account: address,
             _webauthn_validator: webauthn_module,
             entry_point: entry_point_address,
