@@ -136,15 +136,19 @@ flows are covered.
 
 ## Phase 2: TypeScript/Web SDK Updates
 
+Status: Core API wiring completed (Nov 6, 2025). Unit tests pass. Browser/e2e
+tests and docs updates remain.
+
 Actionable checklist:
 
-- [ ] Export `SessionPayload` and `TransferPayload` from the WASM bundle in
+- [x] Export `SessionPayload` and `TransferPayload` from the WASM bundle in
   `bundler.ts`
-- [ ] Define and export TS interfaces (`SessionConfig`, `UsageLimit`, `TransferSpec`)
-- [ ] Wire `add_session_to_account` and deploy-with-session into the Web SDK
+- [x] Define and export TS interfaces (`SessionConfig`, `UsageLimit`,
+  `TransferSpec`)
+- [x] Wire `add_session_to_account` and deploy-with-session into the Web SDK
   surface with friendly wrappers
-- [ ] Add browser/e2e tests for both session install flows (deploy-with-session and
-  post-deploy)
+- [ ] Add browser/e2e tests for both session install flows (deploy-with-session
+  and post-deploy)
 - [ ] Add browser/e2e tests for session transaction sending (prepare/submit)
 - [ ] Update docs and `contracts.json` handling to surface `sessionValidator`
   address
@@ -181,7 +185,7 @@ export interface SessionConfig {
 
 ## Phase 3: Vue Component Updates
 
-### 3.1 Add Session State
+### 3.1 Add Session State ✅
 
 ```typescript
 const sessionConfig = ref({
@@ -196,13 +200,17 @@ const sessionConfig = ref({
 });
 ```
 
-### 3.2 Create SessionConfig Component
+### 3.2 Create SessionConfig Component ◻
 
 UI component for configuring session parameters.
+Note: A session configuration section has been added to the demo page
+(`examples/demo-app/pages/web-sdk-test.vue`). Extracting this into a reusable
+component can be done next.
 
-### 3.3 Update deployAccount Function
+### 3.3 Update deployAccount Function ✅
 
-Integrate session payload creation and pass to WASM.
+Integrated session payload creation and routed deploy through
+`deployAccountWithSession` helper.
 
 ## Phase 4: Session Transaction Sending
 

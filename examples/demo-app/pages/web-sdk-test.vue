@@ -54,6 +54,77 @@
     <!-- Passkey Configuration (Optional) -->
     <PasskeyConfig v-model="passkeyConfig" />
 
+    <!-- Session Configuration (Optional) -->
+    <div class="bg-teal-50 p-4 rounded-lg mb-4 border border-teal-200">
+      <h2 class="text-lg font-semibold mb-3 text-teal-800">
+        Session Configuration (Optional)
+      </h2>
+      <div class="space-y-3">
+        <label class="flex items-center gap-2 text-sm">
+          <input
+            v-model="sessionConfig.enabled"
+            type="checkbox"
+          >
+          Enable session at deploy
+        </label>
+
+        <div
+          v-if="sessionConfig.enabled"
+          class="grid grid-cols-1 md:grid-cols-2 gap-3"
+        >
+          <div>
+            <label class="block text-sm font-medium mb-1">Session Signer Address</label>
+            <input
+              v-model="sessionConfig.signer"
+              type="text"
+              placeholder="0x..."
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+            >
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Expires In (days)</label>
+            <input
+              v-model.number="sessionConfig.expiresInDays"
+              type="number"
+              min="1"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+            >
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Fee Limit (ETH)</label>
+            <input
+              v-model="sessionConfig.feeLimitEth"
+              type="text"
+              placeholder="0.1"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+            >
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Transfer To</label>
+            <input
+              v-model="sessionConfig.transfers[0].to"
+              type="text"
+              placeholder="0x..."
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+            >
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Value Limit (ETH)</label>
+            <input
+              v-model="sessionConfig.transfers[0].valueLimitEth"
+              type="text"
+              placeholder="0.1"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Wallet Configuration -->
     <WalletConfig v-model="walletConfig" />
 
@@ -331,6 +402,20 @@ const passkeyConfig = ref({
   validatorAddress: "",
 });
 
+// Session configuration state
+const sessionConfig = ref({
+  enabled: false,
+  signer: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", // Default Anvil/Foundry #2
+  expiresInDays: 1,
+  feeLimitEth: "0.1",
+  transfers: [
+    {
+      to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", // Example target
+      valueLimitEth: "0.1",
+    },
+  ],
+});
+
 // Wallet configuration state
 const walletConfig = ref({
   source: "anvil", // 'anvil' | 'private-key' | 'browser-wallet'
@@ -474,7 +559,7 @@ async function deployAccount() {
 
   try {
     // Import the web SDK - destructure the WASM functions we need
-    const { deploy_account, compute_account_id, DeployAccountConfig } = await import("zksync-sso-web-sdk/bundler");
+    const { compute_account_id, DeployAccountConfig, deployAccountWithSession } = await import("zksync-sso-web-sdk/bundler");
 
     // Generate a user ID (in real app, this would be from authentication)
     const userId = "demo-user-" + Date.now();
@@ -488,6 +573,7 @@ async function deployAccount() {
     let factoryAddress = "0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3"; // Default fallback
     let rpcUrl = "http://localhost:8545"; // Default to Anvil
     let eoaValidatorAddress = null;
+    let sessionValidatorAddress = null;
 
     try {
       // Try to load contracts.json if it exists
@@ -503,6 +589,9 @@ async function deployAccount() {
         console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress);
         // eslint-disable-next-line no-console
         console.log("Loaded WebAuthn validator address from contracts.json:", webAuthnValidatorAddress);
+        // eslint-disable-next-line no-console
+        console.log("Loaded Session validator address from contracts.json:", contracts.sessionValidator);
+        sessionValidatorAddress = contracts.sessionValidator || null;
       } else {
         // eslint-disable-next-line no-console
         console.warn("contracts.json not found, using default factory address");
@@ -591,21 +680,47 @@ async function deployAccount() {
     }
 
     // Construct the DeployAccountConfig wasm object
+    // Include session validator in deploy config if present (optional arg)
     const deployConfig = new DeployAccountConfig(
       rpcUrl,
       factoryAddress,
       deployerPrivateKey,
       eoaValidatorAddress,
       webauthnValidatorAddress, // webauthn validator (null if not using passkeys)
+      sessionValidatorAddress, // session validator (null if not using sessions)
     );
 
+    // Optionally build session payload if enabled
+    let session = null;
+    if (sessionConfig.value.enabled) {
+      const { ethers } = await import("ethers");
+      const nowSec = Math.floor(Date.now() / 1000);
+      const expiresAt = nowSec + sessionConfig.value.expiresInDays * 86400;
+      session = {
+        signer: sessionConfig.value.signer,
+        expiresAt,
+        feeLimit: {
+          limitType: "lifetime",
+          limit: ethers.parseEther(sessionConfig.value.feeLimitEth),
+        },
+        transfers: [
+          {
+            to: sessionConfig.value.transfers[0].to,
+            valueLimit: ethers.parseEther(sessionConfig.value.transfers[0].valueLimitEth),
+          },
+        ],
+      };
+    }
+
     // Call the deployment function with the structured config
-    const deployedAddress = await deploy_account(
+    // Use session-aware deploy wrapper (passes through to WASM)
+    const deployedAddress = await deployAccountWithSession({
       userId,
-      eoaSignersAddresses,
-      passkeyPayload, // passkey payload (null if not using passkeys)
+      eoaSigners: eoaSignersAddresses,
+      passkeyPayload, // null if not using passkeys
+      session, // null if not using sessions
       deployConfig,
-    );
+    });
 
     // eslint-disable-next-line no-console
     console.log("Account deployed at:", deployedAddress);
@@ -617,6 +732,7 @@ async function deployAccount() {
       address: deployedAddress,
       eoaSigner: eoaSignerAddress,
       passkeyEnabled: passkeyConfig.value.enabled,
+      sessionEnabled: sessionConfig.value.enabled,
     };
 
     // If passkey was provided during deployment, it's automatically registered
