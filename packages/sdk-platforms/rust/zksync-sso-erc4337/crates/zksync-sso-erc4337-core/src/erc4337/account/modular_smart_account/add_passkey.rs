@@ -41,6 +41,7 @@ pub async fn add_passkey<P: Provider + Send + Sync + Clone>(
     send_transaction(SendParams {
         account: account_address,
         entry_point: entry_point_address,
+        factory_payload: None,
         call_data,
         nonce_key: None,
         paymaster: None,

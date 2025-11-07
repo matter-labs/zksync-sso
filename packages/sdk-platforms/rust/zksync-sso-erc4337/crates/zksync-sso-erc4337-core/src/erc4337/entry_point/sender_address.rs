@@ -37,8 +37,7 @@ impl GetSenderAddress {
     }
 }
 
-// TODO: implement this for v08
-pub async fn get_sender_address_v07<P>(
+pub async fn get_sender_address<P>(
     provider: &P,
     factory: Address,
     factory_data: Bytes,

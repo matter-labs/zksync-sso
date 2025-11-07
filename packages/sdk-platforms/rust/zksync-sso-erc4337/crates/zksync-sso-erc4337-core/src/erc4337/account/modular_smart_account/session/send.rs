@@ -247,6 +247,7 @@ mod tests {
         send_transaction(SendParams {
             account: address,
             entry_point: entry_point_address,
+            factory_payload: None,
             call_data: calldata,
             nonce_key: Some(keyed_nonce),
             paymaster: None,
