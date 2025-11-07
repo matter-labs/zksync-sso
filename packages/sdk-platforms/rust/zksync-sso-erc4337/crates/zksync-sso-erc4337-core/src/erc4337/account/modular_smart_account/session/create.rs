@@ -85,7 +85,7 @@ mod tests {
                         limit_type::LimitType, transfer_spec::TransferSpec,
                         usage_limit::UsageLimit,
                     },
-                    signature::{eoa_signature, stub_signature_eoa},
+                    signers::eoa::{eoa_signature, stub_signature_eoa},
                     test_utilities::fund_account_with_default_amount,
                 },
             },

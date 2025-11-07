@@ -3,7 +3,7 @@ pub mod deploy;
 pub mod nonce;
 pub mod send;
 pub mod session;
-pub mod signature;
+pub mod signers;
 
 #[cfg(test)]
 pub mod test_utilities;
