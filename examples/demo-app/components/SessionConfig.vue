@@ -28,10 +28,38 @@
             v-model="config.signer"
             type="text"
             placeholder="0x..."
-            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+            readonly
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono bg-gray-50"
           >
           <p class="text-xs text-gray-500 mt-1">
-            The address that can sign session transactions
+            Auto-generated unique session signer
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Session Private Key</label>
+          <input
+            v-model="config.privateKey"
+            type="text"
+            placeholder="0x..."
+            readonly
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono bg-gray-50"
+          >
+          <p class="text-xs text-gray-500 mt-1">
+            Use this to sign session transactions
+          </p>
+        </div>
+
+        <div class="md:col-span-2">
+          <button
+            type="button"
+            class="px-4 py-2 bg-teal-600 text-white text-sm rounded hover:bg-teal-700 transition-colors"
+            @click="generateSessionKey(true)"
+          >
+            🔄 Generate New Session Key
+          </button>
+          <p class="text-xs text-gray-500 mt-1">
+            Creates a new random session signer address and private key
           </p>
         </div>
 
@@ -92,7 +120,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted, watch } from "vue";
 
 // Define props and emits for v-model
 const props = defineProps({
@@ -112,5 +140,44 @@ const config = computed({
   set(value) {
     emit("update:modelValue", value);
   },
+});
+
+// Generate a random session key (can be called manually or automatically)
+async function generateSessionKey(force = false) {
+  // Only auto-generate if session doesn't already have a signer/private key
+  if (!force && config.value.signer && config.value.privateKey) {
+    return;
+  }
+
+  try {
+    // Import ethers to generate a random wallet
+    const { ethers } = await import("ethers");
+    const randomWallet = ethers.Wallet.createRandom();
+
+    // Update the config with the new session signer and private key
+    config.value = {
+      ...config.value,
+      signer: randomWallet.address,
+      privateKey: randomWallet.privateKey,
+    };
+
+    // eslint-disable-next-line no-console
+    console.log("Generated new session key:", randomWallet.address);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to generate session key:", err);
+  }
+}
+
+// Generate session key when component mounts
+onMounted(() => {
+  generateSessionKey();
+});
+
+// Generate a new session key when session is enabled
+watch(() => config.value.enabled, (isEnabled) => {
+  if (isEnabled && (!config.value.signer || !config.value.privateKey)) {
+    generateSessionKey();
+  }
 });
 </script>

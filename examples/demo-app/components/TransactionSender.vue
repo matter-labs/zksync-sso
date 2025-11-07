@@ -128,7 +128,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { hexToBytes } from "viem";
 
 // Props
@@ -155,6 +155,13 @@ const sessionPrivateKey = ref(""); // Session private key input
 const loading = ref(false);
 const txResult = ref("");
 const txError = ref("");
+
+// Pre-fill session private key from config
+watch(() => props.sessionConfig?.privateKey, (newPrivateKey) => {
+  if (newPrivateKey && !sessionPrivateKey.value) {
+    sessionPrivateKey.value = newPrivateKey;
+  }
+}, { immediate: true });
 
 // Main transaction handler
 async function sendTransaction() {
