@@ -55,75 +55,7 @@
     <PasskeyConfig v-model="passkeyConfig" />
 
     <!-- Session Configuration (Optional) -->
-    <div class="bg-teal-50 p-4 rounded-lg mb-4 border border-teal-200">
-      <h2 class="text-lg font-semibold mb-3 text-teal-800">
-        Session Configuration (Optional)
-      </h2>
-      <div class="space-y-3">
-        <label class="flex items-center gap-2 text-sm">
-          <input
-            v-model="sessionConfig.enabled"
-            type="checkbox"
-          >
-          Enable session at deploy
-        </label>
-
-        <div
-          v-if="sessionConfig.enabled"
-          class="grid grid-cols-1 md:grid-cols-2 gap-3"
-        >
-          <div>
-            <label class="block text-sm font-medium mb-1">Session Signer Address</label>
-            <input
-              v-model="sessionConfig.signer"
-              type="text"
-              placeholder="0x..."
-              class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
-            >
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Expires In (days)</label>
-            <input
-              v-model.number="sessionConfig.expiresInDays"
-              type="number"
-              min="1"
-              class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-            >
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Fee Limit (ETH)</label>
-            <input
-              v-model="sessionConfig.feeLimitEth"
-              type="text"
-              placeholder="0.1"
-              class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-            >
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Transfer To</label>
-            <input
-              v-model="sessionConfig.transfers[0].to"
-              type="text"
-              placeholder="0x..."
-              class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
-            >
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Value Limit (ETH)</label>
-            <input
-              v-model="sessionConfig.transfers[0].valueLimitEth"
-              type="text"
-              placeholder="0.1"
-              class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-            >
-          </div>
-        </div>
-      </div>
-    </div>
+    <SessionConfig v-model="sessionConfig" />
 
     <!-- Wallet Configuration -->
     <WalletConfig v-model="walletConfig" />

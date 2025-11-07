@@ -1,5 +1,24 @@
 # Session Support for Web SDK - Implementation Plan
 
+## Status Summary (Updated Nov 6, 2025)
+
+- ✅ **Phase 1**: Rust/WASM FFI Layer - COMPLETED
+- ✅ **Phase 2**: TypeScript/Web SDK Updates - COMPLETED (core wiring)
+- ✅ **Phase 3**: Vue Component Updates - COMPLETED
+- ⏳ **Phase 4**: Session Transaction Sending - PENDING
+- ⏳ **Phase 5**: Testing & Validation - PENDING (e2e for session-signed tx)
+
+**Recent Achievements**:
+
+- Both session install flows (deploy-with-session and post-deploy) implemented
+  and tested
+- End-to-end Playwright tests passing for session installation
+- Reusable SessionConfig Vue component extracted
+- Documentation updated for contracts.json configuration
+
+**Next Steps**: Implement Phase 4 (session-signed transaction prepare/submit
+helpers and UI) with corresponding e2e test coverage.
+
 ## Overview
 
 Add session functionality to the Web SDK to enable gasless transactions within defined
@@ -187,32 +206,32 @@ export interface SessionConfig {
 
 ## Phase 3: Vue Component Updates
 
+Status: COMPLETED (Nov 6, 2025). Session UI component extracted and integrated.
+
 ### 3.1 Add Session State ✅
 
-```typescript
-const sessionConfig = ref({
-  enabled: false,
-  signerPrivateKey: anvilPrivateKeys[2], // Different from deployer
-  expiresAt: Math.floor(Date.now() / 1000) + 86400,
-  feeLimit: "0.1",
-  transfers: [{
-    to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    valueLimit: "0.1",
-  }],
-});
-```
+Session state management added to demo page with reactive refs for configuration.
 
-### 3.2 Create SessionConfig Component ◻
+### 3.2 Create SessionConfig Component ✅
 
-UI component for configuring session parameters.
-Note: A session configuration section has been added to the demo page
-(`examples/demo-app/pages/web-sdk-test.vue`). Extracting this into a reusable
-component can be done next.
+**File**: `examples/demo-app/components/SessionConfig.vue`
+
+Reusable Vue component for configuring session parameters:
+
+- Enable/disable toggle
+- Session signer address input
+- Expiration period (days)
+- Fee limit configuration
+- Transfer target and value limits
+- Follows same pattern as PasskeyConfig and WalletConfig components
+
+Integrated into `examples/demo-app/pages/web-sdk-test.vue` using v-model.
 
 ### 3.3 Update deployAccount Function ✅
 
 Integrated session payload creation and routed deploy through
-`deployAccountWithSession` helper.
+`deployAccountWithSession` helper. Supports both deploy-with-session and
+standalone deployment flows.
 
 ## Phase 4: Session Transaction Sending
 
