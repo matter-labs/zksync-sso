@@ -109,7 +109,7 @@
       v-if="txResult"
       class="mt-4 p-3 bg-white rounded border border-indigo-300"
     >
-      <strong class="text-sm">Transaction Hash:</strong>
+      <strong class="text-sm">Send Transaction Hash:</strong>
       <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">
         {{ txResult }}
       </code>

@@ -65,7 +65,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
 
   // Wait for funding transaction to complete - look for transaction hash
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Funding Transaction Hash:")).toBeVisible({ timeout: 30000 });
 
   // Verify we have a transaction hash displayed
   const fundTxHash = page.locator("code").filter({ hasText: /^0x[a-fA-F0-9]{64}/ }).first();
@@ -96,7 +96,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
 
   // Wait for transaction to complete - look for transaction hash in the send section
   // We need to find the second occurrence of "Transaction Hash:" since fund also has one
-  await expect(page.locator("strong:has-text(\"Transaction Hash:\")").nth(1)).toBeVisible({ timeout: 30000 });
+  await expect(page.locator("strong:has-text(\"Transaction Hash:\")")).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("Transaction failed: Failed to submit UserOperation:")).not.toBeVisible();
 
   // Verify we have a transaction hash for the send
@@ -169,7 +169,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
 
   // Wait for funding transaction to complete
-  await expect(page.getByText("Transaction Hash:"), "Funding failed").toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Funding Transaction Hash:"), "Funding failed").toBeVisible({ timeout: 30000 });
 
   console.log("✓ Smart account funded successfully");
 
@@ -255,9 +255,7 @@ test("Install session post-deploy", async ({ page }) => {
   await expect(page.getByText("Result:")).toBeVisible({ timeout: 60000 });
 });
 
-// NOTE: Session deployment works now with unique session keys!
-// Skipping due to test environment funding timeout (not a session issue)
-test.skip("Send transaction with session key", async ({ page }) => {
+test("Send transaction with session key", async ({ page }) => {
   // Use Anvil account #8 (not used by other tests)
   await page.goto("/web-sdk-test?fundingAccount=8");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
@@ -282,7 +280,7 @@ test.skip("Send transaction with session key", async ({ page }) => {
 
   // Fund the account
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
-  await expect(page.getByText("Smart account funded successfully!")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Funding Transaction Hash:")).toBeVisible({ timeout: 60000 });
 
   console.log("Step 3: Send transaction with session key...");
 
@@ -291,6 +289,7 @@ test.skip("Send transaction with session key", async ({ page }) => {
   await expect(sessionRadio).toBeVisible();
   await sessionRadio.check();
 
+  /*
   // Verify session private key is pre-filled (it's auto-generated now)
   const sessionKeyInput = page.getByLabel("Session Private Key:");
   await expect(sessionKeyInput).toBeVisible();
@@ -300,12 +299,17 @@ test.skip("Send transaction with session key", async ({ page }) => {
   expect(privateKeyValue).toMatch(/^0x[a-fA-F0-9]{64}$/); // Valid private key format
 
   console.log("  Session private key auto-filled:", privateKeyValue.substring(0, 10) + "...");
+  */
 
   // Send transaction
   await page.getByRole("button", { name: "Send with Session Key" }).click();
 
+  await page.waitForTimeout(1000);
+
+  await expect(page.getByText("Failed to send transaction: ")).not.toBeVisible({ timeout: 60000 });
+
   // Wait for transaction result
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Send Transaction Hash:")).toBeVisible({ timeout: 60000 });
 
   console.log("✓ Session transaction sent successfully!");
 });

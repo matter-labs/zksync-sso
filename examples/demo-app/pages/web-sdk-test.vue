@@ -175,7 +175,7 @@
         v-if="fundResult"
         class="mt-4 p-3 bg-white rounded border border-orange-300"
       >
-        <strong class="text-sm">Transaction Hash:</strong>
+        <strong class="text-sm">Funding Transaction Hash:</strong>
         <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">
           {{ fundResult }}
         </code>
