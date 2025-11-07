@@ -3,9 +3,11 @@ use alloy::{
     primitives::{Address, Bytes, FixedBytes, U256, keccak256},
     providers::ProviderBuilder,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
-    signers::local::PrivateKeySigner,
+    signers::{local::PrivateKeySigner, SignerSync},
+    sol_types::SolCall,
 };
 use alloy_rpc_client::RpcClient;
+use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
 use zksync_sso_erc4337_core::{
@@ -2414,4 +2416,401 @@ mod tests {
             }
         }
     }
+}
+
+// ==================== EOA ENCODING AND SIGNING ====================
+
+/// Encode a single execute call for ERC-7579 smart accounts
+///
+/// This function encodes a single execution call (target, value, data) into the format
+/// expected by ERC-7579 modular smart accounts. The encoding uses the account's execute
+/// function ABI.
+///
+/// # Arguments
+/// * `target` - The target contract address for the call
+/// * `value` - The amount of ETH to send (as string, e.g., "1000000000000000000" for 1 ETH)
+/// * `data` - Optional calldata as hex string (use "0x" or null for simple transfers)
+///
+/// # Returns
+/// Hex-encoded call data that can be used as UserOperation.callData
+///
+/// # Example
+/// ```javascript
+/// const callData = encode_execute_call_data(
+///   "0x1234...", // target
+///   "1000000000000000000", // 1 ETH
+///   "0x" // no data
+/// );
+/// ```
+#[wasm_bindgen]
+pub fn encode_execute_call_data(
+    target: String,
+    value: String,
+    data: Option<String>,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::erc7579::{
+        Execution, calls::encode_calls,
+    };
+
+    console_log!("Encoding execute call data...");
+    console_log!("  Target: {}", target);
+    console_log!("  Value: {}", value);
+    console_log!("  Data: {:?}", data);
+
+    // Parse target address
+    let target_address: Address = target.parse().map_err(|e| {
+        JsValue::from_str(&format!("Invalid target address: {}", e))
+    })?;
+
+    // Parse value
+    let value_u256: U256 = value.parse().map_err(|e| {
+        JsValue::from_str(&format!("Invalid value: {}", e))
+    })?;
+
+    // Parse data (default to empty bytes if not provided)
+    let data_bytes: Bytes = match data {
+        Some(d) if !d.is_empty() && d != "0x" => {
+            d.parse().map_err(|e| {
+                JsValue::from_str(&format!("Invalid data hex: {}", e))
+            })?
+        }
+        _ => Bytes::new(),
+    };
+
+    // Create execution
+    let execution = Execution {
+        target: target_address,
+        value: value_u256,
+        data: data_bytes,
+    };
+
+    // Encode as single call
+    let calls = vec![execution];
+    let encoded: Bytes = encode_calls(calls).into();
+
+    let result = format!("0x{}", hex::encode(encoded));
+    console_log!("  Encoded call data: {}", result);
+
+    Ok(result)
+}
+
+/// Sign a UserOperation hash with an EOA private key
+///
+/// This function signs a UserOperation hash using an EOA (Externally Owned Account)
+/// private key. The signature is produced using Ethereum's ECDSA signing with proper
+/// s-value normalization to ensure compatibility with smart contract validators.
+///
+/// # Arguments
+/// * `hash` - The UserOperation hash to sign (32-byte hex string with 0x prefix)
+/// * `private_key` - The EOA private key (32-byte hex string with 0x prefix)
+///
+/// # Returns
+/// Hex-encoded signature (65 bytes: r + s + v)
+///
+/// # Example
+/// ```javascript
+/// const signature = sign_eoa_user_operation_hash(
+///   "0xabcd...", // UserOperation hash (32 bytes)
+///   "0x1234..."  // private key (32 bytes)
+/// );
+/// ```
+#[wasm_bindgen]
+pub fn sign_eoa_user_operation_hash(
+    hash: String,
+    private_key: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::user_operation::{
+        hash::user_operation_hash::UserOperationHash,
+        signature::v08::sign_hash::sign_user_operation_hash,
+    };
+    use std::str::FromStr;
+
+    console_log!("Signing UserOperation hash with EOA...");
+    console_log!("  Hash: {}", hash);
+
+    // Parse hash
+    let user_op_hash = UserOperationHash::from_str(&hash).map_err(|e| {
+        JsValue::from_str(&format!("Invalid UserOperation hash: {}", e))
+    })?;
+
+    // Parse private key
+    let signer = PrivateKeySigner::from_str(&private_key).map_err(|e| {
+        JsValue::from_str(&format!("Invalid private key: {}", e))
+    })?;
+
+    // Sign the hash
+    let signature = sign_user_operation_hash(&user_op_hash, &signer).map_err(|e| {
+        JsValue::from_str(&format!("Failed to sign: {}", e))
+    })?;
+
+    let result = format!("0x{}", hex::encode(signature));
+    console_log!("  Signature: {}", result);
+
+    Ok(result)
+}
+
+// ==================== EOA NONCE ENCODING/DECODING ====================
+
+/// Encode calldata for EntryPoint.getNonce(sender, key)
+///
+/// Returns the ABI-encoded calldata that can be used with eth_call to query
+/// the nonce from the EntryPoint contract. Viem will make the actual network request.
+///
+/// # Arguments
+/// * `sender_address` - The smart account address
+/// * `key` - The nonce key (usually "0" for default sequence)
+///
+/// # Returns
+/// Hex-encoded calldata for the getNonce function
+///
+/// # Example
+/// ```javascript
+/// const calldata = encode_get_nonce_call_data(
+///   "0xabcd...", // account address
+///   "0"          // key (default)
+/// );
+/// // Then use viem: await client.call({ to: entryPoint, data: calldata })
+/// ```
+#[wasm_bindgen]
+pub fn encode_get_nonce_call_data(
+    sender_address: String,
+    key: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint;
+
+    console_log!("Encoding getNonce call data...");
+    console_log!("  Sender: {}", sender_address);
+    console_log!("  Key: {}", key);
+
+    // Parse sender address
+    let sender: Address = sender_address.parse().map_err(|e| {
+        JsValue::from_str(&format!("Invalid sender address: {}", e))
+    })?;
+
+    // Parse key as U192
+    let key_u192: alloy::primitives::aliases::U192 = key.parse().map_err(|e| {
+        JsValue::from_str(&format!("Invalid key: {}", e))
+    })?;
+
+    // Encode using EntryPoint ABI
+    let call = EntryPoint::getNonceCall {
+        sender,
+        key: key_u192,
+    };
+
+    let encoded = call.abi_encode();
+    let result = format!("0x{}", hex::encode(encoded));
+    console_log!("  Encoded calldata: {}", result);
+
+    Ok(result)
+}
+
+/// Decode the result from EntryPoint.getNonce() call
+///
+/// Takes the raw hex result from an eth_call and decodes it to extract the nonce value.
+///
+/// # Arguments
+/// * `result_data` - The raw hex result from eth_call (0x-prefixed)
+///
+/// # Returns
+/// The nonce as a string
+///
+/// # Example
+/// ```javascript
+/// const result = await client.call({ to: entryPoint, data: calldata });
+/// const nonce = decode_nonce_result(result.data);
+/// ```
+#[wasm_bindgen]
+pub fn decode_nonce_result(result_data: String) -> Result<String, JsValue> {
+    console_log!("Decoding nonce result...");
+    console_log!("  Result data: {}", result_data);
+
+    // Remove 0x prefix if present
+    let hex_str = result_data.strip_prefix("0x").unwrap_or(&result_data);
+
+    // Decode as U256
+    let bytes = hex::decode(hex_str).map_err(|e| {
+        JsValue::from_str(&format!("Invalid hex data: {}", e))
+    })?;
+
+    let nonce = U256::from_be_slice(&bytes);
+    let result = nonce.to_string();
+    console_log!("  Decoded nonce: {}", result);
+
+    Ok(result)
+}
+
+// ==================== EOA SIGNING FUNCTIONS ====================
+
+/// Sign a message with an EOA private key (EIP-191 personal sign)
+///
+/// This function signs an arbitrary message using Ethereum's personal_sign format.
+/// The message is prefixed with "\x19Ethereum Signed Message:\n" before signing.
+///
+/// # Arguments
+/// * `private_key` - The EOA private key (32-byte hex string with 0x prefix)
+/// * `message` - The message to sign (string or hex)
+///
+/// # Returns
+/// Hex-encoded signature (65 bytes: r + s + v)
+///
+/// # Example
+/// ```javascript
+/// const signature = sign_eoa_message(
+///   "0x1234...",  // private key
+///   "Hello World" // message
+/// );
+/// ```
+#[wasm_bindgen]
+pub fn sign_eoa_message(
+    private_key: String,
+    message: String,
+) -> Result<String, JsValue> {
+    console_log!("Signing message with EOA...");
+
+    // Parse private key
+    let signer = PrivateKeySigner::from_str(&private_key).map_err(|e| {
+        JsValue::from_str(&format!("Invalid private key: {}", e))
+    })?;
+
+    // Sign message
+    let signature = signer.sign_message_sync(message.as_bytes()).map_err(|e| {
+        JsValue::from_str(&format!("Failed to sign message: {}", e))
+    })?;
+
+    let signature_bytes = signature.as_bytes();
+    let result = format!("0x{}", hex::encode(signature_bytes));
+    console_log!("  Signature: {}", result);
+
+    Ok(result)
+}
+
+/// Sign typed data (EIP-712) with an EOA private key
+///
+/// This function signs structured data according to EIP-712 specification.
+///
+/// # Arguments
+/// * `private_key` - The EOA private key (32-byte hex string with 0x prefix)
+/// * `domain_json` - JSON string of the EIP712Domain
+/// * `types_json` - JSON string of the type definitions
+/// * `primary_type` - The primary type name
+/// * `message_json` - JSON string of the message data
+///
+/// # Returns
+/// Hex-encoded signature (65 bytes: r + s + v)
+///
+/// # Example
+/// ```javascript
+/// const signature = sign_eoa_typed_data(
+///   "0x1234...",
+///   JSON.stringify(domain),
+///   JSON.stringify(types),
+///   "Mail",
+///   JSON.stringify(message)
+/// );
+/// ```
+#[wasm_bindgen]
+pub fn sign_eoa_typed_data(
+    private_key: String,
+    domain_json: String,
+    types_json: String,
+    _primary_type: String,
+    message_json: String,
+) -> Result<String, JsValue> {
+    console_log!("Signing typed data with EOA...");
+
+    // Parse private key
+    let _signer = PrivateKeySigner::from_str(&private_key).map_err(|e| {
+        JsValue::from_str(&format!("Invalid private key: {}", e))
+    })?;
+
+    // Parse JSON inputs
+    let _domain: serde_json::Value = serde_json::from_str(&domain_json).map_err(|e| {
+        JsValue::from_str(&format!("Invalid domain JSON: {}", e))
+    })?;
+
+    let _types: serde_json::Value = serde_json::from_str(&types_json).map_err(|e| {
+        JsValue::from_str(&format!("Invalid types JSON: {}", e))
+    })?;
+
+    let _message: serde_json::Value = serde_json::from_str(&message_json).map_err(|e| {
+        JsValue::from_str(&format!("Invalid message JSON: {}", e))
+    })?;
+
+    // TODO: This needs proper implementation - for now return error
+    // The TypedData construction requires careful handling of the JSON structure
+    Err(JsValue::from_str("sign_eoa_typed_data not yet implemented - requires EIP-712 TypedData construction"))
+}
+
+/// Generate a stub signature for gas estimation (EOA validator)
+///
+/// Returns a properly formatted stub signature that can be used for UserOperation
+/// gas estimation. The stub has the correct structure and length but uses dummy values.
+///
+/// # Arguments
+/// * `eoa_validator_address` - The EOA validator contract address
+///
+/// # Returns
+/// Hex-encoded stub signature (85 bytes: 20 bytes validator + 65 bytes signature)
+///
+/// # Example
+/// ```javascript
+/// const stub = generate_eoa_stub_signature("0x1234...");
+/// // Use in UserOperation for gas estimation
+/// ```
+#[wasm_bindgen]
+pub fn generate_eoa_stub_signature(
+    eoa_validator_address: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::stub_signature_eoa;
+
+    console_log!("Generating EOA stub signature...");
+    console_log!("  Validator: {}", eoa_validator_address);
+
+    // Parse validator address
+    let validator: Address = eoa_validator_address.parse().map_err(|e| {
+        JsValue::from_str(&format!("Invalid validator address: {}", e))
+    })?;
+
+    // Generate stub signature
+    let stub = stub_signature_eoa(validator).map_err(|e| {
+        JsValue::from_str(&format!("Failed to generate stub signature: {}", e))
+    })?;
+
+    let result = format!("0x{}", hex::encode(stub));
+    console_log!("  Stub signature: {}", result);
+
+    Ok(result)
+}
+
+/// Encode the factory calldata for deploying a smart account
+///
+/// # Arguments
+/// * `account_id` - The account ID (32-byte hex string with 0x prefix)
+/// * `init_data` - The initialization data (hex string with 0x prefix)
+///
+/// # Returns
+/// Hex-encoded calldata for deployAccount(bytes32,bytes)
+#[wasm_bindgen]
+pub fn encode_factory_create_account(
+    account_id: String,
+    init_data: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::MSAFactory;
+
+    let account_id_bytes: FixedBytes<32> = account_id
+        .parse()
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse account_id: {}", e)))?;
+
+    let init_data_bytes: Bytes = init_data
+        .parse()
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse init_data: {}", e)))?;
+
+    let call = MSAFactory::deployAccountCall {
+        accountId: account_id_bytes,
+        initData: init_data_bytes,
+    };
+
+    let encoded = call.abi_encode();
+    Ok(format!("0x{}", hex::encode(encoded)))
 }

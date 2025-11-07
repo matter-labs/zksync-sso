@@ -7,11 +7,11 @@ import { toPasskeyAccount } from "./account.js";
 import { type ZksyncSsoPasskeyActions, zksyncSsoPasskeyActions } from "./decorators/passkey.js";
 import { zksyncSsoPasskeyWalletActions } from "./decorators/wallet.js";
 
-export function createZksyncPasskeyClient<
+export async function createZksyncPasskeyClient<
   transport extends Transport,
   chain extends Chain,
   rpcSchema extends RpcSchema | undefined = undefined,
->(_parameters: ZksyncSsoPasskeyClientConfig<transport, chain, rpcSchema>): ZksyncSsoPasskeyClient<transport, chain, rpcSchema> {
+>(_parameters: ZksyncSsoPasskeyClientConfig<transport, chain, rpcSchema>): Promise<ZksyncSsoPasskeyClient<transport, chain, rpcSchema>> {
   type WalletClientParameters = typeof _parameters;
   const parameters: WalletClientParameters & {
     key: NonNullable<WalletClientParameters["key"]>;
@@ -23,7 +23,10 @@ export function createZksyncPasskeyClient<
     name: _parameters.name || "ZKsync SSO Passkey Client",
   };
 
-  const account = toPasskeyAccount({
+  // Import EntryPoint ABI
+  const { entryPoint08Abi, entryPoint08Address } = await import("viem/account-abstraction");
+
+  const account = await toPasskeyAccount({
     address: parameters.address,
     chain: parameters.chain,
     contracts: parameters.contracts,
@@ -31,6 +34,11 @@ export function createZksyncPasskeyClient<
     credentialId: parameters.credentialId,
     rpId: parameters.rpId,
     origin: parameters.origin,
+    entryPoint: {
+      address: parameters.entryPoint?.address || entryPoint08Address,
+      abi: parameters.entryPoint?.abi || entryPoint08Abi,
+      version: parameters.entryPoint?.version || "0.8",
+    },
     sign: async ({ hash }) => {
       // Use WASM-based signing from Rust
       const { signature } = await signWithPasskey({
@@ -116,6 +124,11 @@ export interface ZksyncSsoPasskeyClientConfig<
   credential?: PublicKeyCredentialDescriptorJSON;
   rpId?: string; // Relying party ID (defaults to window.location.hostname)
   origin?: string; // Origin URL (defaults to window.location.origin)
+  entryPoint?: {
+    address: Address;
+    abi: any;
+    version: "0.7" | "0.8";
+  }; // EntryPoint configuration (defaults to v0.8)
   key?: string;
   name?: string;
 }

@@ -16,6 +16,17 @@ export const {
   submit_passkey_user_operation, // Submit signed transaction to bundler
   compute_account_id, // Generate unique account ID from passkey
 
+  // ===== EOA ENCODING AND SIGNING FUNCTIONS =====
+  // Low-level functions for EOA-based smart accounts
+  encode_execute_call_data, // Encode a single execute call for ERC-7579 accounts
+  sign_eoa_user_operation_hash, // Sign UserOperation hash with EOA private key
+  encode_get_nonce_call_data, // Encode getNonce call data (viem makes the network call)
+  decode_nonce_result, // Decode nonce result from eth_call
+  sign_eoa_message, // Sign message with EOA (EIP-191 personal sign)
+  sign_eoa_typed_data, // Sign typed data with EOA (EIP-712)
+  generate_eoa_stub_signature, // Generate stub signature for gas estimation
+  encode_factory_create_account, // Encode factory createAccount calldata
+
   // ===== ENCODING FUNCTIONS =====
   // Low-level encoding functions for custom SDK integrations
   encode_create_session_call_data, // Encode session creation call data

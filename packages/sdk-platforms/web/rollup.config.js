@@ -63,7 +63,7 @@ export default defineConfig([
       }),
     ],
   },
-  // Bundler-specific build
+  // Bundler-specific build (ESM)
   {
     input: "src/bundler.ts",
     output: {
@@ -82,13 +82,52 @@ export default defineConfig([
       }),
     ],
   },
-  // Node-specific build
+  // Bundler-specific build (CommonJS)
+  {
+    input: "src/bundler.ts",
+    output: {
+      file: "dist/bundler.cjs",
+      format: "cjs",
+      sourcemap: true,
+      inlineDynamicImports: true,
+    },
+    external,
+    plugins: [
+      resolve({ preferBuiltins: false, browser: true }),
+      typescript({
+        tsconfig: "./tsconfig.json",
+        declaration: false,
+        declarationMap: false,
+      }),
+    ],
+  },
+  // Node-specific build (ESM)
   {
     input: "src/node.ts",
     output: {
       file: "dist/node.js",
       format: "esm",
       sourcemap: true,
+      inlineDynamicImports: true,
+    },
+    external,
+    plugins: [
+      resolve({ preferBuiltins: true }),
+      typescript({
+        tsconfig: "./tsconfig.json",
+        declaration: false,
+        declarationMap: false,
+      }),
+    ],
+  },
+  // Node-specific build (CommonJS)
+  {
+    input: "src/node.ts",
+    output: {
+      file: "dist/node.cjs",
+      format: "cjs",
+      sourcemap: true,
+      inlineDynamicImports: true,
     },
     external,
     plugins: [

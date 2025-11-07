@@ -98,6 +98,16 @@
       "import": "./dist/_esm/client/ecdsa/index.js",
       "require": "./dist/_cjs/client/ecdsa/index.js"
     },
+    "./client-new": {
+      "types": "./dist/_types/client-new/index.d.ts",
+      "import": "./dist/_esm/client-new/index.js",
+      "require": "./dist/_cjs/client-new/index.js"
+    },
+    "./client-new/ecdsa": {
+      "types": "./dist/_types/client-new/ecdsa/index.d.ts",
+      "import": "./dist/_esm/client-new/ecdsa/index.js",
+      "require": "./dist/_cjs/client-new/ecdsa/index.js"
+    },
     "./client/oidc": {
       "types": "./dist/_types/client/oidc/index.d.ts",
       "import": "./dist/_esm/client/oidc/index.js",
@@ -142,6 +152,9 @@
       ],
       "client": [
         "./dist/_types/client/index.d.ts"
+      ],
+      "client-new": [
+        "./dist/_types/client-new/index.d.ts"
       ],
       "client-auth-server": [
         "./dist/_types/client-auth-server/index.d.ts"

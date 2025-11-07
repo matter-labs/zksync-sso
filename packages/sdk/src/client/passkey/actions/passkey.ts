@@ -188,7 +188,6 @@ export const addAccountOwnerPasskey = async <
   const transactionHash = await sendTransaction(client, {
     to: args.contracts.passkey,
     data: callData,
-    gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
   } as any);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
