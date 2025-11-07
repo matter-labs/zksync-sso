@@ -3,6 +3,7 @@ use crate::erc4337::{
         MSAFactory::{self, deployAccountCall},
         ModularSmartAccount::initializeAccountCall,
         add_passkey::PasskeyPayload,
+        session::session_lib::session_spec::SessionSpec,
     },
     utils::check_deployed::{Contract, check_contract_deployed},
 };
@@ -61,10 +62,17 @@ pub struct WebAuthNSigner {
 }
 
 #[derive(Clone)]
+pub struct SessionSigner {
+    pub session_spec: SessionSpec,
+    pub validator_address: Address,
+}
+
+#[derive(Clone)]
 pub struct DeployAccountParams<P: Provider + Send + Sync + Clone> {
     pub factory_address: Address,
     pub eoa_signers: Option<EOASigners>,
     pub webauthn_signer: Option<WebAuthNSigner>,
+    pub session_signer: Option<SessionSigner>,
     pub id: Option<FixedBytes<32>>,
     pub provider: P,
 }
@@ -79,6 +87,7 @@ where
         factory_address,
         eoa_signers,
         webauthn_signer,
+        session_signer,
         id,
         provider,
     } = params;
@@ -114,6 +123,18 @@ where
             webauthn_signer.passkey.abi_encode_params().into();
         modules.push(webauthn_signer.validator_address);
         data.push(webauthn_signer_encoded);
+    }
+
+    if let Some(session_signer) = session_signer {
+        use crate::erc4337::account::modular_smart_account::session::SessionLib::SessionSpec as SessionLibSessionSpec;
+        use alloy::sol_types::SolValue;
+        
+        // Convert SessionSpec to SessionLib format for encoding
+        let session_lib_spec: SessionLibSessionSpec = session_signer.session_spec.into();
+        let session_encoded: Bytes = session_lib_spec.abi_encode().into();
+        
+        modules.push(session_signer.validator_address);
+        data.push(session_encoded);
     }
 
     let init_data: Bytes =
@@ -168,6 +189,7 @@ mod tests {
             factory_address,
             eoa_signers: None,
             webauthn_signer: None,
+            session_signer: None,
             id: None,
             provider: provider.clone(),
         })
@@ -198,6 +220,7 @@ mod tests {
             factory_address,
             eoa_signers: Some(eoa_signers),
             webauthn_signer: None,
+            session_signer: None,
             id: None,
             provider: provider.clone(),
         })
@@ -212,6 +235,93 @@ mod tests {
         )
         .await?;
         eyre::ensure!(is_module_installed, "Module is not installed");
+
+        drop(anvil_instance);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_deploy_account_with_session() -> eyre::Result<()> {
+        use crate::erc4337::account::modular_smart_account::session::session_lib::session_spec::{
+            SessionSpec, transfer_spec::TransferSpec, usage_limit::UsageLimit, limit_type::LimitType,
+        };
+        use alloy::primitives::{U256, aliases::U48};
+
+        let (_, anvil_instance, provider, contracts, _) =
+            start_anvil_and_deploy_contracts().await?;
+
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
+        let session_validator_address = contracts.session_validator;
+
+        // Create EOA signers for deployment authorization
+        let signers = vec![
+            address!("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+        ];
+        let eoa_signers = EOASigners {
+            addresses: signers,
+            validator_address: eoa_validator_address,
+        };
+
+        // Create a session spec
+        let session_signer_address = address!("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+        let transfer_target = address!("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC");
+        
+        let session_spec = SessionSpec {
+            signer: session_signer_address,
+            expires_at: U48::from((1u64 << 48) - 1), // Max U48 value
+            fee_limit: UsageLimit {
+                limit_type: LimitType::Unlimited,
+                limit: U256::ZERO,
+                period: U48::ZERO,
+            },
+            call_policies: vec![],
+            transfer_policies: vec![TransferSpec {
+                target: transfer_target,
+                max_value_per_use: U256::from(1_000_000_000_000_000_000u64), // 1 ETH
+                value_limit: UsageLimit {
+                    limit_type: LimitType::Lifetime,
+                    limit: U256::from(10_000_000_000_000_000_000u64), // 10 ETH lifetime
+                    period: U48::ZERO,
+                },
+            }],
+        };
+
+        let session_signer = SessionSigner {
+            session_spec,
+            validator_address: session_validator_address,
+        };
+
+        let address = deploy_account(DeployAccountParams {
+            factory_address,
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            session_signer: Some(session_signer),
+            id: None,
+            provider: provider.clone(),
+        })
+        .await?;
+
+        println!("Account deployed with session: {:?}", address);
+
+        // Verify EOA module is installed
+        let is_eoa_installed = is_module_installed(
+            eoa_validator_address,
+            address,
+            provider.clone(),
+        )
+        .await?;
+        eyre::ensure!(is_eoa_installed, "EOA module is not installed");
+
+        // Verify session module is installed
+        let is_session_installed = is_module_installed(
+            session_validator_address,
+            address,
+            provider.clone(),
+        )
+        .await?;
+        eyre::ensure!(is_session_installed, "Session module is not installed");
 
         drop(anvil_instance);
 

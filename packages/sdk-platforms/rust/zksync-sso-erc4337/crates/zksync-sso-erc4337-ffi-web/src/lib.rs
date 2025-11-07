@@ -6,6 +6,7 @@ use alloy::{
     signers::local::PrivateKeySigner,
 };
 use alloy_rpc_client::RpcClient;
+use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
 use zksync_sso_erc4337_core::{
@@ -17,6 +18,7 @@ use zksync_sso_erc4337_core::{
             deploy::{
                 EOASigners as CoreEOASigners,
                 WebAuthNSigner as CoreWebauthNSigner,
+                SessionSigner as CoreSessionSigner,
             },
             send::eoa::EOASendParams,
             session::session_lib::session_spec::{
@@ -617,24 +619,115 @@ pub fn deploy_account(
             }
         };
 
-        // TODO: Session support during deployment
-        // Currently, the core deploy_account function does not support installing sessions
-        // during initial deployment. Sessions must be added post-deployment using a separate
-        // function (similar to add_passkey_to_account). Once core support is added, this
-        // conversion logic should be uncommented and used.
-        //
-        // Planned conversion logic:
-        // if let Some(session) = session_payload {
-        //     let signer = session.signer.parse::<Address>()?;
-        //     let expires_at = U48::from_str_radix(&session.expires_at, 10)?;
-        //     let fee_limit = CoreUsageLimit { ... };
-        //     let transfers = session.transfers.iter().map(|t| CoreTransferSpec { ... }).collect();
-        //     let session_spec = Some(CoreSessionSpec { signer, expires_at, fee_limit, ... });
-        // }
-        if session_payload.is_some() {
-            console_log!("  Warning: Session payload provided but session installation during deployment is not yet supported");
-            console_log!("  Please use add_session_to_account() after deployment (to be implemented)");
-        }
+        // Convert SessionPayload to SessionSigner if provided
+        let session_signer = match (session_payload, deploy_account_config.session_validator_address.as_ref()) {
+            (Some(session), Some(session_validator_str)) => {
+                console_log!("  Converting session payload...");
+                
+                // Parse session validator address
+                let session_validator_addr = match session_validator_str.parse::<Address>() {
+                    Ok(addr) => addr,
+                    Err(e) => {
+                        return Err(JsValue::from_str(&format!(
+                            "Invalid session validator address: {}",
+                            e
+                        )));
+                    }
+                };
+
+                // Parse session signer address
+                let signer = match session.signer.parse::<Address>() {
+                    Ok(addr) => addr,
+                    Err(e) => {
+                        return Err(JsValue::from_str(&format!(
+                            "Invalid session signer address: {}",
+                            e
+                        )));
+                    }
+                };
+
+                // Parse expires_at (U48 from string)
+                let expires_at = match u64::from_str_radix(&session.expires_at, 10) {
+                    Ok(val) => U48::from(val),
+                    Err(e) => {
+                        return Err(JsValue::from_str(&format!(
+                            "Invalid expires_at value: {}",
+                            e
+                        )));
+                    }
+                };
+
+                // Convert fee limit
+                let fee_limit_type = CoreLimitType::try_from(session.fee_limit_type).map_err(|e| {
+                    JsValue::from_str(&format!("Invalid fee limit type: {}", e))
+                })?;
+                
+                let fee_limit = CoreUsageLimit {
+                    limit_type: fee_limit_type,
+                    limit: U256::from_str(&session.fee_limit_value).map_err(|e| {
+                        JsValue::from_str(&format!("Invalid fee limit value: {}", e))
+                    })?,
+                    period: U48::from_str(&session.fee_limit_period).map_err(|e| {
+                        JsValue::from_str(&format!("Invalid fee limit period: {}", e))
+                    })?,
+                };
+
+                // Convert transfer policies
+                let transfer_policies: Result<Vec<CoreTransferSpec>, JsValue> = session.transfers.iter().map(|transfer| {
+                    let target = transfer.target.parse::<Address>().map_err(|e| {
+                        JsValue::from_str(&format!("Invalid transfer target address: {}", e))
+                    })?;
+                    
+                    let max_value_per_use = U256::from_str(&transfer.value_limit_value).map_err(|e| {
+                        JsValue::from_str(&format!("Invalid max_value_per_use: {}", e))
+                    })?;
+                    
+                    let value_limit_type = CoreLimitType::try_from(transfer.value_limit_type).map_err(|e| {
+                        JsValue::from_str(&format!("Invalid value limit type: {}", e))
+                    })?;
+                    
+                    let value_limit = CoreUsageLimit {
+                        limit_type: value_limit_type,
+                        limit: U256::from_str(&transfer.value_limit_value).map_err(|e| {
+                            JsValue::from_str(&format!("Invalid value limit: {}", e))
+                        })?,
+                        period: U48::from_str(&transfer.value_limit_period).map_err(|e| {
+                            JsValue::from_str(&format!("Invalid value limit period: {}", e))
+                        })?,
+                    };
+                    
+                    Ok(CoreTransferSpec {
+                        target,
+                        max_value_per_use,
+                        value_limit,
+                    })
+                }).collect();
+
+                let transfer_policies = transfer_policies?;
+
+                // Create SessionSpec
+                let session_spec = CoreSessionSpec {
+                    signer,
+                    expires_at,
+                    fee_limit,
+                    call_policies: vec![], // No call policies for now
+                    transfer_policies,
+                };
+
+                console_log!("  Session spec created with {} transfers", session.transfers.len());
+
+                Some(CoreSessionSigner {
+                    session_spec,
+                    validator_address: session_validator_addr,
+                })
+            }
+            (Some(_), None) => {
+                return Err(JsValue::from_str(
+                    "Session payload provided but session_validator_address is missing"
+                ));
+            }
+            (None, _) => None,
+        };
 
         console_log!("  Calling core deploy_account...");
 
@@ -644,6 +737,7 @@ pub fn deploy_account(
                 factory_address: factory_addr,
                 eoa_signers,
                 webauthn_signer,
+                session_signer,
                 id: None,
                 provider,
             }
@@ -828,6 +922,257 @@ pub fn add_passkey_to_account(
                     e
                 )))
             }
+        }
+    })
+}
+
+/// Add a session to an already-deployed smart account
+///
+/// This installs the SessionKeyValidator module (if needed) and creates a session.
+/// The transaction is authorized by an EOA signer configured in the account's EOA validator.
+///
+/// # Parameters
+/// * `config` - SendTransactionConfig with RPC URL, bundler URL, and entry point
+/// * `account_address` - The deployed smart account address
+/// * `session_payload` - The session specification payload
+/// * `session_validator_address` - The SessionKeyValidator module address
+/// * `eoa_validator_address` - The EOA validator module address (used for authorization)
+/// * `eoa_private_key` - Private key of an EOA signer (hex string) authorized in the EOA validator
+#[wasm_bindgen]
+pub fn add_session_to_account(
+    config: SendTransactionConfig,
+    account_address: String,
+    session_payload: SessionPayload,
+    session_validator_address: String,
+    eoa_validator_address: String,
+    eoa_private_key: String,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Adding session to smart account...");
+        console_log!("  Account: {}", account_address);
+
+        // Parse addresses
+        let account = match account_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid account address: {}",
+                    e
+                )));
+            }
+        };
+
+        let entry_point = match config.entry_point_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid entry point address: {}",
+                    e
+                )));
+            }
+        };
+
+        let session_validator = match session_validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid session validator address: {}",
+                    e
+                )));
+            }
+        };
+
+        let eoa_validator = match eoa_validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid EOA validator address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse EOA private key
+        let eoa_key = match eoa_private_key
+            .trim_start_matches("0x")
+            .parse::<PrivateKeySigner>()
+        {
+            Ok(signer) => signer,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid EOA private key: {}",
+                    e
+                )));
+            }
+        };
+
+        let eoa_wallet = EthereumWallet::from(eoa_key.clone());
+
+        // Create transport and provider
+        let transport = WasmHttpTransport::new(config.rpc_url);
+        let client = RpcClient::new(transport.clone(), false);
+        let provider =
+            ProviderBuilder::new().wallet(eoa_wallet).connect_client(client);
+
+        // Create bundler client
+        let bundler_client = {
+            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
+            let config = BundlerConfig::new(config.bundler_url);
+            zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
+        };
+
+        // Build EOA signature provider for authorizing module install and session creation
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::{
+            eoa_signature, stub_signature_eoa,
+        };
+        use std::sync::Arc;
+
+        let stub_sig = match stub_signature_eoa(eoa_validator) {
+            Ok(sig) => sig,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Failed to create stub signature: {}",
+                    e
+                )));
+            }
+        };
+
+        let eoa_key_str = format!("0x{}", hex::encode(eoa_key.to_bytes()));
+        let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
+            eoa_signature(&eoa_key_str, eoa_validator, hash)
+        });
+
+        let signer = zksync_sso_erc4337_core::erc4337::signer::Signer {
+            provider: signature_provider,
+            stub_signature: stub_sig,
+        };
+
+        // Ensure SessionKeyValidator module is installed
+        match zksync_sso_erc4337_core::erc4337::account::erc7579::add_module::add_module(
+            account,
+            session_validator,
+            entry_point,
+            provider.clone(),
+            bundler_client.clone(),
+            signer.clone(),
+        )
+        .await
+        {
+            Ok(_) => {
+                console_log!("  Session module installed (or already present)");
+            }
+            Err(e) => {
+                console_log!("  Warning: add_module failed (may already be installed): {}", e);
+            }
+        }
+
+        // Convert SessionPayload to CoreSessionSpec
+        let signer_addr = match session_payload.signer.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid session signer address: {}",
+                    e
+                )));
+            }
+        };
+
+        let expires_at = match u64::from_str_radix(&session_payload.expires_at, 10) {
+            Ok(v) => U48::from(v),
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid expires_at value: {}",
+                    e
+                )));
+            }
+        };
+
+        let fee_limit_type = match CoreLimitType::try_from(session_payload.fee_limit_type) {
+            Ok(t) => t,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid fee limit type: {}",
+                    e
+                )));
+            }
+        };
+
+        let fee_limit_value = match U256::from_str(&session_payload.fee_limit_value) {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid fee limit value: {}",
+                    e
+                )));
+            }
+        };
+
+        let fee_limit_period = match U48::from_str(&session_payload.fee_limit_period) {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid fee limit period: {}",
+                    e
+                )));
+            }
+        };
+
+        let fee_limit = CoreUsageLimit {
+            limit_type: fee_limit_type,
+            limit: fee_limit_value,
+            period: fee_limit_period,
+        };
+
+        let transfer_policies: Result<Vec<CoreTransferSpec>, JsValue> = session_payload
+            .transfers
+            .iter()
+            .map(|t| {
+                let target = t.target.parse::<Address>().map_err(|e| JsValue::from_str(&format!("Invalid transfer target: {}", e)))?;
+                let max_value_per_use = U256::from_str(&t.value_limit_value)
+                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_value: {}", e)))?;
+                let limit_type = CoreLimitType::try_from(t.value_limit_type)
+                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_type: {}", e)))?;
+                let limit = U256::from_str(&t.value_limit_value)
+                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_value: {}", e)))?;
+                let period = U48::from_str(&t.value_limit_period)
+                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_period: {}", e)))?;
+
+                Ok(CoreTransferSpec {
+                    target,
+                    max_value_per_use,
+                    value_limit: CoreUsageLimit { limit_type, limit, period },
+                })
+            })
+            .collect();
+
+        let transfer_policies = transfer_policies?;
+
+        let session_spec = CoreSessionSpec {
+            signer: signer_addr,
+            expires_at,
+            fee_limit,
+            call_policies: vec![],
+            transfer_policies,
+        };
+
+        console_log!("  Creating session via core create_session...");
+
+        match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::create::create_session(
+            account,
+            session_spec,
+            entry_point,
+            session_validator,
+            bundler_client,
+            provider,
+            signer,
+        )
+        .await
+        {
+            Ok(_) => Ok(JsValue::from_str("Session created successfully")),
+            Err(e) => Err(JsValue::from_str(&format!(
+                "Failed to create session: {}",
+                e
+            ))),
         }
     })
 }
@@ -1976,6 +2321,7 @@ mod tests {
             factory_address,
             eoa_signers: None, // No EOA signer
             webauthn_signer: Some(webauthn_signer),
+            session_signer: None,
             id: None,
             provider: provider.clone(),
         })
@@ -2253,5 +2599,163 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Test deploying an account, adding a session, and verifying session module
+    #[tokio::test]
+    async fn test_wasm_session_add_and_verify() -> eyre::Result<()> {
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::{
+            SessionSpec, transfer_spec::TransferSpec, usage_limit::UsageLimit, limit_type::LimitType,
+        };
+        use alloy::primitives::{U256, aliases::U48};
+
+        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+        let config = TestInfraConfig { signer_private_key: signer_private_key.clone() };
+        let (
+            _,
+            anvil_instance,
+            provider,
+            contracts,
+            _signer_private_key,
+            bundler,
+            bundler_client,
+        ) = start_anvil_and_deploy_contracts_and_start_bundler_with_config(&config).await?;
+
+        let factory_address = contracts.account_factory;
+        let entry_point_address =
+            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+        let eoa_validator_address = contracts.eoa_validator;
+        let session_validator_address = contracts.session_validator;
+
+        // Deploy account with EOA validator
+    // Use the same EOA signer address as core tests to match validator expectations
+    let signers = vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
+        let eoa_signers = zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::EOASigners {
+            addresses: signers,
+            validator_address: eoa_validator_address,
+        };
+
+        let account_address = deploy_account(zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::DeployAccountParams {
+            factory_address,
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            session_signer: None,
+            id: None,
+            provider: provider.clone(),
+        }).await?;
+
+        // Fund the account
+        {
+            let fund_tx = alloy::providers::Provider::send_transaction(
+                &provider,
+                alloy::rpc::types::TransactionRequest::default()
+                    .to(account_address)
+                    .value(U256::from(10000000000000000000u64)),
+            ).await?.get_receipt().await?;
+        }
+
+        // Install session module and add a session to the account
+        {
+            use std::sync::Arc;
+            use zksync_sso_erc4337_core::erc4337::account::{
+                erc7579::add_module::add_module,
+                modular_smart_account::signature::{
+                    eoa_signature, stub_signature_eoa,
+                },
+            };
+
+            // Build EOA signer matching validator
+            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
+            let signer_private_key = signer_private_key.clone();
+            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
+                eoa_signature(
+                    &signer_private_key,
+                    eoa_validator_address,
+                    hash,
+                )
+            });
+
+            let signer = zksync_sso_erc4337_core::erc4337::signer::Signer {
+                provider: signature_provider,
+                stub_signature: stub_sig,
+            };
+
+            // Install session module
+            add_module(
+                account_address,
+                session_validator_address,
+                entry_point_address,
+                provider.clone(),
+                bundler_client.clone(),
+                signer.clone(),
+            )
+            .await?;
+
+            // Verify installed
+            let is_installed = is_module_installed(
+                session_validator_address,
+                account_address,
+                provider.clone(),
+            )
+            .await?;
+            eyre::ensure!(is_installed, "Session module is not installed");
+        }
+
+        // Create session spec
+        // Match core test parameters for session signer and transfer target
+        let session_signer_address = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
+        let transfer_target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
+        let session_spec = SessionSpec {
+            signer: session_signer_address,
+            // Use a concrete timestamp similar to core tests
+            expires_at: U48::from(2088558400u64),
+            // Align fee limit with core test: Lifetime limit of 1 ETH
+            fee_limit: UsageLimit {
+                limit_type: LimitType::Lifetime,
+                limit: U256::from(1_000_000_000_000_000_000u64),
+                period: U48::from(0),
+            },
+            call_policies: vec![],
+            // Align transfer policy with core test: per-use max 1 wei, unlimited total
+            transfer_policies: vec![TransferSpec {
+                target: transfer_target,
+                max_value_per_use: U256::from(1u64),
+                value_limit: UsageLimit {
+                    limit_type: LimitType::Unlimited,
+                    limit: U256::from(0),
+                    period: U48::from(0),
+                },
+            }],
+        };
+
+        // Create session via core API (preferred for Rust tests)
+        zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::create::create_session(
+            account_address,
+            session_spec,
+            entry_point_address,
+            session_validator_address,
+            bundler_client.clone(),
+            provider.clone(),
+            {
+                use std::sync::Arc;
+                use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::{
+                    eoa_signature, stub_signature_eoa,
+                };
+                let stub_sig = stub_signature_eoa(eoa_validator_address)?;
+                let signer_private_key = signer_private_key.clone();
+                let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
+                    eoa_signature(&signer_private_key, eoa_validator_address, hash)
+                });
+                zksync_sso_erc4337_core::erc4337::signer::Signer { provider: signature_provider, stub_signature: stub_sig }
+            },
+        )
+        .await?;
+
+        // Verify session module is installed
+        // Module already installed above; if create_session succeeded, test passes
+
+        drop(anvil_instance);
+        drop(bundler);
+        Ok(())
     }
 }

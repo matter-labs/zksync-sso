@@ -112,6 +112,7 @@ mod tests {
             factory_address,
             eoa_signers: Some(eoa_signers),
             webauthn_signer: None,
+            session_signer: None,
             id: None,
             provider: provider.clone(),
         })
