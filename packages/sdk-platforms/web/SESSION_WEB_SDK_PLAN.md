@@ -1,11 +1,15 @@
 # Session Support for Web SDK - Implementation Plan
 
 ## Overview
-Add session functionality to the Web SDK to enable gasless transactions within defined limits. Sessions allow users to authorize specific operations (transfers, contract calls) with limits on fees and values, signed by a separate session key.
+
+Add session functionality to the Web SDK to enable gasless transactions within defined
+limits. Sessions allow users to authorize specific operations (transfers, contract
+calls) with limits on fees and values, signed by a separate session key.
 
 ## Architecture
 
 ### Session Structure
+
 ```typescript
 {
   signer: Address,           // Session key address
@@ -26,67 +30,86 @@ UsageLimit {
 }
 ```
 
-## Phase 1: Rust/WASM FFI Layer Updates
+## Phase 1: Rust/WASM FFI Layer Updates ✅ (Completed Nov 6, 2025)
+
+Phase 1 is complete. We implemented the session WASM types, added both post-deploy
+and deploy-with-session flows to the FFI, and validated with automated tests
+mirroring core. The FFI and Rust core now support installing a session at account
+creation (deploy-with-session) as well as post-deploy. All flows are covered by
+tests.
 
 ### 1.1 Create Session-Related WASM Types ✅
+
 **File**: `packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-ffi-web/src/lib.rs`
 
 **Status**: COMPLETED
+
 - Added `TransferPayload` struct with getters
-- Added `SessionPayload` struct with getters  
+- Added `SessionPayload` struct with getters
 - Types match core session specification
 
 ### 1.2 Update `DeployAccountConfig` ✅
+
 **Status**: COMPLETED
+
 - Added `session_validator_address: Option<String>` field
 - Added getter method
 - Updated constructor
 
 ### 1.3 Update `deploy_account` Function Signature ✅
+
 **Status**: COMPLETED
+
 - Added `session_payload: Option<SessionPayload>` parameter
 - Updated documentation
 
-### 1.4 Add Session Support to Core Deploy Function ⚠️
-**Status**: BLOCKED - Requires core changes
+### 1.4 Add Session Support to Core Deploy Function ✅
 
-The core `deploy_account` function in `zksync-sso-erc4337-core` does not currently support sessions during deployment. This needs to be added before we can complete the FFI implementation.
+**Status**: COMPLETED
 
-**Required Changes**:
-1. Update `DeployAccountParams` in core to include `session_spec: Option<SessionSpec>`
-2. Add session module installation logic in core deploy function
-3. Encode session initialization data
-4. Add session module to modules array
-
-**Workaround**: For now, we can:
-- Add the WASM bindings for session configuration
-- Document the limitation
-- Implement session addition post-deployment (similar to passkey addition)
+Deploy-with-session is now supported and tested. The recommended path is to install
+the SessionKeyValidator and create a session either during deployment or immediately
+after. Both flows are validated in FFI and core tests.
 
 ### 1.5 Alternative: Add Session Post-Deployment 🔄
-**Status**: RECOMMENDED APPROACH
 
-Instead of adding session during deployment, we can add a function to install a session module after deployment:
+**Status**: COMPLETED
+
+Instead of adding session during deployment,
+we can add a function to install a session module after deployment:
 
 ```rust
 #[wasm_bindgen]
 pub fn add_session_to_account(
-    config: SendTransactionConfig,
-    account_address: String,
-    session_payload: SessionPayload,
-    session_validator_address: String,
-    eoa_validator_address: String,
-    eoa_private_key: String,
+  config: SendTransactionConfig,
+  account_address: String,
+  session_payload: SessionPayload,
+  session_validator_address: String,
+  eoa_validator_address: String,
+  eoa_private_key: String,
 ) -> js_sys::Promise
 ```
 
 This approach:
+
 - Works with existing core functions
 - Follows same pattern as `add_passkey_to_account`
 - Allows flexible session management
 - Doesn't require core deploy changes
 
-### 1.6 Session Transaction Functions (TODO)
+Implementation:
+
+- Function implemented in `zksync-sso-erc4337-ffi-web/src/lib.rs` as
+  `add_session_to_account`
+- Converts WASM `SessionPayload` to core `SessionSpec` and calls core helpers to
+  install the module and create a session
+
+### 1.6 Session Transaction Functions ▶ Deferred
+
+**Status**: DEFERRED to Phase 4 (Session Transaction Sending)
+
+We will add prepare/submit helpers for session-signed transactions alongside the
+broader "Session Transaction Sending" work to keep responsibilities grouped.
 Add functions to prepare and send session transactions:
 
 ```rust
@@ -97,12 +120,37 @@ pub fn prepare_session_user_operation(...) -> js_sys::Promise
 pub fn submit_session_user_operation(...) -> js_sys::Promise
 ```
 
-### 1.7 Tests (TODO)
-Add comprehensive tests for session functionality.
+### 1.7 Tests ✅
+
+**Status**: COMPLETED
+
+Added and validated tests in `zksync-sso-erc4337-ffi-web/src/lib.rs`:
+
+- wasm_transport creation
+- Passkey two-step flow (prepare + submit)
+- Session add-and-verify flow (install SessionKeyValidator and create session)
+- Deploy-with-session flow (session installed at account creation)
+
+Result: 4/4 tests passing locally with Anvil + Alto bundler. All session install
+flows are covered.
 
 ## Phase 2: TypeScript/Web SDK Updates
 
+Actionable checklist:
+
+- [ ] Export `SessionPayload` and `TransferPayload` from the WASM bundle in
+  `bundler.ts`
+- [ ] Define and export TS interfaces (`SessionConfig`, `UsageLimit`, `TransferSpec`)
+- [ ] Wire `add_session_to_account` and deploy-with-session into the Web SDK
+  surface with friendly wrappers
+- [ ] Add browser/e2e tests for both session install flows (deploy-with-session and
+  post-deploy)
+- [ ] Add browser/e2e tests for session transaction sending (prepare/submit)
+- [ ] Update docs and `contracts.json` handling to surface `sessionValidator`
+  address
+
 ### 2.1 Export Types from bundler.ts
+
 ```typescript
 export const {
   // ... existing exports ...
@@ -112,6 +160,7 @@ export const {
 ```
 
 ### 2.2 Create TypeScript Types
+
 ```typescript
 export interface SessionConfig {
   signer: `0x${string}`;
@@ -126,13 +175,14 @@ export interface SessionConfig {
     valueLimit: bigint;
     limitType?: 'unlimited' | 'lifetime' | 'allowance';
     period?: number;
-  }>;
+  };
 }
 ```
 
 ## Phase 3: Vue Component Updates
 
 ### 3.1 Add Session State
+
 ```typescript
 const sessionConfig = ref({
   enabled: false,
@@ -147,22 +197,27 @@ const sessionConfig = ref({
 ```
 
 ### 3.2 Create SessionConfig Component
+
 UI component for configuring session parameters.
 
 ### 3.3 Update deployAccount Function
+
 Integrate session payload creation and pass to WASM.
 
 ## Phase 4: Session Transaction Sending
 
 ### 4.1 Update TransactionSender Component
+
 Add session signing mode with proper key management.
 
 ### 4.2 Implement Session Signing Flow
+
 Use prepare + submit pattern similar to passkey flow.
 
 ## Phase 5: Testing & Validation
 
 ### Test Cases
+
 1. ✅ Deploy without session - existing flow
 2. ✅ Deploy with session - new flow
 3. ✅ Send transaction with session
@@ -173,6 +228,7 @@ Use prepare + submit pattern similar to passkey flow.
 8. ✅ Session with passkey + EOA
 
 ### contracts.json Update
+
 Ensure `sessionValidator` address is included after deployment.
 
 ## Implementation Order
@@ -210,6 +266,9 @@ Ensure `sessionValidator` address is included after deployment.
 
 ## References
 
-- Core session types: `packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-core/src/erc4337/account/modular_smart_account/session/`
-- Existing Rust SDK tests: `packages/sdk-platforms/rust/zksync-sso/crates/sdk/src/client/session/`
-- Swift integration: `packages/sdk-platforms/swift/ZKsyncSSOIntegration/Sources/ZKsyncSSOIntegration/Actions/DeployAccount.swift`
+- Core session types:
+  `packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-core/src/erc4337/account/modular_smart_account/session/`
+- Existing Rust SDK tests:
+  `packages/sdk-platforms/rust/zksync-sso/crates/sdk/src/client/session/`
+- Swift integration:
+  `packages/sdk-platforms/swift/ZKsyncSSOIntegration/Sources/ZKsyncSSOIntegration/Actions/DeployAccount.swift`

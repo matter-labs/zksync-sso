@@ -2204,6 +2204,102 @@ impl Client {
 
 #[cfg(test)]
 mod tests {
+    /// Test deploying an account with a session installed at creation (deploy-with-session)
+    #[tokio::test]
+    async fn test_wasm_deploy_with_session() -> eyre::Result<()> {
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::{
+            SessionSpec, transfer_spec::TransferSpec, usage_limit::UsageLimit, limit_type::LimitType,
+        };
+        use alloy::primitives::{U256, aliases::U48, address};
+
+        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+        let config = TestInfraConfig { signer_private_key: signer_private_key.clone() };
+        let (
+            _,
+            anvil_instance,
+            provider,
+            contracts,
+            _signer_private_key,
+            bundler,
+            bundler_client,
+        ) = start_anvil_and_deploy_contracts_and_start_bundler_with_config(&config).await?;
+
+        let factory_address = contracts.account_factory;
+        let entry_point_address = address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+        let eoa_validator_address = contracts.eoa_validator;
+        let session_validator_address = contracts.session_validator;
+
+        // Use the same EOA signer address as core tests to match validator expectations
+        let signers = vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
+        let eoa_signers = zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::EOASigners {
+            addresses: signers.clone(),
+            validator_address: eoa_validator_address,
+        };
+
+        // Session spec for deploy-with-session
+        let session_signer_address = signers[0];
+        let transfer_target = signers[0];
+        let session_spec = SessionSpec {
+            signer: session_signer_address,
+            expires_at: U48::from(2088558400u64),
+            fee_limit: UsageLimit {
+                limit_type: LimitType::Lifetime,
+                limit: U256::from(1_000_000_000_000_000_000u64),
+                period: U48::from(0),
+            },
+            call_policies: vec![],
+            transfer_policies: vec![TransferSpec {
+                target: transfer_target,
+                max_value_per_use: U256::from(1u64),
+                value_limit: UsageLimit {
+                    limit_type: LimitType::Unlimited,
+                    limit: U256::from(0),
+                    period: U48::from(0),
+                },
+            }],
+        };
+
+        let session_signer = zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::SessionSigner {
+            session_spec,
+            validator_address: session_validator_address,
+        };
+
+        // Deploy account with session installed at creation
+        let account_address = zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::deploy_account(
+            zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::DeployAccountParams {
+                factory_address,
+                eoa_signers: Some(eoa_signers),
+                webauthn_signer: None,
+                session_signer: Some(session_signer),
+                id: None,
+                provider: provider.clone(),
+            }
+        ).await?;
+
+        // Fund the account
+        {
+            let fund_tx = alloy::providers::Provider::send_transaction(
+                &provider,
+                alloy::rpc::types::TransactionRequest::default()
+                    .to(account_address)
+                    .value(U256::from(10000000000000000000u64)),
+            ).await?.get_receipt().await?;
+        }
+
+        // Verify session module is installed
+        let is_installed = is_module_installed(
+            session_validator_address,
+            account_address,
+            provider.clone(),
+        ).await?;
+        eyre::ensure!(is_installed, "Session module is not installed after deploy-with-session");
+
+        // Optionally: verify session spec (out of scope for this smoke test)
+
+        drop(anvil_instance);
+        drop(bundler);
+        Ok(())
+    }
     use alloy::{
         primitives::{Bytes, FixedBytes, U256, address, bytes, fixed_bytes},
         providers::Provider,
