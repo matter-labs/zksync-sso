@@ -37,6 +37,10 @@ use zksync_sso_erc4337_core::{
 mod wasm_transport;
 use wasm_transport::WasmHttpTransport;
 
+// Stub private key for creating stub signatures during gas estimation
+const STUB_PRIVATE_KEY: &str =
+    "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
+
 // Initialize logging and panic hook for WASM
 #[wasm_bindgen(start)]
 pub fn init() {
@@ -1887,6 +1891,314 @@ pub fn submit_passkey_user_operation(
                     "Failed to submit UserOperation: {}",
                     e
                 )))
+            }
+        }
+    })
+}
+
+/// Send a transaction using a session key
+///
+/// This function sends a transaction signed by a session key validator.
+/// It uses a keyed nonce based on the session signer address and creates
+/// a session signature that includes the SessionSpec and period IDs.
+///
+/// # Parameters
+/// * `config` - SendTransactionConfig with RPC, bundler, and entry point
+/// * `session_validator_address` - Address of the Session Key validator module
+/// * `account_address` - The smart account address
+/// * `to_address` - The recipient address
+/// * `value` - Amount to send (as string, e.g., "1000000000000000000" for 1 ETH)
+/// * `data` - Optional calldata as hex string
+/// * `session_private_key` - The session key private key (hex string)
+/// * `session_payload` - The SessionPayload containing session configuration
+#[wasm_bindgen]
+pub fn send_transaction_session(
+    config: SendTransactionConfig,
+    session_validator_address: String,
+    account_address: String,
+    to_address: String,
+    value: String,
+    data: Option<String>,
+    session_private_key: String,
+    session_payload: SessionPayload,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Starting Session transaction...");
+        console_log!("  Account: {}", account_address);
+        console_log!("  To: {}", to_address);
+        console_log!("  Value: {}", value);
+        console_log!("  Bundler: {}", config.bundler_url);
+
+        // Parse addresses
+        let account = match account_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid account address: {}",
+                    e
+                )));
+            }
+        };
+
+        let entry_point = match config.entry_point_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid entry point address: {}",
+                    e
+                )));
+            }
+        };
+
+        let session_validator = match session_validator_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid session validator address: {}",
+                    e
+                )));
+            }
+        };
+
+        let to = match to_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid to address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse value
+        let value_u256 = match value.parse::<U256>() {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid value: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse data
+        let data_bytes = match data {
+            Some(d) => {
+                let hex_str = d.trim_start_matches("0x");
+                match hex::decode(hex_str) {
+                    Ok(bytes) => Bytes::from(bytes),
+                    Err(e) => {
+                        return Err(JsValue::from_str(&format!(
+                            "Invalid data hex: {}",
+                            e
+                        )));
+                    }
+                }
+            }
+            None => Bytes::default(),
+        };
+
+        console_log!("  Parsed addresses and values successfully");
+
+        // Parse session private key to get signer address
+        let session_signer_address = match session_private_key
+            .trim_start_matches("0x")
+            .parse::<PrivateKeySigner>()
+        {
+            Ok(signer) => {
+                let addr = signer.address();
+                console_log!("  Session signer address: {:?}", addr);
+                addr
+            }
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid session private key: {}",
+                    e
+                )));
+            }
+        };
+
+        // Convert SessionPayload to SessionSpec
+        let signer_addr = match session_payload.signer.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid session signer address: {}",
+                    e
+                )));
+            }
+        };
+
+        let expires_at = match u64::from_str_radix(&session_payload.expires_at, 10) {
+            Ok(v) => U48::from(v),
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid expires_at value: {}",
+                    e
+                )));
+            }
+        };
+
+        let fee_limit_type = match CoreLimitType::try_from(session_payload.fee_limit_type) {
+            Ok(t) => t,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid fee limit type: {}",
+                    e
+                )));
+            }
+        };
+
+        let fee_limit_value = match U256::from_str(&session_payload.fee_limit_value) {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid fee limit value: {}",
+                    e
+                )));
+            }
+        };
+
+        let fee_limit_period = match U48::from_str(&session_payload.fee_limit_period) {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid fee limit period: {}",
+                    e
+                )));
+            }
+        };
+
+        let fee_limit = CoreUsageLimit {
+            limit_type: fee_limit_type,
+            limit: fee_limit_value,
+            period: fee_limit_period,
+        };
+
+        let transfer_policies: Result<Vec<CoreTransferSpec>, JsValue> = session_payload
+            .transfers
+            .iter()
+            .map(|t| {
+                let target = t.target.parse::<Address>().map_err(|e| JsValue::from_str(&format!("Invalid transfer target: {}", e)))?;
+                let max_value_per_use = U256::from_str(&t.value_limit_value)
+                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_value: {}", e)))?;
+                let limit_type = CoreLimitType::try_from(t.value_limit_type)
+                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_type: {}", e)))?;
+                let limit = U256::from_str(&t.value_limit_value)
+                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_value: {}", e)))?;
+                let period = U48::from_str(&t.value_limit_period)
+                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_period: {}", e)))?;
+
+                Ok(CoreTransferSpec {
+                    target,
+                    max_value_per_use,
+                    value_limit: CoreUsageLimit { limit_type, limit, period },
+                })
+            })
+            .collect();
+
+        let transfer_policies = transfer_policies?;
+
+        let session_spec = CoreSessionSpec {
+            signer: signer_addr,
+            expires_at,
+            fee_limit,
+            call_policies: vec![],
+            transfer_policies,
+        };
+
+        console_log!("  Converted session payload to SessionSpec");
+
+        // Create transport and provider (without wallet - session signing is custom)
+        let transport = WasmHttpTransport::new(config.rpc_url.clone());
+        let client = RpcClient::new(transport.clone(), false);
+        let provider = ProviderBuilder::new().connect_client(client);
+
+        console_log!("  Created provider and transport");
+
+        // Create bundler client
+        let bundler_client = {
+            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
+            let config = BundlerConfig::new(config.bundler_url);
+            zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
+        };
+
+        console_log!("  Created bundler client");
+
+        // Encode the execution call
+        use zksync_sso_erc4337_core::erc4337::account::erc7579::{
+            Execution, calls::encode_calls,
+        };
+
+        let call =
+            Execution { target: to, value: value_u256, data: data_bytes };
+
+        let calls = vec![call];
+        let encoded_calls: Bytes = encode_calls(calls).into();
+
+        console_log!(
+            "  Encoded call data, preparing session transaction..."
+        );
+
+        // Use keyed nonce for session
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::send::keyed_nonce;
+        let nonce_key = keyed_nonce(session_signer_address);
+        console_log!("  Session keyed nonce: {}", nonce_key);
+
+        // Send transaction with session signature
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::send::{
+            SendParams, send_transaction,
+        };
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::session_signature;
+        use zksync_sso_erc4337_core::erc4337::signer::Signer;
+        use std::sync::Arc;
+
+        // Create stub signature for gas estimation
+        let stub_sig = match session_signature(
+            STUB_PRIVATE_KEY,
+            session_validator,
+            &session_spec,
+            FixedBytes::default(),
+        ) {
+            Ok(sig) => sig,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Failed to create stub signature: {}",
+                    e
+                )));
+            }
+        };
+
+        // Create signature provider
+        let private_key = session_private_key.clone();
+        let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
+            session_signature(&private_key, session_validator, &session_spec, hash)
+        });
+
+        let signer = Signer {
+            provider: signature_provider,
+            stub_signature: stub_sig,
+        };
+
+        match send_transaction(SendParams {
+            account,
+            entry_point,
+            call_data: encoded_calls,
+            nonce_key: Some(nonce_key),
+            paymaster: None,
+            bundler_client,
+            provider,
+            signer,
+        })
+        .await
+        {
+            Ok(_) => {
+                console_log!("  Session transaction sent successfully!");
+                Ok(JsValue::from_str("Session transaction sent successfully"))
+            }
+            Err(e) => {
+                console_log!("  Error sending session transaction: {}", e);
+                Err(JsValue::from_str(&format!("Failed to send session transaction: {}", e)))
             }
         }
     })

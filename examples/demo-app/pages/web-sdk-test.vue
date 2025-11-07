@@ -241,6 +241,7 @@
       v-if="deploymentResult && fundResult"
       :deployment-result="deploymentResult"
       :passkey-config="passkeyConfig"
+      :session-config="sessionConfig"
     />
 
     <!-- Address Computation Testing -->

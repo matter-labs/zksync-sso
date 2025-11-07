@@ -13,6 +13,7 @@ export const add_passkey_to_account = wasm.add_passkey_to_account;
 export const add_session_to_account = wasm.add_session_to_account;
 export const prepare_passkey_user_operation = wasm.prepare_passkey_user_operation;
 export const send_transaction_eoa = wasm.send_transaction_eoa;
+export const send_transaction_session = wasm.send_transaction_session;
 export const submit_passkey_user_operation = wasm.submit_passkey_user_operation;
 export const compute_account_id = wasm.compute_account_id;
 

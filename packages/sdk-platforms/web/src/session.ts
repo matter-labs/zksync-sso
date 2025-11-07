@@ -2,6 +2,7 @@
 import {
   add_session_to_account as wasm_add_session_to_account,
   deploy_account as wasm_deploy_account,
+  send_transaction_session as wasm_send_transaction_session,
   SessionPayload as WasmSessionPayload,
   TransferPayload as WasmTransferPayload,
 } from "./bundler";
@@ -91,5 +92,29 @@ export async function addSessionToAccount(args: {
     args.sessionValidatorAddress,
     args.eoaValidatorAddress,
     args.eoaPrivateKey,
+  );
+}
+
+// Convenience wrapper: send transaction using session key
+export async function sendTransactionWithSession(args: {
+  txConfig: any; // wasm SendTransactionConfig
+  sessionValidatorAddress: string;
+  accountAddress: string;
+  to: string;
+  value: string;
+  data?: string | null;
+  sessionPrivateKey: string;
+  session: SessionConfig;
+}): Promise<any> {
+  const sessionPayload = toSessionPayload(args.session);
+  return wasm_send_transaction_session(
+    args.txConfig,
+    args.sessionValidatorAddress,
+    args.accountAddress,
+    args.to,
+    args.value,
+    args.data ?? null,
+    args.sessionPrivateKey,
+    sessionPayload,
   );
 }

@@ -10,7 +10,7 @@
     <div class="space-y-3">
       <!-- Signing Method Selection -->
       <div
-        v-if="deploymentResult.passkeyEnabled"
+        v-if="deploymentResult.passkeyEnabled || deploymentResult.sessionEnabled"
         class="mb-3 p-3 bg-white rounded border border-indigo-300"
       >
         <label class="block text-sm font-medium mb-2">Signing Method:</label>
@@ -24,7 +24,10 @@
             >
             <span class="text-sm">EOA Validator (Private Key)</span>
           </label>
-          <label class="flex items-center">
+          <label
+            v-if="deploymentResult.passkeyEnabled"
+            class="flex items-center"
+          >
             <input
               v-model="signingMethod"
               type="radio"
@@ -33,7 +36,33 @@
             >
             <span class="text-sm">WebAuthn Passkey (Hardware Key)</span>
           </label>
+          <label
+            v-if="deploymentResult.sessionEnabled"
+            class="flex items-center"
+          >
+            <input
+              v-model="signingMethod"
+              type="radio"
+              value="session"
+              class="mr-2"
+            >
+            <span class="text-sm">Session Key (Gasless within limits)</span>
+          </label>
         </div>
+      </div>
+
+      <!-- Session Private Key Input (only shown for session method) -->
+      <div v-if="signingMethod === 'session'">
+        <label class="block text-sm font-medium mb-1">Session Private Key:</label>
+        <input
+          v-model="sessionPrivateKey"
+          type="text"
+          placeholder="0x..."
+          class="w-full px-3 py-2 border rounded font-mono text-sm"
+        >
+        <p class="text-xs text-gray-500 mt-1">
+          The private key for the session signer address
+        </p>
       </div>
 
       <!-- Transaction Parameters -->
@@ -63,7 +92,15 @@
         class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         @click="sendTransaction"
       >
-        {{ loading ? "Sending..." : (signingMethod === 'passkey' ? 'Send with Passkey' : 'Send with EOA') }}
+        {{
+          loading
+            ? "Sending..."
+            : signingMethod === 'passkey'
+              ? 'Send with Passkey'
+              : signingMethod === 'session'
+                ? 'Send with Session Key'
+                : 'Send with EOA'
+        }}
       </button>
     </div>
 
@@ -104,12 +141,17 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  sessionConfig: {
+    type: Object,
+    default: null,
+  },
 });
 
 // Local state
 const signingMethod = ref("eoa");
 const to = ref("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // Anvil account #2
 const amount = ref("0.001");
+const sessionPrivateKey = ref(""); // Session private key input
 const loading = ref(false);
 const txResult = ref("");
 const txError = ref("");
@@ -167,6 +209,8 @@ async function sendTransaction() {
 
     if (signingMethod.value === "passkey") {
       await sendFromSmartAccountWithPasskey();
+    } else if (signingMethod.value === "session") {
+      await sendFromSmartAccountWithSession();
     } else {
       await sendFromSmartAccountWithEOA();
     }
@@ -330,6 +374,74 @@ async function sendFromSmartAccountWithPasskey() {
     credentialId: props.passkeyConfig.credentialId,
     rpId: window.location.hostname,
     origin: window.location.origin,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log("  Transaction result:", result);
+
+  txResult.value = result;
+}
+
+// Send transaction using Session Key validator
+async function sendFromSmartAccountWithSession() {
+  if (!props.sessionConfig || !props.sessionConfig.enabled) {
+    throw new Error("Session is not configured or enabled");
+  }
+
+  if (!sessionPrivateKey.value) {
+    throw new Error("Session private key is required");
+  }
+
+  // eslint-disable-next-line no-console
+  console.log("Sending transaction from smart account using Session Key...");
+
+  // Import SDK function
+  const { sendTransactionWithSession, SendTransactionConfig } = await import("zksync-sso-web-sdk/bundler");
+
+  // Load contracts.json
+  const response = await fetch("/contracts.json");
+  const contracts = await response.json();
+  const rpcUrl = contracts.rpcUrl;
+  const bundlerUrl = contracts.bundlerUrl || "http://localhost:4337";
+  const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
+  const sessionValidatorAddress = contracts.sessionValidator;
+
+  if (!sessionValidatorAddress) {
+    throw new Error("Session validator address not found in contracts.json");
+  }
+
+  // eslint-disable-next-line no-console
+  console.log("  Smart Account:", props.deploymentResult.address);
+  // eslint-disable-next-line no-console
+  console.log("  To:", to.value);
+  // eslint-disable-next-line no-console
+  console.log("  Amount:", amount.value, "ETH");
+  // eslint-disable-next-line no-console
+  console.log("  Session Validator:", sessionValidatorAddress);
+
+  // Convert amount to wei (as string)
+  const amountWei = (BigInt(parseFloat(amount.value) * 1e18)).toString();
+
+  // Construct the SendTransactionConfig wasm object
+  const sendConfig = new SendTransactionConfig(
+    rpcUrl,
+    bundlerUrl,
+    entryPointAddress,
+  );
+
+  // Send transaction using session key
+  // eslint-disable-next-line no-console
+  console.log("Sending transaction with session key...");
+
+  const result = await sendTransactionWithSession({
+    txConfig: sendConfig,
+    sessionValidatorAddress,
+    accountAddress: props.deploymentResult.address,
+    to: to.value,
+    value: amountWei,
+    data: null,
+    sessionPrivateKey: sessionPrivateKey.value,
+    session: props.sessionConfig,
   });
 
   // eslint-disable-next-line no-console

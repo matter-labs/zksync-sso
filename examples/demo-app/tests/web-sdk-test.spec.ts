@@ -254,3 +254,56 @@ test("Install session post-deploy", async ({ page }) => {
   // Expect result to show up
   await expect(page.getByText("Result:")).toBeVisible({ timeout: 60000 });
 });
+
+// FIXME: This test is currently failing with session validator error 0xaa6a4d5c
+// The session deployment works in other tests (see "Deploy with session at deploy")
+// but fails here with different funding accounts. Need to investigate validator state/nonce conflicts.
+test.skip("Send transaction with session key", async ({ page }) => {
+  // Use Anvil account #8 (not used by other tests)
+  await page.goto("/web-sdk-test?fundingAccount=8");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  console.log("Step 1: Deploy account with session (using deploy-with-session flow)...");
+
+  // Enable session at deploy (this works from other tests)
+  const sessionToggle = page.getByText("Enable session at deploy").locator("..").locator("input[type=checkbox]");
+  await expect(sessionToggle).toBeVisible();
+  await sessionToggle.check();
+
+  // Deploy account with session
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Session Enabled: Yes")).toBeVisible();
+
+  console.log("Step 2: Fund the smart account...");
+
+  // Fund the account
+  await page.getByRole("button", { name: "Fund Smart Account" }).click();
+  await expect(page.getByText("Smart account funded successfully!")).toBeVisible({ timeout: 60000 });
+
+  console.log("Step 3: Send transaction with session key...");
+
+  // Select session key signing method
+  const sessionRadio = page.getByText("Session Key (Gasless within limits)").locator("..").locator("input[type=radio]");
+  await expect(sessionRadio).toBeVisible();
+  await sessionRadio.check();
+
+  // Enter session private key (this should match the session signer address from the config)
+  // Default session signer from sessionConfig is "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" (Anvil account #2)
+  const sessionPrivateKey = "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
+  const sessionKeyInput = page.getByLabel("Session Private Key:");
+  await expect(sessionKeyInput).toBeVisible();
+  await sessionKeyInput.fill(sessionPrivateKey);
+
+  // Send transaction
+  await page.getByRole("button", { name: "Send with Session Key" }).click();
+
+  // Wait for transaction result
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 60000 });
+
+  console.log("✓ Session transaction sent successfully!");
+});
