@@ -1,13 +1,19 @@
 use crate::{
     config::contracts::Contracts,
-    erc4337::account::modular_smart_account::session::{
-        SessionKeyValidator, session_lib::session_spec::SessionSpec,
+    erc4337::account::modular_smart_account::{
+        session::{
+            SessionKeyValidator, session_lib::session_spec::SessionSpec,
+        },
+        utils::{
+            calculate_from_block, create_logs_filter_with_range,
+            parse_add_remove_events,
+        },
     },
 };
 use alloy::{
     primitives::{Address, FixedBytes},
     providers::Provider,
-    rpc::types::{BlockNumberOrTag, Filter, FilterSet, Log},
+    rpc::types::{Filter, Log},
     sol_types::SolEvent,
 };
 use serde::{Deserialize, Serialize};
@@ -18,8 +24,6 @@ pub struct ActiveSession {
     pub session_hash: FixedBytes<32>,
     pub session_spec: SessionSpec,
 }
-
-const MAX_BLOCK_RANGE: u64 = 100_000;
 
 pub async fn get_active_sessions<P>(
     account_address: Address,
@@ -52,27 +56,11 @@ where
     Ok(active_sessions)
 }
 
-fn calculate_from_block(current_block: u64) -> u64 {
-    current_block.saturating_sub(MAX_BLOCK_RANGE)
-}
-
 fn create_session_logs_filter_with_range(
     session_key_validator_address: Address,
     from_block: u64,
 ) -> Filter {
-    Filter {
-        address: session_key_validator_address.into(),
-        topics: [
-            FilterSet::default(),
-            FilterSet::default(),
-            FilterSet::default(),
-            FilterSet::default(),
-        ],
-        block_option: alloy::rpc::types::FilterBlockOption::Range {
-            from_block: Some(BlockNumberOrTag::Number(from_block)),
-            to_block: None,
-        },
-    }
+    create_logs_filter_with_range(session_key_validator_address, from_block)
 }
 
 fn parse_session_events(
@@ -84,33 +72,27 @@ fn parse_session_events(
     let session_revoked_topic =
         SessionKeyValidator::SessionRevoked::SIGNATURE_HASH;
 
-    let mut created_sessions: Vec<(FixedBytes<32>, SessionSpec)> = Vec::new();
-    let mut revoked_hashes: HashSet<FixedBytes<32>> = HashSet::new();
-
-    for log in logs {
-        if let Some(topic0) = log.inner.topics().first() {
-            if *topic0 == session_created_topic
-                && let Ok(decoded) =
-                    log.log_decode::<SessionKeyValidator::SessionCreated>()
-            {
-                let event = decoded.inner.data;
-                if event.account == account_address {
-                    let session_spec: SessionSpec = event.sessionSpec.into();
-                    created_sessions.push((event.sessionHash, session_spec));
-                }
-            } else if *topic0 == session_revoked_topic
-                && let Ok(decoded) =
-                    log.log_decode::<SessionKeyValidator::SessionRevoked>()
-            {
-                let event = decoded.inner.data;
-                if event.account == account_address {
-                    revoked_hashes.insert(event.sessionHash);
-                }
+    parse_add_remove_events(
+        logs,
+        account_address,
+        session_created_topic,
+        session_revoked_topic,
+        |event: SessionKeyValidator::SessionCreated, account_address| {
+            if event.account == account_address {
+                let session_spec: SessionSpec = event.sessionSpec.into();
+                Some((event.sessionHash, session_spec))
+            } else {
+                None
             }
-        }
-    }
-
-    (created_sessions, revoked_hashes)
+        },
+        |event: SessionKeyValidator::SessionRevoked, account_address| {
+            if event.account == account_address {
+                Some(event.sessionHash)
+            } else {
+                None
+            }
+        },
+    )
 }
 
 pub fn filter_active_sessions(
@@ -162,7 +144,7 @@ mod tests {
     };
     use alloy::{
         primitives::{FixedBytes, U256, Uint, address},
-        rpc::types::FilterBlockOption,
+        rpc::types::{BlockNumberOrTag, FilterBlockOption, FilterSet},
     };
     use std::{collections::HashSet, sync::Arc};
 

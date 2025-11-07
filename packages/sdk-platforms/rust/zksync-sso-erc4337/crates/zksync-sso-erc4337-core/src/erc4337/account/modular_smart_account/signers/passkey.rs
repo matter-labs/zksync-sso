@@ -1,4 +1,7 @@
+pub mod active;
+pub mod add;
 pub mod encoding;
+pub mod remove;
 
 use crate::erc4337::account::modular_smart_account::signers::{
     STUB_PRIVATE_KEY, eoa::eoa_signature,
