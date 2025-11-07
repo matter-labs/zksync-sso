@@ -1,7 +1,7 @@
 use crate::erc4337::{
     account::modular_smart_account::{
         send::{SendParams, send_transaction},
-        signature::{eoa_signature, stub_signature_eoa},
+        signers::eoa::{eoa_signature, stub_signature_eoa},
     },
     bundler::pimlico::client::BundlerClient,
     paymaster::params::PaymasterParams,
