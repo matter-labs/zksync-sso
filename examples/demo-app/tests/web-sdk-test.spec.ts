@@ -208,3 +208,49 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
 
   console.log("✅ All passkey steps completed successfully!");
 });
+
+test("Deploy with session at deploy", async ({ page }) => {
+  // Use Anvil account #4 to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=4");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  // Enable session at deploy
+  const sessionToggle = page.getByText("Enable session at deploy").locator("..").locator("input[type=checkbox]");
+  await expect(sessionToggle).toBeVisible();
+  await sessionToggle.check();
+
+  // Deploy account
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+
+  // Wait for deployment success and verify session enabled
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Session Enabled: Yes")).toBeVisible();
+});
+
+test("Install session post-deploy", async ({ page }) => {
+  // Use Anvil account #5 to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=5");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  // Ensure session-at-deploy is not enabled (default is unchecked)
+  // Deploy account
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+
+  // Session should not be enabled yet
+  await expect(page.getByText("Session Enabled: Yes")).not.toBeVisible();
+
+  // Install session post-deploy
+  await page.getByRole("button", { name: "Install Session Module" }).click();
+
+  // Expect result to show up
+  await expect(page.getByText("Result:")).toBeVisible({ timeout: 60000 });
+});

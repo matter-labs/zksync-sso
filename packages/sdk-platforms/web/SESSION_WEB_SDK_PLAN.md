@@ -149,6 +149,8 @@ Actionable checklist:
   surface with friendly wrappers
 - [ ] Add browser/e2e tests for both session install flows (deploy-with-session
   and post-deploy)
+- [x] Add browser/e2e tests for both session install flows (deploy-with-session
+  and post-deploy) — added in `examples/demo-app/tests/web-sdk-test.spec.ts`
 - [ ] Add browser/e2e tests for session transaction sending (prepare/submit)
 - [ ] Update docs and `contracts.json` handling to surface `sessionValidator`
   address

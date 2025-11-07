@@ -157,6 +157,9 @@
         <div v-if="deploymentResult.passkeyEnabled">
           <span><strong>Passkey Enabled:</strong> Yes</span>
         </div>
+        <div v-if="deploymentResult.sessionEnabled">
+          <span><strong>Session Enabled:</strong> Yes</span>
+        </div>
       </div>
     </div>
 
@@ -254,6 +257,50 @@
         <p class="text-xs text-red-600 mt-1">
           {{ fundError }}
         </p>
+      </div>
+    </div>
+
+    <!-- Install Session Post-Deploy -->
+    <div
+      v-if="deploymentResult && (!sessionConfig.enabled || sessionInstallResult || sessionInstallError)"
+      class="bg-teal-50 p-4 rounded-lg mb-4 border border-teal-200"
+    >
+      <h2 class="text-lg font-semibold mb-3 text-teal-800">
+        Install Session Post-Deploy
+      </h2>
+      <p class="text-sm text-gray-600 mb-4">
+        You can install a SessionKeyValidator and create a session on an already deployed account.
+        This will authorize limited, gasless operations with the configured signer and limits.
+      </p>
+
+      <div class="space-y-3">
+        <button
+          :disabled="loading"
+          class="w-full px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 disabled:opacity-50"
+          @click="installSessionPostDeploy"
+        >
+          {{ loading ? 'Installing Session...' : 'Install Session Module' }}
+        </button>
+
+        <div
+          v-if="sessionInstallResult"
+          class="mt-4 p-3 bg-white rounded border border-teal-300"
+        >
+          <strong class="text-sm">Result:</strong>
+          <p class="text-xs text-green-600 mt-1">
+            {{ sessionInstallResult }}
+          </p>
+        </div>
+
+        <div
+          v-if="sessionInstallError"
+          class="mt-4 p-3 bg-red-50 rounded border border-red-300"
+        >
+          <strong class="text-sm text-red-800">Error:</strong>
+          <p class="text-xs text-red-600 mt-1">
+            {{ sessionInstallError }}
+          </p>
+        </div>
       </div>
     </div>
 
@@ -391,6 +438,10 @@ const fundParams = ref({
 });
 const fundResult = ref("");
 const fundError = ref("");
+
+// Session install state (post-deploy flow)
+const sessionInstallResult = ref("");
+const sessionInstallError = ref("");
 
 // Passkey configuration state
 const passkeyConfig = ref({
@@ -588,7 +639,7 @@ async function deployAccount() {
         // eslint-disable-next-line no-console
         console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress);
         // eslint-disable-next-line no-console
-        console.log("Loaded WebAuthn validator address from contracts.json:", webAuthnValidatorAddress);
+        console.log("Loaded WebAuthn validator address from contracts.json:", contracts.webauthnValidator);
         // eslint-disable-next-line no-console
         console.log("Loaded Session validator address from contracts.json:", contracts.sessionValidator);
         sessionValidatorAddress = contracts.sessionValidator || null;
@@ -750,6 +801,90 @@ async function deployAccount() {
     // eslint-disable-next-line no-console
     console.error("Account deployment failed:", err);
     error.value = `Failed to deploy account: ${err.message}`;
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Install Session on an already deployed account (post-deploy flow)
+async function installSessionPostDeploy() {
+  loading.value = true;
+  sessionInstallError.value = "";
+  sessionInstallResult.value = "";
+
+  try {
+    if (!deploymentResult.value || !deploymentResult.value.address) {
+      throw new Error("Smart account not deployed yet");
+    }
+
+    // Import the wrapper from the web SDK
+    const { addSessionToAccount } = await import("zksync-sso-web-sdk/bundler");
+
+    // Load network and validator details
+    const response = await fetch("/contracts.json");
+    if (!response.ok) {
+      throw new Error("contracts.json not found - cannot load network configuration");
+    }
+    const contracts = await response.json();
+    const rpcUrl = contracts.rpcUrl;
+    const bundlerUrl = contracts.bundlerUrl || "http://localhost:4337";
+    const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
+    const eoaValidatorAddress = contracts.eoaValidator;
+    const sessionValidatorAddress = contracts.sessionValidator;
+
+    if (!sessionValidatorAddress) {
+      throw new Error("Session validator address not found in contracts.json");
+    }
+
+    // Use Anvil account #1 as the EOA authorizer for installing the session
+    const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+
+    // Build session config from UI values
+    const { ethers } = await import("ethers");
+    const nowSec = Math.floor(Date.now() / 1000);
+    const expiresAt = nowSec + sessionConfig.value.expiresInDays * 86400;
+    const session = {
+      signer: sessionConfig.value.signer,
+      expiresAt,
+      feeLimit: {
+        limitType: "lifetime",
+        limit: ethers.parseEther(sessionConfig.value.feeLimitEth),
+      },
+      transfers: [
+        {
+          to: sessionConfig.value.transfers[0].to,
+          valueLimit: ethers.parseEther(sessionConfig.value.transfers[0].valueLimitEth),
+        },
+      ],
+    };
+
+    // Build SendTransactionConfig (wasm class instance)
+    const { SendTransactionConfig } = await import("zksync-sso-web-sdk/bundler");
+    const txConfig = new SendTransactionConfig(
+      rpcUrl,
+      bundlerUrl,
+      entryPointAddress,
+    );
+
+    // Execute the install
+    const res = await addSessionToAccount({
+      txConfig,
+      accountAddress: deploymentResult.value.address,
+      session,
+      sessionValidatorAddress,
+      eoaValidatorAddress,
+      eoaPrivateKey: eoaSignerPrivateKey,
+    });
+
+    if (typeof res === "string" && (res.startsWith("Failed") || res.startsWith("Error"))) {
+      throw new Error(res);
+    }
+
+    sessionInstallResult.value = typeof res === "string" ? res : "Session installed successfully!";
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Session install failed:", err);
+    sessionInstallError.value = `Failed to install session: ${err.message}`;
   } finally {
     loading.value = false;
   }

@@ -25,3 +25,19 @@ pnpm nx dev demo-app
 ```
 
 The output will list the localhost addresses for both running applications.
+
+## Network configuration (contracts.json)
+
+The demo app reads network and validator addresses from `/public/contracts.json`
+at runtime. Ensure the file contains the following fields:
+
+- `rpcUrl`: JSON-RPC endpoint for the local node
+- `bundlerUrl`: ERC-4337 bundler URL
+- `entryPoint`: EntryPoint contract address
+- `factory`: Account factory address
+- `eoaValidator`: EOA validator address
+- `webauthnValidator`: WebAuthn validator address (for passkey flows)
+- `sessionValidator`: SessionKey validator address (for session flows)
+
+Session flows in the Web SDK (deploy-with-session and post-deploy install)
+require `sessionValidator` to be set.
