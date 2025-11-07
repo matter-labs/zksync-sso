@@ -20,7 +20,6 @@ import {
   encode_get_user_operation_hash_call_data,
   generate_eoa_stub_signature,
   sign_eoa_message,
-  sign_eoa_typed_data,
   sign_eoa_user_operation_hash,
   // @ts-expect-error - TypeScript doesn't understand package.json exports with node module resolution
 } from "zksync-sso-web-sdk/bundler";
@@ -101,10 +100,8 @@ export async function toEcdsaSmartAccount<
       return encoded;
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async decodeCalls(_data) {
-      // Decoding is not needed for EOA accounts using Rust SDK
-      // All encoding is handled by Rust, and we don't need to decode back
-      throw new Error("decodeCalls is not supported. All encoding is handled by Rust SDK.");
+    async decodeCalls(data) {
+      throw new Error("decodeCalls is not supported yet.");
     },
 
     // --- Address & factory args ---
@@ -127,14 +124,9 @@ export async function toEcdsaSmartAccount<
       const messageToSign = typeof message === "string" ? message : hashMessage(message);
       return sign_eoa_message(signerPrivateKey, messageToSign) as Hex;
     },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async signTypedData({ domain, types, primaryType, message }) {
-      return sign_eoa_typed_data(
-        signerPrivateKey,
-        JSON.stringify(domain),
-        JSON.stringify(types),
-        primaryType,
-        JSON.stringify(message),
-      ) as Hex;
+      throw new Error("signTypedData is not supported for ECDSA smart accounts");
     },
     async signUserOperation(params) {
       const sender = await this.getAddress();
