@@ -143,6 +143,11 @@
       "import": "./dist/_esm/client-new/ecdsa/index.js",
       "require": "./dist/_cjs/client-new/ecdsa/index.js"
     },
+    "./client-new/passkey": {
+      "types": "./dist/_types/client-new/passkey/index.d.ts",
+      "import": "./dist/_esm/client-new/passkey/index.js",
+      "require": "./dist/_cjs/client-new/passkey/index.js"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {

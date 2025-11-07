@@ -1,8 +1,6 @@
 import {
   type Address,
   type Chain,
-  type Hash,
-  hashMessage,
   type Hex,
   type PublicClient,
   type Transport,
@@ -18,38 +16,46 @@ import {
   encode_execute_call_data,
   encode_get_nonce_call_data,
   encode_get_user_operation_hash_call_data,
-  generate_eoa_stub_signature,
-  sign_eoa_message,
-  sign_eoa_user_operation_hash,
+  generate_passkey_stub_signature,
   // @ts-expect-error - TypeScript doesn't understand package.json exports with node module resolution
 } from "zksync-sso-web-sdk/bundler";
 
-export type ToEcdsaSmartAccountParams<
+import { signWithPasskey } from "./webauthn.js";
+
+export type ToPasskeySmartAccountParams<
   TTransport extends Transport = Transport,
   TChain extends Chain = Chain,
 > = {
   /** Public client used internally by the smart account implementation (must have chain). */
   client: PublicClient<TTransport, TChain>;
-  /** EOA signer private key. */
-  signerPrivateKey: Hash;
   /** Smart account address (required - no counterfactual support). */
   address: Address;
-  /** EOA validator contract address (required for stub signature generation). */
-  eoaValidatorAddress: Address;
+  /** Passkey validator contract address (required for signature formatting). */
+  validatorAddress: Address;
+  /** Passkey credential ID (hex string). */
+  credentialId: Hex;
+  /** Relying Party ID (domain where passkey was created). */
+  rpId: string;
+  /** Origin URL (for WebAuthn verification). */
+  origin: string;
 };
 
 /**
- * Builds a SSO SmartAccount instance which uses an ECDSA EOA for signing.
+ * Builds a SmartAccount that is owned by a passkey.
+ * Uses viem's generic `toSmartAccount` under the hood.
+ * All encoding is handled by Rust SDK, viem handles network requests, WebAuthn handles signing.
  */
-export async function toEcdsaSmartAccount<
+export async function toPasskeySmartAccount<
   TTransport extends Transport = Transport,
   TChain extends Chain = Chain,
 >({
   client,
-  signerPrivateKey,
   address,
-  eoaValidatorAddress,
-}: ToEcdsaSmartAccountParams<TTransport, TChain>): Promise<ToSmartAccountReturnType> {
+  validatorAddress,
+  credentialId,
+  rpId,
+  origin,
+}: ToPasskeySmartAccountParams<TTransport, TChain>): Promise<ToSmartAccountReturnType> {
   return toSmartAccount({
     client,
     entryPoint: {
@@ -98,8 +104,10 @@ export async function toEcdsaSmartAccount<
       return encoded;
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async decodeCalls(data) {
-      throw new Error("decodeCalls is not supported yet.");
+    async decodeCalls(_data) {
+      // Decoding is not needed for passkey accounts using Rust SDK
+      // All encoding is handled by Rust, and we don't need to decode back
+      throw new Error("decodeCalls is not supported. All encoding is handled by Rust SDK.");
     },
 
     // --- Address & factory args ---
@@ -115,16 +123,15 @@ export async function toEcdsaSmartAccount<
     // --- Stubs & signing ---
     async getStubSignature() {
       // Use Rust SDK to generate proper stub signature
-      return generate_eoa_stub_signature(eoaValidatorAddress) as Hex;
+      return generate_passkey_stub_signature(validatorAddress) as Hex;
     },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async signMessage({ message }) {
-      // Hash the message if it's not already hashed
-      const messageToSign = typeof message === "string" ? message : hashMessage(message);
-      return sign_eoa_message(signerPrivateKey, messageToSign) as Hex;
+      throw new Error("signMessage is not supported for passkey accounts yet");
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async signTypedData({ domain, types, primaryType, message }) {
-      throw new Error("signTypedData is not supported for ECDSA smart accounts");
+      throw new Error("signTypedData is not supported for passkey accounts");
     },
     async signUserOperation(params) {
       const sender = await this.getAddress();
@@ -148,11 +155,20 @@ export async function toEcdsaSmartAccount<
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
 
-      const signature = sign_eoa_user_operation_hash(
-        userOpHash,
-        signerPrivateKey,
-        eoaValidatorAddress,
-      ) as Hex;
+      // Sign with WebAuthn (browser API) and get complete signature
+      // signWithPasskey handles:
+      // 1. Converting hash to WebAuthn challenge
+      // 2. Calling browser WebAuthn API
+      // 3. Parsing DER signature
+      // 4. ABI-encoding via Rust SDK
+      // 5. Prepending validator address
+      const signature = await signWithPasskey({
+        hash: userOpHash as Hex,
+        credentialId,
+        validatorAddress,
+        rpId,
+        origin,
+      });
 
       return signature;
     },

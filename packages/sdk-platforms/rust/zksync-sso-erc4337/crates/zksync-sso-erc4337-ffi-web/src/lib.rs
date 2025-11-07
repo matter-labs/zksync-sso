@@ -1678,6 +1678,23 @@ pub fn encode_get_user_operation_hash_call_data(
     Ok(format!("0x{}", hex::encode(encoded)))
 }
 
+/// Generate a stub signature for gas estimation with passkey validator
+/// Returns a properly formatted signature for the validator
+#[wasm_bindgen]
+pub fn generate_passkey_stub_signature(validator_address: String) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::stub_signature_passkey;
+
+    // Parse validator address
+    let validator_addr = validator_address.parse::<Address>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid validator address: {}", e)))?;
+
+    // Generate stub signature
+    let signature = stub_signature_passkey(validator_addr)
+        .map_err(|e| JsValue::from_str(&format!("Failed to generate stub signature: {}", e)))?;
+
+    Ok(format!("0x{}", hex::encode(&signature)))
+}
+
 /// Encode a passkey signature for on-chain verification
 /// Returns the ABI-encoded signature ready for submission
 ///

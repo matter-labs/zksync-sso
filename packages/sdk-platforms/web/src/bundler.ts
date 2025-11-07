@@ -27,10 +27,12 @@ export const {
   encode_get_nonce_call_data, // Encode EntryPoint.getNonce() call
   decode_nonce_result, // Decode nonce result from EntryPoint
   encode_execute_call_data, // Encode execute() call for smart account
-  generate_eoa_stub_signature, // Generate stub signature for gas estimation
+  generate_eoa_stub_signature, // Generate stub signature for gas estimation (EOA)
+  generate_passkey_stub_signature, // Generate stub signature for gas estimation (Passkey)
   sign_eoa_message, // Sign message hash with EOA private key
   sign_eoa_user_operation_hash, // Sign UserOperation hash with EOA private key
   encode_get_user_operation_hash_call_data, // Encode EntryPoint.getUserOpHash() call (no network request)
+  encode_passkey_signature, // Encode passkey signature for on-chain verification
 } = wasm;
 
 // Initialize WASM module
