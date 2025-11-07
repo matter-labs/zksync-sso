@@ -97,7 +97,7 @@ mod tests {
                 },
                 modular_smart_account::{
                     deploy::{DeployAccountParams, EOASigners, deploy_account},
-                    signature::{eoa_signature, stub_signature_eoa},
+                    signers::eoa::{eoa_signature, stub_signature_eoa},
                     test_utilities::fund_account_with_default_amount,
                 },
             },

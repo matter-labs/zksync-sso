@@ -6,6 +6,7 @@ use alloy::{
     signers::local::PrivateKeySigner,
 };
 use alloy_rpc_client::RpcClient;
+use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
 use zksync_sso_erc4337_core::{
@@ -19,6 +20,10 @@ use zksync_sso_erc4337_core::{
                 WebAuthNSigner as CoreWebauthNSigner,
             },
             send::eoa::EOASendParams,
+            signers::{
+                eoa::{eoa_signature, stub_signature_eoa},
+                passkey::stub_signature_passkey,
+            },
         },
         entry_point::version::EntryPointVersion,
     },
@@ -624,11 +629,6 @@ pub fn add_passkey_to_account(
         };
 
         // Create EOA signer
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::{
-            eoa_signature, stub_signature_eoa,
-        };
-        use std::sync::Arc;
-
         let stub_sig = match stub_signature_eoa(eoa_validator) {
             Ok(sig) => sig,
             Err(e) => {
@@ -1015,7 +1015,6 @@ pub fn prepare_passkey_user_operation(
 
         // Create stub signature internally (validator address + minimal ABI-encoded data)
         // This matches the format expected by WebAuthnValidator: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::stub_signature_passkey;
         let stub_sig = match stub_signature_passkey(validator) {
             Ok(sig) => sig,
             Err(e) => {

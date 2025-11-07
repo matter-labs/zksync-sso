@@ -167,7 +167,7 @@ fn sign_typed_data_with_domains(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::erc4337::account::modular_smart_account::signature::eoa_signature;
+    use crate::erc4337::account::modular_smart_account::signers::eoa::eoa_signature;
     use alloy::primitives::{FixedBytes, U256, address, bytes};
     use std::sync::Arc;
 

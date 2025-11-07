@@ -118,7 +118,7 @@ mod tests {
                 erc7579::module_installed::is_module_installed,
                 modular_smart_account::{
                     deploy::EOASigners,
-                    signature::{eoa_signature, stub_signature_eoa},
+                    signers::eoa::{eoa_signature, stub_signature_eoa},
                     test_utilities::fund_account_with_default_amount,
                 },
             },
