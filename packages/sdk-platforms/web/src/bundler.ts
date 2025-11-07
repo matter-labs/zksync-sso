@@ -21,6 +21,17 @@ export const {
   PasskeyPayload, // Passkey credential data
   DeployAccountConfig, // Account deployment configuration
   SendTransactionConfig, // Transaction sending configuration
+
+  // ===== NEW SDK HELPER FUNCTIONS =====
+  // These functions are used by the new viem-based SDK (packages/sdk/src/client-new)
+  encode_get_nonce_call_data, // Encode EntryPoint.getNonce() call
+  decode_nonce_result, // Decode nonce result from EntryPoint
+  encode_execute_call_data, // Encode execute() call for smart account
+  generate_eoa_stub_signature, // Generate stub signature for gas estimation
+  sign_eoa_message, // Sign message hash with EOA private key
+  sign_eoa_typed_data, // Sign EIP-712 typed data with EOA private key
+  sign_eoa_user_operation_hash, // Sign UserOperation hash with EOA private key
+  encode_get_user_operation_hash_call_data, // Encode EntryPoint.getUserOpHash() call (no network request)
 } = wasm;
 
 // Initialize WASM module

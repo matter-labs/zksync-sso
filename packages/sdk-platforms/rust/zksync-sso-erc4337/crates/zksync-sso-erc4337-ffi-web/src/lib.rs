@@ -1449,6 +1449,460 @@ pub fn compute_account_id(user_id: &str) -> String {
     format!("0x{}", hex::encode(salt_hash))
 }
 
+// ===== NEW SDK HELPER FUNCTIONS =====
+// These functions are used by the new viem-based SDK (packages/sdk/src/client-new)
+
+/// Encode a call to EntryPoint.getNonce(sender, key)
+/// Used for querying account nonce from the entry point
+#[wasm_bindgen]
+pub fn encode_get_nonce_call_data(sender: String, key: String) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint;
+    use alloy::sol_types::SolCall;
+
+    // Parse sender address
+    let sender_addr = sender.parse::<Address>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid sender address: {}", e)))?;
+
+    // Parse key (should be a number string, default to 0)
+    let key_u192 = key.parse::<alloy::primitives::Uint<192, 3>>()
+        .unwrap_or(alloy::primitives::Uint::from(0));
+
+    // Create the getNonce call
+    let call = EntryPoint::getNonceCall {
+        sender: sender_addr,
+        key: key_u192,
+    };
+
+    // Encode the call
+    let encoded = call.abi_encode();
+    Ok(format!("0x{}", hex::encode(encoded)))
+}
+
+/// Decode the result of EntryPoint.getNonce() call
+/// Returns the nonce as a string
+#[wasm_bindgen]
+pub fn decode_nonce_result(result: String) -> Result<String, JsValue> {
+    // Remove 0x prefix if present
+    let hex_str = result.trim_start_matches("0x");
+
+    // Decode hex to bytes
+    let bytes = hex::decode(hex_str)
+        .map_err(|e| JsValue::from_str(&format!("Invalid hex: {}", e)))?;
+
+    // Convert bytes to U256
+    let nonce = U256::from_be_slice(&bytes);
+
+    Ok(nonce.to_string())
+}
+
+/// Encode a single execute() call for the smart account
+/// Used for encoding transaction calldata
+#[wasm_bindgen]
+pub fn encode_execute_call_data(
+    target: String,
+    value: String,
+    data: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::erc7579::{Execution, calls::encode_calls};
+
+    // Parse target address
+    let target_addr = target.parse::<Address>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid target address: {}", e)))?;
+
+    // Parse value
+    let value_u256 = value.parse::<U256>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid value: {}", e)))?;
+
+    // Parse data (hex string)
+    let data_hex = data.trim_start_matches("0x");
+    let data_bytes = if data_hex.is_empty() {
+        Bytes::default()
+    } else {
+        let bytes_vec = hex::decode(data_hex)
+            .map_err(|e| JsValue::from_str(&format!("Invalid data hex: {}", e)))?;
+        Bytes::from(bytes_vec)
+    };
+
+    // Create execution
+    let execution = Execution {
+        target: target_addr,
+        value: value_u256,
+        data: data_bytes,
+    };
+
+    // Encode single call
+    let encoded = encode_calls(vec![execution]);
+
+    Ok(format!("0x{}", hex::encode(encoded)))
+}
+
+/// Generate a stub signature for gas estimation with EOA validator
+/// Returns a properly formatted signature for the validator
+#[wasm_bindgen]
+pub fn generate_eoa_stub_signature(validator_address: String) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::stub_signature_eoa;
+
+    // Parse validator address
+    let validator_addr = validator_address.parse::<Address>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid validator address: {}", e)))?;
+
+    // Generate stub signature
+    let signature = stub_signature_eoa(validator_addr)
+        .map_err(|e| JsValue::from_str(&format!("Failed to generate stub signature: {}", e)))?;
+
+    Ok(format!("0x{}", hex::encode(&signature)))
+}
+
+/// Sign a message hash with EOA private key
+/// The message should already be hashed (e.g., via keccak256)
+#[wasm_bindgen]
+pub fn sign_eoa_message(
+    private_key: String,
+    message_hash: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::eoa_sign;
+
+    // Parse message hash
+    let hash = message_hash.parse::<FixedBytes<32>>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid message hash: {}", e)))?;
+
+    // Sign the hash
+    let signature = eoa_sign(&private_key, hash)
+        .map_err(|e| JsValue::from_str(&format!("Failed to sign message: {}", e)))?;
+
+    Ok(format!("0x{}", hex::encode(&signature)))
+}
+
+/// Sign EIP-712 typed data with EOA private key
+/// This is a simplified version that just hashes the typed data and signs it
+#[wasm_bindgen]
+pub fn sign_eoa_typed_data(
+    private_key: String,
+    domain_json: String,
+    types_json: String,
+    primary_type: String,
+    message_json: String,
+) -> Result<String, JsValue> {
+    use alloy::dyn_abi::TypedData;
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::eoa_sign;
+
+    // Construct the full EIP-712 typed data JSON
+    let typed_data_json = serde_json::json!({
+        "domain": serde_json::from_str::<serde_json::Value>(&domain_json)
+            .map_err(|e| JsValue::from_str(&format!("Invalid domain JSON: {}", e)))?,
+        "types": serde_json::from_str::<serde_json::Value>(&types_json)
+            .map_err(|e| JsValue::from_str(&format!("Invalid types JSON: {}", e)))?,
+        "primaryType": primary_type,
+        "message": serde_json::from_str::<serde_json::Value>(&message_json)
+            .map_err(|e| JsValue::from_str(&format!("Invalid message JSON: {}", e)))?,
+    });
+
+    // Parse into TypedData
+    let typed_data: TypedData = serde_json::from_value(typed_data_json)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse typed data: {}", e)))?;
+
+    // Get the EIP-712 signing hash
+    let hash = typed_data.eip712_signing_hash()
+        .map_err(|e| JsValue::from_str(&format!("Failed to hash typed data: {}", e)))?;
+
+    // Sign the hash
+    let signature = eoa_sign(&private_key, hash)
+        .map_err(|e| JsValue::from_str(&format!("Failed to sign typed data: {}", e)))?;
+
+    Ok(format!("0x{}", hex::encode(&signature)))
+}
+
+/// Sign a UserOperation hash with EOA private key
+/// This ensures proper s-value normalization for ERC-4337
+/// The signature includes the validator address prefix (20 bytes) + ECDSA signature (65 bytes)
+#[wasm_bindgen]
+pub fn sign_eoa_user_operation_hash(
+    user_op_hash: String,
+    private_key: String,
+    validator_address: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::eoa_signature;
+
+    // Parse user operation hash
+    let hash = user_op_hash.parse::<FixedBytes<32>>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid user operation hash: {}", e)))?;
+
+    // Parse validator address
+    let validator_addr = validator_address.parse::<Address>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid validator address: {}", e)))?;
+
+    // Sign the hash with validator address prefix (85 bytes total: 20 + 65)
+    let signature = eoa_signature(&private_key, validator_addr, hash)
+        .map_err(|e| JsValue::from_str(&format!("Failed to sign user operation: {}", e)))?;
+
+    Ok(format!("0x{}", hex::encode(&signature)))
+}
+
+/// Get UserOperation hash from EntryPoint contract (on-chain)
+/// This makes an RPC call to the EntryPoint's getUserOpHash() method
+/// which ensures the hash accounts for on-chain state (EIP-7702, code, etc.)
+///
+/// # Parameters
+/// * `rpc_url` - The RPC endpoint URL
+/// * `entry_point_address` - The EntryPoint contract address
+/// * `sender` - The smart account address
+/// * `nonce` - The nonce as string
+/// * `call_data` - The encoded call data (hex string)
+/// * `call_gas_limit` - Call gas limit as string
+/// * `verification_gas_limit` - Verification gas limit as string
+/// * `pre_verification_gas` - Pre-verification gas as string
+/// * `max_fee_per_gas` - Max fee per gas as string
+/// * `max_priority_fee_per_gas` - Max priority fee per gas as string
+///
+/// # Returns
+/// Promise that resolves to the UserOperation hash (hex string with 0x prefix)
+#[wasm_bindgen]
+pub fn get_user_operation_hash_on_chain(
+    rpc_url: String,
+    entry_point_address: String,
+    sender: String,
+    nonce: String,
+    call_data: String,
+    call_gas_limit: String,
+    verification_gas_limit: String,
+    pre_verification_gas: String,
+    max_fee_per_gas: String,
+    max_priority_fee_per_gas: String,
+) -> js_sys::Promise {
+    future_to_promise(async move {
+        console_log!("Getting UserOperation hash from EntryPoint contract...");
+
+        // Parse addresses
+        let entry_point = match entry_point_address.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid entry point address: {}",
+                    e
+                )));
+            }
+        };
+
+        let sender_addr = match sender.parse::<Address>() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid sender address: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse numeric fields
+        let nonce_u256 = match nonce.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid nonce: {}",
+                    e
+                )));
+            }
+        };
+
+        let call_gas_limit_u256 = match call_gas_limit.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid call_gas_limit: {}",
+                    e
+                )));
+            }
+        };
+
+        let verification_gas_limit_u256 = match verification_gas_limit.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid verification_gas_limit: {}",
+                    e
+                )));
+            }
+        };
+
+        let pre_verification_gas_u256 = match pre_verification_gas.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid pre_verification_gas: {}",
+                    e
+                )));
+            }
+        };
+
+        let max_fee_per_gas_u256 = match max_fee_per_gas.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid max_fee_per_gas: {}",
+                    e
+                )));
+            }
+        };
+
+        let max_priority_fee_per_gas_u256 = match max_priority_fee_per_gas.parse::<U256>() {
+            Ok(n) => n,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid max_priority_fee_per_gas: {}",
+                    e
+                )));
+            }
+        };
+
+        // Parse call data
+        let call_data_hex = call_data.trim_start_matches("0x");
+        let call_data_bytes = match hex::decode(call_data_hex) {
+            Ok(bytes) => Bytes::from(bytes),
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid call_data hex: {}",
+                    e
+                )));
+            }
+        };
+
+        console_log!("  Parsed all parameters successfully");
+
+        // Create transport and provider
+        let transport = WasmHttpTransport::new(rpc_url);
+        let client = RpcClient::new(transport, false);
+        let provider = ProviderBuilder::new().connect_client(client);
+
+        console_log!("  Created provider");
+
+        // Pack gas limits and fees for EntryPoint::PackedUserOperation
+        let packed_gas_limits: U256 = (verification_gas_limit_u256 << 128) | call_gas_limit_u256;
+        let gas_fees: U256 = (max_priority_fee_per_gas_u256 << 128) | max_fee_per_gas_u256;
+
+        // Create PackedUserOperation for hashing (EntryPoint format with packed fields)
+        use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint::PackedUserOperation;
+        let packed_user_op = PackedUserOperation {
+            sender: sender_addr,
+            nonce: nonce_u256,
+            initCode: Bytes::default(),
+            callData: call_data_bytes,
+            accountGasLimits: packed_gas_limits.to_be_bytes().into(),
+            preVerificationGas: pre_verification_gas_u256,
+            gasFees: gas_fees.to_be_bytes().into(),
+            paymasterAndData: Bytes::default(),
+            signature: Bytes::default(), // Empty signature for hash computation
+        };
+
+        console_log!("  Built PackedUserOperation");
+
+        // Get the hash from EntryPoint contract (on-chain)
+        use zksync_sso_erc4337_core::erc4337::user_operation::hash::v08::get_user_operation_hash_entry_point;
+
+        let hash = match get_user_operation_hash_entry_point(
+            &packed_user_op,
+            &entry_point,
+            provider,
+        )
+        .await
+        {
+            Ok(h) => h,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Failed to get UserOp hash from EntryPoint: {}",
+                    e
+                )));
+            }
+        };
+
+        console_log!("  Got hash from EntryPoint: {:?}", hash);
+
+        // Convert hash to hex string
+        let hash_b256: alloy::primitives::B256 = hash.into();
+        let hash_hex = format!("{:#x}", hash_b256);
+
+        Ok(JsValue::from_str(&hash_hex))
+    })
+}
+
+/// Encode call data for EntryPoint.getUserOpHash() without making network requests.
+/// This allows TypeScript/viem to make the actual RPC call, keeping network logic out of Rust SDK.
+///
+/// # Parameters
+/// All UserOperation fields needed to construct PackedUserOperation
+///
+/// # Returns
+/// Hex-encoded call data for calling EntryPoint.getUserOpHash(PackedUserOperation)
+#[wasm_bindgen]
+pub fn encode_get_user_operation_hash_call_data(
+    sender: String,
+    nonce: String,
+    call_data: String,
+    call_gas_limit: String,
+    verification_gas_limit: String,
+    pre_verification_gas: String,
+    max_fee_per_gas: String,
+    max_priority_fee_per_gas: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint;
+    use alloy::sol_types::SolCall;
+
+    // Parse addresses
+    let sender_addr = sender.parse::<Address>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid sender address: {}", e)))?;
+
+    // Parse numeric fields
+    let nonce_u256 = nonce.parse::<U256>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid nonce: {}", e)))?;
+
+    let call_gas_limit_u256 = call_gas_limit.parse::<U256>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid call_gas_limit: {}", e)))?;
+
+    let verification_gas_limit_u256 = verification_gas_limit.parse::<U256>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid verification_gas_limit: {}", e)))?;
+
+    let pre_verification_gas_u256 = pre_verification_gas.parse::<U256>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid pre_verification_gas: {}", e)))?;
+
+    let max_fee_per_gas_u256 = max_fee_per_gas.parse::<U256>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid max_fee_per_gas: {}", e)))?;
+
+    let max_priority_fee_per_gas_u256 = max_priority_fee_per_gas.parse::<U256>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid max_priority_fee_per_gas: {}", e)))?;
+
+    // Parse call data
+    let call_data_hex = call_data.trim_start_matches("0x");
+    let call_data_bytes = hex::decode(call_data_hex)
+        .map_err(|e| JsValue::from_str(&format!("Invalid call_data hex: {}", e)))?;
+    let call_data_bytes = Bytes::from(call_data_bytes);
+
+    // Pack gas limits and fees for EntryPoint::PackedUserOperation
+    let packed_gas_limits: U256 = (verification_gas_limit_u256 << 128) | call_gas_limit_u256;
+    let gas_fees: U256 = (max_priority_fee_per_gas_u256 << 128) | max_fee_per_gas_u256;
+
+    // Create PackedUserOperation
+    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint::PackedUserOperation;
+    let packed_user_op = PackedUserOperation {
+        sender: sender_addr,
+        nonce: nonce_u256,
+        initCode: Bytes::default(),
+        callData: call_data_bytes,
+        accountGasLimits: packed_gas_limits.to_be_bytes().into(),
+        preVerificationGas: pre_verification_gas_u256,
+        gasFees: gas_fees.to_be_bytes().into(),
+        paymasterAndData: Bytes::default(),
+        signature: Bytes::default(), // Empty signature for hash computation
+    };
+
+    // Create the getUserOpHash call
+    let call = EntryPoint::getUserOpHashCall {
+        userOp: packed_user_op,
+    };
+
+    // Encode the call data
+    let encoded = call.abi_encode();
+    Ok(format!("0x{}", hex::encode(encoded)))
+}
+
 /// Encode a passkey signature for on-chain verification
 /// Returns the ABI-encoded signature ready for submission
 ///

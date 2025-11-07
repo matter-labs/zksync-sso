@@ -216,7 +216,6 @@ export async function createWebAuthnCredential(
   const coseKeyOffset = credIdOffset + credIdLength;
   const coseKey = authenticatorData.slice(coseKeyOffset);
 
-  // eslint-disable-next-line no-console
   console.log("COSE key bytes:", Array.from(coseKey).map((b) => b.toString(16).padStart(2, "0")).join(" "));
 
   // Parse COSE key to extract public key coordinates
