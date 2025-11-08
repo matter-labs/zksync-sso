@@ -1,9 +1,22 @@
+pub mod active;
+pub mod add;
+pub mod remove;
+
 use crate::erc4337::account::modular_smart_account::signers::STUB_PRIVATE_KEY;
 use alloy::{
     primitives::{Address, Bytes, FixedBytes},
     signers::{SignerSync, local::PrivateKeySigner},
+    sol,
 };
 use std::str::FromStr;
+
+sol!(
+    #[sol(rpc)]
+    #[derive(Debug, Default)]
+    #[allow(missing_docs)]
+    EOAKeyValidator,
+    "../../../../../../packages/erc4337-contracts/out/EOAKeyValidator.sol/EOAKeyValidator.json"
+);
 
 pub fn stub_signature_eoa(eoa_validator: Address) -> eyre::Result<Bytes> {
     let hash = FixedBytes::default();

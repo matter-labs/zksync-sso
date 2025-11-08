@@ -4,6 +4,7 @@ pub mod nonce;
 pub mod send;
 pub mod session;
 pub mod signers;
+pub mod utils;
 
 #[cfg(test)]
 pub mod test_utilities;
