@@ -1633,6 +1633,7 @@ pub struct EncodeGetUserOperationHashParams {
 }
 
 #[wasm_bindgen]
+#[allow(clippy::too_many_arguments)]
 impl EncodeGetUserOperationHashParams {
     #[wasm_bindgen(constructor)]
     pub fn new(
@@ -1699,7 +1700,9 @@ impl EncodeGetUserOperationHashParams {
 }
 
 #[wasm_bindgen]
-pub fn encode_get_user_operation_hash_call_data(params: EncodeGetUserOperationHashParams) -> Result<String, JsValue> {
+pub fn encode_get_user_operation_hash_call_data(
+    params: EncodeGetUserOperationHashParams,
+) -> Result<String, JsValue> {
     let EncodeGetUserOperationHashParams {
         sender,
         nonce,
