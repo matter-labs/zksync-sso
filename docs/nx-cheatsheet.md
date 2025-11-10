@@ -4,6 +4,7 @@ A collection of commands to help with running NX in the monorepo.
 
 ## Running NX commands
 
+test
 Use the `pnpm nx` command to use the monorepo's NX package, or install NX
 globally on your machine with npm. Project names are based on the name defined
 in the workspace's `project.json`, not the directory name.
