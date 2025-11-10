@@ -1,5 +1,7 @@
 // Bundler-specific entry point for web applications
-import initWasm, * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
+// Bundler target auto-initializes the wasm module (see generated JS invoking __wbindgen_start())
+// We import only the namespace; no explicit init call required for bundler target.
+import * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
 
 export * from "./session";
 export * from "./types";
@@ -26,14 +28,10 @@ export const SessionPayload = wasm.SessionPayload;
 export const TransferPayload = wasm.TransferPayload;
 
 // Initialize WASM module (async for web target)
-let initPromise: Promise<unknown> | null = null;
-
+// Provide a no-op async init for API symmetry with node target.
 export async function init(): Promise<void> {
-  if (!initPromise) {
-    initPromise = initWasm();
-  }
-  await initPromise;
+  // wasm already started; nothing to do.
 }
 
-// Auto-initialize for bundler environments (async)
+// Optional eager init (no-op but keeps previous semantics)
 init();

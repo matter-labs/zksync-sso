@@ -1064,7 +1064,7 @@ pub fn add_session_to_account(
         };
 
         // Build EOA signature provider for authorizing module install and session creation
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::{
+        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::eoa::{
             eoa_signature, stub_signature_eoa,
         };
         use std::sync::Arc;
@@ -1080,9 +1080,21 @@ pub fn add_session_to_account(
         };
 
         let eoa_key_str = format!("0x{}", hex::encode(eoa_key.to_bytes()));
-        let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-            eoa_signature(&eoa_key_str, eoa_validator, hash)
-        });
+        let signature_provider = Arc::new(
+            move |hash: FixedBytes<32>| -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<
+                            Output = eyre::Result<alloy::primitives::Bytes>,
+                        > + Send,
+                >,
+            > {
+                let eoa_key_hex = eoa_key_str.clone();
+                let eoa_validator_addr = eoa_validator;
+                Box::pin(async move {
+                    eoa_signature(&eoa_key_hex, eoa_validator_addr, hash)
+                })
+            },
+        );
 
         let signer = zksync_sso_erc4337_core::erc4337::signer::Signer {
             provider: signature_provider,
@@ -2258,7 +2270,7 @@ pub fn send_transaction_session(
         use zksync_sso_erc4337_core::erc4337::{
             account::modular_smart_account::{
                 send::{SendParams, send_transaction},
-                signature::session_signature,
+                session::signature::session_signature,
             },
             signer::Signer,
         };
@@ -2281,14 +2293,22 @@ pub fn send_transaction_session(
 
         // Create signature provider
         let private_key = session_private_key.clone();
-        let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-            session_signature(
-                &private_key,
-                session_validator,
-                &session_spec,
-                hash,
-            )
-        });
+        let signature_provider = Arc::new(
+            move |hash: FixedBytes<32>| -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<
+                            Output = eyre::Result<alloy::primitives::Bytes>,
+                        > + Send,
+                >,
+            > {
+                let pk = private_key.clone();
+                let sess_validator = session_validator;
+                let spec = session_spec.clone();
+                Box::pin(async move {
+                    session_signature(&pk, sess_validator, &spec, hash)
+                })
+            },
+        );
 
         let signer =
             Signer { provider: signature_provider, stub_signature: stub_sig };
@@ -2296,6 +2316,7 @@ pub fn send_transaction_session(
         match send_transaction(SendParams {
             account,
             entry_point,
+            factory_payload: None,
             call_data: encoded_calls,
             nonce_key: Some(nonce_key),
             paymaster: None,
@@ -3167,7 +3188,7 @@ mod tests {
             use std::sync::Arc;
             use zksync_sso_erc4337_core::erc4337::account::{
                 erc7579::add_module::add_module,
-                modular_smart_account::signature::{
+                modular_smart_account::signers::eoa::{
                     eoa_signature, stub_signature_eoa,
                 },
             };
@@ -3175,9 +3196,21 @@ mod tests {
             // Build EOA signer matching validator
             let stub_sig = stub_signature_eoa(eoa_validator_address)?;
             let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
+            let signature_provider = Arc::new(
+                move |hash: FixedBytes<32>| -> std::pin::Pin<
+                    Box<
+                        dyn std::future::Future<
+                                Output = eyre::Result<alloy::primitives::Bytes>,
+                            > + Send,
+                    >,
+                > {
+                    let pk = signer_private_key.clone();
+                    let validator = eoa_validator_address;
+                    Box::pin(async move {
+                        eoa_signature(&pk, validator, hash)
+                    })
+                },
+            );
 
             let signer = zksync_sso_erc4337_core::erc4337::signer::Signer {
                 provider: signature_provider,
@@ -3244,14 +3277,26 @@ mod tests {
             provider.clone(),
             {
                 use std::sync::Arc;
-                use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::{
+                use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::eoa::{
                     eoa_signature, stub_signature_eoa,
                 };
                 let stub_sig = stub_signature_eoa(eoa_validator_address)?;
                 let signer_private_key = signer_private_key.clone();
-                let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                    eoa_signature(&signer_private_key, eoa_validator_address, hash)
-                });
+                let signature_provider = Arc::new(
+                    move |hash: FixedBytes<32>| -> std::pin::Pin<
+                        Box<
+                            dyn std::future::Future<
+                                    Output = eyre::Result<alloy::primitives::Bytes>,
+                                > + Send,
+                        >,
+                    > {
+                        let pk = signer_private_key.clone();
+                        let validator = eoa_validator_address;
+                        Box::pin(async move {
+                            eoa_signature(&pk, validator, hash)
+                        })
+                    },
+                );
                 zksync_sso_erc4337_core::erc4337::signer::Signer { provider: signature_provider, stub_signature: stub_sig }
             },
         )
