@@ -1633,9 +1633,9 @@ pub struct EncodeGetUserOperationHashParams {
 }
 
 #[wasm_bindgen]
-#[allow(clippy::too_many_arguments)]
 impl EncodeGetUserOperationHashParams {
     #[wasm_bindgen(constructor)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         sender: String,
         nonce: String,
