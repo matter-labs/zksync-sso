@@ -258,6 +258,15 @@ jobs:
       - name: Deploy contracts
         run: pnpm run deploy --file ../auth-server/stores/local-node.json
         working-directory: packages/contracts
+      
+      # Web SDK depends on ERC-4337 contracts for WASM build
+      - name: Install ERC-4337 contract dependencies
+        run: forge soldeer install
+        working-directory: packages/erc4337-contracts
+
+      - name: Build ERC-4337 contracts
+        run: forge build
+        working-directory: packages/erc4337-contracts
 
       - name: Build SDK
         run: pnpm nx build sdk
