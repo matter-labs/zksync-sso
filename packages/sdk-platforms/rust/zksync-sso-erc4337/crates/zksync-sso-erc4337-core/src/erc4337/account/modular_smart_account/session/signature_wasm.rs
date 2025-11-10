@@ -1,6 +1,6 @@
 use crate::erc4337::account::modular_smart_account::{
     session::{
-        SessionLib::SessionSpec as SessionLibSessionSpec,
+        contract::SessionLib::SessionSpec as SessionLibSessionSpec,
         session_lib::session_spec::{
             SessionSpec, limit_type::LimitType, usage_limit::UsageLimit,
         },

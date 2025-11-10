@@ -1,5 +1,6 @@
 use alloy::{
     primitives::Address,
+    providers::Provider,
     rpc::types::{BlockNumberOrTag, Filter, FilterSet, Log},
     sol_types::SolEvent,
 };
@@ -67,4 +68,29 @@ where
     }
 
     (added_items, removed_keys)
+}
+
+/// Advance the EVM time by the specified number of seconds.
+/// This is useful for testing time-dependent functionality like recovery delays.
+///
+/// # Arguments
+/// * `provider` - The provider connected to an Anvil instance
+/// * `seconds` - Number of seconds to advance time by
+///
+/// # Returns
+/// The new block number after mining (as a hex string)
+pub async fn advance_time<P>(provider: &P, seconds: u64) -> eyre::Result<String>
+where
+    P: Provider + Send + Sync + Clone,
+{
+    // Increase time by the specified number of seconds
+    let _: u64 =
+        provider.raw_request("evm_increaseTime".into(), (seconds,)).await?;
+
+    // Mine a block to apply the time change
+    // evm_mine returns the new block number as a hex string
+    let block_number: String =
+        provider.raw_request("evm_mine".into(), ()).await?;
+
+    Ok(block_number)
 }

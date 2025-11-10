@@ -1,4 +1,4 @@
-use crate::erc4337::entry_point::PackedUserOperation;
+use crate::erc4337::entry_point::contract::PackedUserOperation;
 use alloy::primitives::{Address, B256, Bytes, U256};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;

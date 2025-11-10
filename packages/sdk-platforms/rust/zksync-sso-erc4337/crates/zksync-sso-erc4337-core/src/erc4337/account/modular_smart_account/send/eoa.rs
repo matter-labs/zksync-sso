@@ -1,5 +1,5 @@
 use crate::erc4337::{
-    account::modular_smart_account::send::{SendParams, send_transaction},
+    account::modular_smart_account::send::{SendUserOpParams, send_user_op},
     bundler::pimlico::client::BundlerClient,
     paymaster::params::PaymasterParams,
     signer::create_eoa_signer,
@@ -39,7 +39,7 @@ pub async fn eoa_send_transaction<P: Provider + Send + Sync + Clone>(
 
     let signer = create_eoa_signer(private_key_hex, eoa_validator)?;
 
-    _ = send_transaction(SendParams {
+    _ = send_user_op(SendUserOpParams {
         account,
         entry_point,
         factory_payload: None,
@@ -62,8 +62,13 @@ mod tests {
         erc4337::{
             account::{
                 erc7579::{
-                    Execution, calls::encode_calls,
-                    module_installed::is_module_installed,
+                    calls::encoded_call_data,
+                    module::{
+                        Module,
+                        installed::{
+                            IsModuleInstalledParams, is_module_installed,
+                        },
+                    },
                 },
                 modular_smart_account::{
                     deploy::{
@@ -84,7 +89,7 @@ mod tests {
         },
     };
     use alloy::{
-        primitives::{Bytes, U256, address},
+        primitives::{U256, address},
         providers::ProviderBuilder,
     };
 
@@ -134,27 +139,20 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(is_module_installed, "Module is not installed");
 
-        let call = {
-            let target = address;
-            let value = U256::from(1);
-            let data = Bytes::default();
-            Execution { target, value, data }
-        };
-
-        let calls = vec![call];
+        let encoded_calls =
+            encoded_call_data(address, None, Some(U256::from(1)));
 
         fund_account_with_default_amount(address, provider.clone()).await?;
-
-        let encoded_calls: Bytes = encode_calls(calls).into();
 
         eoa_send_transaction(EOASendParams {
             account: address,
@@ -271,27 +269,20 @@ mod tests {
             })
             .await?;
 
-        let is_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(is_module_installed, "Module is not installed");
 
-        let call = {
-            let target = address;
-            let value = U256::from(1);
-            let data = Bytes::default();
-            Execution { target, value, data }
-        };
-
-        let calls = vec![call];
+        let encoded_calls =
+            encoded_call_data(address, None, Some(U256::from(1)));
 
         fund_account_with_default_amount(address, provider.clone()).await?;
-
-        let encoded_calls: Bytes = encode_calls(calls).into();
 
         eoa_send_transaction(EOASendParams {
             account: address,

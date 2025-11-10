@@ -1,6 +1,6 @@
 use crate::erc4337::account::modular_smart_account::{
     session::{
-        SessionLib::SessionSpec as SessionLibSessionSpec,
+        contract::SessionLib::SessionSpec as SessionLibSessionSpec,
         period_id::get_period_id, session_lib::session_spec::SessionSpec,
     },
     signers::eoa::eoa_sign,

@@ -1,41 +1,56 @@
 use crate::erc4337::{
     account::{
-        erc7579::{Execution, calls::encode_calls},
+        erc7579::calls::encoded_call_with_target_and_data,
         modular_smart_account::{
-            send::{SendParams, send_transaction},
+            send::{SendUserOpParams, send_user_op},
             signers::eoa::EOAKeyValidator,
         },
     },
     bundler::pimlico::client::BundlerClient,
+    paymaster::params::PaymasterParams,
     signer::Signer,
 };
 use alloy::{
-    primitives::{Address, Bytes, U256},
+    primitives::{Address, Bytes},
     providers::Provider,
     sol_types::SolCall,
 };
 
-pub async fn remove_owner<P>(
-    account_address: Address,
-    owner: Address,
-    entry_point_address: Address,
-    eoa_validator_address: Address,
-    bundler_client: BundlerClient,
-    provider: P,
-    signer: Signer,
-) -> eyre::Result<()>
+pub struct RemoveOwnerParams<P: Provider + Send + Sync + Clone> {
+    pub account_address: Address,
+    pub owner: Address,
+    pub entry_point_address: Address,
+    pub eoa_validator_address: Address,
+    pub paymaster: Option<PaymasterParams>,
+    pub bundler_client: BundlerClient,
+    pub provider: P,
+    pub signer: Signer,
+}
+
+pub async fn remove_owner<P>(params: RemoveOwnerParams<P>) -> eyre::Result<()>
 where
     P: Provider + Send + Sync + Clone,
 {
+    let RemoveOwnerParams {
+        account_address,
+        owner,
+        entry_point_address,
+        eoa_validator_address,
+        paymaster,
+        bundler_client,
+        provider,
+        signer,
+    } = params;
+
     let call_data = remove_owner_call_data(owner, eoa_validator_address);
 
-    send_transaction(SendParams {
+    send_user_op(SendUserOpParams {
         account: account_address,
         entry_point: entry_point_address,
         factory_payload: None,
         call_data,
         nonce_key: None,
-        paymaster: None,
+        paymaster,
         bundler_client,
         provider,
         signer,
@@ -52,15 +67,10 @@ fn remove_owner_call_data(
     let remove_owner_calldata =
         EOAKeyValidator::removeOwnerCall { owner }.abi_encode().into();
 
-    let call = {
-        let target = eoa_validator_address;
-        let value = U256::from(0);
-        let data = remove_owner_calldata;
-        Execution { target, value, data }
-    };
-
-    let calls = vec![call];
-    encode_calls(calls).into()
+    encoded_call_with_target_and_data(
+        eoa_validator_address,
+        remove_owner_calldata,
+    )
 }
 
 #[cfg(test)]
@@ -69,10 +79,16 @@ mod tests {
     use crate::{
         erc4337::{
             account::{
-                erc7579::module_installed::is_module_installed,
+                erc7579::module::{
+                    Module,
+                    installed::{IsModuleInstalledParams, is_module_installed},
+                },
                 modular_smart_account::{
                     deploy::{DeployAccountParams, EOASigners, deploy_account},
-                    signers::eoa::{active::get_active_owners, add::add_owner},
+                    signers::eoa::{
+                        active::get_active_owners,
+                        add::{AddOwnerParams, add_owner},
+                    },
                     test_utilities::fund_account_with_default_amount,
                 },
             },
@@ -136,12 +152,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_eoa_module_installed = is_module_installed(
-            eoa_validator_address,
-            account_address,
-            provider.clone(),
-        )
-        .await?;
+        let is_eoa_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: account_address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(is_eoa_module_installed, "eoa_module is not installed");
 
@@ -154,15 +171,16 @@ mod tests {
             eoa_validator_address,
         )?;
 
-        add_owner(
+        add_owner(AddOwnerParams {
             account_address,
-            owner_to_remove,
+            new_owner: owner_to_remove,
             entry_point_address,
             eoa_validator_address,
-            bundler_client.clone(),
-            provider.clone(),
-            signer.clone(),
-        )
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: signer.clone(),
+        })
         .await?;
 
         println!("Owner added");
@@ -193,15 +211,16 @@ mod tests {
         );
 
         // Remove the owner
-        remove_owner(
+        remove_owner(RemoveOwnerParams {
             account_address,
-            owner_to_remove,
+            owner: owner_to_remove,
             entry_point_address,
             eoa_validator_address,
-            bundler_client.clone(),
-            provider.clone(),
-            signer,
-        )
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: signer.clone(),
+        })
         .await?;
 
         println!("Owner removed");

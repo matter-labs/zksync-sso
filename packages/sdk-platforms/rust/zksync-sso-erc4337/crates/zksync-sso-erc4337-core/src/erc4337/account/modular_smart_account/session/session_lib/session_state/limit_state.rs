@@ -1,5 +1,5 @@
 use crate::{
-    erc4337::account::modular_smart_account::session::SessionLib::LimitState as SessionLibLimitState,
+    erc4337::account::modular_smart_account::session::contract::SessionLib::LimitState as SessionLibLimitState,
     utils::alloy_utilities::serde_helpers::{
         deserialize_u256_from_integer_string, serialize_u256_as_integer_string,
     },

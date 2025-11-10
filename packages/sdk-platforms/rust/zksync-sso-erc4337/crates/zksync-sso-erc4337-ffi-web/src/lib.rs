@@ -1,10 +1,11 @@
 use alloy::{
     network::EthereumWallet,
-    primitives::{Address, Bytes, FixedBytes, U256, keccak256},
+    primitives::{Address, B256, Bytes, FixedBytes, U256, Uint, keccak256},
     providers::ProviderBuilder,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
     signers::local::PrivateKeySigner,
-    sol_types::SolCall,
+    sol,
+    sol_types::SolValue,
 };
 use alloy_rpc_client::RpcClient;
 use wasm_bindgen::prelude::*;
@@ -13,17 +14,57 @@ use zksync_sso_erc4337_core::{
     chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
     erc4337::{
-        account::modular_smart_account::{
-            add_passkey::PasskeyPayload as CorePasskeyPayload,
-            deploy::{
-                EOASigners as CoreEOASigners,
-                WebAuthNSigner as CoreWebauthNSigner,
+        account::{
+            erc7579::calls::encoded_call_data as encoded_call_data_core,
+            modular_smart_account::{
+                deploy::{
+                    DeployAccountParams as DeployAccountParamsCore,
+                    EOASigners as CoreEOASigners,
+                    WebAuthNSigner as CoreWebauthNSigner,
+                    deploy_account as deploy_account_core,
+                    deploy_accout_call_data,
+                    initialize_account_call_data as initialize_account_call_data_core,
+                },
+                passkey::{
+                    add::{
+                        AddPasskeyParams as AddPasskeyParamsCore,
+                        PasskeyPayload as CorePasskeyPayload,
+                        add_passkey as add_passkey_core,
+                        add_passkey_call_data as add_passkey_call_data_core,
+                    },
+                    list::get_account_list_call_data as get_account_list_call_data_core,
+                },
+                send::eoa::EOASendParams,
+                session::{
+                    create::create_session_call_data as create_session_call_data_core,
+                    session_lib::session_spec::SessionSpec,
+                    state::session_state_call_data as session_state_call_data_core,
+                },
+                signers::{
+                    eoa::{
+                        eoa_sign as eoa_sign_core,
+                        eoa_signature as eoa_signature_core,
+                        stub_signature_eoa as stub_signature_eoa_core,
+                    },
+                    passkey::stub_signature_passkey as stub_signature_passkey_core,
+                },
             },
-            send::eoa::EOASendParams,
-            signers::passkey::stub_signature_passkey,
         },
-        entry_point::version::EntryPointVersion,
+        bundler::{
+            Bundler, config::BundlerConfig as BundlerConfigCore,
+            pimlico::client::BundlerClient as BundlerClientCore,
+        },
+        entry_point::{
+            PackedUserOperation,
+            nonce::{
+                GetNonceWithKeyParams, get_nonce_call_data,
+                get_nonce_with_key as get_nonce_with_key_core,
+            },
+            user_op_hash::get_user_op_hash_call_data,
+            version::EntryPointVersion,
+        },
         signer::create_eoa_signer,
+        user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point as get_user_operation_hash_entry_point_core,
     },
 };
 
@@ -500,16 +541,14 @@ pub fn deploy_account(
         console_log!("  Calling core deploy_account...");
 
         // Use the core crate's deploy_account function
-        match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::deploy_account(
-            zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::DeployAccountParams {
-                factory_address: factory_addr,
-                eoa_signers,
-                webauthn_signer,
-                session_validator: None,
-                id: None,
-                provider,
-            }
-        )
+        match deploy_account_core(DeployAccountParamsCore {
+            factory_address: factory_addr,
+            eoa_signers,
+            webauthn_signer,
+            session_validator: None,
+            id: None,
+            provider,
+        })
         .await
         {
             Ok(address) => {
@@ -622,8 +661,7 @@ pub fn add_passkey_to_account(
 
         // Create bundler client
         let bundler_client = {
-            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
-            let config = BundlerConfig::new(config.bundler_url);
+            let config = BundlerConfigCore::new(config.bundler_url);
             zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
         };
 
@@ -654,15 +692,16 @@ pub fn add_passkey_to_account(
         console_log!("  Calling add_passkey...");
 
         // Call the core add_passkey function
-        match zksync_sso_erc4337_core::erc4337::account::modular_smart_account::add_passkey::add_passkey(
-            account,
-            core_passkey,
+        match add_passkey_core(AddPasskeyParamsCore {
+            account_address: account,
+            passkey: core_passkey,
             webauthn_validator,
-            entry_point,
+            entry_point_address: entry_point,
+            paymaster: None,
             provider,
             bundler_client,
             signer,
-        )
+        })
         .await
         {
             Ok(_) => {
@@ -671,10 +710,7 @@ pub fn add_passkey_to_account(
             }
             Err(e) => {
                 console_log!("  Error adding passkey: {}", e);
-                Err(JsValue::from_str(&format!(
-                    "Failed to add passkey: {}",
-                    e
-                )))
+                Err(JsValue::from_str(&format!("Failed to add passkey: {}", e)))
             }
         }
     })
@@ -813,23 +849,15 @@ pub fn send_transaction_eoa(
 
         // Create bundler client
         let bundler_client = {
-            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
-            let config = BundlerConfig::new(config.bundler_url);
-            zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
+            let config = BundlerConfigCore::new(config.bundler_url);
+            BundlerClientCore::new(config)
         };
 
         console_log!("  Created bundler client");
 
         // Encode the execution call
-        use zksync_sso_erc4337_core::erc4337::account::erc7579::{
-            Execution, calls::encode_calls,
-        };
-
-        let call =
-            Execution { target: to, value: value_u256, data: data_bytes };
-
-        let calls = vec![call];
-        let encoded_calls: Bytes = encode_calls(calls).into();
+        let encoded_calls: Bytes =
+            encoded_call_data_core(to, Some(data_bytes), Some(value_u256));
 
         console_log!(
             "  Encoded call data, calling core send_transaction_eoa..."
@@ -965,32 +993,30 @@ pub fn prepare_passkey_user_operation(
         console_log!("  Created provider and transport");
 
         // Encode the execution call
-        use zksync_sso_erc4337_core::erc4337::account::erc7579::{
-            Execution, calls::encode_calls,
-        };
-
-        let call =
-            Execution { target: to, value: value_u256, data: data_bytes };
-        let calls = vec![call];
-        let encoded_calls: Bytes = encode_calls(calls).into();
+        let encoded_calls: Bytes =
+            encoded_call_data_core(to, Some(data_bytes), Some(value_u256));
 
         console_log!("  Encoded call data");
 
         // Build UserOperation with fixed high gas values (no bundler estimation)
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::nonce::get_nonce;
-        use alloy::primitives::Uint;
 
         let nonce_key = Uint::from(0);
-        let nonce =
-            match get_nonce(entry_point, account, nonce_key, &provider).await {
-                Ok(n) => n,
-                Err(e) => {
-                    return Err(JsValue::from_str(&format!(
-                        "Failed to get nonce: {}",
-                        e
-                    )));
-                }
-            };
+        let nonce = match get_nonce_with_key_core(GetNonceWithKeyParams {
+            sender: account,
+            entry_point,
+            key: nonce_key,
+            provider: provider.clone(),
+        })
+        .await
+        {
+            Ok(n) => n,
+            Err(e) => {
+                return Err(JsValue::from_str(&format!(
+                    "Failed to get nonce: {}",
+                    e
+                )));
+            }
+        };
 
         // Parse validator address to create stub signature
         let validator = match webauthn_validator_address.parse::<Address>() {
@@ -1005,7 +1031,7 @@ pub fn prepare_passkey_user_operation(
 
         // Create stub signature internally (validator address + minimal ABI-encoded data)
         // This matches the format expected by WebAuthnValidator: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-        let stub_sig = match stub_signature_passkey(validator) {
+        let stub_sig = match stub_signature_passkey_core(validator) {
             Ok(sig) => sig,
             Err(e) => {
                 return Err(JsValue::from_str(&format!(
@@ -1057,7 +1083,6 @@ pub fn prepare_passkey_user_operation(
             (user_op.max_priority_fee_per_gas << 128) | user_op.max_fee_per_gas;
 
         // Create PackedUserOperation for hashing (EntryPoint format with packed fields)
-        use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint::PackedUserOperation;
         let packed_user_op = PackedUserOperation {
             sender: user_op.sender,
             nonce: user_op.nonce,
@@ -1071,9 +1096,7 @@ pub fn prepare_passkey_user_operation(
         };
 
         // Get the hash that needs to be signed
-        use zksync_sso_erc4337_core::erc4337::user_operation::hash::v08::get_user_operation_hash_entry_point;
-
-        let hash = match get_user_operation_hash_entry_point(
+        let hash = match get_user_operation_hash_entry_point_core(
             &packed_user_op,
             &entry_point,
             provider.clone(),
@@ -1092,7 +1115,7 @@ pub fn prepare_passkey_user_operation(
         console_log!("  UserOperation hash: {:?}", hash);
 
         // Convert hash to B256 for hex format
-        let hash_b256: alloy::primitives::B256 = hash.into();
+        let hash_b256: B256 = hash.into();
         let hash_hex = format!("{:#x}", hash_b256);
 
         // Create PreparedUserOperation struct to return to JavaScript (stateless design)
@@ -1337,9 +1360,8 @@ pub fn submit_passkey_user_operation(
 
         // Create bundler client
         let bundler_client = {
-            use zksync_sso_erc4337_core::erc4337::bundler::config::BundlerConfig;
-            let config = BundlerConfig::new(config.bundler_url);
-            zksync_sso_erc4337_core::erc4337::bundler::pimlico::client::BundlerClient::new(config)
+            let config = BundlerConfigCore::new(config.bundler_url);
+            BundlerClientCore::new(config)
         };
 
         // Parse entry point address for bundler call
@@ -1354,7 +1376,6 @@ pub fn submit_passkey_user_operation(
         };
 
         // Submit UserOperation
-        use zksync_sso_erc4337_core::erc4337::bundler::Bundler;
 
         match bundler_client.send_user_operation(entry_point, user_op).await {
             Ok(user_op_hash) => {
@@ -1402,6 +1423,7 @@ pub fn parse_contract_addresses(
     webauthn_validator: &str,
     eoa_validator: &str,
     session_validator: &str,
+    guardian_executor: &str,
 ) -> Result<String, JsValue> {
     match CoreContracts::from_string(
         entry_point.to_string(),
@@ -1409,6 +1431,7 @@ pub fn parse_contract_addresses(
         webauthn_validator.to_string(),
         eoa_validator.to_string(),
         session_validator.to_string(),
+        guardian_executor.to_string(),
     ) {
         Ok(contracts) => Ok(format!(
             "Entry Point: {:?}, Account Factory: {:?}, WebAuthn Validator: {:?}, EOA Validator: {:?}",
@@ -1448,9 +1471,6 @@ pub fn encode_get_nonce_call_data(
     sender: String,
     key: String,
 ) -> Result<String, JsValue> {
-    use alloy::sol_types::SolCall;
-    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint;
-
     // Parse sender address
     let sender_addr = sender.parse::<Address>().map_err(|e| {
         JsValue::from_str(&format!("Invalid sender address: {}", e))
@@ -1461,11 +1481,8 @@ pub fn encode_get_nonce_call_data(
         .parse::<alloy::primitives::Uint<192, 3>>()
         .unwrap_or(alloy::primitives::Uint::from(0));
 
-    // Create the getNonce call
-    let call = EntryPoint::getNonceCall { sender: sender_addr, key: key_u192 };
-
     // Encode the call
-    let encoded = call.abi_encode();
+    let encoded = get_nonce_call_data(sender_addr, key_u192);
     Ok(format!("0x{}", hex::encode(encoded)))
 }
 
@@ -1493,23 +1510,13 @@ pub fn encode_get_account_list_call_data(
     domain: String,
     credential_id: String,
 ) -> Result<String, JsValue> {
-    use alloy::sol_types::SolCall;
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::WebAuthnValidator;
-
     // Parse credential_id (can be 0x-prefixed or not)
     let cred_id_hex = credential_id.trim_start_matches("0x");
     let cred_id_bytes = hex::decode(cred_id_hex).map_err(|e| {
         JsValue::from_str(&format!("Invalid credential_id hex: {}", e))
     })?;
 
-    // Create the getAccountList call
-    let call = WebAuthnValidator::getAccountListCall {
-        domain,
-        credentialId: Bytes::from(cred_id_bytes),
-    };
-
-    // Encode the call
-    let encoded = call.abi_encode();
+    let encoded = get_account_list_call_data_core(domain, cred_id_bytes);
     Ok(format!("0x{}", hex::encode(encoded)))
 }
 
@@ -1553,10 +1560,6 @@ pub fn encode_execute_call_data(
     value: String,
     data: String,
 ) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::account::erc7579::{
-        Execution, calls::encode_calls,
-    };
-
     // Parse target address
     let target_addr = target.parse::<Address>().map_err(|e| {
         JsValue::from_str(&format!("Invalid target address: {}", e))
@@ -1578,12 +1581,9 @@ pub fn encode_execute_call_data(
         Bytes::from(bytes_vec)
     };
 
-    // Create execution
-    let execution =
-        Execution { target: target_addr, value: value_u256, data: data_bytes };
-
     // Encode single call
-    let encoded = encode_calls(vec![execution]);
+    let encoded =
+        encoded_call_data_core(target_addr, Some(data_bytes), Some(value_u256));
 
     Ok(format!("0x{}", hex::encode(encoded)))
 }
@@ -1594,15 +1594,13 @@ pub fn encode_execute_call_data(
 pub fn generate_eoa_stub_signature(
     validator_address: String,
 ) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::eoa::stub_signature_eoa;
-
     // Parse validator address
     let validator_addr = validator_address.parse::<Address>().map_err(|e| {
         JsValue::from_str(&format!("Invalid validator address: {}", e))
     })?;
 
     // Generate stub signature
-    let signature = stub_signature_eoa(validator_addr).map_err(|e| {
+    let signature = stub_signature_eoa_core(validator_addr).map_err(|e| {
         JsValue::from_str(&format!("Failed to generate stub signature: {}", e))
     })?;
 
@@ -1688,9 +1686,6 @@ pub fn generate_session_stub_signature_wasm(
 pub fn encode_create_session_call_data(
     session_spec_json: String,
 ) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::SessionSpec;
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::SessionKeyValidator;
-
     // Parse SessionSpec from JSON
     let spec: SessionSpec =
         serde_json::from_str(&session_spec_json).map_err(|e| {
@@ -1698,9 +1693,7 @@ pub fn encode_create_session_call_data(
         })?;
 
     // Build createSession call and ABI encode
-    let create_session_calldata =
-        SessionKeyValidator::createSessionCall { sessionSpec: spec.into() }
-            .abi_encode();
+    let create_session_calldata = create_session_call_data_core(spec);
 
     Ok(format!("0x{}", hex::encode(create_session_calldata)))
 }
@@ -1712,10 +1705,6 @@ pub fn encode_session_state_call_data(
     account: String,
     session_spec_json: String,
 ) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::SessionSpec;
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::SessionKeyValidator;
-    use alloy::primitives::Address;
-
     // Parse account address
     let account_addr = account.parse::<Address>().map_err(|e| {
         JsValue::from_str(&format!("Invalid account address: {}", e))
@@ -1728,11 +1717,7 @@ pub fn encode_session_state_call_data(
         })?;
 
     // Build sessionState call and ABI encode
-    let call_data = SessionKeyValidator::sessionStateCall {
-        account: account_addr,
-        spec: spec.into(),
-    }
-    .abi_encode();
+    let call_data = session_state_call_data_core(account_addr, spec);
 
     Ok(format!("0x{}", hex::encode(call_data)))
 }
@@ -1815,15 +1800,13 @@ pub fn sign_eoa_message(
     private_key: String,
     message_hash: String,
 ) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::eoa::eoa_sign;
-
     // Parse message hash
     let hash = message_hash.parse::<FixedBytes<32>>().map_err(|e| {
         JsValue::from_str(&format!("Invalid message hash: {}", e))
     })?;
 
     // Sign the hash
-    let signature = eoa_sign(&private_key, hash).map_err(|e| {
+    let signature = eoa_sign_core(&private_key, hash).map_err(|e| {
         JsValue::from_str(&format!("Failed to sign message: {}", e))
     })?;
 
@@ -1839,8 +1822,6 @@ pub fn sign_eoa_user_operation_hash(
     private_key: String,
     validator_address: String,
 ) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::eoa::eoa_signature;
-
     // Parse user operation hash
     let hash = user_op_hash.parse::<FixedBytes<32>>().map_err(|e| {
         JsValue::from_str(&format!("Invalid user operation hash: {}", e))
@@ -1852,8 +1833,8 @@ pub fn sign_eoa_user_operation_hash(
     })?;
 
     // Sign the hash with validator address prefix (85 bytes total: 20 + 65)
-    let signature =
-        eoa_signature(&private_key, validator_addr, hash).map_err(|e| {
+    let signature = eoa_signature_core(&private_key, validator_addr, hash)
+        .map_err(|e| {
             JsValue::from_str(&format!("Failed to sign user operation: {}", e))
         })?;
 
@@ -1961,8 +1942,6 @@ pub fn encode_get_user_operation_hash_call_data(
         max_fee_per_gas,
         max_priority_fee_per_gas,
     } = params;
-    use alloy::sol_types::SolCall;
-    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint;
 
     // Parse addresses
     let sender_addr = sender.parse::<Address>().map_err(|e| {
@@ -2015,7 +1994,6 @@ pub fn encode_get_user_operation_hash_call_data(
         (max_priority_fee_per_gas_u256 << 128) | max_fee_per_gas_u256;
 
     // Create PackedUserOperation
-    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint::PackedUserOperation;
     let packed_user_op = PackedUserOperation {
         sender: sender_addr,
         nonce: nonce_u256,
@@ -2028,11 +2006,14 @@ pub fn encode_get_user_operation_hash_call_data(
         signature: Bytes::default(), // Empty signature for hash computation
     };
 
-    // Create the getUserOpHash call
-    let call = EntryPoint::getUserOpHashCall { userOp: packed_user_op };
-
     // Encode the call data
-    let encoded = call.abi_encode();
+    let encoded = get_user_op_hash_call_data(packed_user_op).map_err(|e| {
+        JsValue::from_str(&format!(
+            "Failed to get user operation hash call data: {}",
+            e
+        ))
+    })?;
+
     Ok(format!("0x{}", hex::encode(encoded)))
 }
 
@@ -2042,17 +2023,19 @@ pub fn encode_get_user_operation_hash_call_data(
 pub fn generate_passkey_stub_signature(
     validator_address: String,
 ) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::passkey::stub_signature_passkey;
-
     // Parse validator address
     let validator_addr = validator_address.parse::<Address>().map_err(|e| {
         JsValue::from_str(&format!("Invalid validator address: {}", e))
     })?;
 
     // Generate stub signature
-    let signature = stub_signature_passkey(validator_addr).map_err(|e| {
-        JsValue::from_str(&format!("Failed to generate stub signature: {}", e))
-    })?;
+    let signature =
+        stub_signature_passkey_core(validator_addr).map_err(|e| {
+            JsValue::from_str(&format!(
+                "Failed to generate stub signature: {}",
+                e
+            ))
+        })?;
 
     Ok(format!("0x{}", hex::encode(&signature)))
 }
@@ -2163,13 +2146,11 @@ pub fn encode_deploy_account_call_data(
     webauthn_validator_address: Option<String>,
     session_validator_address: Option<String>,
 ) -> Result<String, JsValue> {
-    use alloy::sol_types::SolCall;
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::{
-        MSAFactory,
-        add_passkey::PasskeyPayload as CorePasskeyPayload,
         deploy::{
             EOASigners as CoreEOASigners, WebAuthNSigner as CoreWebauthNSigner,
         },
+        passkey::add::PasskeyPayload as CorePasskeyPayload,
     };
 
     // Parse account ID
@@ -2285,14 +2266,8 @@ pub fn encode_deploy_account_call_data(
         session_validator_core,
     );
 
-    // Create the deployAccount call
-    let call = MSAFactory::deployAccountCall {
-        salt: account_id_fixed,
-        initData: init_data,
-    };
-
     // Encode the call
-    let encoded = call.abi_encode();
+    let encoded = deploy_accout_call_data(account_id_fixed, init_data);
     Ok(format!("0x{}", hex::encode(encoded)))
 }
 
@@ -2310,15 +2285,6 @@ pub fn encode_add_passkey_call_data(
     passkey_payload: PasskeyPayload,
     webauthn_validator_address: String,
 ) -> Result<String, JsValue> {
-    use alloy::{primitives::U256, sol_types::SolCall};
-    use zksync_sso_erc4337_core::erc4337::account::{
-        erc7579::{Execution, calls::encode_calls},
-        modular_smart_account::{
-            WebAuthnValidator,
-            add_passkey::PasskeyPayload as CorePasskeyPayload,
-        },
-    };
-
     // Parse webauthn validator address
     let webauthn_validator =
         webauthn_validator_address.parse::<Address>().map_err(|e| {
@@ -2352,25 +2318,8 @@ pub fn encode_add_passkey_call_data(
         origin_domain: passkey_payload.origin_domain,
     };
 
-    // Create addValidationKey call data
-    let add_validation_key_calldata = WebAuthnValidator::addValidationKeyCall {
-        credentialId: core_passkey.credential_id,
-        newKey: core_passkey.passkey,
-        domain: core_passkey.origin_domain,
-    }
-    .abi_encode()
-    .into();
-
-    // Wrap in Execution struct
-    let call = Execution {
-        target: webauthn_validator,
-        value: U256::from(0),
-        data: add_validation_key_calldata,
-    };
-
     // Encode as execute call
-    let calls = vec![call];
-    let encoded = encode_calls(calls);
+    let encoded = add_passkey_call_data_core(core_passkey, webauthn_validator);
 
     Ok(format!("0x{}", hex::encode(encoded)))
 }
@@ -2378,16 +2327,10 @@ pub fn encode_add_passkey_call_data(
 /// Helper function to create init data for deployment
 /// Mirrors the logic from deploy.rs create_init_data and modules_from_signers
 fn create_init_data_for_deployment(
-    eoa_signers: Option<zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::EOASigners>,
-    webauthn_signer: Option<zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::WebAuthNSigner>,
+    eoa_signers: Option<CoreEOASigners>,
+    webauthn_signer: Option<CoreWebauthNSigner>,
     session_validator: Option<Address>,
 ) -> Bytes {
-    use alloy::{
-        sol,
-        sol_types::{SolCall, SolValue},
-    };
-    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::ModularSmartAccount;
-
     sol! {
         struct SignersParams {
             address[] signers;
@@ -2421,10 +2364,8 @@ fn create_init_data_for_deployment(
     }
 
     // Create initializeAccount call
-    let init_call =
-        ModularSmartAccount::initializeAccountCall { modules, data };
 
-    Bytes::from(init_call.abi_encode())
+    initialize_account_call_data_core(modules, data)
 }
 
 // Error type for WASM
@@ -2631,23 +2572,37 @@ impl Client {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use alloy::{
-        primitives::{Bytes, FixedBytes, U256, address, bytes, fixed_bytes},
-        providers::Provider,
-        rpc::types::TransactionRequest,
+        primitives::{
+            Bytes, FixedBytes, U256, Uint, address, bytes, fixed_bytes,
+        },
+        rpc::types::PackedUserOperation as AlloyPackedUserOperation,
     };
     use zksync_sso_erc4337_core::{
         erc4337::{
             account::{
-                erc7579::{Execution, module_installed::is_module_installed},
+                erc7579::{
+                    calls::encoded_call_data,
+                    module::{
+                        Module,
+                        installed::{
+                            IsModuleInstalledParams, is_module_installed,
+                        },
+                    },
+                },
                 modular_smart_account::{
-                    add_passkey::PasskeyPayload as CorePasskeyPayload,
                     deploy::{
                         DeployAccountParams, WebAuthNSigner, deploy_account,
                     },
+                    passkey::add::PasskeyPayload as CorePasskeyPayload,
+                    test_utilities::fund_account_with_default_amount,
                 },
             },
+            bundler::Bundler,
+            entry_point::nonce::get_nonce_with_key as get_nonce_with_key_core,
             signer::test_utils::get_signature_from_js,
+            user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point as get_user_operation_hash_entry_point_core,
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
@@ -2720,19 +2675,15 @@ mod tests {
         println!("Account deployed with passkey: {:?}", account_address);
 
         // Fund the account
-        {
-            let fund_tx = TransactionRequest::default()
-                .to(account_address)
-                .value(U256::from(10000000000000000000u64));
-            _ = provider.send_transaction(fund_tx).await?.get_receipt().await?;
-        }
+        fund_account_with_default_amount(account_address, provider.clone())
+            .await?;
 
         // Verify passkey module is installed
-        let is_installed = is_module_installed(
-            webauthn_module,
-            account_address,
-            provider.clone(),
-        )
+        let is_installed = is_module_installed(IsModuleInstalledParams {
+            module: Module::webauthn_validator(webauthn_module),
+            account: account_address,
+            provider: provider.clone(),
+        })
         .await?;
         eyre::ensure!(is_installed, "WebAuthn module is not installed");
 
@@ -2743,32 +2694,19 @@ mod tests {
 
         println!("\nTesting two-step passkey flow (manual approach)...");
 
-        use alloy::rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation;
-        use zksync_sso_erc4337_core::erc4337::{
-            account::{
-                erc7579::calls::encode_calls,
-                modular_smart_account::nonce::get_nonce,
-            },
-            bundler::Bundler,
-            entry_point::EntryPoint::PackedUserOperation,
-            user_operation::hash::v08::get_user_operation_hash_entry_point,
-        };
-
-        let call = Execution {
-            target: account_address,
-            value: U256::from(1),
-            data: Bytes::default(),
-        };
-        let calls = vec![call];
-        let call_data: Bytes = encode_calls(calls).into();
-
-        let nonce_key = alloy::primitives::Uint::from(0);
-        let nonce = get_nonce(
-            entry_point_address,
+        let call_data: Bytes = encoded_call_data(
             account_address,
-            nonce_key,
-            &provider,
-        )
+            Some(Bytes::default()),
+            Some(U256::from(1)),
+        );
+
+        let nonce_key = Uint::from(0);
+        let nonce = get_nonce_with_key_core(GetNonceWithKeyParams {
+            sender: account_address,
+            entry_point: entry_point_address,
+            key: nonce_key,
+            provider: provider.clone(),
+        })
         .await?;
 
         // Create stub signature for gas estimation
@@ -2833,7 +2771,7 @@ mod tests {
             signature: user_op.signature.clone(),
         };
 
-        let hash = get_user_operation_hash_entry_point(
+        let hash = get_user_operation_hash_entry_point_core(
             &packed_user_op,
             &entry_point_address,
             provider.clone(),
