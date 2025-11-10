@@ -16,6 +16,7 @@ import {
   encode_execute_call_data,
   encode_get_nonce_call_data,
   encode_get_user_operation_hash_call_data,
+  EncodeGetUserOperationHashParams,
   generate_passkey_stub_signature,
   // @ts-expect-error - TypeScript doesn't understand package.json exports with node module resolution
 } from "zksync-sso-web-sdk/bundler";
@@ -138,14 +139,16 @@ export async function toPasskeySmartAccount<
 
       // Encode call data for EntryPoint.getUserOpHash() using Rust SDK
       const callData = encode_get_user_operation_hash_call_data(
-        sender,
-        params.nonce.toString(),
-        params.callData,
-        params.callGasLimit.toString(),
-        params.verificationGasLimit.toString(),
-        params.preVerificationGas.toString(),
-        params.maxFeePerGas.toString(),
-        params.maxPriorityFeePerGas.toString(),
+        new EncodeGetUserOperationHashParams(
+          sender,
+          params.nonce.toString(),
+          params.callData,
+          params.callGasLimit.toString(),
+          params.verificationGasLimit.toString(),
+          params.preVerificationGas.toString(),
+          params.maxFeePerGas.toString(),
+          params.maxPriorityFeePerGas.toString(),
+        ),
       ) as Hex;
 
       // Result is the bytes32 hash from EntryPoint.getUserOpHash()

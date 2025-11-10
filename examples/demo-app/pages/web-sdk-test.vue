@@ -288,7 +288,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { createPublicClient, createWalletClient, http, hexToBytes, type Chain, type Hash, type Hex } from "viem";
+import { createPublicClient, createWalletClient, http, hexToBytes, type Chain, type Hash, type Hex, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { ethers } from "ethers";
 import { deploySmartAccount, getDeployedAccountAddress } from "zksync-sso/client-new";
@@ -589,7 +589,7 @@ async function deployAccount() {
       contracts: {
         factory: factoryAddress,
         eoaValidator: eoaValidatorAddress,
-        webauthnValidator: passkeyConfig.value.enabled ? passkeyConfig.value.validatorAddress : undefined,
+        webauthnValidator: passkeyConfig.value.enabled ? passkeyConfig.value.validatorAddress as Address : undefined,
       },
       eoaSigners: eoaSignersAddresses,
       passkeySigners: passkeySigners,

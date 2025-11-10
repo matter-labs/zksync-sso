@@ -1454,23 +1454,25 @@ pub fn compute_account_id(user_id: &str) -> String {
 /// Encode a call to EntryPoint.getNonce(sender, key)
 /// Used for querying account nonce from the entry point
 #[wasm_bindgen]
-pub fn encode_get_nonce_call_data(sender: String, key: String) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint;
+pub fn encode_get_nonce_call_data(
+    sender: String,
+    key: String,
+) -> Result<String, JsValue> {
     use alloy::sol_types::SolCall;
+    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint;
 
     // Parse sender address
-    let sender_addr = sender.parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid sender address: {}", e)))?;
+    let sender_addr = sender.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid sender address: {}", e))
+    })?;
 
     // Parse key (should be a number string, default to 0)
-    let key_u192 = key.parse::<alloy::primitives::Uint<192, 3>>()
+    let key_u192 = key
+        .parse::<alloy::primitives::Uint<192, 3>>()
         .unwrap_or(alloy::primitives::Uint::from(0));
 
     // Create the getNonce call
-    let call = EntryPoint::getNonceCall {
-        sender: sender_addr,
-        key: key_u192,
-    };
+    let call = EntryPoint::getNonceCall { sender: sender_addr, key: key_u192 };
 
     // Encode the call
     let encoded = call.abi_encode();
@@ -1502,14 +1504,18 @@ pub fn encode_execute_call_data(
     value: String,
     data: String,
 ) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::account::erc7579::{Execution, calls::encode_calls};
+    use zksync_sso_erc4337_core::erc4337::account::erc7579::{
+        Execution, calls::encode_calls,
+    };
 
     // Parse target address
-    let target_addr = target.parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid target address: {}", e)))?;
+    let target_addr = target.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid target address: {}", e))
+    })?;
 
     // Parse value
-    let value_u256 = value.parse::<U256>()
+    let value_u256 = value
+        .parse::<U256>()
         .map_err(|e| JsValue::from_str(&format!("Invalid value: {}", e)))?;
 
     // Parse data (hex string)
@@ -1517,17 +1523,15 @@ pub fn encode_execute_call_data(
     let data_bytes = if data_hex.is_empty() {
         Bytes::default()
     } else {
-        let bytes_vec = hex::decode(data_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid data hex: {}", e)))?;
+        let bytes_vec = hex::decode(data_hex).map_err(|e| {
+            JsValue::from_str(&format!("Invalid data hex: {}", e))
+        })?;
         Bytes::from(bytes_vec)
     };
 
     // Create execution
-    let execution = Execution {
-        target: target_addr,
-        value: value_u256,
-        data: data_bytes,
-    };
+    let execution =
+        Execution { target: target_addr, value: value_u256, data: data_bytes };
 
     // Encode single call
     let encoded = encode_calls(vec![execution]);
@@ -1538,16 +1542,20 @@ pub fn encode_execute_call_data(
 /// Generate a stub signature for gas estimation with EOA validator
 /// Returns a properly formatted signature for the validator
 #[wasm_bindgen]
-pub fn generate_eoa_stub_signature(validator_address: String) -> Result<String, JsValue> {
+pub fn generate_eoa_stub_signature(
+    validator_address: String,
+) -> Result<String, JsValue> {
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::eoa::stub_signature_eoa;
 
     // Parse validator address
-    let validator_addr = validator_address.parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid validator address: {}", e)))?;
+    let validator_addr = validator_address.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid validator address: {}", e))
+    })?;
 
     // Generate stub signature
-    let signature = stub_signature_eoa(validator_addr)
-        .map_err(|e| JsValue::from_str(&format!("Failed to generate stub signature: {}", e)))?;
+    let signature = stub_signature_eoa(validator_addr).map_err(|e| {
+        JsValue::from_str(&format!("Failed to generate stub signature: {}", e))
+    })?;
 
     Ok(format!("0x{}", hex::encode(&signature)))
 }
@@ -1562,12 +1570,14 @@ pub fn sign_eoa_message(
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::eoa::eoa_sign;
 
     // Parse message hash
-    let hash = message_hash.parse::<FixedBytes<32>>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid message hash: {}", e)))?;
+    let hash = message_hash.parse::<FixedBytes<32>>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid message hash: {}", e))
+    })?;
 
     // Sign the hash
-    let signature = eoa_sign(&private_key, hash)
-        .map_err(|e| JsValue::from_str(&format!("Failed to sign message: {}", e)))?;
+    let signature = eoa_sign(&private_key, hash).map_err(|e| {
+        JsValue::from_str(&format!("Failed to sign message: {}", e))
+    })?;
 
     Ok(format!("0x{}", hex::encode(&signature)))
 }
@@ -1584,16 +1594,20 @@ pub fn sign_eoa_user_operation_hash(
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::eoa::eoa_signature;
 
     // Parse user operation hash
-    let hash = user_op_hash.parse::<FixedBytes<32>>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid user operation hash: {}", e)))?;
+    let hash = user_op_hash.parse::<FixedBytes<32>>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid user operation hash: {}", e))
+    })?;
 
     // Parse validator address
-    let validator_addr = validator_address.parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid validator address: {}", e)))?;
+    let validator_addr = validator_address.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid validator address: {}", e))
+    })?;
 
     // Sign the hash with validator address prefix (85 bytes total: 20 + 65)
-    let signature = eoa_signature(&private_key, validator_addr, hash)
-        .map_err(|e| JsValue::from_str(&format!("Failed to sign user operation: {}", e)))?;
+    let signature =
+        eoa_signature(&private_key, validator_addr, hash).map_err(|e| {
+            JsValue::from_str(&format!("Failed to sign user operation: {}", e))
+        })?;
 
     Ok(format!("0x{}", hex::encode(&signature)))
 }
@@ -1607,7 +1621,7 @@ pub fn sign_eoa_user_operation_hash(
 /// # Returns
 /// Hex-encoded call data for calling EntryPoint.getUserOpHash(PackedUserOperation)
 #[wasm_bindgen]
-pub fn encode_get_user_operation_hash_call_data(
+pub struct EncodeGetUserOperationHashParams {
     sender: String,
     nonce: String,
     call_data: String,
@@ -1616,42 +1630,138 @@ pub fn encode_get_user_operation_hash_call_data(
     pre_verification_gas: String,
     max_fee_per_gas: String,
     max_priority_fee_per_gas: String,
-) -> Result<String, JsValue> {
-    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint;
+}
+
+#[wasm_bindgen]
+impl EncodeGetUserOperationHashParams {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        sender: String,
+        nonce: String,
+        call_data: String,
+        call_gas_limit: String,
+        verification_gas_limit: String,
+        pre_verification_gas: String,
+        max_fee_per_gas: String,
+        max_priority_fee_per_gas: String,
+    ) -> Self {
+        Self {
+            sender,
+            nonce,
+            call_data,
+            call_gas_limit,
+            verification_gas_limit,
+            pre_verification_gas,
+            max_fee_per_gas,
+            max_priority_fee_per_gas,
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn sender(&self) -> String {
+        self.sender.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn nonce(&self) -> String {
+        self.nonce.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn call_data(&self) -> String {
+        self.call_data.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn call_gas_limit(&self) -> String {
+        self.call_gas_limit.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn verification_gas_limit(&self) -> String {
+        self.verification_gas_limit.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn pre_verification_gas(&self) -> String {
+        self.pre_verification_gas.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn max_fee_per_gas(&self) -> String {
+        self.max_fee_per_gas.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn max_priority_fee_per_gas(&self) -> String {
+        self.max_priority_fee_per_gas.clone()
+    }
+}
+
+#[wasm_bindgen]
+pub fn encode_get_user_operation_hash_call_data(params: EncodeGetUserOperationHashParams) -> Result<String, JsValue> {
+    let EncodeGetUserOperationHashParams {
+        sender,
+        nonce,
+        call_data,
+        call_gas_limit,
+        verification_gas_limit,
+        pre_verification_gas,
+        max_fee_per_gas,
+        max_priority_fee_per_gas,
+    } = params;
     use alloy::sol_types::SolCall;
+    use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint;
 
     // Parse addresses
-    let sender_addr = sender.parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid sender address: {}", e)))?;
+    let sender_addr = sender.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid sender address: {}", e))
+    })?;
 
     // Parse numeric fields
-    let nonce_u256 = nonce.parse::<U256>()
+    let nonce_u256 = nonce
+        .parse::<U256>()
         .map_err(|e| JsValue::from_str(&format!("Invalid nonce: {}", e)))?;
 
-    let call_gas_limit_u256 = call_gas_limit.parse::<U256>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid call_gas_limit: {}", e)))?;
+    let call_gas_limit_u256 = call_gas_limit.parse::<U256>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid call_gas_limit: {}", e))
+    })?;
 
-    let verification_gas_limit_u256 = verification_gas_limit.parse::<U256>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid verification_gas_limit: {}", e)))?;
+    let verification_gas_limit_u256 =
+        verification_gas_limit.parse::<U256>().map_err(|e| {
+            JsValue::from_str(&format!("Invalid verification_gas_limit: {}", e))
+        })?;
 
-    let pre_verification_gas_u256 = pre_verification_gas.parse::<U256>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid pre_verification_gas: {}", e)))?;
+    let pre_verification_gas_u256 =
+        pre_verification_gas.parse::<U256>().map_err(|e| {
+            JsValue::from_str(&format!("Invalid pre_verification_gas: {}", e))
+        })?;
 
-    let max_fee_per_gas_u256 = max_fee_per_gas.parse::<U256>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid max_fee_per_gas: {}", e)))?;
+    let max_fee_per_gas_u256 =
+        max_fee_per_gas.parse::<U256>().map_err(|e| {
+            JsValue::from_str(&format!("Invalid max_fee_per_gas: {}", e))
+        })?;
 
-    let max_priority_fee_per_gas_u256 = max_priority_fee_per_gas.parse::<U256>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid max_priority_fee_per_gas: {}", e)))?;
+    let max_priority_fee_per_gas_u256 =
+        max_priority_fee_per_gas.parse::<U256>().map_err(|e| {
+            JsValue::from_str(&format!(
+                "Invalid max_priority_fee_per_gas: {}",
+                e
+            ))
+        })?;
 
     // Parse call data
     let call_data_hex = call_data.trim_start_matches("0x");
-    let call_data_bytes = hex::decode(call_data_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid call_data hex: {}", e)))?;
+    let call_data_bytes = hex::decode(call_data_hex).map_err(|e| {
+        JsValue::from_str(&format!("Invalid call_data hex: {}", e))
+    })?;
     let call_data_bytes = Bytes::from(call_data_bytes);
 
     // Pack gas limits and fees for EntryPoint::PackedUserOperation
-    let packed_gas_limits: U256 = (verification_gas_limit_u256 << 128) | call_gas_limit_u256;
-    let gas_fees: U256 = (max_priority_fee_per_gas_u256 << 128) | max_fee_per_gas_u256;
+    let packed_gas_limits: U256 =
+        (verification_gas_limit_u256 << 128) | call_gas_limit_u256;
+    let gas_fees: U256 =
+        (max_priority_fee_per_gas_u256 << 128) | max_fee_per_gas_u256;
 
     // Create PackedUserOperation
     use zksync_sso_erc4337_core::erc4337::entry_point::EntryPoint::PackedUserOperation;
@@ -1668,9 +1778,7 @@ pub fn encode_get_user_operation_hash_call_data(
     };
 
     // Create the getUserOpHash call
-    let call = EntryPoint::getUserOpHashCall {
-        userOp: packed_user_op,
-    };
+    let call = EntryPoint::getUserOpHashCall { userOp: packed_user_op };
 
     // Encode the call data
     let encoded = call.abi_encode();
@@ -1680,16 +1788,20 @@ pub fn encode_get_user_operation_hash_call_data(
 /// Generate a stub signature for gas estimation with passkey validator
 /// Returns a properly formatted signature for the validator
 #[wasm_bindgen]
-pub fn generate_passkey_stub_signature(validator_address: String) -> Result<String, JsValue> {
+pub fn generate_passkey_stub_signature(
+    validator_address: String,
+) -> Result<String, JsValue> {
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signers::passkey::stub_signature_passkey;
 
     // Parse validator address
-    let validator_addr = validator_address.parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid validator address: {}", e)))?;
+    let validator_addr = validator_address.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid validator address: {}", e))
+    })?;
 
     // Generate stub signature
-    let signature = stub_signature_passkey(validator_addr)
-        .map_err(|e| JsValue::from_str(&format!("Failed to generate stub signature: {}", e)))?;
+    let signature = stub_signature_passkey(validator_addr).map_err(|e| {
+        JsValue::from_str(&format!("Failed to generate stub signature: {}", e))
+    })?;
 
     Ok(format!("0x{}", hex::encode(&signature)))
 }
@@ -1800,22 +1912,21 @@ pub fn encode_deploy_account_call_data(
     passkey_payload: Option<PasskeyPayload>,
     webauthn_validator_address: Option<String>,
 ) -> Result<String, JsValue> {
+    use alloy::sol_types::SolCall;
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::{
         MSAFactory,
-        deploy::{
-            EOASigners as CoreEOASigners,
-            WebAuthNSigner as CoreWebauthNSigner,
-        },
         add_passkey::PasskeyPayload as CorePasskeyPayload,
+        deploy::{
+            EOASigners as CoreEOASigners, WebAuthNSigner as CoreWebauthNSigner,
+        },
     };
-    use alloy::sol_types::SolCall;
 
     // Parse account ID
     let account_id_bytes = account_id.trim_start_matches("0x");
-    let account_id_fixed = FixedBytes::<32>::from_slice(
-        &hex::decode(account_id_bytes)
-            .map_err(|e| JsValue::from_str(&format!("Invalid account_id hex: {}", e)))?
-    );
+    let account_id_fixed =
+        FixedBytes::<32>::from_slice(&hex::decode(account_id_bytes).map_err(
+            |e| JsValue::from_str(&format!("Invalid account_id hex: {}", e)),
+        )?);
 
     // Parse EOA signers if provided
     let eoa_signers_core = match (eoa_signers, eoa_validator_address) {
@@ -1833,8 +1944,12 @@ pub fn encode_deploy_account_call_data(
                 }
             }
 
-            let validator_addr = validator.parse::<Address>()
-                .map_err(|e| JsValue::from_str(&format!("Invalid eoa_validator_address: {}", e)))?;
+            let validator_addr = validator.parse::<Address>().map_err(|e| {
+                JsValue::from_str(&format!(
+                    "Invalid eoa_validator_address: {}",
+                    e
+                ))
+            })?;
 
             Some(CoreEOASigners {
                 addresses: parsed_addresses,
@@ -1844,13 +1959,16 @@ pub fn encode_deploy_account_call_data(
         (None, None) => None,
         _ => {
             return Err(JsValue::from_str(
-                "Both eoa_signers and eoa_validator_address must be provided together"
+                "Both eoa_signers and eoa_validator_address must be provided together",
             ));
         }
     };
 
     // Parse WebAuthn signer if provided
-    let webauthn_signer_core = match (passkey_payload, webauthn_validator_address) {
+    let webauthn_signer_core = match (
+        passkey_payload,
+        webauthn_validator_address,
+    ) {
         (Some(passkey), Some(validator)) => {
             // Validate coordinate lengths
             if passkey.passkey_x.len() != 32 {
@@ -1869,8 +1987,12 @@ pub fn encode_deploy_account_call_data(
             let passkey_x = FixedBytes::<32>::from_slice(&passkey.passkey_x);
             let passkey_y = FixedBytes::<32>::from_slice(&passkey.passkey_y);
 
-            let validator_addr = validator.parse::<Address>()
-                .map_err(|e| JsValue::from_str(&format!("Invalid webauthn_validator_address: {}", e)))?;
+            let validator_addr = validator.parse::<Address>().map_err(|e| {
+                JsValue::from_str(&format!(
+                    "Invalid webauthn_validator_address: {}",
+                    e
+                ))
+            })?;
 
             let core_passkey = CorePasskeyPayload {
                 credential_id: Bytes::from(passkey.credential_id),
@@ -1886,13 +2008,14 @@ pub fn encode_deploy_account_call_data(
         (None, None) => None,
         _ => {
             return Err(JsValue::from_str(
-                "Both passkey_payload and webauthn_validator_address must be provided together"
+                "Both passkey_payload and webauthn_validator_address must be provided together",
             ));
         }
     };
 
     // Create init data using the same logic as deploy.rs
-    let init_data = create_init_data_for_deployment(eoa_signers_core, webauthn_signer_core);
+    let init_data =
+        create_init_data_for_deployment(eoa_signers_core, webauthn_signer_core);
 
     // Create the deployAccount call
     let call = MSAFactory::deployAccountCall {
@@ -1911,9 +2034,11 @@ fn create_init_data_for_deployment(
     eoa_signers: Option<zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::EOASigners>,
     webauthn_signer: Option<zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::WebAuthNSigner>,
 ) -> Bytes {
+    use alloy::{
+        sol,
+        sol_types::{SolCall, SolValue},
+    };
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::ModularSmartAccount;
-    use alloy::sol_types::{SolCall, SolValue};
-    use alloy::sol;
 
     sol! {
         struct SignersParams {
@@ -1927,9 +2052,9 @@ fn create_init_data_for_deployment(
 
     // Add EOA signers if provided
     if let Some(signers) = eoa_signers {
-        let eoa_signer_encoded = SignersParams {
-            signers: signers.addresses.to_vec()
-        }.abi_encode_params();
+        let eoa_signer_encoded =
+            SignersParams { signers: signers.addresses.to_vec() }
+                .abi_encode_params();
         modules.push(signers.validator_address);
         data.push(Bytes::from(eoa_signer_encoded));
     }
@@ -1942,10 +2067,8 @@ fn create_init_data_for_deployment(
     }
 
     // Create initializeAccount call
-    let init_call = ModularSmartAccount::initializeAccountCall {
-        modules,
-        data,
-    };
+    let init_call =
+        ModularSmartAccount::initializeAccountCall { modules, data };
 
     Bytes::from(init_call.abi_encode())
 }
