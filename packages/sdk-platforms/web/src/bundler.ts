@@ -21,6 +21,7 @@ export const {
   PasskeyPayload, // Passkey credential data
   DeployAccountConfig, // Account deployment configuration
   SendTransactionConfig, // Transaction sending configuration
+  EncodeGetUserOperationHashParams, // Params for encoding getUserOpHash call
 
   // ===== NEW SDK HELPER FUNCTIONS =====
   // These functions are used by the new viem-based SDK (packages/sdk/src/client-new)

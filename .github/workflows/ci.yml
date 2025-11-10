@@ -258,6 +258,19 @@ jobs:
       - name: Deploy contracts
         run: pnpm run deploy --file ../auth-server/stores/local-node.json
         working-directory: packages/contracts
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      # Install standard foundry (for Anvil and regular EVM deployments)
+      - name: Install foundry
+        uses: foundry-rs/foundry-toolchain@v1.5.0
       
       # Web SDK depends on ERC-4337 contracts for WASM build
       - name: Install ERC-4337 contract dependencies
