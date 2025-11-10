@@ -27,8 +27,10 @@ use zksync_sso_erc4337_core::{
                 transfer_spec::TransferSpec as CoreTransferSpec,
                 usage_limit::UsageLimit as CoreUsageLimit,
             },
+            signers::passkey::stub_signature_passkey,
         },
         entry_point::version::EntryPointVersion,
+        signer::create_eoa_signer,
     },
 };
 
@@ -913,29 +915,15 @@ pub fn add_passkey_to_account(
         };
 
         // Create EOA signer
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::{
-            eoa_signature, stub_signature_eoa,
-        };
-        use std::sync::Arc;
-
-        let stub_sig = match stub_signature_eoa(eoa_validator) {
-            Ok(sig) => sig,
+        let eoa_key_str = format!("0x{}", hex::encode(eoa_key.to_bytes()));
+        let signer = match create_eoa_signer(eoa_key_str, eoa_validator) {
+            Ok(signer) => signer,
             Err(e) => {
                 return Err(JsValue::from_str(&format!(
-                    "Failed to create stub signature: {}",
+                    "Failed to create EOA signer: {}",
                     e
                 )));
             }
-        };
-
-        let eoa_key_str = format!("0x{}", hex::encode(eoa_key.to_bytes()));
-        let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-            eoa_signature(&eoa_key_str, eoa_validator, hash)
-        });
-
-        let signer = zksync_sso_erc4337_core::erc4337::signer::Signer {
-            provider: signature_provider,
-            stub_signature: stub_sig,
         };
 
         // Convert PasskeyPayload to core type
@@ -1592,7 +1580,6 @@ pub fn prepare_passkey_user_operation(
 
         // Create stub signature internally (validator address + minimal ABI-encoded data)
         // This matches the format expected by WebAuthnValidator: (bytes authenticatorData, string clientDataJSON, bytes32[2] rs, bytes credentialId)
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::stub_signature_passkey;
         let stub_sig = match stub_signature_passkey(validator) {
             Ok(sig) => sig,
             Err(e) => {
@@ -2760,60 +2747,23 @@ mod tests {
         rpc::types::TransactionRequest,
     };
     use zksync_sso_erc4337_core::{
-        erc4337::account::{
-            erc7579::{Execution, module_installed::is_module_installed},
-            modular_smart_account::{
-                add_passkey::PasskeyPayload as CorePasskeyPayload,
-                deploy::{DeployAccountParams, WebAuthNSigner, deploy_account},
+        erc4337::{
+            account::{
+                erc7579::{Execution, module_installed::is_module_installed},
+                modular_smart_account::{
+                    add_passkey::PasskeyPayload as CorePasskeyPayload,
+                    deploy::{
+                        DeployAccountParams, WebAuthNSigner, deploy_account,
+                    },
+                },
             },
+            signer::test_utils::get_signature_from_js,
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-
-    fn get_signature_from_js(hash: String) -> eyre::Result<Bytes> {
-        use std::process::Command;
-
-        let working_dir = "../../../../../erc4337-contracts";
-
-        let output = Command::new("pnpm")
-            .arg("tsx")
-            .arg("test/integration/utils.ts")
-            .arg("--hash")
-            .arg(&hash)
-            .current_dir(working_dir)
-            .output()?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            eyre::bail!("Failed to sign hash with passkey: {}", stderr);
-        }
-
-        let stdout = String::from_utf8(output.stdout)?;
-
-        // Extract the last non-empty line which should be the hex signature
-        let last_line = stdout
-            .lines()
-            .filter(|line| !line.is_empty())
-            .next_back()
-            .ok_or_else(|| {
-                eyre::eyre!("No output from sign_hash_with_passkey command")
-            })?;
-
-        let hex_sig = last_line.trim();
-
-        // Parse the hex string
-        let hex_str = if let Some(stripped) = hex_sig.strip_prefix("0x") {
-            stripped
-        } else {
-            hex_sig
-        };
-
-        let bytes_vec = hex::decode(hex_str)?;
-        Ok(Bytes::from(bytes_vec))
-    }
 
     /// Test that mimics the browser two-step flow using WASM FFI functions
     /// This verifies the prepare -> sign -> submit pattern works correctly

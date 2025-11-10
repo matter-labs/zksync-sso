@@ -31,6 +31,7 @@ pub async fn create_session<P: Provider + Send + Sync + Clone>(
     send_transaction(SendParams {
         account: account_address,
         entry_point: entry_point_address,
+        factory_payload: None,
         call_data,
         nonce_key: None,
         paymaster: None,
@@ -79,29 +80,26 @@ mod tests {
                         DeployAccountParams, EOASigners, WebAuthNSigner,
                         deploy_account,
                     },
-                    send::passkey::tests::get_signature_from_js,
                     session::session_lib::session_spec::{
                         limit_type::LimitType, transfer_spec::TransferSpec,
                         usage_limit::UsageLimit,
                     },
-                    signature::{eoa_signature, stub_signature_eoa},
                     test_utilities::fund_account_with_default_amount,
                 },
             },
-            signer::Signer,
+            signer::{
+                create_eoa_signer, test_utils::create_test_webauthn_js_signer,
+            },
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::primitives::{
-        FixedBytes, U256, Uint, address, bytes, fixed_bytes,
-    };
-    use std::sync::Arc;
+    use alloy::primitives::{U256, Uint, address, bytes, fixed_bytes};
 
     #[tokio::test]
-    async fn test_create_session_new() -> eyre::Result<()> {
+    async fn test_create_session() -> eyre::Result<()> {
         let (
             _,
             anvil_instance,
@@ -163,16 +161,10 @@ mod tests {
         fund_account_with_default_amount(address, provider.clone()).await?;
 
         {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-
-            let signer = Signer {
-                provider: signature_provider,
-                stub_signature: stub_sig,
-            };
+            let signer = create_eoa_signer(
+                signer_private_key.clone(),
+                eoa_validator_address,
+            )?;
 
             add_module(
                 address,
@@ -199,14 +191,10 @@ mod tests {
             println!("\n\n\nsession_key_module successfully installed\n\n\n")
         }
 
-        let signer = {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-            Signer { provider: signature_provider, stub_signature: stub_sig }
-        };
+        let signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
 
         {
             let signer_address =
@@ -254,7 +242,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_session_with_webauthn_new() -> eyre::Result<()> {
+    async fn test_create_session_with_webauthn() -> eyre::Result<()> {
         let (
             _,
             anvil_instance,
@@ -323,17 +311,7 @@ mod tests {
 
         fund_account_with_default_amount(address, provider.clone()).await?;
 
-        let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-            let result = get_signature_from_js(hash.to_string())?;
-            Ok(result)
-        });
-
-        let signer = Signer {
-            stub_signature: get_signature_from_js(
-                FixedBytes::<32>::default().to_string(),
-            )?,
-            provider: signature_provider,
-        };
+        let signer = create_test_webauthn_js_signer();
 
         {
             add_module(

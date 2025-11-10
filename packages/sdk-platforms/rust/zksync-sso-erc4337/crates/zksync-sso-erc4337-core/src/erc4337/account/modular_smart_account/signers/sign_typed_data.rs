@@ -44,9 +44,10 @@ where
         caller_domain,
         sign,
     )
+    .await
 }
 
-fn sign_typed_data_with_domains(
+async fn sign_typed_data_with_domains(
     message_types: serde_json::Map<String, serde_json::Value>,
     message: serde_json::Value,
     primary_type: String,
@@ -139,7 +140,7 @@ fn sign_typed_data_with_domains(
 
     let final_hash = typed_data.eip712_signing_hash()?;
 
-    let original_signature = sign(final_hash)?;
+    let original_signature = sign(final_hash).await?;
 
     let final_signature: Vec<u8> = {
         let domain_seperator = typed_data.domain().separator();
@@ -167,20 +168,17 @@ fn sign_typed_data_with_domains(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::erc4337::account::modular_smart_account::signature::eoa_signature;
+    use crate::erc4337::signer::create_eoa_signer;
     use alloy::primitives::{FixedBytes, U256, address, bytes};
-    use std::sync::Arc;
 
-    #[test]
-    fn test_sign_typed_data() -> eyre::Result<()> {
+    #[tokio::test]
+    async fn test_sign_typed_data() -> eyre::Result<()> {
         let eoa_validator_address =
             address!("0xF62849F9A0B5Bf2913b396098F7c7019b51A820a");
-        let sign = {
-            let signer_private_key: String = "0x02016836a56b71f0d02689e69e326f4f4c1b9057164ef592671cf0d37c8040c0".to_string();
-            Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            })
-        };
+        let signer_private_key: String = "0x02016836a56b71f0d02689e69e326f4f4c1b9057164ef592671cf0d37c8040c0".to_string();
+        let signer =
+            create_eoa_signer(signer_private_key, eoa_validator_address)?;
+        let sign: SignatureProvider = signer.provider;
 
         let contract_address =
             address!("0xA4AD4f68d0b91CFD19687c881e50f3A00242828c");
@@ -230,7 +228,8 @@ mod tests {
             account_domain,
             caller_domain,
             sign,
-        )?;
+        )
+        .await?;
 
         let expected_signature = bytes!(
             "0xf62849f9a0b5bf2913b396098f7c7019b51a820a3348056b01d55830973942a1a8c01359ecb6aef2e1d08cfa1b470d835a310aae204c66c0dcee0e53c4c37a2e6906ad3d36ea8188588ae6448a151a829ac74e491baa335e38a793ec8c04d12c9496bc1ee26e40779883a74d6dd1781f4b7a537b968f3e8c20dbe17618cf006de0a778efbb171a55529fb1c077086c27d407c8e5504d6f636b4d65737361676528737472696e67206d6573736167652c75696e743235362076616c7565290029"

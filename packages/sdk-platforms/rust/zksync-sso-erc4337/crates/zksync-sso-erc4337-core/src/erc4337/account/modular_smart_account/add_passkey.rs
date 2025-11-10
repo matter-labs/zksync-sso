@@ -41,6 +41,7 @@ pub async fn add_passkey<P: Provider + Send + Sync + Clone>(
     send_transaction(SendParams {
         account: account_address,
         entry_point: entry_point_address,
+        factory_payload: None,
         call_data,
         nonce_key: None,
         paymaster: None,
@@ -96,19 +97,17 @@ mod tests {
                 },
                 modular_smart_account::{
                     deploy::{DeployAccountParams, EOASigners, deploy_account},
-                    signature::{eoa_signature, stub_signature_eoa},
                     test_utilities::fund_account_with_default_amount,
                 },
             },
-            signer::Signer,
+            signer::create_eoa_signer,
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::primitives::{FixedBytes, address, bytes, fixed_bytes};
-    use std::sync::Arc;
+    use alloy::primitives::{address, bytes, fixed_bytes};
 
     #[tokio::test]
     async fn test_add_passkey() -> eyre::Result<()> {
@@ -168,16 +167,10 @@ mod tests {
 
         let webauthn_module = contracts.webauthn_validator;
         {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-
-            let signer = Signer {
-                provider: signature_provider,
-                stub_signature: stub_sig,
-            };
+            let signer = create_eoa_signer(
+                signer_private_key.clone(),
+                eoa_validator_address,
+            )?;
 
             add_module(
                 address,
@@ -204,22 +197,10 @@ mod tests {
             let passkey =
                 PasskeyPayload { credential_id, passkey, origin_domain };
 
-            let signer = {
-                let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-                let signer_private_key = signer_private_key.clone();
-                let signature_provider =
-                    Arc::new(move |hash: FixedBytes<32>| {
-                        eoa_signature(
-                            &signer_private_key,
-                            eoa_validator_address,
-                            hash,
-                        )
-                    });
-                Signer {
-                    provider: signature_provider,
-                    stub_signature: stub_sig,
-                }
-            };
+            let signer = create_eoa_signer(
+                signer_private_key.clone(),
+                eoa_validator_address,
+            )?;
 
             add_passkey(
                 address,

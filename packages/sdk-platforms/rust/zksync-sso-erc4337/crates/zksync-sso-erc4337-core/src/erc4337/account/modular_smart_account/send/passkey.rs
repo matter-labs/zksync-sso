@@ -1,8 +1,7 @@
 use crate::erc4337::{
-    account::modular_smart_account::send::{
-        PaymasterParams, SendParams, send_transaction as send_transaction_base,
-    },
+    account::modular_smart_account::send::{SendParams, send_transaction},
     bundler::pimlico::client::BundlerClient,
+    paymaster::params::PaymasterParams,
     signer::{SignatureProvider, Signer},
 };
 use alloy::{
@@ -22,7 +21,7 @@ pub struct PasskeySendParams<P: Provider + Send + Sync + Clone> {
     pub signature_provider: SignatureProvider,
 }
 
-pub async fn send_transaction<P>(
+pub async fn passkey_send_transaction<P>(
     params: PasskeySendParams<P>,
 ) -> eyre::Result<()>
 where
@@ -39,14 +38,15 @@ where
         signature_provider,
     } = params;
 
-    let stub_sig = signature_provider(FixedBytes::<32>::default())?;
+    let stub_sig = signature_provider(FixedBytes::<32>::default()).await?;
 
     let signer =
         Signer { provider: signature_provider, stub_signature: stub_sig };
 
-    send_transaction_base(SendParams {
+    _ = send_transaction(SendParams {
         account,
         entry_point,
+        factory_payload: None,
         call_data,
         nonce_key: None,
         paymaster,
@@ -54,24 +54,28 @@ where
         provider,
         signer,
     })
-    .await
+    .await?;
+
+    Ok(())
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::{
-        erc4337::account::{
-            erc7579::{
-                Execution, add_module::add_module, calls::encode_calls,
-                module_installed::is_module_installed,
+        erc4337::{
+            account::{
+                erc7579::{
+                    Execution, add_module::add_module, calls::encode_calls,
+                    module_installed::is_module_installed,
+                },
+                modular_smart_account::{
+                    add_passkey::{PasskeyPayload, add_passkey},
+                    deploy::{DeployAccountParams, EOASigners, deploy_account},
+                    test_utilities::fund_account_with_default_amount,
+                },
             },
-            modular_smart_account::{
-                add_passkey::{PasskeyPayload, add_passkey},
-                deploy::{DeployAccountParams, EOASigners, deploy_account},
-                signature::{eoa_signature, stub_signature_eoa},
-                test_utilities::fund_account_with_default_amount,
-            },
+            signer::{create_eoa_signer, test_utils::get_signature_from_js},
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
@@ -82,50 +86,7 @@ pub mod tests {
         primitives::{Bytes, U256, address, bytes, fixed_bytes},
         rpc::types::TransactionRequest,
     };
-    use std::{str::FromStr, sync::Arc};
-
-    pub fn get_signature_from_js(hash: String) -> eyre::Result<Bytes> {
-        use std::process::Command;
-
-        let working_dir = "../../../../../erc4337-contracts";
-
-        let output = Command::new("pnpm")
-            .arg("tsx")
-            .arg("test/integration/utils.ts")
-            .arg("--hash")
-            .arg(&hash)
-            .current_dir(working_dir)
-            .output()?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            eyre::bail!("Failed to sign hash with passkey: {}", stderr);
-        }
-
-        let stdout = String::from_utf8(output.stdout)?;
-        dbg!(&stdout);
-
-        // Extract the last non-empty line which should be the hex signature
-        let last_line = stdout
-            .lines()
-            .filter(|line| !line.is_empty())
-            .next_back()
-            .ok_or_else(|| {
-                eyre::eyre!("No output from sign_hash_with_passkey command")
-            })?;
-        dbg!(&last_line);
-        dbg!(last_line.len());
-
-        let hex_sig = last_line.trim();
-        dbg!(&hex_sig);
-        dbg!(hex_sig.len());
-
-        let bytes = Bytes::from_str(hex_sig)?;
-        dbg!(&bytes);
-        dbg!(&bytes.len());
-
-        Ok(bytes)
-    }
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_send_transaction_webauthn() -> eyre::Result<()> {
@@ -192,14 +153,10 @@ pub mod tests {
 
         let webauthn_module = contracts.webauthn_validator;
 
-        let signer = {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-            Signer { provider: signature_provider, stub_signature: stub_sig }
-        };
+        let signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
 
         {
             add_module(
@@ -261,11 +218,13 @@ pub mod tests {
 
         let signature_provider: SignatureProvider =
             Arc::new(move |hash: FixedBytes<32>| {
-                let result = get_signature_from_js(hash.to_string())?;
-                Ok(result)
+                Box::pin(async move {
+                    let result = get_signature_from_js(hash.to_string())?;
+                    Ok(result)
+                })
             });
 
-        send_transaction(PasskeySendParams {
+        passkey_send_transaction(PasskeySendParams {
             account: address,
             _webauthn_validator: webauthn_module,
             entry_point: entry_point_address,
@@ -353,14 +312,10 @@ pub mod tests {
 
         let webauthn_module = contracts.webauthn_validator;
 
-        let signer = {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-            Signer { provider: signature_provider, stub_signature: stub_sig }
-        };
+        let signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
 
         // Install WebAuthn validator
         {

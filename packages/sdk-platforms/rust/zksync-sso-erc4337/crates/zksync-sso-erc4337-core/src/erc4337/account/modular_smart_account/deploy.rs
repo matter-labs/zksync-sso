@@ -1,3 +1,5 @@
+pub mod user_op;
+
 use crate::erc4337::{
     account::modular_smart_account::{
         MSAFactory::{self, deployAccountCall},
@@ -14,6 +16,7 @@ use alloy::{
     sol,
     sol_types::{SolCall, SolEvent, SolValue},
 };
+use rand::Rng;
 
 pub struct MSAInitializeAccount(initializeAccountCall);
 
@@ -92,55 +95,11 @@ where
         provider,
     } = params;
 
+    let account_id = id.unwrap_or(generate_random_account_id());
+
+    let init_data = create_init_data(eoa_signers, webauthn_signer);
+
     let factory = MSAFactory::new(factory_address, provider.clone());
-
-    let account_id = id.unwrap_or({
-        let random_id = {
-            use rand::Rng;
-
-            pub fn generate_random_id() -> [u8; 32] {
-                let mut random_bytes = [0u8; 32];
-                rand::thread_rng().fill(&mut random_bytes);
-                random_bytes
-            }
-
-            generate_random_id()
-        };
-        FixedBytes::<32>::from_slice(&random_id)
-    });
-
-    let (mut data, mut modules) = if let Some(signers) = eoa_signers {
-        let eoa_signer_encoded =
-            encode_signers_params(signers.addresses).into();
-        let modules = vec![signers.validator_address];
-        (vec![eoa_signer_encoded], modules)
-    } else {
-        (vec![], vec![])
-    };
-
-    if let Some(webauthn_signer) = webauthn_signer {
-        let webauthn_signer_encoded =
-            webauthn_signer.passkey.abi_encode_params().into();
-        modules.push(webauthn_signer.validator_address);
-        data.push(webauthn_signer_encoded);
-    }
-
-    if let Some(session_signer) = session_signer {
-        use crate::erc4337::account::modular_smart_account::session::SessionLib::SessionSpec as SessionLibSessionSpec;
-        use alloy::sol_types::SolValue;
-
-        // Convert SessionSpec to SessionLib format for encoding
-        let session_lib_spec: SessionLibSessionSpec =
-            session_signer.session_spec.into();
-        let session_encoded: Bytes = session_lib_spec.abi_encode().into();
-
-        modules.push(session_signer.validator_address);
-        data.push(session_encoded);
-    }
-
-    let init_data: Bytes =
-        MSAInitializeAccount::new(modules, data).encode().into();
-
     let deploy_account = factory.deployAccount(account_id, init_data);
 
     let receipt = deploy_account.send().await?.get_receipt().await?;
@@ -168,6 +127,55 @@ fn get_account_created_address(
     let event = log.inner.topics()[1];
     let address = Address::from_slice(&event[12..]);
     Ok(address)
+}
+
+fn create_init_data(
+    eoa_signers: Option<EOASigners>,
+    webauthn_signer: Option<WebAuthNSigner>,
+) -> Bytes {
+    let (data, modules) = modules_from_signers(eoa_signers, webauthn_signer);
+    MSAInitializeAccount::new(modules, data).encode().into()
+}
+
+fn modules_from_signers(
+    eoa_signers: Option<EOASigners>,
+    webauthn_signer: Option<WebAuthNSigner>,
+) -> (Vec<Bytes>, Vec<Address>) {
+    let (mut data, mut modules) = modules_from_eoa_signers(eoa_signers);
+
+    if let Some(webauthn_signer) = webauthn_signer {
+        let webauthn_signer_encoded =
+            webauthn_signer.passkey.abi_encode_params().into();
+        modules.push(webauthn_signer.validator_address);
+        data.push(webauthn_signer_encoded);
+    }
+
+    (data, modules)
+}
+
+fn modules_from_eoa_signers(
+    eoa_signers: Option<EOASigners>,
+) -> (Vec<Bytes>, Vec<Address>) {
+    let Some(signers) = eoa_signers else {
+        return (vec![], vec![]);
+    };
+
+    let eoa_signer_encoded = encode_signers_params(signers.addresses).into();
+
+    let modules = vec![signers.validator_address];
+
+    (vec![eoa_signer_encoded], modules)
+}
+
+fn generate_random_account_id() -> FixedBytes<32> {
+    let random_id = generate_random_id();
+    FixedBytes::<32>::from_slice(&random_id)
+}
+
+fn generate_random_id() -> [u8; 32] {
+    let mut random_bytes = [0u8; 32];
+    rand::thread_rng().fill(&mut random_bytes);
+    random_bytes
 }
 
 #[cfg(test)]

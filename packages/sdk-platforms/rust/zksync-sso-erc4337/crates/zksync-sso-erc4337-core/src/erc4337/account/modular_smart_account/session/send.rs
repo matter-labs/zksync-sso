@@ -25,14 +25,12 @@ mod tests {
                             transfer_spec::TransferSpec,
                             usage_limit::UsageLimit,
                         },
-                    },
-                    signature::{
-                        eoa_signature, session_signature, stub_signature_eoa,
+                        signature::session_signature,
                     },
                     test_utilities::fund_account_with_default_amount,
                 },
             },
-            signer::Signer,
+            signer::{Signer, create_eoa_signer},
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
@@ -43,7 +41,7 @@ mod tests {
         primitives::{Bytes, FixedBytes, U256, Uint, address},
         signers::local::PrivateKeySigner,
     };
-    use std::{str::FromStr, sync::Arc};
+    use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
 
     #[tokio::test]
     async fn test_keyed_nonce() -> eyre::Result<()> {
@@ -135,16 +133,10 @@ mod tests {
         fund_account_with_default_amount(address, provider.clone()).await?;
 
         {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-
-            let signer = Signer {
-                provider: signature_provider,
-                stub_signature: stub_sig,
-            };
+            let signer = create_eoa_signer(
+                signer_private_key.clone(),
+                eoa_validator_address,
+            )?;
 
             add_module(
                 address,
@@ -171,14 +163,10 @@ mod tests {
             println!("\n\n\nsession_key_module successfully installed\n\n\n")
         }
 
-        let signer = {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-            Signer { provider: signature_provider, stub_signature: stub_sig }
-        };
+        let signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
 
         let expires_at = Uint::from(2088558400u64);
         let target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
@@ -225,21 +213,42 @@ mod tests {
         let calls = vec![call];
         let calldata = encode_calls(calls).into();
 
+        let session_key_hex_owned = session_key_hex.to_string();
+        let session_spec_arc = Arc::new(session_spec.clone());
+
         let session_signer = {
             let stub_sig = session_signature(
-                session_key_hex,
+                &session_key_hex_owned,
                 session_key_module,
                 &session_spec,
                 Default::default(),
             )?;
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                session_signature(
-                    session_key_hex,
-                    session_key_module,
-                    &session_spec,
-                    hash,
-                )
-            });
+            let session_key_hex_arc = Arc::new(session_key_hex_owned.clone());
+            let session_key_module_clone = session_key_module;
+            let session_spec_arc_inner = Arc::clone(&session_spec_arc);
+
+            let signature_provider = Arc::new(
+                move |hash: FixedBytes<32>| -> Pin<
+                    Box<dyn Future<Output = eyre::Result<Bytes>> + Send>,
+                > {
+                    let session_key_hex = Arc::clone(&session_key_hex_arc);
+                    let session_spec = Arc::clone(&session_spec_arc_inner);
+                    Box::pin(async move {
+                        session_signature(
+                            session_key_hex.as_str(),
+                            session_key_module_clone,
+                            &session_spec,
+                            hash,
+                        )
+                    })
+                        as Pin<
+                            Box<
+                                dyn Future<Output = eyre::Result<Bytes>> + Send,
+                            >,
+                        >
+                },
+            );
+
             Signer { provider: signature_provider, stub_signature: stub_sig }
         };
 
@@ -248,6 +257,7 @@ mod tests {
         send_transaction(SendParams {
             account: address,
             entry_point: entry_point_address,
+            factory_payload: None,
             call_data: calldata,
             nonce_key: Some(keyed_nonce),
             paymaster: None,
