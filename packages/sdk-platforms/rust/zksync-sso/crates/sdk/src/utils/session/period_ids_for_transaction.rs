@@ -20,20 +20,27 @@ use log::debug;
 ///
 /// # Errors
 /// Returns an error if the transaction doesn't fit any policy
+#[cfg(target_arch = "wasm32")]
+fn current_unix_timestamp_u64() -> u64 {
+    // Avoid requiring JS Date import in wasm; use 0 as a neutral epoch reference.
+    0
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn current_unix_timestamp_u64() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
 pub fn get_period_ids_for_transaction(
     session_config: &SessionSpec,
     target: Address,
     selector: Option<FixedBytes<4>>,
     timestamp: Option<U64>,
 ) -> eyre::Result<Vec<U64>> {
-    let timestamp = timestamp.unwrap_or_else(|| {
-        U64::from(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-        )
-    });
+    let timestamp = timestamp.unwrap_or_else(|| U64::from(current_unix_timestamp_u64()));
 
     let get_id = |usage_limit: &UsageLimit| -> U64 {
         let limit_type: LimitType = usage_limit.limitType.try_into().unwrap();

@@ -57,17 +57,24 @@ pub fn eoa_signature(
 }
 
 fn get_period_id(limit: &UsageLimit) -> Uint<48, 1> {
-    let current_timestamp = Uint::<48, 1>::from(
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs(),
-    );
-
-    if limit.limit_type == LimitType::Allowance {
+    if limit.limit_type != LimitType::Allowance {
+        return Uint::from(0);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        // Avoid std::time on wasm32 - if allowance used, default to 0 period id.
+        // Callers can provide explicit period IDs via other paths if needed.
+        return Uint::from(0);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let current_timestamp = Uint::<48, 1>::from(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+        );
         current_timestamp / limit.period
-    } else {
-        Uint::from(0)
     }
 }
 

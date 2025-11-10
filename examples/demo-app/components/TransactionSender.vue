@@ -440,6 +440,26 @@ async function sendFromSmartAccountWithSession() {
   // eslint-disable-next-line no-console
   console.log("Sending transaction with session key...");
 
+  // Build SessionConfig in the shape expected by the SDK helper (expiresAt, feeLimit, valueLimit)
+  const { ethers } = await import("ethers");
+  const nowSec = Math.floor(Date.now() / 1000);
+  const expiresAt = nowSec + (props.sessionConfig.expiresInDays ?? 1) * 86400;
+
+  const session = {
+    signer: props.sessionConfig.signer,
+    expiresAt,
+    feeLimit: {
+      limitType: "lifetime",
+      limit: ethers.parseEther(String(props.sessionConfig.feeLimitEth ?? "0.1")),
+    },
+    transfers: [
+      {
+        to: props.sessionConfig.transfers?.[0]?.to ?? to.value,
+        valueLimit: ethers.parseEther(String(props.sessionConfig.transfers?.[0]?.valueLimitEth ?? amount.value)),
+      },
+    ],
+  };
+
   const result = await sendTransactionWithSession({
     txConfig: sendConfig,
     sessionValidatorAddress,
@@ -448,7 +468,7 @@ async function sendFromSmartAccountWithSession() {
     value: amountWei,
     data: null,
     sessionPrivateKey: sessionPrivateKey.value,
-    session: props.sessionConfig,
+    session,
   });
 
   // eslint-disable-next-line no-console

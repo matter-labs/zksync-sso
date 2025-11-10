@@ -1,5 +1,5 @@
 // Bundler-specific entry point for web applications
-import * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
+import initWasm, * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
 
 export * from "./session";
 export * from "./types";
@@ -25,8 +25,15 @@ export const SendTransactionConfig = wasm.SendTransactionConfig;
 export const SessionPayload = wasm.SessionPayload;
 export const TransferPayload = wasm.TransferPayload;
 
-// Initialize WASM module
-export const init = wasm.init;
+// Initialize WASM module (async for web target)
+let initPromise: Promise<unknown> | null = null;
 
-// Auto-initialize for bundler environments
-wasm.init();
+export async function init(): Promise<void> {
+  if (!initPromise) {
+    initPromise = initWasm();
+  }
+  await initPromise;
+}
+
+// Auto-initialize for bundler environments (async)
+init();
