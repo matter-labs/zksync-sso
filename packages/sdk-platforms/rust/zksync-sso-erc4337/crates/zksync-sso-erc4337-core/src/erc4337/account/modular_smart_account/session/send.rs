@@ -264,4 +264,166 @@ mod tests {
 
         Ok(())
     }
+
+    /// Negative test: attempt to send a session transaction signed by the wrong
+    /// session key (not the one that the session was created with). We expect
+    /// the bundler / validation pipeline to reject the UserOperation with an
+    /// AA23-style revert (invalid signature). The exact revert reason string
+    /// bubbles up through our error formatting, so we assert it contains the
+    /// substring `AA23` to guard against silent acceptance of invalid session
+    /// signatures.
+    #[tokio::test]
+    async fn test_send_transaction_session_wrong_key_rejected() -> eyre::Result<()> {
+        let (
+            _,
+            anvil_instance,
+            provider,
+            contracts,
+            signer_private_key,
+            bundler,
+            bundler_client,
+        ) = {
+            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+            let config = TestInfraConfig { signer_private_key: signer_private_key.clone() };
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(&config).await?
+        };
+
+        let session_key_module = contracts.session_validator;
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
+        let entry_point_address = address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+
+        // Correct session key used when creating the session
+        let session_key_hex_valid = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
+        let session_signer_address_valid = PrivateKeySigner::from_str(session_key_hex_valid)?.address();
+
+        // Wrong session key we will use when attempting to send
+        let session_key_hex_wrong = "0x59c6995e998f97a5a0044966f0945382f6248550bfb224aa53a6b7d22d4d3e7a"; // different well-known test key
+        let session_signer_address_wrong = PrivateKeySigner::from_str(session_key_hex_wrong)?.address();
+
+        // Deploy account with EOA signer
+        let signers = vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
+        let eoa_signers = EOASigners { addresses: signers, validator_address: eoa_validator_address };
+        let account_address = deploy_account(DeployAccountParams {
+            factory_address,
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            session_signer: None,
+            id: None,
+            provider: provider.clone(),
+        }).await?;
+
+        // Ensure EOA module is installed
+        eyre::ensure!(
+            is_module_installed(eoa_validator_address, account_address, provider.clone()).await?,
+            "EOA validator module not installed"
+        );
+
+        fund_account_with_default_amount(account_address, provider.clone()).await?;
+
+        // Add session key validator module
+        {
+            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
+            let signer_private_key = signer_private_key.clone();
+            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
+                eoa_signature(&signer_private_key, eoa_validator_address, hash)
+            });
+            let signer = Signer { provider: signature_provider, stub_signature: stub_sig };
+            add_module(
+                account_address,
+                session_key_module,
+                entry_point_address,
+                provider.clone(),
+                bundler_client.clone(),
+                signer,
+            ).await?;
+            eyre::ensure!(
+                is_module_installed(session_key_module, account_address, provider.clone()).await?,
+                "Session key module not installed"
+            );
+        }
+
+        // Signer for creating session (EOA based)
+        let eoa_signer_for_session = {
+            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
+            let signer_private_key = signer_private_key.clone();
+            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
+                eoa_signature(&signer_private_key, eoa_validator_address, hash)
+            });
+            Signer { provider: signature_provider, stub_signature: stub_sig }
+        };
+
+        // Create session with the VALID key
+        let session_spec = SessionSpec {
+            signer: session_signer_address_valid,
+            expires_at: Uint::from(2088558400u64),
+            call_policies: vec![],
+            fee_limit: UsageLimit { limit_type: LimitType::Lifetime, limit: U256::from(1_000_000_000_000_000_000u64), period: Uint::from(0) },
+            transfer_policies: vec![TransferSpec {
+                max_value_per_use: U256::from(1),
+                target: address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"),
+                value_limit: UsageLimit { limit_type: LimitType::Unlimited, limit: U256::from(0), period: Uint::from(0) },
+            }],
+        };
+        create_session(
+            account_address,
+            session_spec.clone(),
+            entry_point_address,
+            session_key_module,
+            bundler_client.clone(),
+            provider.clone(),
+            eoa_signer_for_session,
+        ).await?;
+
+        // Prepare call (value within allowed limits so only signature mismatch should matter)
+        let call = Execution { target: address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"), value: U256::from(1), data: Bytes::default() };
+        let calldata = encode_calls(vec![call]).into();
+
+        // WRONG session signer (not the one registered in session_spec)
+        let wrong_session_signer = {
+            let stub_sig = session_signature(
+                session_key_hex_wrong,
+                session_key_module,
+                &session_spec,
+                Default::default(),
+            )?;
+            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
+                session_signature(
+                    session_key_hex_wrong,
+                    session_key_module,
+                    &session_spec,
+                    hash,
+                )
+            });
+            Signer { provider: signature_provider, stub_signature: stub_sig }
+        };
+
+        let keyed_nonce_wrong = keyed_nonce(session_signer_address_wrong);
+
+        let result = send_transaction(SendParams {
+            account: account_address,
+            entry_point: entry_point_address,
+            call_data: calldata,
+            nonce_key: Some(keyed_nonce_wrong),
+            paymaster: None,
+            bundler_client,
+            provider,
+            signer: wrong_session_signer,
+        }).await;
+
+        eyre::ensure!(
+            result.is_err(),
+            "Expected send_transaction to fail with wrong session key, but it succeeded"
+        );
+
+        let err = format!("{result:?}");
+        eyre::ensure!(
+            err.contains("AA23"),
+            "Expected error to contain AA23 (invalid signature), got: {err}"
+        );
+
+        drop(anvil_instance);
+        drop(bundler);
+        Ok(())
+    }
 }
