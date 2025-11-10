@@ -33,6 +33,7 @@ uniffi.workspace = true
 
 # Error handling
 thiserror.workspace = true
+eyre.workspace = true
 
 # Logging/Tracing
 tracing.workspace = true

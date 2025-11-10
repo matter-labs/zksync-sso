@@ -1,17 +1,13 @@
 use crate::erc4337::{
-    account::modular_smart_account::{
-        send::{SendParams, send_transaction},
-        signers::eoa::{eoa_signature, stub_signature_eoa},
-    },
+    account::modular_smart_account::send::{SendParams, send_transaction},
     bundler::pimlico::client::BundlerClient,
     paymaster::params::PaymasterParams,
-    signer::Signer,
+    signer::create_eoa_signer,
 };
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes, Uint},
+    primitives::{Address, Bytes, Uint},
     providers::Provider,
 };
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct EOASendParams<P: Provider + Send + Sync + Clone> {
@@ -41,14 +37,7 @@ pub async fn eoa_send_transaction<P: Provider + Send + Sync + Clone>(
         private_key_hex,
     } = params;
 
-    let stub_sig = stub_signature_eoa(eoa_validator)?;
-
-    let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-        eoa_signature(&private_key_hex, eoa_validator, hash)
-    });
-
-    let signer =
-        Signer { stub_signature: stub_sig, provider: signature_provider };
+    let signer = create_eoa_signer(private_key_hex, eoa_validator)?;
 
     _ = send_transaction(SendParams {
         account,
@@ -95,7 +84,7 @@ mod tests {
         },
     };
     use alloy::{
-        primitives::{Bytes, FixedBytes, U256, address},
+        primitives::{Bytes, U256, address},
         providers::ProviderBuilder,
     };
 
@@ -258,16 +247,10 @@ mod tests {
         let paymaster_params =
             PaymasterParams::default_paymaster(paymaster_address);
 
-        let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-        let signature_provider = {
-            let signer_private_key = signer_private_key.clone();
-            Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            })
-        };
-
-        let signer =
-            Signer { stub_signature: stub_sig, provider: signature_provider };
+        let signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
 
         let address =
             deploy_account_with_user_op(DeployAccountWithUserOpParams {

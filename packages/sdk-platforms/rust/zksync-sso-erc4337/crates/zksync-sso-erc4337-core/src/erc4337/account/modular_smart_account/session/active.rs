@@ -131,11 +131,10 @@ mod tests {
                             usage_limit::UsageLimit,
                         },
                     },
-                    signers::eoa::{eoa_signature, stub_signature_eoa},
                     test_utilities::fund_account_with_default_amount,
                 },
             },
-            signer::Signer,
+            signer::create_eoa_signer,
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
@@ -146,7 +145,7 @@ mod tests {
         primitives::{FixedBytes, U256, Uint, address},
         rpc::types::{BlockNumberOrTag, FilterBlockOption, FilterSet},
     };
-    use std::{collections::HashSet, sync::Arc};
+    use std::collections::HashSet;
 
     fn create_session_logs_filter(
         session_key_validator_address: Address,
@@ -228,16 +227,10 @@ mod tests {
             .await?;
 
         {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-
-            let signer = Signer {
-                provider: signature_provider,
-                stub_signature: stub_sig,
-            };
+            let signer = create_eoa_signer(
+                signer_private_key.clone(),
+                eoa_validator_address,
+            )?;
 
             add_module(
                 account_address,
@@ -264,14 +257,10 @@ mod tests {
             println!("\n\n\nsession_key_module successfully installed\n\n\n")
         }
 
-        let signer = {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-            Signer { provider: signature_provider, stub_signature: stub_sig }
-        };
+        let signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
 
         // Create first session (will remain active)
         let session_spec_1 = {

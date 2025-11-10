@@ -163,7 +163,7 @@ where
     .await?;
 
     let signature_provider = Arc::clone(&signer.provider);
-    let signature = signature_provider(hash.0)?;
+    let signature = signature_provider(hash.0).await?;
     user_op.signature = signature;
 
     let user_op_hash =

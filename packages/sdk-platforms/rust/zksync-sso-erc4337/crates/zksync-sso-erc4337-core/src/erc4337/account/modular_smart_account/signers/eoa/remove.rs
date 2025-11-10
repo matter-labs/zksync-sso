@@ -72,22 +72,18 @@ mod tests {
                 erc7579::module_installed::is_module_installed,
                 modular_smart_account::{
                     deploy::{DeployAccountParams, EOASigners, deploy_account},
-                    signers::eoa::{
-                        active::get_active_owners, add::add_owner,
-                        eoa_signature, stub_signature_eoa,
-                    },
+                    signers::eoa::{active::get_active_owners, add::add_owner},
                     test_utilities::fund_account_with_default_amount,
                 },
             },
-            signer::Signer,
+            signer::create_eoa_signer,
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::primitives::{FixedBytes, address};
-    use std::sync::Arc;
+    use alloy::primitives::address;
 
     #[tokio::test]
     async fn test_remove_owner() -> eyre::Result<()> {
@@ -152,14 +148,10 @@ mod tests {
             .await?;
 
         // Add an owner first
-        let signer = {
-            let stub_sig = stub_signature_eoa(eoa_validator_address)?;
-            let signer_private_key = signer_private_key.clone();
-            let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(&signer_private_key, eoa_validator_address, hash)
-            });
-            Signer { provider: signature_provider, stub_signature: stub_sig }
-        };
+        let signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
 
         add_owner(
             account_address,
