@@ -128,11 +128,12 @@ where
     if let Some(session_signer) = session_signer {
         use crate::erc4337::account::modular_smart_account::session::SessionLib::SessionSpec as SessionLibSessionSpec;
         use alloy::sol_types::SolValue;
-        
+
         // Convert SessionSpec to SessionLib format for encoding
-        let session_lib_spec: SessionLibSessionSpec = session_signer.session_spec.into();
+        let session_lib_spec: SessionLibSessionSpec =
+            session_signer.session_spec.into();
         let session_encoded: Bytes = session_lib_spec.abi_encode().into();
-        
+
         modules.push(session_signer.validator_address);
         data.push(session_encoded);
     }
@@ -256,18 +257,19 @@ mod tests {
         let session_validator_address = contracts.session_validator;
 
         // Create EOA signers for deployment authorization
-        let signers = vec![
-            address!("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
-        ];
+        let signers =
+            vec![address!("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")];
         let eoa_signers = EOASigners {
             addresses: signers,
             validator_address: eoa_validator_address,
         };
 
         // Create a session spec
-        let session_signer_address = address!("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
-        let transfer_target = address!("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC");
-        
+        let session_signer_address =
+            address!("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+        let transfer_target =
+            address!("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC");
+
         let session_spec = SessionSpec {
             signer: session_signer_address,
             expires_at: U48::from((1u64 << 48) - 1), // Max U48 value

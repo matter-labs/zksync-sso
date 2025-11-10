@@ -1,6 +1,6 @@
 use alloy::{
     network::EthereumWallet,
-    primitives::{Address, Bytes, FixedBytes, U256, keccak256, aliases::U48},
+    primitives::{Address, Bytes, FixedBytes, U256, aliases::U48, keccak256},
     providers::ProviderBuilder,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
     signers::local::PrivateKeySigner,
@@ -17,15 +17,15 @@ use zksync_sso_erc4337_core::{
             add_passkey::PasskeyPayload as CorePasskeyPayload,
             deploy::{
                 EOASigners as CoreEOASigners,
-                WebAuthNSigner as CoreWebauthNSigner,
                 SessionSigner as CoreSessionSigner,
+                WebAuthNSigner as CoreWebauthNSigner,
             },
             send::eoa::EOASendParams,
             session::session_lib::session_spec::{
                 SessionSpec as CoreSessionSpec,
+                limit_type::LimitType as CoreLimitType,
                 transfer_spec::TransferSpec as CoreTransferSpec,
                 usage_limit::UsageLimit as CoreUsageLimit,
-                limit_type::LimitType as CoreLimitType,
             },
         },
         entry_point::version::EntryPointVersion,
@@ -183,12 +183,7 @@ impl TransferPayload {
         value_limit_type: u8,
         value_limit_period: String,
     ) -> Self {
-        Self {
-            target,
-            value_limit_value,
-            value_limit_type,
-            value_limit_period,
-        }
+        Self { target, value_limit_value, value_limit_type, value_limit_period }
     }
 
     #[wasm_bindgen(getter)]
@@ -624,20 +619,24 @@ pub fn deploy_account(
         };
 
         // Convert SessionPayload to SessionSigner if provided
-        let session_signer = match (session_payload, deploy_account_config.session_validator_address.as_ref()) {
+        let session_signer = match (
+            session_payload,
+            deploy_account_config.session_validator_address.as_ref(),
+        ) {
             (Some(session), Some(session_validator_str)) => {
                 console_log!("  Converting session payload...");
-                
+
                 // Parse session validator address
-                let session_validator_addr = match session_validator_str.parse::<Address>() {
-                    Ok(addr) => addr,
-                    Err(e) => {
-                        return Err(JsValue::from_str(&format!(
-                            "Invalid session validator address: {}",
-                            e
-                        )));
-                    }
-                };
+                let session_validator_addr =
+                    match session_validator_str.parse::<Address>() {
+                        Ok(addr) => addr,
+                        Err(e) => {
+                            return Err(JsValue::from_str(&format!(
+                                "Invalid session validator address: {}",
+                                e
+                            )));
+                        }
+                    };
 
                 // Parse session signer address
                 let signer = match session.signer.parse::<Address>() {
@@ -651,61 +650,108 @@ pub fn deploy_account(
                 };
 
                 // Parse expires_at (U48 from string)
-                let expires_at = match u64::from_str_radix(&session.expires_at, 10) {
-                    Ok(val) => U48::from(val),
-                    Err(e) => {
-                        return Err(JsValue::from_str(&format!(
-                            "Invalid expires_at value: {}",
-                            e
-                        )));
-                    }
-                };
+                let expires_at =
+                    match u64::from_str_radix(&session.expires_at, 10) {
+                        Ok(val) => U48::from(val),
+                        Err(e) => {
+                            return Err(JsValue::from_str(&format!(
+                                "Invalid expires_at value: {}",
+                                e
+                            )));
+                        }
+                    };
 
                 // Convert fee limit
-                let fee_limit_type = CoreLimitType::try_from(session.fee_limit_type).map_err(|e| {
+                let fee_limit_type = CoreLimitType::try_from(
+                    session.fee_limit_type,
+                )
+                .map_err(|e| {
                     JsValue::from_str(&format!("Invalid fee limit type: {}", e))
                 })?;
-                
-                let fee_limit = CoreUsageLimit {
-                    limit_type: fee_limit_type,
-                    limit: U256::from_str(&session.fee_limit_value).map_err(|e| {
-                        JsValue::from_str(&format!("Invalid fee limit value: {}", e))
-                    })?,
-                    period: U48::from_str(&session.fee_limit_period).map_err(|e| {
-                        JsValue::from_str(&format!("Invalid fee limit period: {}", e))
-                    })?,
-                };
+
+                let fee_limit =
+                    CoreUsageLimit {
+                        limit_type: fee_limit_type,
+                        limit: U256::from_str(&session.fee_limit_value)
+                            .map_err(|e| {
+                                JsValue::from_str(&format!(
+                                    "Invalid fee limit value: {}",
+                                    e
+                                ))
+                            })?,
+                        period: U48::from_str(&session.fee_limit_period)
+                            .map_err(|e| {
+                                JsValue::from_str(&format!(
+                                    "Invalid fee limit period: {}",
+                                    e
+                                ))
+                            })?,
+                    };
 
                 // Convert transfer policies
-                let transfer_policies: Result<Vec<CoreTransferSpec>, JsValue> = session.transfers.iter().map(|transfer| {
-                    let target = transfer.target.parse::<Address>().map_err(|e| {
-                        JsValue::from_str(&format!("Invalid transfer target address: {}", e))
-                    })?;
-                    
-                    let max_value_per_use = U256::from_str(&transfer.value_limit_value).map_err(|e| {
-                        JsValue::from_str(&format!("Invalid max_value_per_use: {}", e))
-                    })?;
-                    
-                    let value_limit_type = CoreLimitType::try_from(transfer.value_limit_type).map_err(|e| {
-                        JsValue::from_str(&format!("Invalid value limit type: {}", e))
-                    })?;
-                    
-                    let value_limit = CoreUsageLimit {
-                        limit_type: value_limit_type,
-                        limit: U256::from_str(&transfer.value_limit_value).map_err(|e| {
-                            JsValue::from_str(&format!("Invalid value limit: {}", e))
-                        })?,
-                        period: U48::from_str(&transfer.value_limit_period).map_err(|e| {
-                            JsValue::from_str(&format!("Invalid value limit period: {}", e))
-                        })?,
-                    };
-                    
-                    Ok(CoreTransferSpec {
-                        target,
-                        max_value_per_use,
-                        value_limit,
-                    })
-                }).collect();
+                let transfer_policies: Result<Vec<CoreTransferSpec>, JsValue> =
+                    session
+                        .transfers
+                        .iter()
+                        .map(|transfer| {
+                            let target = transfer
+                                .target
+                                .parse::<Address>()
+                                .map_err(|e| {
+                                    JsValue::from_str(&format!(
+                                        "Invalid transfer target address: {}",
+                                        e
+                                    ))
+                                })?;
+
+                            let max_value_per_use =
+                                U256::from_str(&transfer.value_limit_value)
+                                    .map_err(|e| {
+                                        JsValue::from_str(&format!(
+                                            "Invalid max_value_per_use: {}",
+                                            e
+                                        ))
+                                    })?;
+
+                            let value_limit_type = CoreLimitType::try_from(
+                                transfer.value_limit_type,
+                            )
+                            .map_err(|e| {
+                                JsValue::from_str(&format!(
+                                    "Invalid value limit type: {}",
+                                    e
+                                ))
+                            })?;
+
+                            let value_limit = CoreUsageLimit {
+                                limit_type: value_limit_type,
+                                limit: U256::from_str(
+                                    &transfer.value_limit_value,
+                                )
+                                .map_err(|e| {
+                                    JsValue::from_str(&format!(
+                                        "Invalid value limit: {}",
+                                        e
+                                    ))
+                                })?,
+                                period: U48::from_str(
+                                    &transfer.value_limit_period,
+                                )
+                                .map_err(|e| {
+                                    JsValue::from_str(&format!(
+                                        "Invalid value limit period: {}",
+                                        e
+                                    ))
+                                })?,
+                            };
+
+                            Ok(CoreTransferSpec {
+                                target,
+                                max_value_per_use,
+                                value_limit,
+                            })
+                        })
+                        .collect();
 
                 let transfer_policies = transfer_policies?;
 
@@ -718,7 +764,10 @@ pub fn deploy_account(
                     transfer_policies,
                 };
 
-                console_log!("  Session spec created with {} transfers", session.transfers.len());
+                console_log!(
+                    "  Session spec created with {} transfers",
+                    session.transfers.len()
+                );
 
                 Some(CoreSessionSigner {
                     session_spec,
@@ -727,7 +776,7 @@ pub fn deploy_account(
             }
             (Some(_), None) => {
                 return Err(JsValue::from_str(
-                    "Session payload provided but session_validator_address is missing"
+                    "Session payload provided but session_validator_address is missing",
                 ));
             }
             (None, _) => None,
@@ -976,15 +1025,16 @@ pub fn add_session_to_account(
             }
         };
 
-        let session_validator = match session_validator_address.parse::<Address>() {
-            Ok(addr) => addr,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid session validator address: {}",
-                    e
-                )));
-            }
-        };
+        let session_validator =
+            match session_validator_address.parse::<Address>() {
+                Ok(addr) => addr,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid session validator address: {}",
+                        e
+                    )));
+                }
+            };
 
         let eoa_validator = match eoa_validator_address.parse::<Address>() {
             Ok(addr) => addr,
@@ -1081,45 +1131,49 @@ pub fn add_session_to_account(
             }
         };
 
-        let expires_at = match u64::from_str_radix(&session_payload.expires_at, 10) {
-            Ok(v) => U48::from(v),
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid expires_at value: {}",
-                    e
-                )));
-            }
-        };
+        let expires_at =
+            match u64::from_str_radix(&session_payload.expires_at, 10) {
+                Ok(v) => U48::from(v),
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid expires_at value: {}",
+                        e
+                    )));
+                }
+            };
 
-        let fee_limit_type = match CoreLimitType::try_from(session_payload.fee_limit_type) {
-            Ok(t) => t,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid fee limit type: {}",
-                    e
-                )));
-            }
-        };
+        let fee_limit_type =
+            match CoreLimitType::try_from(session_payload.fee_limit_type) {
+                Ok(t) => t,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid fee limit type: {}",
+                        e
+                    )));
+                }
+            };
 
-        let fee_limit_value = match U256::from_str(&session_payload.fee_limit_value) {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid fee limit value: {}",
-                    e
-                )));
-            }
-        };
+        let fee_limit_value =
+            match U256::from_str(&session_payload.fee_limit_value) {
+                Ok(v) => v,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid fee limit value: {}",
+                        e
+                    )));
+                }
+            };
 
-        let fee_limit_period = match U48::from_str(&session_payload.fee_limit_period) {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid fee limit period: {}",
-                    e
-                )));
-            }
-        };
+        let fee_limit_period =
+            match U48::from_str(&session_payload.fee_limit_period) {
+                Ok(p) => p,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid fee limit period: {}",
+                        e
+                    )));
+                }
+            };
 
         let fee_limit = CoreUsageLimit {
             limit_type: fee_limit_type,
@@ -1127,27 +1181,59 @@ pub fn add_session_to_account(
             period: fee_limit_period,
         };
 
-        let transfer_policies: Result<Vec<CoreTransferSpec>, JsValue> = session_payload
-            .transfers
-            .iter()
-            .map(|t| {
-                let target = t.target.parse::<Address>().map_err(|e| JsValue::from_str(&format!("Invalid transfer target: {}", e)))?;
-                let max_value_per_use = U256::from_str(&t.value_limit_value)
-                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_value: {}", e)))?;
-                let limit_type = CoreLimitType::try_from(t.value_limit_type)
-                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_type: {}", e)))?;
-                let limit = U256::from_str(&t.value_limit_value)
-                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_value: {}", e)))?;
-                let period = U48::from_str(&t.value_limit_period)
-                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_period: {}", e)))?;
+        let transfer_policies: Result<Vec<CoreTransferSpec>, JsValue> =
+            session_payload
+                .transfers
+                .iter()
+                .map(|t| {
+                    let target = t.target.parse::<Address>().map_err(|e| {
+                        JsValue::from_str(&format!(
+                            "Invalid transfer target: {}",
+                            e
+                        ))
+                    })?;
+                    let max_value_per_use =
+                        U256::from_str(&t.value_limit_value).map_err(|e| {
+                            JsValue::from_str(&format!(
+                                "Invalid value_limit_value: {}",
+                                e
+                            ))
+                        })?;
+                    let limit_type = CoreLimitType::try_from(
+                        t.value_limit_type,
+                    )
+                    .map_err(|e| {
+                        JsValue::from_str(&format!(
+                            "Invalid value_limit_type: {}",
+                            e
+                        ))
+                    })?;
+                    let limit =
+                        U256::from_str(&t.value_limit_value).map_err(|e| {
+                            JsValue::from_str(&format!(
+                                "Invalid value_limit_value: {}",
+                                e
+                            ))
+                        })?;
+                    let period =
+                        U48::from_str(&t.value_limit_period).map_err(|e| {
+                            JsValue::from_str(&format!(
+                                "Invalid value_limit_period: {}",
+                                e
+                            ))
+                        })?;
 
-                Ok(CoreTransferSpec {
-                    target,
-                    max_value_per_use,
-                    value_limit: CoreUsageLimit { limit_type, limit, period },
+                    Ok(CoreTransferSpec {
+                        target,
+                        max_value_per_use,
+                        value_limit: CoreUsageLimit {
+                            limit_type,
+                            limit,
+                            period,
+                        },
+                    })
                 })
-            })
-            .collect();
+                .collect();
 
         let transfer_policies = transfer_policies?;
 
@@ -1950,15 +2036,16 @@ pub fn send_transaction_session(
             }
         };
 
-        let session_validator = match session_validator_address.parse::<Address>() {
-            Ok(addr) => addr,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid session validator address: {}",
-                    e
-                )));
-            }
-        };
+        let session_validator =
+            match session_validator_address.parse::<Address>() {
+                Ok(addr) => addr,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid session validator address: {}",
+                        e
+                    )));
+                }
+            };
 
         let to = match to_address.parse::<Address>() {
             Ok(addr) => addr,
@@ -2029,45 +2116,49 @@ pub fn send_transaction_session(
             }
         };
 
-        let expires_at = match u64::from_str_radix(&session_payload.expires_at, 10) {
-            Ok(v) => U48::from(v),
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid expires_at value: {}",
-                    e
-                )));
-            }
-        };
+        let expires_at =
+            match u64::from_str_radix(&session_payload.expires_at, 10) {
+                Ok(v) => U48::from(v),
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid expires_at value: {}",
+                        e
+                    )));
+                }
+            };
 
-        let fee_limit_type = match CoreLimitType::try_from(session_payload.fee_limit_type) {
-            Ok(t) => t,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid fee limit type: {}",
-                    e
-                )));
-            }
-        };
+        let fee_limit_type =
+            match CoreLimitType::try_from(session_payload.fee_limit_type) {
+                Ok(t) => t,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid fee limit type: {}",
+                        e
+                    )));
+                }
+            };
 
-        let fee_limit_value = match U256::from_str(&session_payload.fee_limit_value) {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid fee limit value: {}",
-                    e
-                )));
-            }
-        };
+        let fee_limit_value =
+            match U256::from_str(&session_payload.fee_limit_value) {
+                Ok(v) => v,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid fee limit value: {}",
+                        e
+                    )));
+                }
+            };
 
-        let fee_limit_period = match U48::from_str(&session_payload.fee_limit_period) {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid fee limit period: {}",
-                    e
-                )));
-            }
-        };
+        let fee_limit_period =
+            match U48::from_str(&session_payload.fee_limit_period) {
+                Ok(p) => p,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid fee limit period: {}",
+                        e
+                    )));
+                }
+            };
 
         let fee_limit = CoreUsageLimit {
             limit_type: fee_limit_type,
@@ -2075,27 +2166,59 @@ pub fn send_transaction_session(
             period: fee_limit_period,
         };
 
-        let transfer_policies: Result<Vec<CoreTransferSpec>, JsValue> = session_payload
-            .transfers
-            .iter()
-            .map(|t| {
-                let target = t.target.parse::<Address>().map_err(|e| JsValue::from_str(&format!("Invalid transfer target: {}", e)))?;
-                let max_value_per_use = U256::from_str(&t.value_limit_value)
-                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_value: {}", e)))?;
-                let limit_type = CoreLimitType::try_from(t.value_limit_type)
-                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_type: {}", e)))?;
-                let limit = U256::from_str(&t.value_limit_value)
-                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_value: {}", e)))?;
-                let period = U48::from_str(&t.value_limit_period)
-                    .map_err(|e| JsValue::from_str(&format!("Invalid value_limit_period: {}", e)))?;
+        let transfer_policies: Result<Vec<CoreTransferSpec>, JsValue> =
+            session_payload
+                .transfers
+                .iter()
+                .map(|t| {
+                    let target = t.target.parse::<Address>().map_err(|e| {
+                        JsValue::from_str(&format!(
+                            "Invalid transfer target: {}",
+                            e
+                        ))
+                    })?;
+                    let max_value_per_use =
+                        U256::from_str(&t.value_limit_value).map_err(|e| {
+                            JsValue::from_str(&format!(
+                                "Invalid value_limit_value: {}",
+                                e
+                            ))
+                        })?;
+                    let limit_type = CoreLimitType::try_from(
+                        t.value_limit_type,
+                    )
+                    .map_err(|e| {
+                        JsValue::from_str(&format!(
+                            "Invalid value_limit_type: {}",
+                            e
+                        ))
+                    })?;
+                    let limit =
+                        U256::from_str(&t.value_limit_value).map_err(|e| {
+                            JsValue::from_str(&format!(
+                                "Invalid value_limit_value: {}",
+                                e
+                            ))
+                        })?;
+                    let period =
+                        U48::from_str(&t.value_limit_period).map_err(|e| {
+                            JsValue::from_str(&format!(
+                                "Invalid value_limit_period: {}",
+                                e
+                            ))
+                        })?;
 
-                Ok(CoreTransferSpec {
-                    target,
-                    max_value_per_use,
-                    value_limit: CoreUsageLimit { limit_type, limit, period },
+                    Ok(CoreTransferSpec {
+                        target,
+                        max_value_per_use,
+                        value_limit: CoreUsageLimit {
+                            limit_type,
+                            limit,
+                            period,
+                        },
+                    })
                 })
-            })
-            .collect();
+                .collect();
 
         let transfer_policies = transfer_policies?;
 
@@ -2136,9 +2259,7 @@ pub fn send_transaction_session(
         let calls = vec![call];
         let encoded_calls: Bytes = encode_calls(calls).into();
 
-        console_log!(
-            "  Encoded call data, preparing session transaction..."
-        );
+        console_log!("  Encoded call data, preparing session transaction...");
 
         // Use keyed nonce for session
         use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::send::keyed_nonce;
@@ -2146,12 +2267,14 @@ pub fn send_transaction_session(
         console_log!("  Session keyed nonce: {}", nonce_key);
 
         // Send transaction with session signature
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::send::{
-            SendParams, send_transaction,
-        };
-        use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::signature::session_signature;
-        use zksync_sso_erc4337_core::erc4337::signer::Signer;
         use std::sync::Arc;
+        use zksync_sso_erc4337_core::erc4337::{
+            account::modular_smart_account::{
+                send::{SendParams, send_transaction},
+                signature::session_signature,
+            },
+            signer::Signer,
+        };
 
         // Create stub signature for gas estimation
         let stub_sig = match session_signature(
@@ -2172,13 +2295,16 @@ pub fn send_transaction_session(
         // Create signature provider
         let private_key = session_private_key.clone();
         let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-            session_signature(&private_key, session_validator, &session_spec, hash)
+            session_signature(
+                &private_key,
+                session_validator,
+                &session_spec,
+                hash,
+            )
         });
 
-        let signer = Signer {
-            provider: signature_provider,
-            stub_signature: stub_sig,
-        };
+        let signer =
+            Signer { provider: signature_provider, stub_signature: stub_sig };
 
         match send_transaction(SendParams {
             account,
@@ -2198,7 +2324,10 @@ pub fn send_transaction_session(
             }
             Err(e) => {
                 console_log!("  Error sending session transaction: {}", e);
-                Err(JsValue::from_str(&format!("Failed to send session transaction: {}", e)))
+                Err(JsValue::from_str(&format!(
+                    "Failed to send session transaction: {}",
+                    e
+                )))
             }
         }
     })
@@ -2525,7 +2654,8 @@ mod tests {
         use alloy::primitives::{U256, aliases::U48, address};
 
         let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-        let config = TestInfraConfig { signer_private_key: signer_private_key.clone() };
+        let config =
+            TestInfraConfig { signer_private_key: signer_private_key.clone() };
         let (
             _,
             anvil_instance,
@@ -2534,15 +2664,20 @@ mod tests {
             _signer_private_key,
             bundler,
             bundler_client,
-        ) = start_anvil_and_deploy_contracts_and_start_bundler_with_config(&config).await?;
+        ) = start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            &config,
+        )
+        .await?;
 
         let factory_address = contracts.account_factory;
-        let entry_point_address = address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+        let entry_point_address =
+            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
         let eoa_validator_address = contracts.eoa_validator;
         let session_validator_address = contracts.session_validator;
 
         // Use the same EOA signer address as core tests to match validator expectations
-        let signers = vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
+        let signers =
+            vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
         let eoa_signers = zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::EOASigners {
             addresses: signers.clone(),
             validator_address: eoa_validator_address,
@@ -2595,7 +2730,10 @@ mod tests {
                 alloy::rpc::types::TransactionRequest::default()
                     .to(account_address)
                     .value(U256::from(10000000000000000000u64)),
-            ).await?.get_receipt().await?;
+            )
+            .await?
+            .get_receipt()
+            .await?;
         }
 
         // Verify session module is installed
@@ -2603,8 +2741,12 @@ mod tests {
             session_validator_address,
             account_address,
             provider.clone(),
-        ).await?;
-        eyre::ensure!(is_installed, "Session module is not installed after deploy-with-session");
+        )
+        .await?;
+        eyre::ensure!(
+            is_installed,
+            "Session module is not installed after deploy-with-session"
+        );
 
         // Optionally: verify session spec (out of scope for this smoke test)
 
@@ -3018,7 +3160,8 @@ mod tests {
         use alloy::primitives::{U256, aliases::U48};
 
         let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-        let config = TestInfraConfig { signer_private_key: signer_private_key.clone() };
+        let config =
+            TestInfraConfig { signer_private_key: signer_private_key.clone() };
         let (
             _,
             anvil_instance,
@@ -3027,7 +3170,10 @@ mod tests {
             _signer_private_key,
             bundler,
             bundler_client,
-        ) = start_anvil_and_deploy_contracts_and_start_bundler_with_config(&config).await?;
+        ) = start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            &config,
+        )
+        .await?;
 
         let factory_address = contracts.account_factory;
         let entry_point_address =
@@ -3036,8 +3182,9 @@ mod tests {
         let session_validator_address = contracts.session_validator;
 
         // Deploy account with EOA validator
-    // Use the same EOA signer address as core tests to match validator expectations
-    let signers = vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
+        // Use the same EOA signer address as core tests to match validator expectations
+        let signers =
+            vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
         let eoa_signers = zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::EOASigners {
             addresses: signers,
             validator_address: eoa_validator_address,
@@ -3059,7 +3206,10 @@ mod tests {
                 alloy::rpc::types::TransactionRequest::default()
                     .to(account_address)
                     .value(U256::from(10000000000000000000u64)),
-            ).await?.get_receipt().await?;
+            )
+            .await?
+            .get_receipt()
+            .await?;
         }
 
         // Install session module and add a session to the account
@@ -3076,11 +3226,7 @@ mod tests {
             let stub_sig = stub_signature_eoa(eoa_validator_address)?;
             let signer_private_key = signer_private_key.clone();
             let signature_provider = Arc::new(move |hash: FixedBytes<32>| {
-                eoa_signature(
-                    &signer_private_key,
-                    eoa_validator_address,
-                    hash,
-                )
+                eoa_signature(&signer_private_key, eoa_validator_address, hash)
             });
 
             let signer = zksync_sso_erc4337_core::erc4337::signer::Signer {
@@ -3111,8 +3257,10 @@ mod tests {
 
         // Create session spec
         // Match core test parameters for session signer and transfer target
-        let session_signer_address = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
-        let transfer_target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
+        let session_signer_address =
+            address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
+        let transfer_target =
+            address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
         let session_spec = SessionSpec {
             signer: session_signer_address,
             // Use a concrete timestamp similar to core tests
