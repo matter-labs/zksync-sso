@@ -33,6 +33,11 @@ export const {
   sign_eoa_user_operation_hash, // Sign UserOperation hash with EOA private key
   encode_get_user_operation_hash_call_data, // Encode EntryPoint.getUserOpHash() call (no network request)
   encode_passkey_signature, // Encode passkey signature for on-chain verification
+
+  // ===== DEPLOYMENT HELPER FUNCTIONS =====
+  // Functions for encoding deployment transactions (client-new/actions/deploy.ts)
+  generate_account_id, // Generate deterministic or random account ID
+  encode_deploy_account_call_data, // Encode MSAFactory.deployAccount() call data
 } = wasm;
 
 // Initialize WASM module
