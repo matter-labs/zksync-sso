@@ -2,8 +2,10 @@ use crate::{
     config::contracts::Contracts,
     erc4337::{
         bundler::pimlico::client::BundlerClient,
-        client::alto_test_utils::{AltoTestHelper, AltoTestHelperConfig},
-        utils::deployment_utils::deploy_contracts_default,
+        utils::{
+            alto_test_utils::{AltoTestHelper, AltoTestHelperConfig},
+            deployment_utils::deploy_contracts_default,
+        },
     },
     utils::alloy_utilities::ethereum_wallet_from_private_key,
 };

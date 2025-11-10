@@ -1,4 +1,4 @@
-use crate::erc4337::account::modular_smart_account::session::SessionLib::Status as SessionLibStatus;
+use crate::erc4337::account::modular_smart_account::session::contract::SessionLib::Status as SessionLibStatus;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

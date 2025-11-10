@@ -1,4 +1,8 @@
-use alloy::primitives::B256;
+use crate::erc4337::entry_point::contract::{EntryPoint, PackedUserOperation};
+use alloy::{
+    primitives::{Address, B256},
+    providers::Provider,
+};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -73,4 +77,14 @@ impl UserOperationHash {
         ret.assign_from_slice(src);
         ret
     }
+}
+
+pub async fn get_user_operation_hash_entry_point<P: Provider + Clone>(
+    user_operation: &PackedUserOperation,
+    entry_point: &Address,
+    provider: P,
+) -> eyre::Result<UserOperationHash> {
+    let entry_point = EntryPoint::new(*entry_point, provider.clone());
+    let hash = entry_point.getUserOpHash(user_operation.clone()).call().await?;
+    Ok(hash.into())
 }

@@ -2,9 +2,11 @@ pub mod user_op;
 
 use crate::erc4337::{
     account::modular_smart_account::{
-        MSAFactory::{self, deployAccountCall},
-        ModularSmartAccount::initializeAccountCall,
-        add_passkey::PasskeyPayload,
+        contract::{
+            MSAFactory, MSAFactory::deployAccountCall,
+            ModularSmartAccount::initializeAccountCall,
+        },
+        passkey::add::PasskeyPayload,
     },
     utils::check_deployed::{Contract, check_contract_deployed},
 };
@@ -106,6 +108,22 @@ where
     Ok(address)
 }
 
+pub fn deploy_accout_call_data(
+    account_id: FixedBytes<32>,
+    init_data: Bytes,
+) -> Bytes {
+    let call =
+        MSAFactory::deployAccountCall { salt: account_id, initData: init_data };
+    call.abi_encode().into()
+}
+
+pub fn initialize_account_call_data(
+    modules: Vec<Address>,
+    data: Vec<Bytes>,
+) -> Bytes {
+    MSAInitializeAccount::new(modules, data).encode().into()
+}
+
 fn get_account_created_address(
     receipt: &TransactionReceipt,
 ) -> eyre::Result<Address> {
@@ -125,7 +143,7 @@ fn create_init_data(
     webauthn_signer: Option<WebAuthNSigner>,
 ) -> Bytes {
     let (data, modules) = modules_from_signers(eoa_signers, webauthn_signer);
-    MSAInitializeAccount::new(modules, data).encode().into()
+    initialize_account_call_data(modules, data)
 }
 
 fn modules_from_signers(
@@ -173,7 +191,10 @@ fn generate_random_id() -> [u8; 32] {
 mod tests {
     use super::*;
     use crate::{
-        erc4337::account::erc7579::module_installed::is_module_installed,
+        erc4337::account::erc7579::module::{
+            Module,
+            installed::{IsModuleInstalledParams, is_module_installed},
+        },
         utils::alloy_utilities::test_utilities::start_anvil_and_deploy_contracts,
     };
     use alloy::primitives::address;
@@ -226,12 +247,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
         eyre::ensure!(is_module_installed, "Module is not installed");
 
         drop(anvil_instance);

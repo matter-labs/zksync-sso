@@ -1,5 +1,5 @@
 use crate::erc4337::account::modular_smart_account::session::{
-    SessionLib::CallSpec as SessionLibCallSpec,
+    contract::SessionLib::CallSpec as SessionLibCallSpec,
     session_lib::session_spec::{
         constraint::Constraint, usage_limit::UsageLimit,
     },
@@ -53,7 +53,7 @@ impl From<CallSpec> for SessionLibCallSpec {
 mod tests {
     use super::*;
     use crate::erc4337::account::modular_smart_account::session::{
-        SessionLib::{
+        contract::SessionLib::{
             Constraint as SessionLibConstraint,
             UsageLimit as SessionLibUsageLimit,
         },

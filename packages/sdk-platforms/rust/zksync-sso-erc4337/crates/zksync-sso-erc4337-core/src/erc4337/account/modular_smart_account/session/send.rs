@@ -12,14 +12,20 @@ mod tests {
         erc4337::{
             account::{
                 erc7579::{
-                    Execution, add_module::add_module, calls::encode_calls,
-                    module_installed::is_module_installed,
+                    calls::encoded_call_data,
+                    module::{
+                        Module,
+                        add::{AddModuleParams, AddModulePayload, add_module},
+                        installed::{
+                            IsModuleInstalledParams, is_module_installed,
+                        },
+                    },
                 },
                 modular_smart_account::{
                     deploy::{DeployAccountParams, EOASigners, deploy_account},
-                    send::{SendParams, send_transaction},
+                    send::{SendUserOpParams, send_user_op},
                     session::{
-                        create::create_session,
+                        create::{CreateSessionParams, create_session},
                         session_lib::session_spec::{
                             SessionSpec, limit_type::LimitType,
                             transfer_spec::TransferSpec,
@@ -117,12 +123,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_eoa_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_eoa_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(
             is_eoa_module_installed,
@@ -137,22 +144,24 @@ mod tests {
                 eoa_validator_address,
             )?;
 
-            add_module(
-                address,
-                session_key_module,
+            add_module(AddModuleParams {
+                account_address: address,
+                module: AddModulePayload::session_key(session_key_module),
                 entry_point_address,
-                provider.clone(),
-                bundler_client.clone(),
+                paymaster: None,
+                provider: provider.clone(),
+                bundler_client: bundler_client.clone(),
                 signer,
-            )
+            })
             .await?;
 
-            let is_session_key_module_installed = is_module_installed(
-                session_key_module,
-                address,
-                provider.clone(),
-            )
-            .await?;
+            let is_session_key_module_installed =
+                is_module_installed(IsModuleInstalledParams {
+                    module: Module::session_key_validator(session_key_module),
+                    account: address,
+                    provider: provider.clone(),
+                })
+                .await?;
 
             eyre::ensure!(
                 is_session_key_module_installed,
@@ -189,28 +198,22 @@ mod tests {
             }],
         };
 
-        create_session(
-            address,
-            session_spec.clone(),
+        create_session(CreateSessionParams {
+            account_address: address,
+            spec: session_spec.clone(),
             entry_point_address,
-            session_key_module,
-            bundler_client.clone(),
-            provider.clone(),
-            signer.clone(),
-        )
+            session_key_validator: session_key_module,
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: signer.clone(),
+        })
         .await?;
 
         println!("Session successfully created");
 
         // Send transaction using session signer
-        let call = {
-            let value = U256::from(1);
-            let data = Bytes::default();
-            Execution { target, value, data }
-        };
-
-        let calls = vec![call];
-        let calldata = encode_calls(calls).into();
+        let calldata = encoded_call_data(target, None, Some(U256::from(1)));
 
         let session_key_hex_owned = session_key_hex.to_string();
         let session_spec_arc = Arc::new(session_spec.clone());
@@ -253,7 +256,7 @@ mod tests {
 
         let keyed_nonce = keyed_nonce(session_signer_address);
 
-        send_transaction(SendParams {
+        send_user_op(SendUserOpParams {
             account: address,
             entry_point: entry_point_address,
             factory_payload: None,

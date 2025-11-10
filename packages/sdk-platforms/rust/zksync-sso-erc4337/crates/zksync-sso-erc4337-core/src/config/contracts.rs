@@ -9,6 +9,7 @@ pub struct Contracts {
     pub webauthn_validator: Address,
     pub eoa_validator: Address,
     pub session_validator: Address,
+    pub guardian_executor: Address,
 }
 
 impl Contracts {
@@ -18,6 +19,7 @@ impl Contracts {
         webauthn_validator: Address,
         eoa_validator: Address,
         session_validator: Address,
+        guardian_executor: Address,
     ) -> Self {
         Self {
             entry_point,
@@ -25,6 +27,7 @@ impl Contracts {
             webauthn_validator,
             eoa_validator,
             session_validator,
+            guardian_executor,
         }
     }
 
@@ -34,6 +37,7 @@ impl Contracts {
         webauthn_validator: String,
         eoa_validator: String,
         session_validator: String,
+        guardian_executor: String,
     ) -> Result<Self> {
         Ok(Self::new(
             entry_point.parse::<Address>().map_err(|e| {
@@ -49,6 +53,9 @@ impl Contracts {
                 ZkSyncSsoError::InvalidConfiguration(e.to_string())
             })?,
             session_validator.parse::<Address>().map_err(|e| {
+                ZkSyncSsoError::InvalidConfiguration(e.to_string())
+            })?,
+            guardian_executor.parse::<Address>().map_err(|e| {
                 ZkSyncSsoError::InvalidConfiguration(e.to_string())
             })?,
         ))
