@@ -27,38 +27,56 @@ avoiding time-related functions that don't work in browser environments.
 Create WASM-friendly session functions that avoid time-based validation during
 signing (defer to on-chain validation).
 
+### Status: ✅ In Progress (Tasks 1.1 and 1.4 Complete)
+
 ### Tasks
 
-#### 1.1: Create Session Signature Generation (No Time Validation)
+#### 1.1: Create Session Signature Generation (No Time Validation) ✅ COMPLETE
 
 **Location**:
 `packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-core/src/erc4337/account/modular_smart_account/session/`
 
-**New File**: `signature_wasm.rs`
+**✅ Created**: `signature_wasm.rs`
+
+**Implemented Functions**:
 
 ```rust
+// WASM-safe period ID calculation (no std::time calls)
+pub fn get_period_id_no_validation(
+    limit: &UsageLimit,
+    current_timestamp: Option<u64>,
+) -> Uint<48, 1>
+
 // Session signature generation WITHOUT timestamp validation
-// This is WASM-safe as it doesn't call std::time functions
 pub fn session_signature_no_validation(
     private_key_hex: &str,
     session_validator: Address,
     session_spec: &SessionSpec,
     hash: FixedBytes<32>,
+    current_timestamp: Option<u64>,
 ) -> eyre::Result<Bytes>
 ```
 
 **Why**: The existing `signature.rs` may call time functions through
 `get_period_id`. We need a version that:
 
-- Accepts an optional timestamp parameter (caller provides it)
-- OR computes period_ids without time validation
-- Defers all validation to on-chain execution
+- ✅ Accepts an optional timestamp parameter (caller provides it)
+- ✅ Computes period_ids without time validation
+- ✅ Defers all validation to on-chain execution
 
-**Test Coverage**:
+**Test Coverage** ✅:
 
 ```rust
 #[test]
+fn test_get_period_id_no_validation_with_timestamp()
+#[test]
+fn test_get_period_id_no_validation_without_timestamp()
+#[test]
+fn test_get_period_id_no_validation_lifetime_limit()
+#[test]
 fn test_session_signature_no_validation_generates_valid_signature()
+#[test]
+fn test_session_signature_no_validation_with_timestamp()
 #[test]
 fn test_session_signature_matches_expected_encoding_format()
 ```
@@ -121,9 +139,11 @@ async fn test_keyed_nonce()
 async fn test_send_transaction_session()
 ```
 
-#### 1.4: Encode Session UserOperation
+#### 1.4: Encode Session UserOperation ✅ COMPLETE
 
-**New File**: `encode.rs` in session directory
+**✅ Created**: `encode.rs` in session directory
+
+**Implemented Functions**:
 
 ```rust
 // Encode UserOperation call data for session transaction
@@ -137,19 +157,28 @@ pub fn encode_session_user_operation(
 pub fn generate_session_stub_signature(
     session_validator: Address,
     session_spec: &SessionSpec,
+    current_timestamp: Option<u64>,
 ) -> Bytes
 ```
 
 **Why**: Similar to `encode_execute_call_data` for EOA, we need session-specific
 encoding.
 
-**Test Coverage**:
+**Test Coverage** ✅:
 
 ```rust
 #[test]
 fn test_encode_session_user_operation()
 #[test]
+fn test_encode_session_user_operation_empty_data()
+#[test]
 fn test_generate_session_stub_signature_has_correct_format()
+#[test]
+fn test_generate_session_stub_signature_with_timestamp()
+#[test]
+fn test_generate_session_stub_signature_size_consistency()
+#[test]
+fn test_stub_signature_matches_real_signature_size()
 ```
 
 ---
