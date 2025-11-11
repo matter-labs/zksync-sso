@@ -64,10 +64,18 @@ pub struct WebAuthNSigner {
 }
 
 #[derive(Clone)]
+pub struct SessionValidatorConfig {
+    pub validator_address: Address,
+    // Optional: If you want to install initial sessions during deployment,
+    // add initial_sessions: Vec<SessionSpec> here later
+}
+
+#[derive(Clone)]
 pub struct DeployAccountParams<P: Provider + Send + Sync + Clone> {
     pub factory_address: Address,
     pub eoa_signers: Option<EOASigners>,
     pub webauthn_signer: Option<WebAuthNSigner>,
+    pub session_validator: Option<SessionValidatorConfig>,
     pub id: Option<FixedBytes<32>>,
     pub provider: P,
 }
@@ -82,13 +90,14 @@ where
         factory_address,
         eoa_signers,
         webauthn_signer,
+        session_validator,
         id,
         provider,
     } = params;
 
     let account_id = id.unwrap_or(generate_random_account_id());
 
-    let init_data = create_init_data(eoa_signers, webauthn_signer);
+    let init_data = create_init_data(eoa_signers, webauthn_signer, session_validator);
 
     let factory = MSAFactory::new(factory_address, provider.clone());
     let deploy_account = factory.deployAccount(account_id, init_data);
@@ -123,14 +132,16 @@ fn get_account_created_address(
 fn create_init_data(
     eoa_signers: Option<EOASigners>,
     webauthn_signer: Option<WebAuthNSigner>,
+    session_validator: Option<SessionValidatorConfig>,
 ) -> Bytes {
-    let (data, modules) = modules_from_signers(eoa_signers, webauthn_signer);
+    let (data, modules) = modules_from_signers(eoa_signers, webauthn_signer, session_validator);
     MSAInitializeAccount::new(modules, data).encode().into()
 }
 
 fn modules_from_signers(
     eoa_signers: Option<EOASigners>,
     webauthn_signer: Option<WebAuthNSigner>,
+    session_validator: Option<SessionValidatorConfig>,
 ) -> (Vec<Bytes>, Vec<Address>) {
     let (mut data, mut modules) = modules_from_eoa_signers(eoa_signers);
 
@@ -139,6 +150,14 @@ fn modules_from_signers(
             webauthn_signer.passkey.abi_encode_params().into();
         modules.push(webauthn_signer.validator_address);
         data.push(webauthn_signer_encoded);
+    }
+
+    // Add session validator if provided
+    if let Some(session_config) = session_validator {
+        // Session validator module doesn't require initialization data
+        // (sessions are created separately after deployment)
+        modules.push(session_config.validator_address);
+        data.push(Bytes::new()); // Empty initialization data
     }
 
     (data, modules)
@@ -189,6 +208,7 @@ mod tests {
             factory_address,
             eoa_signers: None,
             webauthn_signer: None,
+            session_validator: None,
             id: None,
             provider: provider.clone(),
         })
@@ -219,6 +239,7 @@ mod tests {
             factory_address,
             eoa_signers: Some(eoa_signers),
             webauthn_signer: None,
+            session_validator: None,
             id: None,
             provider: provider.clone(),
         })
@@ -233,6 +254,99 @@ mod tests {
         )
         .await?;
         eyre::ensure!(is_module_installed, "Module is not installed");
+
+        drop(anvil_instance);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_deploy_account_with_session_validator() -> eyre::Result<()> {
+        let (_, anvil_instance, provider, contracts, _) =
+            start_anvil_and_deploy_contracts().await?;
+
+        let factory_address = contracts.account_factory;
+        let session_validator_address = contracts.session_validator;
+
+        let session_config = SessionValidatorConfig {
+            validator_address: session_validator_address,
+        };
+
+        let address = deploy_account(DeployAccountParams {
+            factory_address,
+            eoa_signers: None,
+            webauthn_signer: None,
+            session_validator: Some(session_config),
+            id: None,
+            provider: provider.clone(),
+        })
+        .await?;
+
+        println!("Account deployed with session validator");
+
+        let is_module_installed = is_module_installed(
+            session_validator_address,
+            address,
+            provider.clone(),
+        )
+        .await?;
+        eyre::ensure!(is_module_installed, "Session validator module is not installed");
+
+        drop(anvil_instance);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_deploy_account_with_eoa_and_session() -> eyre::Result<()> {
+        let (_, anvil_instance, provider, contracts, _) =
+            start_anvil_and_deploy_contracts().await?;
+
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
+        let session_validator_address = contracts.session_validator;
+
+        let signers =
+            vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
+
+        let eoa_signers = EOASigners {
+            addresses: signers,
+            validator_address: eoa_validator_address,
+        };
+
+        let session_config = SessionValidatorConfig {
+            validator_address: session_validator_address,
+        };
+
+        let address = deploy_account(DeployAccountParams {
+            factory_address,
+            eoa_signers: Some(eoa_signers),
+            webauthn_signer: None,
+            session_validator: Some(session_config),
+            id: None,
+            provider: provider.clone(),
+        })
+        .await?;
+
+        println!("Account deployed with EOA and session validators");
+
+        // Verify EOA validator is installed
+        let is_eoa_installed = is_module_installed(
+            eoa_validator_address,
+            address,
+            provider.clone(),
+        )
+        .await?;
+        eyre::ensure!(is_eoa_installed, "EOA validator module is not installed");
+
+        // Verify session validator is installed
+        let is_session_installed = is_module_installed(
+            session_validator_address,
+            address,
+            provider.clone(),
+        )
+        .await?;
+        eyre::ensure!(is_session_installed, "Session validator module is not installed");
 
         drop(anvil_instance);
 
