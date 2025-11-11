@@ -2,11 +2,11 @@
   "rpcUrl": "http://localhost:8545",
   "chainId": 1337,
   "deployer": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
-  "eoaValidator": "0x52b61d4B879e9cC44a264AE14eAbC8405434CedD",
-  "sessionValidator": "0xDd72e46653662b0118A2743574467FAA582D633e",
-  "webauthnValidator": "0xCaec08bfd740F1Ae4300b3ab62B757F99222244b",
-  "guardianExecutor": "0xd71301c72D03b483F74BA569ff1132af81079858",
-  "accountImplementation": "0x46493258c4fed9eC6AAb2Ab3014D2f8e27A5Ec47",
-  "beacon": "0xD4c76bC6306657FE415Ee6B09Ea61cFA50573848",
-  "factory": "0x809eBD30a2357012E6cBaB8776682318568556c1"
+  "eoaValidator": "0xd2571E989390F4F654572BE25Da2f4Ec41CB2cc8",
+  "sessionValidator": "0xEc5AB17Cc35221cdF54EaEb0868eA82d4D75D9Bf",
+  "webauthnValidator": "0xd512108c249cC5ec5370491AD916Be31bb88Dad2",
+  "guardianExecutor": "0xadF4aCF92F0A1398d50402Db551feb92b1125DAb",
+  "accountImplementation": "0x52d2ed7a102Df15b212a800d4293099f18659F6c",
+  "beacon": "0x0efdDbB35e9BBc8c762E5B4a0f627210b6c9A721",
+  "factory": "0xbe38809914b552f295cD3e8dF2e77b3DA69cBC8b"
 }
