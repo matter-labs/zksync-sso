@@ -112,6 +112,7 @@ mod tests {
             webauthn_signer: None,
             id: None,
             provider: provider.clone(),
+            session_validator: None,
         })
         .await?;
 
