@@ -57,6 +57,7 @@
     "dict-zksync",
     "dict-packages",
     "dict-misc",
+    "dict-rust",
     "dict-sol"
   ],
   "dictionaryDefinitions": [
