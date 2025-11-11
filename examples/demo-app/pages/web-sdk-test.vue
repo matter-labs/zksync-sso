@@ -291,7 +291,7 @@ import { ref, onMounted, computed } from "vue";
 import { createPublicClient, createWalletClient, http, hexToBytes, type Chain, type Hash, type Hex, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { ethers } from "ethers";
-import { deploySmartAccount, getDeployedAccountAddress } from "zksync-sso/client-new";
+import { deploySmartAccount, getDeployedAccountAddress } from "zksync-sso-4337/client";
 import { compute_account_id, add_passkey_to_account, SendTransactionConfig, PasskeyPayload } from "zksync-sso-web-sdk/bundler";
 
 // Types
