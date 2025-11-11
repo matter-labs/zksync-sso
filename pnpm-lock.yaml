@@ -198,6 +198,9 @@ importers:
       zksync-sso:
         specifier: workspace:*
         version: link:../../packages/sdk
+      zksync-sso-4337:
+        specifier: workspace:*
+        version: link:../../packages/sdk-4337
       zksync-sso-wagmi-connector:
         specifier: workspace:*
         version: link:../../packages/connector-export
@@ -19962,14 +19965,6 @@ snapshots:
       chai: 5.1.2
       tinyrainbow: 1.2.0
 
-  '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@22.15.33)(sass@1.80.4)(terser@5.36.0))':
-    dependencies:
-      '@vitest/spy': 2.1.8
-      estree-walker: 3.0.3
-      magic-string: 0.30.19
-    optionalDependencies:
-      vite: 5.4.10(@types/node@22.15.33)(sass@1.80.4)(terser@5.36.0)
-
   '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))':
     dependencies:
       '@vitest/spy': 2.1.8
@@ -30267,7 +30262,7 @@ snapshots:
   vitest@2.1.8(@types/node@22.15.33)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       '@vitest/expect': 2.1.8
-      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@22.15.33)(sass@1.80.4)(terser@5.36.0))
+      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))
       '@vitest/pretty-format': 2.1.8
       '@vitest/runner': 2.1.8
       '@vitest/snapshot': 2.1.8
