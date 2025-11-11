@@ -1,0 +1,12 @@
+{
+  "rpcUrl": "http://localhost:8545",
+  "chainId": 1337,
+  "deployer": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+  "eoaValidator": "0xd2571E989390F4F654572BE25Da2f4Ec41CB2cc8",
+  "sessionValidator": "0xEc5AB17Cc35221cdF54EaEb0868eA82d4D75D9Bf",
+  "webauthnValidator": "0xd512108c249cC5ec5370491AD916Be31bb88Dad2",
+  "guardianExecutor": "0xadF4aCF92F0A1398d50402Db551feb92b1125DAb",
+  "accountImplementation": "0x52d2ed7a102Df15b212a800d4293099f18659F6c",
+  "beacon": "0x0efdDbB35e9BBc8c762E5B4a0f627210b6c9A721",
+  "factory": "0xbe38809914b552f295cD3e8dF2e77b3DA69cBC8b"
+}

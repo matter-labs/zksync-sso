@@ -170,7 +170,6 @@ async function handleCreatePasskey() {
       rpId: window.location.hostname,
       userName: "Demo User",
       userEmail: "demo-user@zksync-sso.example",
-      authenticatorAttachment: "cross-platform",
       timeout: 60000,
     });
 

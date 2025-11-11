@@ -1,0 +1,324 @@
+export const WebAuthnValidatorAbi = [{
+  type: "function",
+  name: "addValidationKey",
+  inputs: [{
+    name: "credentialId",
+    type: "bytes",
+    internalType: "bytes",
+  }, {
+    name: "newKey",
+    type: "bytes32[2]",
+    internalType: "bytes32[2]",
+  }, {
+    name: "domain",
+    type: "string",
+    internalType: "string",
+  }],
+  outputs: [],
+  stateMutability: "nonpayable",
+}, {
+  type: "function",
+  name: "getAccountKey",
+  inputs: [{
+    name: "domain",
+    type: "string",
+    internalType: "string",
+  }, {
+    name: "credentialId",
+    type: "bytes",
+    internalType: "bytes",
+  }, {
+    name: "account",
+    type: "address",
+    internalType: "address",
+  }],
+  outputs: [{
+    name: "",
+    type: "bytes32[2]",
+    internalType: "bytes32[2]",
+  }],
+  stateMutability: "view",
+}, {
+  type: "function",
+  name: "getAccountList",
+  inputs: [{
+    name: "domain",
+    type: "string",
+    internalType: "string",
+  }, {
+    name: "credentialId",
+    type: "bytes",
+    internalType: "bytes",
+  }],
+  outputs: [{
+    name: "",
+    type: "address[]",
+    internalType: "address[]",
+  }],
+  stateMutability: "view",
+}, {
+  type: "function",
+  name: "isInitialized",
+  inputs: [{
+    name: "account",
+    type: "address",
+    internalType: "address",
+  }],
+  outputs: [{
+    name: "",
+    type: "bool",
+    internalType: "bool",
+  }],
+  stateMutability: "view",
+}, {
+  type: "function",
+  name: "isModuleType",
+  inputs: [{
+    name: "moduleType",
+    type: "uint256",
+    internalType: "uint256",
+  }],
+  outputs: [{
+    name: "",
+    type: "bool",
+    internalType: "bool",
+  }],
+  stateMutability: "pure",
+}, {
+  type: "function",
+  name: "isValidSignatureWithSender",
+  inputs: [{
+    name: "",
+    type: "address",
+    internalType: "address",
+  }, {
+    name: "signedHash",
+    type: "bytes32",
+    internalType: "bytes32",
+  }, {
+    name: "signature",
+    type: "bytes",
+    internalType: "bytes",
+  }],
+  outputs: [{
+    name: "",
+    type: "bytes4",
+    internalType: "bytes4",
+  }],
+  stateMutability: "view",
+}, {
+  type: "function",
+  name: "onInstall",
+  inputs: [{
+    name: "data",
+    type: "bytes",
+    internalType: "bytes",
+  }],
+  outputs: [],
+  stateMutability: "nonpayable",
+}, {
+  type: "function",
+  name: "onUninstall",
+  inputs: [{
+    name: "data",
+    type: "bytes",
+    internalType: "bytes",
+  }],
+  outputs: [],
+  stateMutability: "nonpayable",
+}, {
+  type: "function",
+  name: "removeValidationKey",
+  inputs: [{
+    name: "credentialId",
+    type: "bytes",
+    internalType: "bytes",
+  }, {
+    name: "domain",
+    type: "string",
+    internalType: "string",
+  }],
+  outputs: [],
+  stateMutability: "nonpayable",
+}, {
+  type: "function",
+  name: "supportsInterface",
+  inputs: [{
+    name: "interfaceId",
+    type: "bytes4",
+    internalType: "bytes4",
+  }],
+  outputs: [{
+    name: "",
+    type: "bool",
+    internalType: "bool",
+  }],
+  stateMutability: "pure",
+}, {
+  type: "function",
+  name: "validateUserOp",
+  inputs: [{
+    name: "userOp",
+    type: "tuple",
+    internalType: "struct PackedUserOperation",
+    components: [{
+      name: "sender",
+      type: "address",
+      internalType: "address",
+    }, {
+      name: "nonce",
+      type: "uint256",
+      internalType: "uint256",
+    }, {
+      name: "initCode",
+      type: "bytes",
+      internalType: "bytes",
+    }, {
+      name: "callData",
+      type: "bytes",
+      internalType: "bytes",
+    }, {
+      name: "accountGasLimits",
+      type: "bytes32",
+      internalType: "bytes32",
+    }, {
+      name: "preVerificationGas",
+      type: "uint256",
+      internalType: "uint256",
+    }, {
+      name: "gasFees",
+      type: "bytes32",
+      internalType: "bytes32",
+    }, {
+      name: "paymasterAndData",
+      type: "bytes",
+      internalType: "bytes",
+    }, {
+      name: "signature",
+      type: "bytes",
+      internalType: "bytes",
+    }],
+  }, {
+    name: "signedHash",
+    type: "bytes32",
+    internalType: "bytes32",
+  }],
+  outputs: [{
+    name: "",
+    type: "uint256",
+    internalType: "uint256",
+  }],
+  stateMutability: "view",
+}, {
+  type: "event",
+  name: "PasskeyCreated",
+  inputs: [{
+    name: "keyOwner",
+    type: "address",
+    indexed: true,
+    internalType: "address",
+  }, {
+    name: "domain",
+    type: "string",
+    indexed: false,
+    internalType: "string",
+  }, {
+    name: "credentialId",
+    type: "bytes",
+    indexed: false,
+    internalType: "bytes",
+  }],
+  anonymous: false,
+}, {
+  type: "event",
+  name: "PasskeyRemoved",
+  inputs: [{
+    name: "keyOwner",
+    type: "address",
+    indexed: true,
+    internalType: "address",
+  }, {
+    name: "domain",
+    type: "string",
+    indexed: false,
+    internalType: "string",
+  }, {
+    name: "credentialId",
+    type: "bytes",
+    indexed: false,
+    internalType: "bytes",
+  }],
+  anonymous: false,
+}, {
+  type: "error",
+  name: "AlreadyInitialized",
+  inputs: [{
+    name: "smartAccount",
+    type: "address",
+    internalType: "address",
+  }],
+}, {
+  type: "error",
+  name: "BadCredentialIDLength",
+  inputs: [],
+}, {
+  type: "error",
+  name: "BadDomainLength",
+  inputs: [],
+}, {
+  type: "error",
+  name: "EmptyKey",
+  inputs: [],
+}, {
+  type: "error",
+  name: "InvalidAuthDataFlags",
+  inputs: [{
+    name: "flags",
+    type: "bytes1",
+    internalType: "bytes1",
+  }],
+}, {
+  type: "error",
+  name: "InvalidClientData",
+  inputs: [{
+    name: "field",
+    type: "string",
+    internalType: "string",
+  }],
+}, {
+  type: "error",
+  name: "InvalidTargetAddress",
+  inputs: [{
+    name: "target",
+    type: "address",
+    internalType: "address",
+  }],
+}, {
+  type: "error",
+  name: "KeyAlreadyExists",
+  inputs: [],
+}, {
+  type: "error",
+  name: "KeyNotFound",
+  inputs: [{
+    name: "domain",
+    type: "string",
+    internalType: "string",
+  }, {
+    name: "credentialId",
+    type: "bytes",
+    internalType: "bytes",
+  }, {
+    name: "account",
+    type: "address",
+    internalType: "address",
+  }],
+}, {
+  type: "error",
+  name: "NotInitialized",
+  inputs: [{
+    name: "smartAccount",
+    type: "address",
+    internalType: "address",
+  }],
+}] as const;
