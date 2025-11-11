@@ -90,9 +90,14 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
-import { hexToBytes } from "viem";
+import { createPublicClient, formatEther, http, parseEther } from "viem";
+import { createBundlerClient } from "viem/account-abstraction";
+import type { Address, Chain } from "viem";
+import { toPasskeySmartAccount } from "zksync-sso-4337/client/passkey";
+import { toEcdsaSmartAccount } from "zksync-sso-4337/client/ecdsa";
+import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
 
 // Props
 const props = defineProps({
@@ -121,32 +126,42 @@ async function sendTransaction() {
   txResult.value = "";
 
   try {
-    // Import ethers to check balance and account deployment
+    // Check balance and account deployment using viem
     // eslint-disable-next-line no-console
     console.log("Checking smart account status...");
-
-    // Import ethers to check balance
-    const { ethers } = await import("ethers");
 
     // Load contracts.json to get RPC URL
     const response = await fetch("/contracts.json");
     const contracts = await response.json();
-    const rpcUrl = contracts.rpcUrl;
 
-    // Create provider
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const chain = {
+      id: contracts.chainId,
+      name: "Anvil",
+      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      rpcUrls: { default: { http: [contracts.rpcUrl] } },
+    } satisfies Chain;
+
+    // Create public client
+    const publicClient = createPublicClient({
+      chain,
+      transport: http(),
+    });
 
     // Check if account is deployed
-    const code = await provider.getCode(props.deploymentResult.address);
-    if (code === "0x") {
+    const code = await publicClient.getCode({
+      address: props.deploymentResult.address as Address,
+    });
+    if (!code || code === "0x") {
       throw new Error("Smart account is not deployed on-chain yet. The deployment may have failed. Please check the console for deployment errors and try deploying again.");
     }
     // eslint-disable-next-line no-console
     console.log("  Account is deployed (has code)");
 
     // Check balance
-    const balance = await provider.getBalance(props.deploymentResult.address);
-    const balanceEth = ethers.formatEther(balance);
+    const balance = await publicClient.getBalance({
+      address: props.deploymentResult.address as Address,
+    });
+    const balanceEth = formatEther(balance);
 
     // eslint-disable-next-line no-console
     console.log("  Smart account balance:", balanceEth, "ETH");
@@ -157,7 +172,7 @@ async function sendTransaction() {
     }
 
     // Check if balance is too low (less than 0.001 ETH)
-    const minBalance = ethers.parseEther("0.001");
+    const minBalance = parseEther("0.001");
     if (balance < minBalance) {
       throw new Error(`Smart account balance is too low: ${balanceEth} ETH. Please fund the account with at least 0.001 ETH for gas fees.`);
     }
@@ -173,89 +188,97 @@ async function sendTransaction() {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("Transaction failed:", err);
-    txError.value = `Failed to send transaction: ${err.message}`;
+    txError.value = `Failed to send transaction: ${(err as Error).message}`;
   } finally {
     loading.value = false;
   }
 }
 
-// Send transaction using EOA validator
+// Send transaction using EOA validator (NEW SDK)
 async function sendFromSmartAccountWithEOA() {
-  // Import the WASM function and SendTransactionConfig
-  const { send_transaction_eoa, SendTransactionConfig } = await import("zksync-sso-web-sdk/bundler");
-
   // Load contracts.json
   const response = await fetch("/contracts.json");
   const contracts = await response.json();
-  const rpcUrl = contracts.rpcUrl;
-  const bundlerUrl = contracts.bundlerUrl || "http://localhost:4337"; // Default bundler URL
-  const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
-  const eoaValidatorAddress = contracts.eoaValidator;
 
-  // EOA signer private key (Anvil account #1) - this will sign the UserOperation
-  const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+  const chain = {
+    id: contracts.chainId,
+    name: "Anvil",
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: { default: { http: [contracts.rpcUrl] } },
+  } satisfies Chain;
+
+  // Create public client for network calls
+  const publicClient = createPublicClient({
+    chain,
+    transport: http(),
+  });
+
+  // Create smart account using the new SDK
+  // eslint-disable-next-line no-console
+  console.log("  Creating smart account instance with toEcdsaSmartAccount...");
+  const account = await toEcdsaSmartAccount({
+    client: publicClient,
+    // EOA signer private key (Anvil account #1) - this will sign the UserOperation
+    signerPrivateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+    address: props.deploymentResult.address,
+    eoaValidatorAddress: contracts.eoaValidator,
+  });
+
+  // Create bundler client with entry point configuration
+  const bundlerClient = createBundlerClient({
+    client: publicClient,
+    chain,
+    transport: http(contracts.bundlerUrl || "http://localhost:4337"),
+  });
+
+  // Send user operation
+  // eslint-disable-next-line no-console
+  console.log("  Sending UserOperation...");
+  const userOpHash = await bundlerClient.sendUserOperation({
+    account,
+    calls: [{
+      to: to.value as Address,
+      value: parseEther(amount.value),
+      data: "0x",
+    }],
+  });
 
   // eslint-disable-next-line no-console
-  console.log("Sending transaction from smart account using ERC-4337 (EOA)...");
-  // eslint-disable-next-line no-console
-  console.log("  Smart Account:", props.deploymentResult.address);
-  // eslint-disable-next-line no-console
-  console.log("  To:", to.value);
-  // eslint-disable-next-line no-console
-  console.log("  Amount:", amount.value, "ETH");
-  // eslint-disable-next-line no-console
-  console.log("  Bundler URL:", bundlerUrl);
-  // eslint-disable-next-line no-console
-  console.log("  EntryPoint:", entryPointAddress);
-  // eslint-disable-next-line no-console
-  console.log("  EOA Validator:", eoaValidatorAddress);
+  console.log("  UserOperation hash:", userOpHash);
 
-  // Convert amount to wei (as string)
-  const amountWei = (BigInt(parseFloat(amount.value) * 1e18)).toString();
-
-  // Construct the SendTransactionConfig wasm object
-  const sendConfig = new SendTransactionConfig(
-    rpcUrl,
-    bundlerUrl,
-    entryPointAddress,
-  );
-
-  // Call the WASM function to send transaction via ERC-4337
-  const result = await send_transaction_eoa(
-    sendConfig,
-    eoaValidatorAddress,
-    eoaSignerPrivateKey,
-    props.deploymentResult.address, // account address
-    to.value, // recipient
-    amountWei, // value as string
-    null, // data (null for simple transfer)
-  );
+  // Wait for receipt
+  // eslint-disable-next-line no-console
+  console.log("  Waiting for UserOperation receipt...");
+  const receipt = await bundlerClient.waitForUserOperationReceipt({
+    hash: userOpHash,
+  });
 
   // eslint-disable-next-line no-console
-  console.log("  UserOperation result:", result);
+  console.log("  UserOperation confirmed! Receipt:", receipt);
 
-  txResult.value = result;
+  txResult.value = `Transaction successful! UserOp hash: ${userOpHash}`;
 }
 
-// Send transaction using Passkey validator
+// Send transaction using Passkey validator (NEW SDK)
 async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
-  console.log("Sending transaction from smart account using Passkey...");
-
-  // Import simplified SDK function
-  const { sendTransactionWithPasskey } = await import("zksync-sso-web-sdk/bundler");
+  console.log("Sending transaction from smart account using Passkey (NEW SDK)...");
 
   // Load contracts.json
   const response = await fetch("/contracts.json");
   const contracts = await response.json();
-  const rpcUrl = contracts.rpcUrl;
-  const bundlerUrl = contracts.bundlerUrl || "http://localhost:4337";
-  const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
   const webauthnValidatorAddress = props.passkeyConfig.validatorAddress;
 
   if (!webauthnValidatorAddress) {
     throw new Error("WebAuthn validator address not found");
   }
+
+  const chain = {
+    id: contracts.chainId,
+    name: "Anvil",
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: { default: { http: [contracts.rpcUrl] } },
+  } satisfies Chain;
 
   // eslint-disable-next-line no-console
   console.log("  Smart Account:", props.deploymentResult.address);
@@ -269,21 +292,23 @@ async function sendFromSmartAccountWithPasskey() {
   // Verify the public key is registered on-chain
   // eslint-disable-next-line no-console
   console.log("Verifying public key registration on-chain...");
-  const { ethers: ethersForValidation } = await import("ethers");
-  const providerForValidation = new ethersForValidation.JsonRpcProvider(rpcUrl);
 
-  // ABI for getAccountKey function
-  const validatorAbi = [
-    "function getAccountKey(string calldata originDomain, bytes calldata credentialId, address accountAddress) external view returns (bytes32[2] memory)",
-  ];
-  const validatorContract = new ethersForValidation.Contract(webauthnValidatorAddress, validatorAbi, providerForValidation);
+  // Create public client for network calls
+  const publicClient = createPublicClient({
+    chain,
+    transport: http(),
+  });
 
-  const credIdBytes = hexToBytes(props.passkeyConfig.credentialId);
-  const registeredKey = await validatorContract.getAccountKey(
-    props.passkeyConfig.originDomain,
-    credIdBytes,
-    props.deploymentResult.address,
-  );
+  const registeredKey = await publicClient.readContract({
+    address: webauthnValidatorAddress as Address,
+    abi: WebAuthnValidatorAbi,
+    functionName: "getAccountKey",
+    args: [
+      props.passkeyConfig.originDomain,
+      props.passkeyConfig.credentialId,
+      props.deploymentResult.address as Address,
+    ],
+  });
 
   // eslint-disable-next-line no-console
   console.log("  Registered public key on-chain:");
@@ -311,30 +336,63 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("  ✓ Public key verification passed!");
 
-  // Convert amount to wei (as string)
-  const amountWei = (BigInt(parseFloat(amount.value) * 1e18)).toString();
-
-  // Send transaction using simplified SDK function (handles prepare → sign → submit)
+  // Create smart account using the new SDK
   // eslint-disable-next-line no-console
-  console.log("Sending transaction with passkey (SDK handles full flow)...");
-
-  const result = await sendTransactionWithPasskey({
-    rpcUrl,
-    bundlerUrl,
-    entryPointAddress,
-    webauthnValidatorAddress,
-    accountAddress: props.deploymentResult.address,
-    toAddress: to.value,
-    value: amountWei,
-    data: null,
+  console.log("  Creating passkey smart account instance with toPasskeySmartAccount...");
+  const account = await toPasskeySmartAccount({
+    client: publicClient,
+    address: props.deploymentResult.address,
+    validatorAddress: webauthnValidatorAddress,
     credentialId: props.passkeyConfig.credentialId,
     rpId: window.location.hostname,
     origin: window.location.origin,
   });
 
-  // eslint-disable-next-line no-console
-  console.log("  Transaction result:", result);
+  // Create bundler client with entry point configuration
+  const bundlerClient = createBundlerClient({
+    client: publicClient,
+    chain,
+    transport: http(contracts.bundlerUrl || "http://localhost:4337"),
+    userOperation: {
+      // Use fixed gas values matching old Rust SDK implementation
+      // (old SDK used: 2M callGas, 2M verificationGas, 1M preVerificationGas)
+      async estimateFeesPerGas() {
+        const feesPerGas = await publicClient.estimateFeesPerGas();
+        return {
+          callGasLimit: 2_000_000n,
+          verificationGasLimit: 2_000_000n,
+          preVerificationGas: 1_000_000n,
+          ...feesPerGas,
+        };
+      },
+    },
+  });
 
-  txResult.value = result;
+  // Send user operation
+  // eslint-disable-next-line no-console
+  console.log("  Sending UserOperation...");
+  const userOpHash = await bundlerClient.sendUserOperation({
+    account,
+    calls: [{
+      to: to.value as Address,
+      value: parseEther(amount.value),
+      data: "0x",
+    }],
+  });
+
+  // eslint-disable-next-line no-console
+  console.log("  UserOperation hash:", userOpHash);
+
+  // Wait for receipt
+  // eslint-disable-next-line no-console
+  console.log("  Waiting for UserOperation receipt...");
+  const receipt = await bundlerClient.waitForUserOperationReceipt({
+    hash: userOpHash,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log("  UserOperation confirmed! Receipt:", receipt);
+
+  txResult.value = `Transaction successful! UserOp hash: ${userOpHash}`;
 }
 </script>

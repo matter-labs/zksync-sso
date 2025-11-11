@@ -90,6 +90,7 @@ jobs:
         run: |
           pnpm nx build sdk
           pnpm nx build web-sdk
+          pnpm nx build sdk-4337
           pnpm nx build connector-export
           pnpm nx build demo-app
 
@@ -181,6 +182,7 @@ jobs:
         run: |
           pnpm nx build sdk
           pnpm nx build web-sdk
+          pnpm nx build sdk-4337
           pnpm nx build connector-export
           pnpm nx build:erc4337 demo-app
 

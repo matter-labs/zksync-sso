@@ -1,7 +1,7 @@
 {
   "private": true,
   "type": "module",
-  "name": "zksync-sso",
+  "name": "zksync-sso-4337",
   "description": "ZKsync Smart Sign On SDK",
   "version": "0.0.0-development",
   "publishConfig": {
@@ -14,6 +14,7 @@
     "url": "git+https://github.com/matter-labs/zksync-sso.git"
   },
   "scripts": {
+    "prebuild": "pnpm --filter zksync-sso-web-sdk build",
     "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:types",
     "build:esm": "tsc --project tsconfig.build.json --module es2020 --outDir ./dist/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/_esm/package.json",
     "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
@@ -67,85 +68,25 @@
       "import": "./dist/_esm/index.js",
       "require": "./dist/_cjs/index.js"
     },
-    "./connector": {
-      "types": "./dist/_types/connector/index.d.ts",
-      "import": "./dist/_esm/connector/index.js",
-      "require": "./dist/_cjs/connector/index.js"
-    },
-    "./client-auth-server": {
-      "types": "./dist/_types/client-auth-server/index.d.ts",
-      "import": "./dist/_esm/client-auth-server/index.js",
-      "require": "./dist/_cjs/client-auth-server/index.js"
+    "./abi": {
+      "types": "./dist/_types/abi/index.d.ts",
+      "import": "./dist/_esm/abi/index.js",
+      "require": "./dist/_cjs/abi/index.js"
     },
     "./client": {
       "types": "./dist/_types/client/index.d.ts",
       "import": "./dist/_esm/client/index.js",
       "require": "./dist/_cjs/client/index.js"
     },
-    "./client/passkey": {
-      "types": "./dist/_types/client/passkey/index.d.ts",
-      "import": "./dist/_esm/client/passkey/index.js",
-      "require": "./dist/_cjs/client/passkey/index.js"
-    },
-    "./client/recovery": {
-      "types": "./dist/_types/client/recovery/index.d.ts",
-      "import": "./dist/_esm/client/recovery/index.js",
-      "require": "./dist/_cjs/client/recovery/index.js"
-    },
     "./client/ecdsa": {
       "types": "./dist/_types/client/ecdsa/index.d.ts",
       "import": "./dist/_esm/client/ecdsa/index.js",
       "require": "./dist/_cjs/client/ecdsa/index.js"
     },
-    "./client/oidc": {
-      "types": "./dist/_types/client/oidc/index.d.ts",
-      "import": "./dist/_esm/client/oidc/index.js",
-      "require": "./dist/_cjs/client/oidc/index.js"
-    },
-    "./client/session": {
-      "types": "./dist/_types/client/session/index.d.ts",
-      "import": "./dist/_esm/client/session/index.js",
-      "require": "./dist/_cjs/client/session/index.js"
-    },
-    "./communicator": {
-      "types": "./dist/_types/communicator/index.d.ts",
-      "import": "./dist/_esm/communicator/index.js",
-      "require": "./dist/_cjs/communicator/index.js"
-    },
-    "./errors": {
-      "types": "./dist/_types/errors/index.d.ts",
-      "import": "./dist/_esm/errors/index.js",
-      "require": "./dist/_cjs/errors/index.js"
-    },
-    "./utils": {
-      "types": "./dist/_types/utils/index.d.ts",
-      "import": "./dist/_esm/utils/index.js",
-      "require": "./dist/_cjs/utils/index.js"
-    },
-    "./abi": {
-      "types": "./dist/_types/abi/index.d.ts",
-      "import": "./dist/_esm/abi/index.js",
-      "require": "./dist/_cjs/abi/index.js"
-    },
-    "./paymaster": {
-      "types": "./dist/_types/paymaster/index.d.ts",
-      "import": "./dist/_esm/paymaster/index.js",
-      "require": "./dist/_cjs/paymaster/index.js"
-    },
-    "./client-new": {
-      "types": "./dist/_types/client-new/index.d.ts",
-      "import": "./dist/_esm/client-new/index.js",
-      "require": "./dist/_cjs/client-new/index.js"
-    },
-    "./client-new/ecdsa": {
-      "types": "./dist/_types/client-new/ecdsa/index.d.ts",
-      "import": "./dist/_esm/client-new/ecdsa/index.js",
-      "require": "./dist/_cjs/client-new/ecdsa/index.js"
-    },
-    "./client-new/passkey": {
-      "types": "./dist/_types/client-new/passkey/index.d.ts",
-      "import": "./dist/_esm/client-new/passkey/index.js",
-      "require": "./dist/_cjs/client-new/passkey/index.js"
+    "./client/passkey": {
+      "types": "./dist/_types/client/passkey/index.d.ts",
+      "import": "./dist/_esm/client/passkey/index.js",
+      "require": "./dist/_cjs/client/passkey/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -156,18 +97,6 @@
       ],
       "client": [
         "./dist/_types/client/index.d.ts"
-      ],
-      "client-auth-server": [
-        "./dist/_types/client-auth-server/index.d.ts"
-      ],
-      "communicator": [
-        "./dist/_types/communicator/index.d.ts"
-      ],
-      "connector": [
-        "./dist/_types/connector/index.d.ts"
-      ],
-      "errors": [
-        "./dist/_types/errors/index.d.ts"
       ],
       "abi": [
         "./dist/_types/abi/index.d.ts"
@@ -181,7 +110,8 @@
     "eth",
     "ethereum",
     "wallet",
-    "web3"
+    "web3",
+    "4337"
   ],
   "dependencies": {
     "@peculiar/asn1-ecc": "^2.3.13",
