@@ -180,7 +180,7 @@ export async function createWebAuthnCredential(
       },
     ],
     authenticatorSelection: {
-      authenticatorAttachment: options.authenticatorAttachment || "platform",
+      authenticatorAttachment: options.authenticatorAttachment,
       residentKey: "required",
       userVerification: "discouraged",
     },

@@ -163,11 +163,6 @@ async function handleCreatePasskey() {
 
     // eslint-disable-next-line no-console
     console.log("Creating WebAuthn credential using SimpleWebAuthn...");
-    console.log({
-      dev: import.meta.env.DEV,
-      prod: import.meta.env.PROD,
-      ci: import.meta.env.CI,
-    });
 
     // Create the credential with custom options
     const credential = await createWebAuthnCredential({
@@ -175,7 +170,6 @@ async function handleCreatePasskey() {
       rpId: window.location.hostname,
       userName: "Demo User",
       userEmail: "demo-user@zksync-sso.example",
-      authenticatorAttachment: "cross-platform",
       timeout: 60000,
     });
 
