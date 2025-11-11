@@ -97,7 +97,7 @@ import { createBundlerClient } from "viem/account-abstraction";
 import type { Address, Chain } from "viem";
 import { toPasskeySmartAccount } from "zksync-sso-4337/client/passkey";
 import { toEcdsaSmartAccount } from "zksync-sso-4337/client/ecdsa";
-import { WebAuthValidatorAbi } from "zksync-sso/abi";
+import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
 
 // Props
 const props = defineProps({
@@ -301,7 +301,7 @@ async function sendFromSmartAccountWithPasskey() {
 
   const registeredKey = await publicClient.readContract({
     address: webauthnValidatorAddress as Address,
-    abi: WebAuthValidatorAbi,
+    abi: WebAuthnValidatorAbi,
     functionName: "getAccountKey",
     args: [
       props.passkeyConfig.originDomain,
