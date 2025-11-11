@@ -487,7 +487,7 @@ async function deployAccount() {
     // Load factory address from deployed contracts
     let factoryAddress: Hex = "0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3"; // Default fallback
     let rpcUrl = "http://localhost:8545"; // Default to Anvil
-    let chainId = 31337; // Default to Anvil
+    let chainId = 1337; // Default to Anvil
     let eoaValidatorAddress: Hex | undefined = undefined;
     let webauthnValidatorAddress: Hex | undefined = undefined;
 
