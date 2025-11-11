@@ -1,11 +1,9 @@
 use crate::erc4337::account::{
     erc7579::executeCall,
-    modular_smart_account::{
-        session::{
-            SessionLib::SessionSpec as SessionLibSessionSpec,
-            session_lib::session_spec::SessionSpec,
-            signature_wasm::get_period_id_no_validation,
-        },
+    modular_smart_account::session::{
+        SessionLib::SessionSpec as SessionLibSessionSpec,
+        session_lib::session_spec::SessionSpec,
+        signature_wasm::get_period_id_no_validation,
     },
 };
 use alloy::{
@@ -116,7 +114,8 @@ mod tests {
         let value = U256::from(1000);
         let data = Bytes::from(vec![1, 2, 3, 4]);
 
-        let encoded = encode_session_user_operation(target, value, data.clone());
+        let encoded =
+            encode_session_user_operation(target, value, data.clone());
 
         // Should be ABI-encoded execute(bytes32 mode, bytes memory execution) call
         assert!(!encoded.is_empty());
@@ -187,8 +186,11 @@ mod tests {
             }],
         };
 
-        let stub_sig =
-            generate_session_stub_signature(session_validator, &session_spec, None);
+        let stub_sig = generate_session_stub_signature(
+            session_validator,
+            &session_spec,
+            None,
+        );
 
         // Should start with session validator address (20 bytes)
         assert!(stub_sig.len() > 20);
@@ -251,10 +253,16 @@ mod tests {
         };
 
         // Generate stub signature multiple times - should be consistent size
-        let stub1 =
-            generate_session_stub_signature(session_validator, &session_spec, None);
-        let stub2 =
-            generate_session_stub_signature(session_validator, &session_spec, None);
+        let stub1 = generate_session_stub_signature(
+            session_validator,
+            &session_spec,
+            None,
+        );
+        let stub2 = generate_session_stub_signature(
+            session_validator,
+            &session_spec,
+            None,
+        );
 
         assert_eq!(stub1.len(), stub2.len());
     }
@@ -267,8 +275,7 @@ mod tests {
         use crate::erc4337::account::modular_smart_account::session::signature_wasm::session_signature_no_validation;
         use alloy::primitives::FixedBytes;
 
-        let private_key =
-            "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
+        let private_key = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
         let session_validator =
             address!("0x1234567890123456789012345678901234567890");
         let session_signer =
@@ -299,8 +306,11 @@ mod tests {
         .unwrap();
 
         // Generate stub signature
-        let stub_sig =
-            generate_session_stub_signature(session_validator, &session_spec, None);
+        let stub_sig = generate_session_stub_signature(
+            session_validator,
+            &session_spec,
+            None,
+        );
 
         // Sizes should match exactly (same encoding structure)
         assert_eq!(

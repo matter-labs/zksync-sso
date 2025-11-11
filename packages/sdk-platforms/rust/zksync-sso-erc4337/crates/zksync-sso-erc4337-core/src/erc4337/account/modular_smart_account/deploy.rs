@@ -97,7 +97,8 @@ where
 
     let account_id = id.unwrap_or(generate_random_account_id());
 
-    let init_data = create_init_data(eoa_signers, webauthn_signer, session_validator);
+    let init_data =
+        create_init_data(eoa_signers, webauthn_signer, session_validator);
 
     let factory = MSAFactory::new(factory_address, provider.clone());
     let deploy_account = factory.deployAccount(account_id, init_data);
@@ -134,7 +135,8 @@ fn create_init_data(
     webauthn_signer: Option<WebAuthNSigner>,
     session_validator: Option<SessionValidatorConfig>,
 ) -> Bytes {
-    let (data, modules) = modules_from_signers(eoa_signers, webauthn_signer, session_validator);
+    let (data, modules) =
+        modules_from_signers(eoa_signers, webauthn_signer, session_validator);
     MSAInitializeAccount::new(modules, data).encode().into()
 }
 
@@ -290,7 +292,10 @@ mod tests {
             provider.clone(),
         )
         .await?;
-        eyre::ensure!(is_module_installed, "Session validator module is not installed");
+        eyre::ensure!(
+            is_module_installed,
+            "Session validator module is not installed"
+        );
 
         drop(anvil_instance);
 
@@ -337,7 +342,10 @@ mod tests {
             provider.clone(),
         )
         .await?;
-        eyre::ensure!(is_eoa_installed, "EOA validator module is not installed");
+        eyre::ensure!(
+            is_eoa_installed,
+            "EOA validator module is not installed"
+        );
 
         // Verify session validator is installed
         let is_session_installed = is_module_installed(
@@ -346,7 +354,10 @@ mod tests {
             provider.clone(),
         )
         .await?;
-        eyre::ensure!(is_session_installed, "Session validator module is not installed");
+        eyre::ensure!(
+            is_session_installed,
+            "Session validator module is not installed"
+        );
 
         drop(anvil_instance);
 
