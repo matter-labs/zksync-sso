@@ -55,7 +55,8 @@ where
 
     let account_id = id.unwrap_or(generate_random_account_id());
 
-    let init_data = create_init_data(eoa_signers, webauthn_signer, session_validator);
+    let init_data =
+        create_init_data(eoa_signers, webauthn_signer, session_validator);
 
     let factory_data: Bytes =
         MSADeployAccount::new(account_id, init_data).encode().into();

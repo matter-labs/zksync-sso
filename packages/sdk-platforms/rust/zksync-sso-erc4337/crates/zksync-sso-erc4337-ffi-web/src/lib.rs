@@ -504,6 +504,7 @@ pub fn deploy_account(
                 factory_address: factory_addr,
                 eoa_signers,
                 webauthn_signer,
+                session_validator: None,
                 id: None,
                 provider,
             }
@@ -2348,6 +2349,7 @@ mod tests {
             factory_address,
             eoa_signers: None, // No EOA signer
             webauthn_signer: Some(webauthn_signer),
+            session_validator: None,
             id: None,
             provider: provider.clone(),
         })

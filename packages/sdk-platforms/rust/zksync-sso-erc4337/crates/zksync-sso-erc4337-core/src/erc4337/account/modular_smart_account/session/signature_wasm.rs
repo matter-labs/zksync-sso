@@ -2,7 +2,7 @@ use crate::erc4337::account::modular_smart_account::{
     session::{
         SessionLib::SessionSpec as SessionLibSessionSpec,
         session_lib::session_spec::{
-            limit_type::LimitType, SessionSpec, usage_limit::UsageLimit,
+            SessionSpec, limit_type::LimitType, usage_limit::UsageLimit,
         },
     },
     signers::eoa::eoa_sign,
@@ -47,7 +47,7 @@ pub fn get_period_id_no_validation(
 /// * `session_spec` - Session specification containing policies and limits
 /// * `hash` - Hash to sign (typically UserOperation hash)
 /// * `current_timestamp` - Optional current timestamp for period ID calculation.
-///                         If None, period_ids will be [0, 0] (defers validation to on-chain)
+///   If None, period_ids will be [0, 0] (defers validation to on-chain)
 ///
 /// # Returns
 /// Encoded signature bytes
@@ -99,8 +99,7 @@ mod tests {
         };
 
         let timestamp = 12345u64;
-        let period_id =
-            get_period_id_no_validation(&limit, Some(timestamp));
+        let period_id = get_period_id_no_validation(&limit, Some(timestamp));
 
         // period_id should be timestamp / period = 12345 / 100 = 123
         assert_eq!(period_id, Uint::from(123));
@@ -136,8 +135,7 @@ mod tests {
 
     #[test]
     fn test_session_signature_no_validation_generates_valid_signature() {
-        let private_key =
-            "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
+        let private_key = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
         let session_validator =
             address!("0x1234567890123456789012345678901234567890");
         let session_signer =
@@ -184,8 +182,7 @@ mod tests {
 
     #[test]
     fn test_session_signature_no_validation_with_timestamp() {
-        let private_key =
-            "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
+        let private_key = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
         let session_validator =
             address!("0x1234567890123456789012345678901234567890");
         let session_signer =
@@ -226,8 +223,7 @@ mod tests {
     #[test]
     fn test_session_signature_matches_expected_encoding_format() {
         // This test verifies the signature format matches what on-chain contracts expect
-        let private_key =
-            "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
+        let private_key = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
         let session_validator =
             address!("0x1234567890123456789012345678901234567890");
         let session_signer =
