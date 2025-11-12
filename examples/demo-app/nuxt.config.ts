@@ -5,7 +5,7 @@ import wasm from "vite-plugin-wasm";
 export default defineNuxtConfig({
   compatibilityDate: "2024-07-08",
   devtools: { enabled: true },
-  modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxtjs/tailwindcss", "@nuxtjs/google-fonts"],
+  modules: ["@nuxt/eslint", "@nuxtjs/tailwindcss", "@nuxtjs/google-fonts"],
   app: {
     head: {
       title: "ZKsync SSO Demo",
