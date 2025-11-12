@@ -208,3 +208,237 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
 
   console.log("✅ All passkey steps completed successfully!");
 });
+
+test("Deploy with session support and send transaction using session key", async ({ page }) => {
+  // Use Anvil account #4 for this test to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=4");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  console.log("Step 1: Deploying smart account...");
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+
+  // Wait for deployment to complete
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+
+  // Verify deployment result
+  await expect(page.getByText("Account Address:")).toBeVisible();
+  await expect(page.getByText("EOA Signer:")).toBeVisible();
+
+  console.log("✓ Smart account deployed successfully");
+
+  // Step 2: Fund Smart Account
+  console.log("Step 2: Funding smart account...");
+
+  const amountInput = page.locator("input[placeholder=\"0.1\"]");
+  await expect(amountInput).toBeVisible();
+  await amountInput.fill("0.1");
+
+  await page.getByRole("button", { name: "Fund Smart Account" }).click();
+
+  // Wait for funding transaction to complete
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+
+  console.log("✓ Smart account funded successfully");
+
+  // Step 3: Enable Session Configuration
+  console.log("Step 3: Enabling session configuration...");
+
+  // Find and enable the session checkbox
+  const sessionCheckbox = page.getByLabel("Enable Session Configuration");
+  await expect(sessionCheckbox).toBeVisible();
+  await sessionCheckbox.check();
+
+  // Verify session configuration UI is visible
+  await expect(page.getByText("Session Validator Address")).toBeVisible();
+  await expect(page.getByText("Session Signer (auto-generated)")).toBeVisible();
+  await expect(page.getByText("Expires At (timestamp)")).toBeVisible();
+  await expect(page.getByText("Max Fee (wei)")).toBeVisible();
+
+  // Verify session signer was auto-generated
+  const sessionSignerInput = page.getByText("Session Signer (auto-generated)").locator("..").locator("input");
+  await expect(sessionSignerInput).toBeVisible();
+  const sessionSignerValue = await sessionSignerInput.inputValue();
+  expect(sessionSignerValue).toMatch(/^0x[a-fA-F0-9]{40}$/);
+
+  console.log("✓ Session configuration enabled, session signer auto-generated:", sessionSignerValue);
+
+  // Step 4: Send Transaction Using Session Key
+  console.log("Step 4: Sending transaction using session key...");
+
+  // Wait for the Send Session Transaction section to appear
+  await expect(page.getByRole("button", { name: "Send Session Transaction" })).toBeVisible();
+
+  // Fill in target address for session transaction
+  const sessionTargetInput = page.locator("input[placeholder=\"0x...\"]").nth(0);
+  await expect(sessionTargetInput).toBeVisible();
+  await sessionTargetInput.fill("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // Anvil account #4
+
+  // Fill in session transaction amount
+  const sessionAmountInput = page.locator("input[placeholder=\"0.001\"]").last();
+  await expect(sessionAmountInput).toBeVisible();
+  await sessionAmountInput.fill("0.001");
+
+  // Click Send Session Transaction button
+  await page.getByRole("button", { name: "Send Session Transaction" }).click();
+
+  // Wait for transaction to complete
+  await expect(page.getByText("Success!")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("UserOp Hash:")).toBeVisible();
+
+  // Verify we have a UserOp hash for the session transaction
+  const sessionUserOpHash = page.locator("code").filter({ hasText: /^0x[a-fA-F0-9]{64}/ }).last();
+  await expect(sessionUserOpHash).toBeVisible();
+
+  console.log("✓ Transaction sent using session key successfully");
+
+  console.log("✅ All session steps completed successfully!");
+});
+
+test("Deploy account, enable session, modify session config, and send transaction", async ({ page }) => {
+  // Use Anvil account #5 for this test to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=5");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  console.log("Step 1: Deploying smart account...");
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  console.log("✓ Smart account deployed");
+
+  // Step 2: Fund Smart Account
+  console.log("Step 2: Funding smart account...");
+  const amountInput = page.locator("input[placeholder=\"0.1\"]");
+  await amountInput.fill("0.15");
+  await page.getByRole("button", { name: "Fund Smart Account" }).click();
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  console.log("✓ Smart account funded with 0.15 ETH");
+
+  // Step 3: Enable Session and Modify Configuration
+  console.log("Step 3: Configuring session with custom parameters...");
+
+  const sessionCheckbox = page.getByLabel("Enable Session Configuration");
+  await sessionCheckbox.check();
+
+  // Verify session UI is visible
+  await expect(page.getByText("Session Validator Address")).toBeVisible();
+
+  // Modify expiry timestamp (set to 2 hours from now)
+  const expiryInput = page.getByText("Expires At (timestamp)").locator("..").locator("input");
+  await expect(expiryInput).toBeVisible();
+  const twoHoursFromNow = Math.floor(Date.now() / 1000) + 7200;
+  await expiryInput.fill(twoHoursFromNow.toString());
+
+  // Modify fee limit (set to 0.002 ETH in wei)
+  const feeLimitInput = page.getByText("Max Fee (wei)").locator("..").locator("input");
+  await expect(feeLimitInput).toBeVisible();
+  await feeLimitInput.fill("2000000000000000"); // 0.002 ETH
+
+  console.log("✓ Session configured with custom expiry and fee limit");
+
+  // Step 4: Send Transaction Using Session
+  console.log("Step 4: Sending transaction using configured session...");
+
+  await expect(page.getByRole("button", { name: "Send Session Transaction" })).toBeVisible();
+
+  const sessionTargetInput = page.locator("input[placeholder=\"0x...\"]").nth(0);
+  await sessionTargetInput.fill("0x90F79bf6EB2c4f870365E785982E1f101E93b906"); // Anvil account #5
+
+  const sessionAmountInput = page.locator("input[placeholder=\"0.001\"]").last();
+  await sessionAmountInput.fill("0.0015");
+
+  await page.getByRole("button", { name: "Send Session Transaction" }).click();
+
+  // Wait for success
+  await expect(page.getByText("Success!")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("UserOp Hash:")).toBeVisible();
+
+  console.log("✓ Transaction sent successfully with custom session configuration");
+
+  console.log("✅ Session configuration and transaction test completed!");
+});
+
+test("Deploy account with session validator pre-installed", async ({ page }) => {
+  // Use Anvil account #6 for this test to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=6");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  console.log("Step 1: Enabling session deployment...");
+
+  // Enable "Deploy with Session Support" before deployment
+  const deployWithSessionCheckbox = page.getByLabel("Deploy with Session Support");
+  await expect(deployWithSessionCheckbox).toBeVisible();
+  await deployWithSessionCheckbox.check();
+
+  // Verify deployment option is enabled
+  await expect(deployWithSessionCheckbox).toBeChecked();
+
+  console.log("Step 2: Deploying smart account with session validator...");
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+
+  // Wait for deployment to complete
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+
+  // Verify deployment success message includes session validator (check the success message specifically)
+  await expect(
+    page.locator(".text-blue-600").filter({ hasText: /Session validator.*pre-installed/i }),
+  ).toBeVisible();
+
+  console.log("✓ Smart account deployed with session validator pre-installed");
+
+  // Step 3: Fund Smart Account
+  console.log("Step 3: Funding smart account...");
+  const amountInput = page.locator("input[placeholder=\"0.1\"]");
+  await amountInput.fill("0.1");
+  await page.getByRole("button", { name: "Fund Smart Account" }).click();
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  console.log("✓ Smart account funded");
+
+  // Step 4: Enable session configuration (validator already installed)
+  console.log("Step 4: Configuring session after deployment...");
+
+  // Enable session configuration
+  const sessionCheckbox = page.getByLabel("Enable Session Configuration");
+  await expect(sessionCheckbox).toBeVisible();
+  await sessionCheckbox.check();
+
+  // Verify session signer was auto-generated
+  const sessionSignerInput = page.getByText("Session Signer (auto-generated)").locator("..").locator("input");
+  await expect(sessionSignerInput).toBeVisible();
+  const sessionSignerValue = await sessionSignerInput.inputValue();
+  expect(sessionSignerValue).toMatch(/^0x[a-fA-F0-9]{40}$/);
+
+  console.log("✓ Session configured with auto-generated signer:", sessionSignerValue);
+
+  // Step 5: Send Transaction Using Session Key
+  console.log("Step 5: Sending transaction using pre-installed session...");
+
+  await expect(page.getByRole("button", { name: "Send Session Transaction" })).toBeVisible();
+
+  const sessionTargetInput = page.locator("input[placeholder=\"0x...\"]").nth(0);
+  await sessionTargetInput.fill("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"); // Anvil account #6
+
+  const sessionAmountInput = page.locator("input[placeholder=\"0.001\"]").last();
+  await sessionAmountInput.fill("0.001");
+
+  await page.getByRole("button", { name: "Send Session Transaction" }).click();
+
+  // Wait for success
+  await expect(page.getByText("Success!")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("UserOp Hash:")).toBeVisible();
+
+  console.log("✓ Transaction sent successfully using pre-installed session validator");
+
+  console.log("✅ Deploy with session validator test completed!");
+});
