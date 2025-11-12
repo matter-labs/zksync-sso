@@ -16,6 +16,11 @@ export const {
   SendCallsRequest,
   ZkSyncSsoError,
   console_log_from_rust,
+  // Session-related exports
+  encode_session_execute_call_data,
+  generate_session_stub_signature_wasm,
+  session_signature_no_validation_wasm,
+  keyed_nonce_decimal,
 } = wasm;
 
 // Initialize WASM module
