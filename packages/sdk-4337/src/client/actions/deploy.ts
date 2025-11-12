@@ -19,6 +19,8 @@ export type DeploySmartAccountParams = {
     eoaValidator?: Address;
     /** WebAuthn validator address (required if passkeySigners provided) */
     webauthnValidator?: Address;
+    /** Session validator address (required if installing session support) */
+    sessionValidator?: Address;
   };
 
   /** Optional array of EOA signer addresses to install */
@@ -33,6 +35,9 @@ export type DeploySmartAccountParams = {
     /** Origin domain (e.g., "https://example.com" or window.location.origin) */
     originDomain: string;
   }>;
+
+  /** Optional: Install session validator module during deployment */
+  installSessionValidator?: boolean;
 
   /** Optional user ID for deterministic account deployment. If provided, generates deterministic accountId from userId */
   userId?: string;
@@ -72,12 +77,15 @@ export type DeploySmartAccountResult = {
  * ```typescript
  * import { deploySmartAccount } from "zksync-sso/client-new/actions";
  *
+ * // Deploy with EOA and session support
  * const { transaction, accountId } = await deploySmartAccount({
  *   contracts: {
  *     factory: "0x...",
  *     eoaValidator: "0x...",
+ *     sessionValidator: "0x...",
  *   },
  *   eoaSigners: ["0x..."],
+ *   installSessionValidator: true,
  * });
  *
  * // Send transaction via your preferred method
@@ -91,7 +99,14 @@ export type DeploySmartAccountResult = {
 export async function deploySmartAccount(
   params: DeploySmartAccountParams,
 ): Promise<DeploySmartAccountResult> {
-  const { contracts, eoaSigners, passkeySigners, userId, accountId: customAccountId } = params;
+  const {
+    contracts,
+    eoaSigners,
+    passkeySigners,
+    installSessionValidator,
+    userId,
+    accountId: customAccountId,
+  } = params;
 
   // Validation: Check that required validators are provided
   if (eoaSigners && eoaSigners.length > 0 && !contracts.eoaValidator) {
@@ -103,6 +118,12 @@ export async function deploySmartAccount(
   if (passkeySigners && passkeySigners.length > 0 && !contracts.webauthnValidator) {
     throw new Error(
       "webauthnValidator contract address is required when passkeySigners are provided",
+    );
+  }
+
+  if (installSessionValidator && !contracts.sessionValidator) {
+    throw new Error(
+      "sessionValidator contract address is required when installSessionValidator is true",
     );
   }
 
@@ -150,6 +171,7 @@ export async function deploySmartAccount(
     contracts.eoaValidator || null,
     passkeyPayload,
     contracts.webauthnValidator || null,
+    (installSessionValidator && contracts.sessionValidator) || null,
   ) as Hex;
 
   return {

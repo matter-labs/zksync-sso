@@ -2037,7 +2037,6 @@ pub fn generate_account_id(user_id: Option<String>) -> String {
 /// * `eoa_validator_address` - Required if eoa_signers is provided
 /// * `passkey_payload` - Optional passkey payload
 /// * `webauthn_validator_address` - Required if passkey_payload is provided
-///
 /// # Returns
 /// Hex-encoded call data for deployAccount(salt, initData)
 #[wasm_bindgen]
@@ -2047,6 +2046,7 @@ pub fn encode_deploy_account_call_data(
     eoa_validator_address: Option<String>,
     passkey_payload: Option<PasskeyPayload>,
     webauthn_validator_address: Option<String>,
+    session_validator_address: Option<String>,
 ) -> Result<String, JsValue> {
     use alloy::sol_types::SolCall;
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::{
@@ -2149,9 +2149,26 @@ pub fn encode_deploy_account_call_data(
         }
     };
 
+    // Parse session validator if provided
+    let session_validator_core = match session_validator_address {
+        Some(validator) => {
+            let validator_addr = validator.parse::<Address>().map_err(|e| {
+                JsValue::from_str(&format!(
+                    "Invalid session_validator_address: {}",
+                    e
+                ))
+            })?;
+            Some(validator_addr)
+        }
+        None => None,
+    };
+
     // Create init data using the same logic as deploy.rs
-    let init_data =
-        create_init_data_for_deployment(eoa_signers_core, webauthn_signer_core);
+    let init_data = create_init_data_for_deployment(
+        eoa_signers_core,
+        webauthn_signer_core,
+        session_validator_core,
+    );
 
     // Create the deployAccount call
     let call = MSAFactory::deployAccountCall {
@@ -2169,6 +2186,7 @@ pub fn encode_deploy_account_call_data(
 fn create_init_data_for_deployment(
     eoa_signers: Option<zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::EOASigners>,
     webauthn_signer: Option<zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::WebAuthNSigner>,
+    session_validator: Option<Address>,
 ) -> Bytes {
     use alloy::{
         sol,
@@ -2200,6 +2218,12 @@ fn create_init_data_for_deployment(
         let webauthn_signer_encoded = webauthn.passkey.abi_encode_params();
         modules.push(webauthn.validator_address);
         data.push(Bytes::from(webauthn_signer_encoded));
+    }
+
+    // Add Session validator if provided (no initialization data needed)
+    if let Some(session_val_addr) = session_validator {
+        modules.push(session_val_addr);
+        data.push(Bytes::new()); // Empty bytes for session validator
     }
 
     // Create initializeAccount call
