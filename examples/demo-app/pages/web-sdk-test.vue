@@ -193,6 +193,19 @@
       :passkey-config="passkeyConfig"
     />
 
+    <!-- Session Configuration -->
+    <SessionConfig
+      v-model="sessionConfig"
+      :is-deployed="!!deploymentResult"
+    />
+
+    <!-- Send Session Transaction -->
+    <SessionTransactionSender
+      v-if="deploymentResult && sessionConfig.enabled && fundResult"
+      :account-address="deploymentResult.address"
+      :session-config="sessionConfig"
+    />
+
     <!-- Address Computation Testing -->
     <div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
       <h2 class="text-lg font-semibold mb-3 text-blue-800">
@@ -353,6 +366,17 @@ const walletConfig = ref({
   isReady: false,
 });
 
+// Session configuration state
+const sessionConfig = ref({
+  enabled: false,
+  deployWithSession: false,
+  validatorAddress: "",
+  sessionPrivateKey: "",
+  sessionSigner: "",
+  expiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+  feeLimit: "1000000000000000", // 0.001 ETH in wei
+});
+
 // Anvil private keys for accounts 0-9
 const anvilPrivateKeys = [
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Account #0
@@ -462,11 +486,14 @@ async function loadWebAuthnValidatorAddress() {
     if (response.ok) {
       const contracts = await response.json();
       passkeyConfig.value.validatorAddress = contracts.webauthnValidator;
+      sessionConfig.value.validatorAddress = contracts.sessionValidator || "";
       // eslint-disable-next-line no-console
       console.log("Loaded WebAuthn validator address:", contracts.webauthnValidator);
+      // eslint-disable-next-line no-console
+      console.log("Loaded Session validator address:", contracts.sessionValidator);
     } else {
       // eslint-disable-next-line no-console
-      console.warn("contracts.json not found, cannot load WebAuthn validator address");
+      console.warn("contracts.json not found, cannot load validator addresses");
     }
   } catch (err: unknown) {
     // eslint-disable-next-line no-console
@@ -585,14 +612,25 @@ async function deployAccount() {
     // Get deployment transaction using new SDK
     // eslint-disable-next-line no-console
     console.log("  Creating deployment transaction...");
+
+    // Log session validator installation if enabled
+    if (sessionConfig.value.deployWithSession) {
+      // eslint-disable-next-line no-console
+      console.log("  Installing Session Validator during deployment...");
+      // eslint-disable-next-line no-console
+      console.log("  Session Validator:", sessionConfig.value.validatorAddress);
+    }
+
     const { transaction, accountId } = await deploySmartAccount({
       contracts: {
         factory: factoryAddress,
         eoaValidator: eoaValidatorAddress,
         webauthnValidator: passkeyConfig.value.enabled ? passkeyConfig.value.validatorAddress as Address : undefined,
+        sessionValidator: sessionConfig.value.deployWithSession ? sessionConfig.value.validatorAddress as Address : undefined,
       },
       eoaSigners: eoaSignersAddresses,
       passkeySigners: passkeySigners,
+      installSessionValidator: sessionConfig.value.deployWithSession,
       userId, // Pass userId for deterministic accountId generation
     });
 
@@ -646,9 +684,19 @@ async function deployAccount() {
       passkeyRegistered.value = true;
     }
 
-    testResult.value = passkeyConfig.value.enabled
-      ? "Account deployed successfully with EOA signer and WebAuthn passkey! (Passkey automatically registered)"
-      : "Account deployed successfully with EOA signer!";
+    // Build success message
+    let successMessage = "Account deployed successfully with EOA signer";
+    if (passkeyConfig.value.enabled && sessionConfig.value.deployWithSession) {
+      successMessage += ", WebAuthn passkey, and Session validator! (Passkey automatically registered, session validator pre-installed)";
+    } else if (passkeyConfig.value.enabled) {
+      successMessage += " and WebAuthn passkey! (Passkey automatically registered)";
+    } else if (sessionConfig.value.deployWithSession) {
+      successMessage += " and Session validator! (Session validator pre-installed)";
+    } else {
+      successMessage += "!";
+    }
+
+    testResult.value = successMessage;
 
     // eslint-disable-next-line no-console
     console.log("Account deployment result:", deploymentResult.value);

@@ -584,13 +584,33 @@ All session functionality is properly exported and accessible! ✅
 
 ## Phase 4: Integration Tests
 
+### Status: ✅ Phase 4.1 Complete - TypeScript Integration Tests
+
+- All TypeScript integration tests passing (19/19 tests)
+- Session types, utilities, and integration scenarios validated
+- Ready for Rust integration tests with actual blockchain
+
 ### Goal
 
 Comprehensive testing across all layers to ensure compatibility.
 
 ### Test Hierarchy
 
-#### 4.1: Rust Core Tests (No Network)
+#### 4.1: TypeScript Integration Tests ✅ COMPLETE
+
+**Location**: `packages/sdk-4337/src/client/session/session.test.ts`
+
+**Test Coverage** (19/19 passing):
+
+- Session Types (4 tests) - SessionSpec, UsageLimit, CallPolicy, TransferPolicy
+- Session Utils (12 tests) - JSON conversion, selector extraction, policy
+  matching, validation
+- Integration Scenarios (3 tests) - ERC20 transfers, ETH transfers, multi-policy
+  sessions
+
+**Success Criteria**: ✅ All tests passing
+
+#### 4.2: Rust Core Tests (No Network)
 
 **Location**:
 `packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-core/src/erc4337/account/modular_smart_account/session/`
@@ -619,12 +639,14 @@ fn test_deploy_with_session_validator()
 
 **Success Criteria**: All Rust tests pass with `cargo test`
 
-#### 4.2: Rust Integration Tests (With Anvil/Bundler)
+#### 4.3: Rust Integration Tests (With Anvil/Bundler)
 
 **Location**:
-`packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-core/src/erc4337/account/modular_smart_account/session/send.rs`
+`packages/sdk-platforms/rust/zksync-sso-erc4337/crates/zksync-sso-erc4337-core/src/erc4337/account/modular_smart_account/deploy.rs`
 
-**Tests** (already exists, review/update):
+**Status**: ✅ COMPLETE
+
+**Tests** (existing + new):
 
 ```rust
 #[tokio::test]
@@ -638,22 +660,29 @@ async fn test_send_transaction_session() {
 }
 ```
 
-**New Test**:
+**New Test** ✅:
 
 ```rust
 #[tokio::test]
 async fn test_deploy_with_session_and_transact() {
   // 1. Deploy account WITH session validator installed
   // 2. Fund account
-  // 3. Create session
-  // 4. Send transaction using session
+  // 3. Create session using EOA signer
+  // 4. Send transaction using session key
   // 5. Verify success
 }
 ```
 
-**Success Criteria**: Tests pass with actual network/bundler interaction
+**Test Results**: ✅ PASSED (17.75s)
 
-#### 4.3: WASM FFI Tests (Node.js)
+- Account deployed with session validator pre-installed
+- Session created with transfer policy (0.001 ETH limit)
+- Transaction sent successfully using session signature
+- UserOperation executed on-chain
+
+**Success Criteria**: ✅ Tests pass with actual network/bundler interaction
+
+#### 4.4: WASM FFI Tests (Node.js)
 
 **Location**: `packages/sdk-platforms/web/tests/session.test.ts` (NEW)
 
@@ -722,7 +751,7 @@ describe("Session WASM Functions", () => {
 
 **Success Criteria**: All WASM bindings work correctly in Node.js
 
-#### 4.4: SDK-4337 Unit Tests
+#### 4.5: SDK-4337 Unit Tests
 
 **Location**: `packages/sdk-4337/src/client/session/account.test.ts`
 
@@ -730,7 +759,29 @@ describe("Session WASM Functions", () => {
 
 **Success Criteria**: All TypeScript unit tests pass
 
-#### 4.5: Web SDK Integration Test
+#### 4.6: Web SDK Integration Test
+
+**Status**: ✅ Complete
+
+**Components Created**:
+
+- ✅ `examples/demo-app/components/SessionConfig.vue` (111 lines)
+  - Session configuration UI with auto-generated session signer
+  - Validator address, expiry timestamp, and fee limit inputs
+  - Auto-generates session private key and derives signer address on enable
+- ✅ `examples/demo-app/components/SessionTransactionSender.vue` (196 lines)
+  - UI for sending transactions using session keys
+  - Integrates with `toSessionSmartAccount` from sdk-4337
+  - Full session flow: create session account → build SessionSpec → send
+    UserOperation
+
+**Integration**:
+
+- ✅ Added session configuration state to `web-sdk-test.vue`
+- ✅ Session components integrated into web-sdk-test page
+- ✅ Session validator address loaded from contracts.json on mount
+- ✅ Components follow existing demo-app patterns (PasskeyConfig,
+  TransactionSender, WalletConfig)
 
 **Location**: `examples/demo-app/pages/web-sdk-test.vue`
 
@@ -1017,6 +1068,73 @@ onMounted(async () => {
 2. Create session via UI ✅
 3. Send transaction using session key ✅
 4. Verify transaction success ✅
+
+**E2E Tests Created**: ✅ Complete
+
+Added four comprehensive E2E tests to
+`examples/demo-app/tests/web-sdk-test.spec.ts`:
+
+1. **Test: Deploy with session support and send transaction using session key**
+
+   - Deploys smart account (Anvil account #4)
+   - Funds account with 0.1 ETH
+   - Enables session configuration
+   - Verifies auto-generated session signer
+   - Sends 0.001 ETH transaction using session key
+   - Validates UserOp hash receipt
+
+2. **Test: Deploy account, enable session, modify session config, and send
+   transaction**
+
+   - Deploys smart account (Anvil account #5)
+   - Funds account with 0.15 ETH
+   - Enables session with custom configuration:
+     - Custom expiry timestamp (2 hours from now)
+     - Custom fee limit (0.002 ETH)
+   - Sends 0.0015 ETH transaction using configured session
+   - Validates successful execution with custom parameters
+
+3. **Test: Deploy account with session validator pre-installed** (NEW)
+
+   - Enables "Deploy with Session Support" before deployment
+   - Deploys smart account with session validator pre-installed (Anvil account
+     #6)
+   - Verifies deployment success message includes session validator
+   - Funds account with 0.1 ETH
+   - Enables session configuration (validator already installed)
+   - Verifies auto-generated session signer
+   - Sends 0.001 ETH transaction using pre-installed session
+   - Validates transaction success
+
+4. **Coverage**:
+   - Session checkbox interaction
+   - Auto-generation of session signers
+   - Session validator address loading
+   - **Pre-deployment session validator installation** (NEW)
+   - **Deploy with Session Support checkbox** (NEW)
+   - Custom expiry and fee limit configuration
+   - Session transaction sending
+   - UserOp receipt validation
+
+**New Feature**: ✅ Deploy with Session Support
+
+Added ability to pre-install session validator during account deployment:
+
+- **UI Component**: Updated `SessionConfig.vue` with "Deploy with Session
+  Support" checkbox
+- **Deployment Integration**: Modified `deployAccount()` to pass
+  `installSessionValidator: true` when enabled
+- **Success Messages**: Enhanced deployment messages to indicate session
+  validator pre-installation
+- **User Experience**: Checkbox disabled after deployment (must be set before
+  deploying)
+- **Benefits**:
+  - No separate transaction needed to install session validator
+  - Session validator available immediately after deployment
+  - Reduces gas costs by batching installation with deployment
+  - Custom expiry and fee limit configuration
+  - Session transaction sending
+  - UserOp receipt validation
 
 ---
 
