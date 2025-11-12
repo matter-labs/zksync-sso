@@ -344,7 +344,7 @@ export async function createWebAuthnCredential(
   const registrationOptions = {
     challenge: arrayBufferToBase64url(challenge),
     rp: {
-      name: options.rpName || "zkSync SSO",
+      name: options.rpName || "ZKsync SSO",
       id: options.rpId || window.location.hostname,
     },
     user: {

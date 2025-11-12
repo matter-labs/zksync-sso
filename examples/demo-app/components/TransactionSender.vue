@@ -92,11 +92,12 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { createPublicClient, formatEther, http, parseEther } from "viem";
+import { formatEther, http, parseEther } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-import type { Address, Chain } from "viem";
+import type { Address } from "viem";
 import { toEcdsaSmartAccount, toPasskeySmartAccount } from "zksync-sso-4337/client";
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
+import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
 
 // Props
 const props = defineProps({
@@ -129,22 +130,8 @@ async function sendTransaction() {
     // eslint-disable-next-line no-console
     console.log("Checking smart account status...");
 
-    // Load contracts.json to get RPC URL
-    const response = await fetch("/contracts.json");
-    const contracts = await response.json();
-
-    const chain = {
-      id: contracts.chainId,
-      name: "Anvil",
-      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      rpcUrls: { default: { http: [contracts.rpcUrl] } },
-    } satisfies Chain;
-
     // Create public client
-    const publicClient = createPublicClient({
-      chain,
-      transport: http(),
-    });
+    const publicClient = await createPublicClient();
 
     // Check if account is deployed
     const code = await publicClient.getCode({
@@ -195,22 +182,12 @@ async function sendTransaction() {
 
 // Send transaction using EOA validator (NEW SDK)
 async function sendFromSmartAccountWithEOA() {
-  // Load contracts.json
-  const response = await fetch("/contracts.json");
-  const contracts = await response.json();
-
-  const chain = {
-    id: contracts.chainId,
-    name: "Anvil",
-    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-    rpcUrls: { default: { http: [contracts.rpcUrl] } },
-  } satisfies Chain;
+  // Load contracts configuration
+  const contracts = await loadContracts();
+  const chain = getChainConfig(contracts);
 
   // Create public client for network calls
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(),
-  });
+  const publicClient = await createPublicClient(contracts);
 
   // Create smart account using the new SDK
   // eslint-disable-next-line no-console
@@ -227,7 +204,7 @@ async function sendFromSmartAccountWithEOA() {
   const bundlerClient = createBundlerClient({
     client: publicClient,
     chain,
-    transport: http(contracts.bundlerUrl || "http://localhost:4337"),
+    transport: http(getBundlerUrl(contracts)),
   });
 
   // Send user operation
@@ -263,21 +240,14 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("Sending transaction from smart account using Passkey (NEW SDK)...");
 
-  // Load contracts.json
-  const response = await fetch("/contracts.json");
-  const contracts = await response.json();
+  // Load contracts configuration
+  const contracts = await loadContracts();
+  const chain = getChainConfig(contracts);
   const webauthnValidatorAddress = props.passkeyConfig.validatorAddress;
 
   if (!webauthnValidatorAddress) {
     throw new Error("WebAuthn validator address not found");
   }
-
-  const chain = {
-    id: contracts.chainId,
-    name: "Anvil",
-    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-    rpcUrls: { default: { http: [contracts.rpcUrl] } },
-  } satisfies Chain;
 
   // eslint-disable-next-line no-console
   console.log("  Smart Account:", props.deploymentResult.address);
@@ -293,10 +263,7 @@ async function sendFromSmartAccountWithPasskey() {
   console.log("Verifying public key registration on-chain...");
 
   // Create public client for network calls
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(),
-  });
+  const publicClient = await createPublicClient(contracts);
 
   const registeredKey = await publicClient.readContract({
     address: webauthnValidatorAddress as Address,
@@ -351,7 +318,7 @@ async function sendFromSmartAccountWithPasskey() {
   const bundlerClient = createBundlerClient({
     client: publicClient,
     chain,
-    transport: http(contracts.bundlerUrl || "http://localhost:4337"),
+    transport: http(getBundlerUrl(contracts)),
     userOperation: {
       // Use fixed gas values matching old Rust SDK implementation
       // (old SDK used: 2M callGas, 2M verificationGas, 1M preVerificationGas)
