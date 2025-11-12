@@ -9,7 +9,7 @@ use crate::erc4337::{
     utils::check_deployed::{Contract, check_contract_deployed},
 };
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes, U256, Uint},
+    primitives::{Address, Bytes, FixedBytes},
     providers::Provider,
     rpc::types::TransactionReceipt,
     sol,
@@ -197,7 +197,7 @@ mod tests {
         erc4337::account::erc7579::module_installed::is_module_installed,
         utils::alloy_utilities::test_utilities::start_anvil_and_deploy_contracts,
     };
-    use alloy::primitives::address;
+    use alloy::primitives::{U256, Uint, address};
 
     #[tokio::test]
     async fn test_deploy_account_basic() -> eyre::Result<()> {
@@ -377,7 +377,8 @@ mod tests {
                         send::keyed_nonce,
                         session_lib::session_spec::{
                             SessionSpec, limit_type::LimitType,
-                            transfer_spec::TransferSpec, usage_limit::UsageLimit,
+                            transfer_spec::TransferSpec,
+                            usage_limit::UsageLimit,
                         },
                         signature::session_signature,
                     },
@@ -394,26 +395,40 @@ mod tests {
         use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
 
         // Start test infrastructure
-        let (_, anvil_instance, provider, contracts, signer_private_key, bundler, bundler_client) = {
+        let (
+            _,
+            anvil_instance,
+            provider,
+            contracts,
+            signer_private_key,
+            bundler,
+            bundler_client,
+        ) = {
             let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
             let config = TestInfraConfig {
                 signer_private_key: signer_private_key.clone(),
             };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(&config).await?
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+                &config,
+            )
+            .await?
         };
 
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;
         let session_validator_address = contracts.session_validator;
-        let entry_point_address = address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+        let entry_point_address =
+            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
 
         // Generate session key
         let session_key_hex = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
-        let session_signer_address = PrivateKeySigner::from_str(session_key_hex)?.address();
+        let session_signer_address =
+            PrivateKeySigner::from_str(session_key_hex)?.address();
         println!("Session signer address: {}", session_signer_address);
 
         // Deploy account WITH session validator pre-installed
-        let signers = vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
+        let signers =
+            vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
         let eoa_signers = EOASigners {
             addresses: signers,
             validator_address: eoa_validator_address,
@@ -458,11 +473,14 @@ mod tests {
         println!("✓ Account funded");
 
         // Create a session using EOA signer
-        let eoa_signer = create_eoa_signer(signer_private_key.clone(), eoa_validator_address)?;
-        
+        let eoa_signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
+
         let expires_at = Uint::from(2088558400u64); // Year 2036
         let target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
-        
+
         let session_spec = SessionSpec {
             signer: session_signer_address,
             expires_at,
@@ -517,12 +535,14 @@ mod tests {
                 &session_spec,
                 Default::default(),
             )?;
-            
+
             let session_key_hex_arc = Arc::new(session_key_hex_owned.clone());
             let session_spec_arc_inner = Arc::clone(&session_spec_arc);
 
             let signature_provider = Arc::new(
-                move |hash: FixedBytes<32>| -> Pin<Box<dyn Future<Output = eyre::Result<Bytes>> + Send>> {
+                move |hash: FixedBytes<32>| -> Pin<
+                    Box<dyn Future<Output = eyre::Result<Bytes>> + Send>,
+                > {
                     let session_key_hex = Arc::clone(&session_key_hex_arc);
                     let session_spec = Arc::clone(&session_spec_arc_inner);
                     Box::pin(async move {
@@ -532,14 +552,16 @@ mod tests {
                             &session_spec,
                             hash,
                         )
-                    }) as Pin<Box<dyn Future<Output = eyre::Result<Bytes>> + Send>>
+                    })
+                        as Pin<
+                            Box<
+                                dyn Future<Output = eyre::Result<Bytes>> + Send,
+                            >,
+                        >
                 },
             );
 
-            Signer {
-                provider: signature_provider,
-                stub_signature: stub_sig,
-            }
+            Signer { provider: signature_provider, stub_signature: stub_sig }
         };
 
         let keyed_nonce = keyed_nonce(session_signer_address);
