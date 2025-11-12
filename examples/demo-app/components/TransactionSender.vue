@@ -95,8 +95,7 @@ import { ref } from "vue";
 import { createPublicClient, formatEther, http, parseEther } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import type { Address, Chain } from "viem";
-import { toPasskeySmartAccount } from "zksync-sso-4337/client/passkey";
-import { toEcdsaSmartAccount } from "zksync-sso-4337/client/ecdsa";
+import { toEcdsaSmartAccount, toPasskeySmartAccount } from "zksync-sso-4337/client";
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
 
 // Props

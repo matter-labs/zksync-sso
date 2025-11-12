@@ -127,6 +127,7 @@
 
 <script setup>
 import { computed, ref } from "vue";
+import { createWebAuthnCredential } from "zksync-sso-4337/client/passkey";
 
 // Props
 const props = defineProps({
@@ -158,9 +159,6 @@ async function handleCreatePasskey() {
   errorMessage.value = "";
 
   try {
-    // Import the WebAuthn helper from the SDK
-    const { createWebAuthnCredential } = await import("zksync-sso-web-sdk/bundler");
-
     // eslint-disable-next-line no-console
     console.log("Creating WebAuthn credential using SimpleWebAuthn...");
 

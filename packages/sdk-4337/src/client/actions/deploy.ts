@@ -1,4 +1,4 @@
-import type { Address, Hex, TransactionReceipt } from "viem";
+import type { Address, Hex, Log } from "viem";
 import { hexToBytes, keccak256, toHex } from "viem";
 import {
   encode_deploy_account_call_data,
@@ -8,9 +8,9 @@ import {
 } from "zksync-sso-web-sdk/bundler";
 
 /**
- * Parameters for deploying a smart account
+ * Parameters for preparing a smart account deployment
  */
-export type DeploySmartAccountParams = {
+export type PrepareDeploySmartAccountParams = {
   /** Contract addresses */
   contracts: {
     /** MSAFactory contract address */
@@ -42,24 +42,22 @@ export type DeploySmartAccountParams = {
 };
 
 /**
- * Result from deploySmartAccount containing transaction data
+ * Result from prepareDeploySmartAccount containing transaction data
  */
-export type DeploySmartAccountResult = {
+export type PrepareDeploySmartAccountResult = {
   /** Transaction to send to deploy the account */
   transaction: {
     /** Factory contract address */
     to: Address;
     /** Encoded deployAccount call data */
     data: Hex;
-    /** Value to send (always 0n for deployment) */
-    value: bigint;
   };
   /** Account ID used as salt */
   accountId: Hex;
 };
 
 /**
- * Create a deployment transaction for a smart account.
+ * Prepare a deployment transaction for a smart account.
  * This function does NOT send the transaction - it returns the transaction data
  * that can be sent via any means (EOA, bundler, etc).
  *
@@ -70,9 +68,9 @@ export type DeploySmartAccountResult = {
  *
  * @example
  * ```typescript
- * import { deploySmartAccount } from "zksync-sso/client-new/actions";
+ * import { prepareDeploySmartAccount } from "zksync-sso/client-new/actions";
  *
- * const { transaction, accountId } = await deploySmartAccount({
+ * const { transaction, accountId } = prepareDeploySmartAccount({
  *   contracts: {
  *     factory: "0x...",
  *     eoaValidator: "0x...",
@@ -85,12 +83,12 @@ export type DeploySmartAccountResult = {
  *
  * // Wait for receipt and extract deployed address from AccountCreated event
  * const receipt = await publicClient.waitForTransactionReceipt({ hash });
- * // Parse AccountCreated event from logs to get the deployed address
+ * const deployedAddress = getAccountAddressFromLogs(receipt.logs);
  * ```
  */
-export async function deploySmartAccount(
-  params: DeploySmartAccountParams,
-): Promise<DeploySmartAccountResult> {
+export function prepareDeploySmartAccount(
+  params: PrepareDeploySmartAccountParams,
+): PrepareDeploySmartAccountResult {
   const { contracts, eoaSigners, passkeySigners, userId, accountId: customAccountId } = params;
 
   // Validation: Check that required validators are provided
@@ -156,38 +154,37 @@ export async function deploySmartAccount(
     transaction: {
       to: contracts.factory,
       data: encodedCallData,
-      value: 0n,
     },
     accountId,
   };
 }
 
 /**
- * Extract the deployed account address from a deployment transaction receipt.
+ * Extract the deployed account address from transaction logs.
  * Searches for the AccountCreated event emitted by MSAFactory.
  *
- * @param receipt - Transaction receipt from the deployment transaction
+ * @param logs - Transaction logs from the deployment transaction
  * @returns The deployed account address
- * @throws Error if AccountCreated event is not found in the receipt
+ * @throws Error if AccountCreated event is not found in the logs
  *
  * @example
  * ```typescript
- * import { deploySmartAccount, getDeployedAccountAddress } from "zksync-sso/client-new/actions";
+ * import { prepareDeploySmartAccount, getAccountAddressFromLogs } from "zksync-sso/client-new/actions";
  *
- * const { transaction } = await deploySmartAccount({ ... });
+ * const { transaction } = prepareDeploySmartAccount({ ... });
  * const hash = await walletClient.sendTransaction(transaction);
  * const receipt = await publicClient.waitForTransactionReceipt({ hash });
  *
- * const deployedAddress = getDeployedAccountAddress(receipt);
+ * const deployedAddress = getAccountAddressFromLogs(receipt.logs);
  * console.log("Account deployed at:", deployedAddress);
  * ```
  */
-export function getDeployedAccountAddress(receipt: TransactionReceipt): Address {
+export function getAccountAddressFromLogs(logs: Log[]): Address {
   // Event signature: AccountCreated(address indexed account, address indexed deployer)
   const accountCreatedTopic = keccak256(toHex("AccountCreated(address,address)"));
 
   // Find the log with AccountCreated event
-  const log = receipt.logs.find((log) => log.topics[0] === accountCreatedTopic);
+  const log = logs.find((log) => log.topics[0] === accountCreatedTopic);
 
   if (!log || !log.topics[1]) {
     throw new Error("AccountCreated event not found in transaction logs");

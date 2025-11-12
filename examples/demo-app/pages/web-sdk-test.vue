@@ -288,11 +288,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { createPublicClient, createWalletClient, http, hexToBytes, type Chain, type Hash, type Hex, type Address } from "viem";
+import { createPublicClient, createWalletClient, http, type Chain, type Hash, type Hex, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { ethers } from "ethers";
-import { deploySmartAccount, getDeployedAccountAddress } from "zksync-sso-4337/client";
-import { compute_account_id, add_passkey_to_account, SendTransactionConfig, PasskeyPayload } from "zksync-sso-web-sdk/bundler";
+import { toEcdsaSmartAccount, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, addPasskey } from "zksync-sso-4337/client";
+import { createBundlerClient } from "viem/account-abstraction";
 
 // Types
 interface DeploymentResult {
@@ -430,9 +430,9 @@ async function testWebSDK() {
   testResult.value = "";
 
   try {
-    // Test the compute_account_id function
+    // Test the generateAccountId function
     const testUserId = "test-user-123";
-    const accountId = compute_account_id(testUserId);
+    const accountId = generateAccountId(testUserId);
     // eslint-disable-next-line no-console
     console.log("Computed account ID:", accountId);
 
@@ -585,7 +585,7 @@ async function deployAccount() {
     // Get deployment transaction using new SDK
     // eslint-disable-next-line no-console
     console.log("  Creating deployment transaction...");
-    const { transaction, accountId } = await deploySmartAccount({
+    const { transaction, accountId } = prepareDeploySmartAccount({
       contracts: {
         factory: factoryAddress,
         eoaValidator: eoaValidatorAddress,
@@ -612,7 +612,6 @@ async function deployAccount() {
     const hash = await walletClient.sendTransaction({
       to: transaction.to,
       data: transaction.data,
-      value: transaction.value,
     });
 
     // eslint-disable-next-line no-console
@@ -627,7 +626,7 @@ async function deployAccount() {
     console.log("  Transaction confirmed in block:", receipt.blockNumber);
 
     // Extract deployed address from AccountCreated event using utility function
-    const deployedAddress = getDeployedAccountAddress(receipt);
+    const deployedAddress = getAccountAddressFromLogs(receipt.logs);
 
     // eslint-disable-next-line no-console
     console.log("Account deployed at:", deployedAddress);
@@ -678,7 +677,6 @@ async function registerPasskey() {
     const contracts = await response.json();
     const rpcUrl = contracts.rpcUrl;
     const bundlerUrl = contracts.bundlerUrl || "http://localhost:4337";
-    const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
     const eoaValidatorAddress = contracts.eoaValidator;
 
     // EOA signer private key (Anvil account #1) - to authorize the passkey registration
@@ -691,44 +689,81 @@ async function registerPasskey() {
     // eslint-disable-next-line no-console
     console.log("  WebAuthn Validator:", passkeyConfig.value.validatorAddress);
 
-    // Convert passkey coordinates to Uint8Array
-    const credentialId = hexToBytes(passkeyConfig.value.credentialId as Hex);
-    const passkeyX = hexToBytes(passkeyConfig.value.passkeyX as Hex);
-    const passkeyY = hexToBytes(passkeyConfig.value.passkeyY as Hex);
+    // Prepare the add passkey transaction using new SDK
+    // eslint-disable-next-line no-console
+    console.log("  Preparing add passkey transaction...");
+    const { transaction } = addPasskey({
+      account: deploymentResult.value.address as Address,
+      contracts: {
+        webauthnValidator: passkeyConfig.value.validatorAddress as Address,
+      },
+      passkeySigner: {
+        credentialId: passkeyConfig.value.credentialId as Hex,
+        publicKey: {
+          x: passkeyConfig.value.passkeyX as Hex,
+          y: passkeyConfig.value.passkeyY as Hex,
+        },
+        originDomain: passkeyConfig.value.originDomain,
+      },
+    });
 
-    // Create PasskeyPayload
-    const passkeyPayload = new PasskeyPayload(
-      credentialId,
-      passkeyX,
-      passkeyY,
-      passkeyConfig.value.originDomain,
-    );
+    // Create chain config
+    const chain = {
+      id: contracts.chainId,
+      name: "Anvil",
+      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      rpcUrls: { default: { http: [rpcUrl] } },
+    } satisfies Chain;
 
-    // Create SendTransactionConfig
-    const sendConfig = new SendTransactionConfig(
-      rpcUrl,
-      bundlerUrl,
-      entryPointAddress,
-    );
+    // Create public client
+    const publicClient = createPublicClient({
+      chain,
+      transport: http(),
+    });
 
-    // Call the WASM function
-    const result = await add_passkey_to_account(
-      sendConfig,
-      deploymentResult.value.address,
-      passkeyPayload,
-      passkeyConfig.value.validatorAddress,
-      eoaValidatorAddress,
-      eoaSignerPrivateKey,
-    );
+    // Create smart account using EOA validator to sign the transaction
+    // eslint-disable-next-line no-console
+    console.log("  Creating smart account instance...");
+    const account = await toEcdsaSmartAccount({
+      client: publicClient,
+      signerPrivateKey: eoaSignerPrivateKey as Hex,
+      address: deploymentResult.value.address as Address,
+      eoaValidatorAddress: eoaValidatorAddress as Address,
+    });
+
+    // Create bundler client
+    const bundlerClient = createBundlerClient({
+      client: publicClient,
+      chain,
+      transport: http(bundlerUrl),
+    });
+
+    // Send user operation
+    // eslint-disable-next-line no-console
+    console.log("  Sending UserOperation to add passkey...");
+    const userOpHash = await bundlerClient.sendUserOperation({
+      account,
+      calls: [{
+        to: transaction.to,
+        data: transaction.data,
+        value: 0n,
+      }],
+    });
 
     // eslint-disable-next-line no-console
-    console.log("  Registration result:", result);
+    console.log("  UserOperation hash:", userOpHash);
 
-    if (result.startsWith("Failed") || result.startsWith("Error")) {
-      throw new Error(result);
-    }
+    // Wait for receipt
+    // eslint-disable-next-line no-console
+    console.log("  Waiting for UserOperation receipt...");
+    const receipt = await bundlerClient.waitForUserOperationReceipt({
+      hash: userOpHash,
+    });
 
-    passkeyRegisterResult.value = result;
+    // eslint-disable-next-line no-console
+    console.log("  UserOperation confirmed! Receipt:", receipt);
+
+    passkeyRegisterResult.value = `Passkey registered successfully! UserOp hash: ${userOpHash}`;
     passkeyRegistered.value = true;
 
     // eslint-disable-next-line no-console
