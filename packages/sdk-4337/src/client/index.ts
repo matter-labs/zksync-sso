@@ -2,3 +2,4 @@
 export * from "./actions/index.js";
 export * from "./ecdsa/index.js";
 export * from "./passkey/index.js";
+export * from "./session/index.js";
