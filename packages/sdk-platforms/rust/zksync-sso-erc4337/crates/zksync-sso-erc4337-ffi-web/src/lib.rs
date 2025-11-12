@@ -2019,6 +2019,85 @@ pub fn encode_deploy_account_call_data(
     Ok(format!("0x{}", hex::encode(encoded)))
 }
 
+/// Encode call data for adding a passkey to a smart account
+/// This is a pure encoding function with NO network calls
+///
+/// # Parameters
+/// * `passkey_payload` - Passkey details (credential_id, public_key, domain)
+/// * `webauthn_validator_address` - Address of the WebAuthn validator module
+///
+/// # Returns
+/// Hex-encoded call data for MSA.execute() that adds the passkey
+#[wasm_bindgen]
+pub fn encode_add_passkey_call_data(
+    passkey_payload: PasskeyPayload,
+    webauthn_validator_address: String,
+) -> Result<String, JsValue> {
+    use alloy::{primitives::U256, sol_types::SolCall};
+    use zksync_sso_erc4337_core::erc4337::account::{
+        erc7579::{Execution, calls::encode_calls},
+        modular_smart_account::{
+            WebAuthnValidator,
+            add_passkey::PasskeyPayload as CorePasskeyPayload,
+        },
+    };
+
+    // Parse webauthn validator address
+    let webauthn_validator =
+        webauthn_validator_address.parse::<Address>().map_err(|e| {
+            JsValue::from_str(&format!(
+                "Invalid webauthn_validator_address: {}",
+                e
+            ))
+        })?;
+
+    // Validate coordinate lengths
+    if passkey_payload.passkey_x.len() != 32 {
+        return Err(JsValue::from_str(&format!(
+            "Invalid passkey X coordinate length: expected 32 bytes, got {}",
+            passkey_payload.passkey_x.len()
+        )));
+    }
+    if passkey_payload.passkey_y.len() != 32 {
+        return Err(JsValue::from_str(&format!(
+            "Invalid passkey Y coordinate length: expected 32 bytes, got {}",
+            passkey_payload.passkey_y.len()
+        )));
+    }
+
+    // Convert PasskeyPayload to core type
+    let passkey_x = FixedBytes::<32>::from_slice(&passkey_payload.passkey_x);
+    let passkey_y = FixedBytes::<32>::from_slice(&passkey_payload.passkey_y);
+
+    let core_passkey = CorePasskeyPayload {
+        credential_id: Bytes::from(passkey_payload.credential_id),
+        passkey: [passkey_x, passkey_y],
+        origin_domain: passkey_payload.origin_domain,
+    };
+
+    // Create addValidationKey call data
+    let add_validation_key_calldata = WebAuthnValidator::addValidationKeyCall {
+        credentialId: core_passkey.credential_id,
+        newKey: core_passkey.passkey,
+        domain: core_passkey.origin_domain,
+    }
+    .abi_encode()
+    .into();
+
+    // Wrap in Execution struct
+    let call = Execution {
+        target: webauthn_validator,
+        value: U256::from(0),
+        data: add_validation_key_calldata,
+    };
+
+    // Encode as execute call
+    let calls = vec![call];
+    let encoded = encode_calls(calls);
+
+    Ok(format!("0x{}", hex::encode(encoded)))
+}
+
 /// Helper function to create init data for deployment
 /// Mirrors the logic from deploy.rs create_init_data and modules_from_signers
 fn create_init_data_for_deployment(

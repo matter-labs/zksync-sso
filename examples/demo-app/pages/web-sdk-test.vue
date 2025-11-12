@@ -288,11 +288,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { createPublicClient, createWalletClient, http, hexToBytes, type Chain, type Hash, type Hex, type Address } from "viem";
+import { createWalletClient, http, type Hash, type Hex, type Address, parseEther, formatEther, getAddress, custom } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { ethers } from "ethers";
-import { deploySmartAccount, getDeployedAccountAddress } from "zksync-sso-4337/client";
-import { compute_account_id, add_passkey_to_account, SendTransactionConfig, PasskeyPayload } from "zksync-sso-web-sdk/bundler";
+import { toEcdsaSmartAccount, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, addPasskey } from "zksync-sso-4337/client";
+import { createBundlerClient } from "viem/account-abstraction";
+import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
 
 // Types
 interface DeploymentResult {
@@ -384,30 +384,35 @@ function getFundingPrivateKey() {
 }
 
 /**
- * Get a signer for funding transactions
- * Returns either a Wallet (for private key) or a BrowserProvider signer (for browser wallet)
+ * Get a wallet client for funding transactions
+ * Returns a viem wallet client configured based on wallet source
  */
-async function getFundingSigner() {
-  // Load contracts.json to get RPC URL
-  const response = await fetch("/contracts.json");
-  const contracts = await response.json();
-  const rpcUrl = contracts.rpcUrl;
+async function getFundingWalletClient() {
+  // Load contracts configuration
+  const contracts = await loadContracts();
+  const chain = getChainConfig(contracts);
 
   if (walletConfig.value.source === "browser-wallet") {
     // Use browser wallet provider
     if (!window.ethereum) {
       throw new Error("No Ethereum wallet detected");
     }
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    return await provider.getSigner();
+    return createWalletClient({
+      chain,
+      transport: custom(window.ethereum),
+    });
   } else {
     // Use private key (anvil or manual entry)
     const privateKey = getFundingPrivateKey();
     if (!privateKey) {
       throw new Error("No private key available");
     }
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
-    return new ethers.Wallet(privateKey, provider);
+    const account = privateKeyToAccount(privateKey);
+    return createWalletClient({
+      account,
+      chain,
+      transport: http(contracts.rpcUrl),
+    });
   }
 }
 
@@ -430,9 +435,9 @@ async function testWebSDK() {
   testResult.value = "";
 
   try {
-    // Test the compute_account_id function
+    // Test the generateAccountId function
     const testUserId = "test-user-123";
-    const accountId = compute_account_id(testUserId);
+    const accountId = generateAccountId(testUserId);
     // eslint-disable-next-line no-console
     console.log("Computed account ID:", accountId);
 
@@ -458,16 +463,10 @@ async function testWebSDK() {
  */
 async function loadWebAuthnValidatorAddress() {
   try {
-    const response = await fetch("/contracts.json");
-    if (response.ok) {
-      const contracts = await response.json();
-      passkeyConfig.value.validatorAddress = contracts.webauthnValidator;
-      // eslint-disable-next-line no-console
-      console.log("Loaded WebAuthn validator address:", contracts.webauthnValidator);
-    } else {
-      // eslint-disable-next-line no-console
-      console.warn("contracts.json not found, cannot load WebAuthn validator address");
-    }
+    const contracts = await loadContracts();
+    passkeyConfig.value.validatorAddress = contracts.webauthnValidator;
+    // eslint-disable-next-line no-console
+    console.log("Loaded WebAuthn validator address:", contracts.webauthnValidator);
   } catch (err: unknown) {
     // eslint-disable-next-line no-console
     console.warn("Failed to load contracts.json:", err);
@@ -484,37 +483,18 @@ async function deployAccount() {
     // Generate a user ID (in real app, this would be from authentication)
     const userId = "demo-user-" + Date.now();
 
-    // Load factory address from deployed contracts
-    let factoryAddress: Hex = "0x679FFF51F11C3f6CaC9F2243f9D14Cb1255F65A3"; // Default fallback
-    let rpcUrl = "http://localhost:8545"; // Default to Anvil
-    let chainId = 1337; // Default to Anvil
-    let eoaValidatorAddress: Hex | undefined = undefined;
-    let webauthnValidatorAddress: Hex | undefined = undefined;
+    // Load contracts configuration
+    const contracts = await loadContracts();
+    const factoryAddress = contracts.factory;
+    const eoaValidatorAddress = contracts.eoaValidator;
+    const webauthnValidatorAddress = contracts.webauthnValidator;
 
-    try {
-      // Try to load contracts.json if it exists
-      const response = await fetch("/contracts.json");
-      if (response.ok) {
-        const contracts = await response.json();
-        factoryAddress = contracts.factory;
-        rpcUrl = contracts.rpcUrl;
-        chainId = contracts.chainId;
-        eoaValidatorAddress = contracts.eoaValidator;
-        webauthnValidatorAddress = contracts.webauthnValidator;
-        // eslint-disable-next-line no-console
-        console.log("Loaded factory address from contracts.json:", factoryAddress);
-        // eslint-disable-next-line no-console
-        console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress);
-        // eslint-disable-next-line no-console
-        console.log("Loaded WebAuthn validator address from contracts.json:", webauthnValidatorAddress);
-      } else {
-        // eslint-disable-next-line no-console
-        console.warn("contracts.json not found, using default factory address");
-      }
-    } catch (err: unknown) {
-      // eslint-disable-next-line no-console
-      console.warn("Failed to load contracts.json, using default factory address:", err);
-    }
+    // eslint-disable-next-line no-console
+    console.log("Loaded factory address from contracts.json:", factoryAddress);
+    // eslint-disable-next-line no-console
+    console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress);
+    // eslint-disable-next-line no-console
+    console.log("Loaded WebAuthn validator address from contracts.json:", webauthnValidatorAddress);
 
     // Add a rich Anvil wallet as an EOA signer for additional security
     // Using Anvil account #1 (0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
@@ -539,25 +519,15 @@ async function deployAccount() {
       console.log("  Using Anvil account #" + walletConfig.value.anvilAccountIndex + " as deployer");
     }
     // eslint-disable-next-line no-console
-    console.log("  RPC URL:", rpcUrl);
+    console.log("  RPC URL:", contracts.rpcUrl);
     // eslint-disable-next-line no-console
     console.log("  Factory:", factoryAddress);
     // eslint-disable-next-line no-console
     console.log("  User ID:", userId);
 
-    // Create viem chain config
-    const chain = {
-      id: chainId,
-      name: "Anvil",
-      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      rpcUrls: { default: { http: [rpcUrl] } },
-    } satisfies Chain;
-
-    // Create public client for RPC calls
-    const publicClient = createPublicClient({
-      chain,
-      transport: http(),
-    });
+    // Create chain config and public client
+    const chain = getChainConfig(contracts);
+    const publicClient = await createPublicClient(contracts);
 
     // Prepare passkey signers if enabled
     let passkeySigners: Array<{ credentialId: Hex; publicKey: { x: Hex; y: Hex }; originDomain: string }> | undefined = undefined;
@@ -585,7 +555,7 @@ async function deployAccount() {
     // Get deployment transaction using new SDK
     // eslint-disable-next-line no-console
     console.log("  Creating deployment transaction...");
-    const { transaction, accountId } = await deploySmartAccount({
+    const { transaction, accountId } = prepareDeploySmartAccount({
       contracts: {
         factory: factoryAddress,
         eoaValidator: eoaValidatorAddress,
@@ -612,7 +582,6 @@ async function deployAccount() {
     const hash = await walletClient.sendTransaction({
       to: transaction.to,
       data: transaction.data,
-      value: transaction.value,
     });
 
     // eslint-disable-next-line no-console
@@ -627,7 +596,7 @@ async function deployAccount() {
     console.log("  Transaction confirmed in block:", receipt.blockNumber);
 
     // Extract deployed address from AccountCreated event using utility function
-    const deployedAddress = getDeployedAccountAddress(receipt);
+    const deployedAddress = getAccountAddressFromLogs(receipt.logs);
 
     // eslint-disable-next-line no-console
     console.log("Account deployed at:", deployedAddress);
@@ -673,12 +642,9 @@ async function registerPasskey() {
       throw new Error("No deployed account found. Please deploy an account first.");
     }
 
-    // Load contracts.json
-    const response = await fetch("/contracts.json");
-    const contracts = await response.json();
-    const rpcUrl = contracts.rpcUrl;
-    const bundlerUrl = contracts.bundlerUrl || "http://localhost:4337";
-    const entryPointAddress = contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
+    // Load contracts configuration
+    const contracts = await loadContracts();
+    const bundlerUrl = getBundlerUrl(contracts);
     const eoaValidatorAddress = contracts.eoaValidator;
 
     // EOA signer private key (Anvil account #1) - to authorize the passkey registration
@@ -691,44 +657,71 @@ async function registerPasskey() {
     // eslint-disable-next-line no-console
     console.log("  WebAuthn Validator:", passkeyConfig.value.validatorAddress);
 
-    // Convert passkey coordinates to Uint8Array
-    const credentialId = hexToBytes(passkeyConfig.value.credentialId as Hex);
-    const passkeyX = hexToBytes(passkeyConfig.value.passkeyX as Hex);
-    const passkeyY = hexToBytes(passkeyConfig.value.passkeyY as Hex);
+    // Prepare the add passkey transaction using new SDK
+    // eslint-disable-next-line no-console
+    console.log("  Preparing add passkey transaction...");
+    const { transaction } = addPasskey({
+      account: deploymentResult.value.address as Address,
+      contracts: {
+        webauthnValidator: passkeyConfig.value.validatorAddress as Address,
+      },
+      passkeySigner: {
+        credentialId: passkeyConfig.value.credentialId as Hex,
+        publicKey: {
+          x: passkeyConfig.value.passkeyX as Hex,
+          y: passkeyConfig.value.passkeyY as Hex,
+        },
+        originDomain: passkeyConfig.value.originDomain,
+      },
+    });
 
-    // Create PasskeyPayload
-    const passkeyPayload = new PasskeyPayload(
-      credentialId,
-      passkeyX,
-      passkeyY,
-      passkeyConfig.value.originDomain,
-    );
+    // Create chain config and public client
+    const chain = getChainConfig(contracts);
+    const publicClient = await createPublicClient(contracts);
 
-    // Create SendTransactionConfig
-    const sendConfig = new SendTransactionConfig(
-      rpcUrl,
-      bundlerUrl,
-      entryPointAddress,
-    );
+    // Create smart account using EOA validator to sign the transaction
+    // eslint-disable-next-line no-console
+    console.log("  Creating smart account instance...");
+    const account = await toEcdsaSmartAccount({
+      client: publicClient,
+      signerPrivateKey: eoaSignerPrivateKey as Hex,
+      address: deploymentResult.value.address as Address,
+      eoaValidatorAddress: eoaValidatorAddress as Address,
+    });
 
-    // Call the WASM function
-    const result = await add_passkey_to_account(
-      sendConfig,
-      deploymentResult.value.address,
-      passkeyPayload,
-      passkeyConfig.value.validatorAddress,
-      eoaValidatorAddress,
-      eoaSignerPrivateKey,
-    );
+    // Create bundler client
+    const bundlerClient = createBundlerClient({
+      client: publicClient,
+      chain,
+      transport: http(bundlerUrl),
+    });
+
+    // Send user operation
+    // eslint-disable-next-line no-console
+    console.log("  Sending UserOperation to add passkey...");
+    const userOpHash = await bundlerClient.sendUserOperation({
+      account,
+      calls: [{
+        to: transaction.to,
+        data: transaction.data,
+        value: 0n,
+      }],
+    });
 
     // eslint-disable-next-line no-console
-    console.log("  Registration result:", result);
+    console.log("  UserOperation hash:", userOpHash);
 
-    if (result.startsWith("Failed") || result.startsWith("Error")) {
-      throw new Error(result);
-    }
+    // Wait for receipt
+    // eslint-disable-next-line no-console
+    console.log("  Waiting for UserOperation receipt...");
+    const receipt = await bundlerClient.waitForUserOperationReceipt({
+      hash: userOpHash,
+    });
 
-    passkeyRegisterResult.value = result;
+    // eslint-disable-next-line no-console
+    console.log("  UserOperation confirmed! Receipt:", receipt);
+
+    passkeyRegisterResult.value = `Passkey registered successfully! UserOp hash: ${userOpHash}`;
     passkeyRegistered.value = true;
 
     // eslint-disable-next-line no-console
@@ -774,53 +767,44 @@ async function fundSmartAccount() {
     // eslint-disable-next-line no-console
     console.log("  Amount:", fundParams.value.amount, "ETH");
 
-    // Get the signer based on wallet configuration
-    const signer = await getFundingSigner();
-    const signerAddress = await signer.getAddress();
+    // Get the wallet client based on wallet configuration
+    const walletClient = await getFundingWalletClient();
+    const [signerAddress] = await walletClient.getAddresses();
 
     // eslint-disable-next-line no-console
     console.log("  From (Funding Wallet):", signerAddress);
 
     // Convert amount to wei
-    const amountWei = ethers.parseEther(fundParams.value.amount);
+    const amountWei = parseEther(fundParams.value.amount);
 
-    // Ensure address is properly formatted (prevents ENS lookup on non-ENS networks)
-    const toAddress = ethers.getAddress(address);
+    // Ensure address is properly formatted (checksummed)
+    const toAddress = getAddress(address);
 
     // Send transaction to fund the smart account
-    const tx = await signer.sendTransaction({
+    const hash = await walletClient.sendTransaction({
+      account: signerAddress,
       to: toAddress,
       value: amountWei,
     });
 
     // eslint-disable-next-line no-console
-    console.log("  Transaction sent:", tx.hash);
+    console.log("  Transaction sent:", hash);
+
+    // Create public client to wait for receipt
+    const publicClient = await createPublicClient();
 
     // Wait for confirmation
-    const receipt = await tx.wait();
-
-    if (!receipt) {
-      throw new Error("Transaction receipt is null");
-    }
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
     // eslint-disable-next-line no-console
     console.log("  Transaction confirmed in block:", receipt.blockNumber);
 
-    fundResult.value = tx.hash;
+    fundResult.value = hash;
 
     // Check the balance
-    const provider = signer.provider;
-    if (!provider) {
-      throw new Error("Provider is not available");
-    }
-
-    if (!deploymentResult.value) {
-      throw new Error("Deployment result is not available");
-    }
-
-    const balance = await provider.getBalance(deploymentResult.value.address);
+    const balance = await publicClient.getBalance({ address: toAddress as Address });
     // eslint-disable-next-line no-console
-    console.log("  Smart account balance:", ethers.formatEther(balance), "ETH");
+    console.log("  Smart account balance:", formatEther(balance), "ETH");
   } catch (err: unknown) {
     // eslint-disable-next-line no-console
     console.error("Funding failed:", err);

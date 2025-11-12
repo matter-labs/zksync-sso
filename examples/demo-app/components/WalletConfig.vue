@@ -195,6 +195,7 @@
 
 <script setup>
 import { computed, ref, watch, onMounted } from "vue";
+import { loadContracts } from "~/utils/contracts";
 
 // Props
 const props = defineProps({
@@ -322,18 +323,15 @@ function handleAccountsChanged(accounts) {
 async function detectEnvironment() {
   // First, detect if we're on Anvil
   try {
-    const response = await fetch("/contracts.json");
-    if (response.ok) {
-      const contracts = await response.json();
-      rpcUrl.value = contracts.rpcUrl || "";
-      isAnvil.value = rpcUrl.value.includes("localhost:8545") || rpcUrl.value.includes("127.0.0.1:8545");
+    const contracts = await loadContracts();
+    rpcUrl.value = contracts.rpcUrl || "";
+    isAnvil.value = rpcUrl.value.includes("localhost:8545") || rpcUrl.value.includes("127.0.0.1:8545");
 
-      // Auto-select appropriate source
-      if (isAnvil.value && config.value.source === "browser-wallet") {
-        config.value.source = "anvil";
-      } else if (!isAnvil.value && config.value.source === "anvil") {
-        config.value.source = "browser-wallet";
-      }
+    // Auto-select appropriate source
+    if (isAnvil.value && config.value.source === "browser-wallet") {
+      config.value.source = "anvil";
+    } else if (!isAnvil.value && config.value.source === "anvil") {
+      config.value.source = "browser-wallet";
     }
   } catch (err) {
     // eslint-disable-next-line no-console

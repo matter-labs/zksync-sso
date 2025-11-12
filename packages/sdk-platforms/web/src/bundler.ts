@@ -39,6 +39,10 @@ export const {
   // Functions for encoding deployment transactions (client-new/actions/deploy.ts)
   generate_account_id, // Generate deterministic or random account ID
   encode_deploy_account_call_data, // Encode MSAFactory.deployAccount() call data
+
+  // ===== PASSKEY MANAGEMENT HELPER FUNCTIONS =====
+  // Functions for encoding passkey management transactions (client-new/actions/addPasskey.ts)
+  encode_add_passkey_call_data, // Encode MSA.execute() call data for adding passkey
 } = wasm;
 
 // Initialize WASM module
