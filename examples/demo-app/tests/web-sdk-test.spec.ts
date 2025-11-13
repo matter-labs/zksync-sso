@@ -210,6 +210,16 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
 });
 
 test("Deploy with session support and send transaction using session key", async ({ page }) => {
+  // Capture console messages from the browser
+  page.on("console", (msg) => {
+    console.log(`[BROWSER ${msg.type()}]:`, msg.text());
+  });
+
+  // Capture page errors
+  page.on("pageerror", (err) => {
+    console.error("[BROWSER ERROR]:", err);
+  });
+
   // Use Anvil account #4 for this test to avoid nonce conflicts
   await page.goto("/web-sdk-test?fundingAccount=4");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
@@ -217,6 +227,15 @@ test("Deploy with session support and send transaction using session key", async
   // Wait for SDK to load
   await expect(page.getByText("SDK Loaded:")).toBeVisible();
   await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  console.log("Step 0.5: Enabling session support before deployment...");
+
+  // Enable "Deploy with Session Support" BEFORE deploying
+  const deployWithSessionCheckbox = page.getByLabel("Deploy with Session Support");
+  await expect(deployWithSessionCheckbox).toBeVisible();
+  await deployWithSessionCheckbox.check();
+
+  console.log("✓ Session support enabled for deployment");
 
   console.log("Step 1: Deploying smart account...");
   await page.getByRole("button", { name: "Deploy Account" }).click();
@@ -266,6 +285,33 @@ test("Deploy with session support and send transaction using session key", async
 
   console.log("✓ Session configuration enabled, session signer auto-generated:", sessionSignerValue);
 
+  // Step 3.5: Create Session on-chain
+  console.log("Step 3.5: Creating session on-chain...");
+
+  // Wait for the Create Session button to appear
+  await expect(page.getByRole("button", { name: "Create Session" })).toBeVisible();
+
+  // Click Create Session button
+  await page.getByRole("button", { name: "Create Session" }).click();
+
+  // Wait a bit for the request to process
+  await page.waitForTimeout(5000);
+
+  // Check what's visible on the page
+  const pageContent = await page.content();
+  if (pageContent.includes("Error Creating Session")) {
+    const errorDiv = page.locator(".bg-red-50").first();
+    if (await errorDiv.isVisible()) {
+      const errorText = await errorDiv.textContent();
+      console.error("❌ Session creation error:", errorText);
+      throw new Error(`Session creation failed: ${errorText}`);
+    }
+  }
+
+  // Wait for session creation to complete
+  await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 55000 });
+  console.log("✓ Session created on-chain");
+
   // Step 4: Send Transaction Using Session Key
   console.log("Step 4: Sending transaction using session key...");
 
@@ -307,6 +353,15 @@ test("Deploy account, enable session, modify session config, and send transactio
   await expect(page.getByText("SDK Loaded:")).toBeVisible();
   await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
 
+  console.log("Step 0.5: Enabling session support before deployment...");
+
+  // Enable "Deploy with Session Support" BEFORE deploying
+  const deployWithSessionCheckbox = page.getByLabel("Deploy with Session Support");
+  await expect(deployWithSessionCheckbox).toBeVisible();
+  await deployWithSessionCheckbox.check();
+
+  console.log("✓ Session support enabled for deployment");
+
   console.log("Step 1: Deploying smart account...");
   await page.getByRole("button", { name: "Deploy Account" }).click();
 
@@ -342,6 +397,15 @@ test("Deploy account, enable session, modify session config, and send transactio
   await feeLimitInput.fill("2000000000000000"); // 0.002 ETH
 
   console.log("✓ Session configured with custom expiry and fee limit");
+
+  // Step 3.5: Create Session on-chain
+  console.log("Step 3.5: Creating session on-chain...");
+
+  await expect(page.getByRole("button", { name: "Create Session" })).toBeVisible();
+  await page.getByRole("button", { name: "Create Session" }).click();
+  await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 60000 });
+
+  console.log("✓ Session created on-chain with custom configuration");
 
   // Step 4: Send Transaction Using Session
   console.log("Step 4: Sending transaction using configured session...");
@@ -420,6 +484,15 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
   expect(sessionSignerValue).toMatch(/^0x[a-fA-F0-9]{40}$/);
 
   console.log("✓ Session configured with auto-generated signer:", sessionSignerValue);
+
+  // Step 4.5: Create Session on-chain
+  console.log("Step 4.5: Creating session on-chain...");
+
+  await expect(page.getByRole("button", { name: "Create Session" })).toBeVisible();
+  await page.getByRole("button", { name: "Create Session" }).click();
+  await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 60000 });
+
+  console.log("✓ Session created on-chain using pre-installed validator");
 
   // Step 5: Send Transaction Using Session Key
   console.log("Step 5: Sending transaction using pre-installed session...");
