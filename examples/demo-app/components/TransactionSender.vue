@@ -95,9 +95,10 @@ import { ref } from "vue";
 import { formatEther, http, parseEther } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import type { Address } from "viem";
-import { toEcdsaSmartAccount } from "zksync-sso-4337/client";
-import { createPasskeyClient } from "zksync-sso-4337/client/passkey";
+
+import { createEcdsaClient, createPasskeyClient } from "zksync-sso-4337/client";
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
+
 import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
 
 // Props
@@ -190,17 +191,6 @@ async function sendFromSmartAccountWithEOA() {
   // Create public client for network calls
   const publicClient = await createPublicClient(contracts);
 
-  // Create smart account using the new SDK
-  // eslint-disable-next-line no-console
-  console.log("  Creating smart account instance with toEcdsaSmartAccount...");
-  const account = await toEcdsaSmartAccount({
-    client: publicClient,
-    // EOA signer private key (Anvil account #1) - this will sign the UserOperation
-    signerPrivateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-    address: props.deploymentResult.address,
-    eoaValidatorAddress: contracts.eoaValidator,
-  });
-
   // Create bundler client with entry point configuration
   const bundlerClient = createBundlerClient({
     client: publicClient,
@@ -208,32 +198,34 @@ async function sendFromSmartAccountWithEOA() {
     transport: http(getBundlerUrl(contracts)),
   });
 
-  // Send user operation
+  // Create ECDSA client using the new SDK
   // eslint-disable-next-line no-console
-  console.log("  Sending UserOperation...");
-  const userOpHash = await bundlerClient.sendUserOperation({
-    account,
-    calls: [{
-      to: to.value as Address,
-      value: parseEther(amount.value),
-      data: "0x",
-    }],
+  console.log("  Creating ECDSA client...");
+  const client = createEcdsaClient({
+    account: {
+      address: props.deploymentResult.address as Address,
+      // EOA signer private key (Anvil account #1) - this will sign the UserOperation
+      signerPrivateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+      eoaValidatorAddress: contracts.eoaValidator as Address,
+    },
+    bundlerClient,
+    chain,
+    transport: http(), // Use default RPC URL (not bundler URL)
+  });
+
+  // Send transaction (returns actual tx hash, not userOp hash)
+  // eslint-disable-next-line no-console
+  console.log("  Sending transaction...");
+  const txHash = await client.sendTransaction({
+    to: to.value as Address,
+    value: parseEther(amount.value),
+    data: "0x",
   });
 
   // eslint-disable-next-line no-console
-  console.log("  UserOperation hash:", userOpHash);
+  console.log("  Transaction confirmed! Hash:", txHash);
 
-  // Wait for receipt
-  // eslint-disable-next-line no-console
-  console.log("  Waiting for UserOperation receipt...");
-  const receipt = await bundlerClient.waitForUserOperationReceipt({
-    hash: userOpHash,
-  });
-
-  // eslint-disable-next-line no-console
-  console.log("  UserOperation confirmed! Receipt:", receipt);
-
-  txResult.value = `Transaction successful! UserOp hash: ${userOpHash}`;
+  txResult.value = `Transaction successful! Tx hash: ${txHash}`;
 }
 
 // Send transaction using Passkey validator (NEW SDK)
