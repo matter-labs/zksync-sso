@@ -70,7 +70,6 @@
 import { ref } from "vue";
 import { createPublicClient, http, parseEther, type Chain, type Address } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-// @ts-expect-error - Type definitions may not be generated yet
 import { createSession as createSessionAction, toEcdsaSmartAccount, LimitType } from "zksync-sso-4337/client";
 
 interface SessionConfig {
@@ -80,6 +79,7 @@ interface SessionConfig {
   sessionSigner: string;
   expiresAt: number;
   feeLimit: string;
+  allowedRecipient?: string;
 }
 
 // Props
@@ -136,6 +136,7 @@ async function createSessionOnChain() {
   try {
     // eslint-disable-next-line no-console
     console.log("=== Starting session creation ===");
+    // eslint-disable-next-line no-console
     console.log("Props:", {
       accountAddress: props.accountAddress,
       eoaPrivateKey: props.eoaPrivateKey?.slice(0, 10) + "...",
@@ -202,8 +203,8 @@ async function createSessionOnChain() {
       callPolicies: [],
       transferPolicies: [
         {
-          // Allow transfers to any address (wildcard policy)
-          target: "0x0000000000000000000000000000000000000000" as Address,
+          // Explicit recipient required by validator (no wildcard support)
+          target: (props.sessionConfig.allowedRecipient || "0x0000000000000000000000000000000000000000") as Address,
           maxValuePerUse: parseEther("0.1"), // Max 0.1 ETH per transaction
           valueLimit: {
             limitType: LimitType.Unlimited,
@@ -216,6 +217,7 @@ async function createSessionOnChain() {
 
     // eslint-disable-next-line no-console
     console.log("Session spec created:", sessionSpec);
+    // eslint-disable-next-line no-console
     console.log("Calling createSession with:", {
       bundlerClient: !!bundlerClient,
       sessionSpec: !!sessionSpec,
