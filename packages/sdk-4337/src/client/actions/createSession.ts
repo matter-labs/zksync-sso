@@ -1,9 +1,6 @@
-import type { Address, Chain, Client, Hash, Hex, Transport } from "viem";
+import type { Abi, Address, Chain, Client, Hash, Hex, Transport } from "viem";
 import { encodeFunctionData } from "viem";
-import {
-  sendUserOperation,
-  type SmartAccount,
-} from "viem/account-abstraction";
+import { type SmartAccount } from "viem/account-abstraction";
 
 import {
   ConstraintCondition,
@@ -95,7 +92,7 @@ const SESSION_KEY_VALIDATOR_ABI = [
             components: [
               { name: "limitType", type: "uint8" },
               { name: "limit", type: "uint256" },
-              { name: "period", type: "uint256" },
+              { name: "period", type: "uint48" },
             ],
           },
           {
@@ -111,15 +108,15 @@ const SESSION_KEY_VALIDATOR_ABI = [
                 components: [
                   { name: "limitType", type: "uint8" },
                   { name: "limit", type: "uint256" },
-                  { name: "period", type: "uint256" },
+                  { name: "period", type: "uint48" },
                 ],
               },
               {
                 name: "constraints",
                 type: "tuple[]",
                 components: [
-                  { name: "index", type: "uint256" },
                   { name: "condition", type: "uint8" },
+                  { name: "index", type: "uint64" },
                   { name: "refValue", type: "bytes32" },
                   {
                     name: "limit",
@@ -127,7 +124,7 @@ const SESSION_KEY_VALIDATOR_ABI = [
                     components: [
                       { name: "limitType", type: "uint8" },
                       { name: "limit", type: "uint256" },
-                      { name: "period", type: "uint256" },
+                      { name: "period", type: "uint48" },
                     ],
                   },
                 ],
@@ -146,7 +143,7 @@ const SESSION_KEY_VALIDATOR_ABI = [
                 components: [
                   { name: "limitType", type: "uint8" },
                   { name: "limit", type: "uint256" },
-                  { name: "period", type: "uint256" },
+                  { name: "period", type: "uint48" },
                 ],
               },
             ],
@@ -157,7 +154,7 @@ const SESSION_KEY_VALIDATOR_ABI = [
     outputs: [],
     stateMutability: "nonpayable",
   },
-] as const;
+] as const satisfies Abi;
 
 /**
  * Create a new session on a smart account
@@ -224,7 +221,7 @@ export async function createSession<
     feeLimit: {
       limitType: limitTypeToNumber(sessionSpec.feeLimit.limitType),
       limit: sessionSpec.feeLimit.limit,
-      period: sessionSpec.feeLimit.period,
+      period: Number(sessionSpec.feeLimit.period),
     },
     callPolicies: sessionSpec.callPolicies.map((policy) => ({
       target: policy.target,
@@ -233,16 +230,16 @@ export async function createSession<
       valueLimit: {
         limitType: limitTypeToNumber(policy.valueLimit.limitType),
         limit: policy.valueLimit.limit,
-        period: policy.valueLimit.period,
+        period: Number(policy.valueLimit.period),
       },
       constraints: policy.constraints.map((constraint) => ({
-        index: constraint.index,
         condition: constraintConditionToNumber(constraint.condition),
+        index: constraint.index,
         refValue: constraint.refValue,
         limit: {
           limitType: limitTypeToNumber(constraint.limit.limitType),
           limit: constraint.limit.limit,
-          period: constraint.limit.period,
+          period: Number(constraint.limit.period),
         },
       })),
     })),
@@ -252,7 +249,7 @@ export async function createSession<
       valueLimit: {
         limitType: limitTypeToNumber(policy.valueLimit.limitType),
         limit: policy.valueLimit.limit,
-        period: policy.valueLimit.period,
+        period: Number(policy.valueLimit.period),
       },
     })),
   };
@@ -264,8 +261,18 @@ export async function createSession<
     args: [sessionSpecForAbi],
   });
 
-  // Send the UserOperation to create the session
-  const userOpHash = await sendUserOperation(client, {
+  // Send the UserOperation to create the session using the bundler client method.
+  // Note: We explicitly pass the account for broader viem compatibility.
+  const bundler = client as unknown as {
+    sendUserOperation: (args: {
+      account: SmartAccount;
+      calls: { to: Address; data: Hex }[];
+    }) => Promise<Hash>;
+    account: SmartAccount;
+  };
+
+  const userOpHash = await bundler.sendUserOperation({
+    account: bundler.account,
     calls: [
       {
         to: contracts.sessionValidator,

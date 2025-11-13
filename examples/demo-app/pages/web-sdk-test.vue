@@ -199,9 +199,29 @@
       :is-deployed="!!deploymentResult"
     />
 
+    <!-- Create Session (must be done before sending session transactions) -->
+    <SessionCreator
+      v-if="deploymentResult && sessionConfig.enabled && fundResult && !sessionCreated && eoaValidatorAddress"
+      :account-address="deploymentResult.address"
+      :session-config="sessionConfig"
+      :eoa-validator-address="eoaValidatorAddress"
+      :eoa-private-key="eoaSignerPrivateKey"
+      @session-created="handleSessionCreated"
+    />
+
+    <!-- Session Create Success Banner (persists after child unmount) -->
+    <div
+      v-if="deploymentResult && sessionConfig.enabled && fundResult && sessionCreated"
+      class="mt-4 p-3 bg-green-50 border border-green-200 rounded"
+    >
+      <p class="font-medium text-green-800">
+        Session Created Successfully!
+      </p>
+    </div>
+
     <!-- Send Session Transaction -->
     <SessionTransactionSender
-      v-if="deploymentResult && sessionConfig.enabled && fundResult"
+      v-if="deploymentResult && sessionConfig.enabled && fundResult && sessionCreated"
       :account-address="deploymentResult.address"
       :session-config="sessionConfig"
     />
@@ -377,6 +397,11 @@ const sessionConfig = ref({
   feeLimit: "1000000000000000", // 0.001 ETH in wei
 });
 
+// Session creation state
+const sessionCreated = ref(false);
+const eoaValidatorAddress = ref("");
+const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"; // Anvil account #1
+
 // Anvil private keys for accounts 0-9
 const anvilPrivateKeys = [
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Account #0
@@ -487,10 +512,13 @@ async function loadWebAuthnValidatorAddress() {
       const contracts = await response.json();
       passkeyConfig.value.validatorAddress = contracts.webauthnValidator;
       sessionConfig.value.validatorAddress = contracts.sessionValidator || "";
+      eoaValidatorAddress.value = contracts.eoaValidator || "";
       // eslint-disable-next-line no-console
       console.log("Loaded WebAuthn validator address:", contracts.webauthnValidator);
       // eslint-disable-next-line no-console
       console.log("Loaded Session validator address:", contracts.sessionValidator);
+      // eslint-disable-next-line no-console
+      console.log("Loaded EOA validator address:", contracts.eoaValidator);
     } else {
       // eslint-disable-next-line no-console
       console.warn("contracts.json not found, cannot load validator addresses");
@@ -499,6 +527,15 @@ async function loadWebAuthnValidatorAddress() {
     // eslint-disable-next-line no-console
     console.warn("Failed to load contracts.json:", err);
   }
+}
+
+/**
+ * Handler for when session is created
+ */
+function handleSessionCreated() {
+  sessionCreated.value = true;
+  // eslint-disable-next-line no-console
+  console.log("Session created successfully, ready to send session transactions");
 }
 
 // Deploy a new smart account
@@ -873,6 +910,46 @@ async function fundSmartAccount() {
     // eslint-disable-next-line no-console
     console.error("Funding failed:", err);
     fundError.value = `Failed to fund smart account: ${err instanceof Error ? err.message : String(err)}`;
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Compute smart account address using offline CREATE2 computation
+async function computeAddress() {
+  loading.value = true;
+  addressComputeError.value = "";
+  computedAddress.value = "";
+
+  try {
+    // Validate inputs
+    if (!isAddressParamsValid.value) {
+      throw new Error("Please fill in all address parameters correctly");
+    }
+
+    // Use the WASM function to compute the account ID
+    const accountId = compute_account_id(addressParams.value.userId);
+
+    // eslint-disable-next-line no-console
+    console.log("Computing address with parameters:");
+    // eslint-disable-next-line no-console
+    console.log("  Account ID:", accountId);
+    // eslint-disable-next-line no-console
+    console.log("  Deploy Wallet:", addressParams.value.deployWallet);
+    // eslint-disable-next-line no-console
+    console.log("  Factory:", addressParams.value.factory);
+    // eslint-disable-next-line no-console
+    console.log("  Bytecode Hash:", addressParams.value.bytecodeHash);
+    // eslint-disable-next-line no-console
+    console.log("  Proxy Address:", addressParams.value.proxyAddress);
+
+    // TODO: Implement offline CREATE2 address computation
+    // This would require implementing the same logic as the factory contract
+    throw new Error("Address computation not yet implemented - use deployment to get address");
+  } catch (err: unknown) {
+    // eslint-disable-next-line no-console
+    console.error("Address computation failed:", err);
+    addressComputeError.value = `Failed to compute address: ${err instanceof Error ? err.message : String(err)}`;
   } finally {
     loading.value = false;
   }

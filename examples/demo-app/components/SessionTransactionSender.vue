@@ -129,6 +129,9 @@ async function sendTransaction() {
     const bundlerClient = createBundlerClient({
       transport: http(contracts.bundlerUrl || "http://localhost:4337"),
       chain,
+      // Provide execution client so fees & non-bundler RPCs are fetched from the node, not the bundler.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      client: publicClient as any,
     });
 
     // Create session account
@@ -148,8 +151,9 @@ async function sendTransaction() {
         callPolicies: [],
         transferPolicies: [
           {
-            target: target.value as Address,
-            maxValuePerUse: parseEther(value.value),
+            // Must match the session spec used during creation (wildcard target).
+            target: "0x0000000000000000000000000000000000000000" as Address,
+            maxValuePerUse: parseEther("0.1"),
             valueLimit: {
               limitType: LimitType.Unlimited,
               limit: 0n,

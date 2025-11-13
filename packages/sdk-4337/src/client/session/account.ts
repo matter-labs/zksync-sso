@@ -152,17 +152,25 @@ export async function toSessionSmartAccount<
     async signUserOperation(params) {
       const sender = await this.getAddress();
 
+      // Default undefined fields to 0n to avoid runtime errors during early signing.
+      const nonce = params.nonce ?? 0n;
+      const callGasLimit = params.callGasLimit ?? 0n;
+      const verificationGasLimit = params.verificationGasLimit ?? 0n;
+      const preVerificationGas = params.preVerificationGas ?? 0n;
+      const maxFeePerGas = params.maxFeePerGas ?? 0n;
+      const maxPriorityFeePerGas = params.maxPriorityFeePerGas ?? 0n;
+
       // Encode call data for EntryPoint.getUserOpHash()
       const callData = encode_get_user_operation_hash_call_data(
         new EncodeGetUserOperationHashParams(
           sender,
-          params.nonce.toString(),
+          nonce.toString(),
           params.callData,
-          params.callGasLimit.toString(),
-          params.verificationGasLimit.toString(),
-          params.preVerificationGas.toString(),
-          params.maxFeePerGas.toString(),
-          params.maxPriorityFeePerGas.toString(),
+          callGasLimit.toString(),
+          verificationGasLimit.toString(),
+          preVerificationGas.toString(),
+          maxFeePerGas.toString(),
+          maxPriorityFeePerGas.toString(),
         ),
       ) as Hex;
 

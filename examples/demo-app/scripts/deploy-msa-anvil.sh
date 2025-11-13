@@ -74,7 +74,9 @@ cat > contracts-anvil.json << EOF
   "guardianExecutor": "$GUARDIAN_EXECUTOR",
   "accountImplementation": "$ACCOUNT_IMPL",
   "beacon": "$BEACON",
-  "factory": "$FACTORY"
+  "factory": "$FACTORY",
+  "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
+  "bundlerUrl": "http://localhost:4337"
 }
 EOF
 
