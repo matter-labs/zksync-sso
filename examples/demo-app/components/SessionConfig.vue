@@ -89,6 +89,19 @@
           Maximum fee the session can spend (1 ETH = 1000000000000000000 wei)
         </p>
       </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Allowed Recipient (address)</label>
+        <input
+          v-model="config!.allowedRecipient"
+          type="text"
+          placeholder="0x..."
+          class="w-full p-2 border rounded"
+        >
+        <p class="text-xs text-gray-500 mt-1">
+          The session validator currently requires an explicit transfer policy target. Set this to the recipient you will send to.
+        </p>
+      </div>
     </div>
   </div>
 </template>
@@ -105,6 +118,8 @@ interface SessionConfig {
   sessionSigner: string;
   expiresAt: number;
   feeLimit: string;
+  // Optional: Restrict transfers to a single recipient (required by current validator)
+  allowedRecipient?: string;
 }
 
 defineProps<{

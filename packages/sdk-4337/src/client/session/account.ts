@@ -160,6 +160,19 @@ export async function toSessionSmartAccount<
       const maxFeePerGas = params.maxFeePerGas ?? 0n;
       const maxPriorityFeePerGas = params.maxPriorityFeePerGas ?? 0n;
 
+      // Debug: Log effective gas & nonce passed into signing to diagnose zero-gas AA23 issues
+      console.debug(
+        "[toSessionSmartAccount] signUserOperation params:",
+        {
+          nonce: nonce.toString(),
+          callGasLimit: callGasLimit.toString(),
+          verificationGasLimit: verificationGasLimit.toString(),
+          preVerificationGas: preVerificationGas.toString(),
+          maxFeePerGas: maxFeePerGas.toString(),
+          maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
+        },
+      );
+
       // Encode call data for EntryPoint.getUserOpHash()
       const callData = encode_get_user_operation_hash_call_data(
         new EncodeGetUserOperationHashParams(

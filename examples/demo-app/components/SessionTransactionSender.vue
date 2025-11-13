@@ -75,8 +75,11 @@
 import { ref } from "vue";
 import { createPublicClient, http, parseEther, type Chain, type Address } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-// @ts-expect-error - Type definitions may not be generated yet
 import { toSessionSmartAccount, LimitType } from "zksync-sso-4337/client";
+// WASM helpers for diagnostics and nonce calculation
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { keyed_nonce_decimal } from "zksync-sso-web-sdk/bundler";
 
 interface SessionConfig {
   enabled: boolean;
@@ -85,6 +88,7 @@ interface SessionConfig {
   sessionSigner: string;
   expiresAt: number;
   feeLimit: string;
+  allowedRecipient?: string;
 }
 
 // Props
@@ -94,7 +98,7 @@ const props = defineProps<{
 }>();
 
 // Local state
-const target = ref("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // Anvil account #2
+const target = ref(props.sessionConfig.allowedRecipient || "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // default or allowed recipient
 const value = ref("0.001");
 const loading = ref(false);
 const result = ref<{ userOpHash: string } | null>(null);
@@ -132,12 +136,27 @@ async function sendTransaction() {
       // Provide execution client so fees & non-bundler RPCs are fetched from the node, not the bundler.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       client: publicClient as any,
+      // Provide conservative gas defaults via estimateFeesPerGas hook to avoid zero gas fields
+      // when bundler-side estimation reverts during session validation.
+      userOperation: {
+        async estimateFeesPerGas() {
+          const feesPerGas = await publicClient.estimateFeesPerGas();
+          return {
+            // Conservative defaults (aligned with Passkey flow)
+            callGasLimit: 2_000_000n,
+            verificationGasLimit: 2_000_000n,
+            preVerificationGas: 1_000_000n,
+            ...feesPerGas,
+          } as const;
+        },
+      },
     });
 
     // Create session account
     const sessionAccount = await toSessionSmartAccount({
       client: publicClient,
-      sessionPrivateKey: props.sessionConfig.sessionPrivateKey as `0x${string}`,
+      // Use correct parameter name expected by SDK: sessionKeyPrivateKey
+      sessionKeyPrivateKey: props.sessionConfig.sessionPrivateKey as `0x${string}`,
       address: props.accountAddress as Address,
       sessionValidatorAddress: props.sessionConfig.validatorAddress as Address,
       sessionSpec: {
@@ -151,8 +170,8 @@ async function sendTransaction() {
         callPolicies: [],
         transferPolicies: [
           {
-            // Must match the session spec used during creation (wildcard target).
-            target: "0x0000000000000000000000000000000000000000" as Address,
+            // Must match the session spec used during creation: explicit allowed recipient
+            target: (props.sessionConfig.allowedRecipient as Address) || (target.value as Address),
             maxValuePerUse: parseEther("0.1"),
             valueLimit: {
               limitType: LimitType.Unlimited,
@@ -163,6 +182,20 @@ async function sendTransaction() {
         ],
       },
     });
+
+    // If an allowed recipient is configured, enforce it matches the selected target
+    if (props.sessionConfig.allowedRecipient && props.sessionConfig.allowedRecipient.toLowerCase() !== target.value.toLowerCase()) {
+      throw new Error(`Selected recipient ${target.value} does not match session's allowed recipient ${props.sessionConfig.allowedRecipient}. Update the input or recreate the session.`);
+    }
+
+    // Log session keyed nonce (decimal) for visibility and to match Rust behavior
+    try {
+      const nonceKey = keyed_nonce_decimal(props.sessionConfig.sessionSigner);
+      // eslint-disable-next-line no-console
+      console.log("Session keyed nonce (decimal):", nonceKey);
+    } catch {
+      // ignore if helper not available
+    }
 
     // eslint-disable-next-line no-console
     console.log("Session account created, sending UserOperation...");
@@ -176,7 +209,7 @@ async function sendTransaction() {
       },
     ];
 
-    // Send transaction (viem will automatically estimate gas)
+    // Send transaction (viem will automatically use the bundler's userOperation overrides above)
     const userOpHash = await bundlerClient.sendUserOperation({
       account: sessionAccount,
       calls,
