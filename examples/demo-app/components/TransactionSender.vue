@@ -95,7 +95,8 @@ import { ref } from "vue";
 import { formatEther, http, parseEther } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import type { Address } from "viem";
-import { toEcdsaSmartAccount, toPasskeySmartAccount } from "zksync-sso-4337/client";
+import { toEcdsaSmartAccount } from "zksync-sso-4337/client";
+import { createPasskeyClient } from "zksync-sso-4337/client/passkey";
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
 import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
 
@@ -302,19 +303,9 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("  ✓ Public key verification passed!");
 
-  // Create smart account using the new SDK
-  // eslint-disable-next-line no-console
-  console.log("  Creating passkey smart account instance with toPasskeySmartAccount...");
-  const account = await toPasskeySmartAccount({
-    client: publicClient,
-    address: props.deploymentResult.address,
-    validatorAddress: webauthnValidatorAddress,
-    credentialId: props.passkeyConfig.credentialId,
-    rpId: window.location.hostname,
-    origin: window.location.origin,
-  });
-
   // Create bundler client with entry point configuration
+  // eslint-disable-next-line no-console
+  console.log("  Creating bundler client...");
   const bundlerClient = createBundlerClient({
     client: publicClient,
     chain,
@@ -334,31 +325,34 @@ async function sendFromSmartAccountWithPasskey() {
     },
   });
 
-  // Send user operation
+  // Create passkey client (wraps account + bundler)
   // eslint-disable-next-line no-console
-  console.log("  Sending UserOperation...");
-  const userOpHash = await bundlerClient.sendUserOperation({
-    account,
-    calls: [{
-      to: to.value as Address,
-      value: parseEther(amount.value),
-      data: "0x",
-    }],
+  console.log("  Creating passkey client with createPasskeyClient...");
+  const client = createPasskeyClient({
+    account: {
+      address: props.deploymentResult.address as Address,
+      validatorAddress: webauthnValidatorAddress as Address,
+      credentialId: props.passkeyConfig.credentialId,
+      rpId: window.location.hostname,
+      origin: window.location.origin,
+    },
+    bundlerClient,
+    chain,
+    transport: http(),
+  });
+
+  // Send transaction (client handles bundler operations and returns actual tx hash)
+  // eslint-disable-next-line no-console
+  console.log("  Sending transaction...");
+  const txHash = await client.sendTransaction({
+    to: to.value as Address,
+    value: parseEther(amount.value),
+    data: "0x",
   });
 
   // eslint-disable-next-line no-console
-  console.log("  UserOperation hash:", userOpHash);
+  console.log("  Transaction confirmed! Hash:", txHash);
 
-  // Wait for receipt
-  // eslint-disable-next-line no-console
-  console.log("  Waiting for UserOperation receipt...");
-  const receipt = await bundlerClient.waitForUserOperationReceipt({
-    hash: userOpHash,
-  });
-
-  // eslint-disable-next-line no-console
-  console.log("  UserOperation confirmed! Receipt:", receipt);
-
-  txResult.value = `Transaction successful! UserOp hash: ${userOpHash}`;
+  txResult.value = `Transaction successful! Tx hash: ${txHash}`;
 }
 </script>

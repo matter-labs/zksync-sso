@@ -197,7 +197,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   await page.getByRole("button", { name: "Send with Passkey" }).click();
 
   // Wait for transaction to complete
-  await expect(page.getByText("Transaction successful! UserOp hash:")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Transaction successful!")).toBeVisible({ timeout: 60000 });
   await expect(page.getByText("Transaction failed: Failed to submit UserOperation:")).not.toBeVisible();
 
   // Verify we have a transaction hash for the send
