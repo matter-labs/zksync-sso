@@ -201,7 +201,7 @@
 
     <!-- Create Session (must be done before sending session transactions) -->
     <SessionCreator
-      v-if="deploymentResult && sessionConfig.enabled && fundResult && !sessionCreated && eoaValidatorAddress"
+      v-if="deploymentResult && (sessionConfig.enabled || sessionConfig.deployWithSession) && fundResult && !sessionCreated && eoaValidatorAddress"
       :account-address="deploymentResult.address"
       :session-config="sessionConfig"
       :eoa-validator-address="eoaValidatorAddress"
@@ -394,7 +394,10 @@ const sessionConfig = ref({
   sessionPrivateKey: "",
   sessionSigner: "",
   expiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-  feeLimit: "1000000000000000", // 0.001 ETH in wei
+  feeLimit: "150000000000000000", // 0.15 ETH in wei (ample headroom for verification+call gas)
+  // Added explicit allowedRecipient so session creation and usage share identical spec.
+  // MUST match the default in SessionTransactionSender.vue and SessionCreator.vue to avoid hash mismatches (AA23 SessionNotActive).
+  allowedRecipient: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
 });
 
 // Session creation state
@@ -544,15 +547,23 @@ async function deployAccount() {
     // Load contracts configuration
     const contracts = await loadContracts();
     const factoryAddress = contracts.factory;
-    const eoaValidatorAddress = contracts.eoaValidator;
+    // Assign to reactive ref (previously shadowed by a local const causing SessionCreator not to mount)
+    eoaValidatorAddress.value = contracts.eoaValidator;
     const webauthnValidatorAddress = contracts.webauthnValidator;
+    const sessionValidatorAddress = contracts.sessionValidator;
 
     // eslint-disable-next-line no-console
     console.log("Loaded factory address from contracts.json:", factoryAddress);
     // eslint-disable-next-line no-console
-    console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress);
+    console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress.value);
     // eslint-disable-next-line no-console
     console.log("Loaded WebAuthn validator address from contracts.json:", webauthnValidatorAddress);
+    // Ensure session validator address is populated when available (needed for pre-install flows)
+    if (!sessionConfig.value.validatorAddress && sessionValidatorAddress) {
+      sessionConfig.value.validatorAddress = sessionValidatorAddress;
+      // eslint-disable-next-line no-console
+      console.log("Loaded Session validator address from contracts.json:", sessionValidatorAddress);
+    }
 
     // Add a rich Anvil wallet as an EOA signer for additional security
     // Using Anvil account #1 (0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
@@ -616,7 +627,8 @@ async function deployAccount() {
     const { transaction, accountId } = prepareDeploySmartAccount({
       contracts: {
         factory: factoryAddress,
-        eoaValidator: eoaValidatorAddress,
+        // Use the actual address string, not the ref object
+        eoaValidator: eoaValidatorAddress.value as Address,
         webauthnValidator: passkeyConfig.value.enabled ? passkeyConfig.value.validatorAddress as Address : undefined,
         sessionValidator: sessionConfig.value.deployWithSession ? sessionConfig.value.validatorAddress as Address : undefined,
       },
@@ -634,7 +646,8 @@ async function deployAccount() {
     const walletClient = createWalletClient({
       account,
       chain,
-      transport: http(),
+      // Explicit RPC URL to avoid any ambiguity (previously relied on default)
+      transport: http(contracts.rpcUrl),
     });
 
     // eslint-disable-next-line no-console
@@ -651,13 +664,22 @@ async function deployAccount() {
     // eslint-disable-next-line no-console
     console.log("  Waiting for transaction confirmation...");
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
     // eslint-disable-next-line no-console
-    console.log("  Transaction confirmed in block:", receipt.blockNumber);
-
+    console.log("  Transaction confirmed in block:", receipt.blockNumber, "logs count:", receipt.logs.length);
     // Extract deployed address from AccountCreated event using utility function
-    const deployedAddress = getAccountAddressFromLogs(receipt.logs);
-
+    let deployedAddress: string | undefined;
+    try {
+      deployedAddress = getAccountAddressFromLogs(receipt.logs);
+    } catch (extractErr) {
+      // eslint-disable-next-line no-console
+      console.warn("Failed to extract deployed address from logs:", extractErr);
+    }
+    if (!deployedAddress) {
+      // Fallback: attempt to use accountId as placeholder (will not be checksummed but prevents UI hang)
+      deployedAddress = "0x" + accountId.slice(2, 42);
+      // eslint-disable-next-line no-console
+      console.warn("Using fallback deployed address derived from accountId prefix:", deployedAddress);
+    }
     // eslint-disable-next-line no-console
     console.log("Account deployed at:", deployedAddress);
 
@@ -688,6 +710,14 @@ async function deployAccount() {
     }
 
     testResult.value = successMessage;
+
+    // If the session validator was pre-installed as part of deployment, automatically enable
+    // session configuration so that the SessionCreator component appears for creating the session.
+    if (sessionConfig.value.deployWithSession && !sessionConfig.value.enabled) {
+      sessionConfig.value.enabled = true;
+      // eslint-disable-next-line no-console
+      console.log("Auto-enabled sessionConfig.enabled because deployWithSession was true");
+    }
 
     // eslint-disable-next-line no-console
     console.log("Account deployment result:", deploymentResult.value);

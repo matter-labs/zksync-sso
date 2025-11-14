@@ -96,7 +96,15 @@ export type PrepareDeploySmartAccountResult = {
 export function prepareDeploySmartAccount(
   params: PrepareDeploySmartAccountParams,
 ): PrepareDeploySmartAccountResult {
-  const { contracts, eoaSigners, passkeySigners, userId, accountId: customAccountId } = params;
+  // Destructure all needed params, including installSessionValidator which was previously omitted
+  const {
+    contracts,
+    eoaSigners,
+    passkeySigners,
+    userId,
+    accountId: customAccountId,
+    installSessionValidator,
+  } = params;
 
   // Validation: Check that required validators are provided
   if (eoaSigners && eoaSigners.length > 0 && !contracts.eoaValidator) {

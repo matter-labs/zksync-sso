@@ -28,10 +28,10 @@ pub fn encode_session_user_operation(
     value: U256,
     data: Bytes,
 ) -> Bytes {
-    // Create single execution mode (0x01 in first byte)
+    // Create single execution mode (0x00 in first byte - ERC-7579 CALLTYPE_SINGLE)
     let mode = {
         let mut mode_bytes = [0u8; 32];
-        mode_bytes[0] = 1;
+        mode_bytes[0] = 0;
         FixedBytes::from(mode_bytes)
     };
 
@@ -123,7 +123,7 @@ mod tests {
         // Verify the encoding matches executeCall format
         let mode = {
             let mut mode_bytes = [0u8; 32];
-            mode_bytes[0] = 1;
+            mode_bytes[0] = 0;
             FixedBytes::from(mode_bytes)
         };
 

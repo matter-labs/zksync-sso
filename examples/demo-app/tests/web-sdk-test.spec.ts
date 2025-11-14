@@ -288,6 +288,12 @@ test("Deploy with session support and send transaction using session key", async
   // Step 3.5: Create Session on-chain
   console.log("Step 3.5: Creating session on-chain...");
 
+  // Ensure allowed recipient matches the target we will send to
+  await expect(page.getByText("Allowed Recipient (address)")).toBeVisible();
+  await page.getByText("Allowed Recipient (address)").locator("..").locator("input").fill(
+    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+  );
+
   // Wait for the Create Session button to appear
   await expect(page.getByRole("button", { name: "Create Session" })).toBeVisible();
 
@@ -401,6 +407,12 @@ test("Deploy account, enable session, modify session config, and send transactio
   // Step 3.5: Create Session on-chain
   console.log("Step 3.5: Creating session on-chain...");
 
+  // Ensure allowed recipient matches the target we will send to
+  await expect(page.getByText("Allowed Recipient (address)")).toBeVisible();
+  await page.getByText("Allowed Recipient (address)").locator("..").locator("input").fill(
+    "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+  );
+
   await expect(page.getByRole("button", { name: "Create Session" })).toBeVisible();
   await page.getByRole("button", { name: "Create Session" }).click();
   await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 60000 });
@@ -416,7 +428,7 @@ test("Deploy account, enable session, modify session config, and send transactio
   await sessionTargetInput.fill("0x90F79bf6EB2c4f870365E785982E1f101E93b906"); // Anvil account #5
 
   const sessionAmountInput = page.locator("input[placeholder=\"0.001\"]").last();
-  await sessionAmountInput.fill("0.0015");
+  await sessionAmountInput.fill("0.001"); // Match Rust test value
 
   await page.getByRole("button", { name: "Send Session Transaction" }).click();
 
@@ -487,6 +499,12 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
 
   // Step 4.5: Create Session on-chain
   console.log("Step 4.5: Creating session on-chain...");
+
+  // Ensure allowed recipient matches the target we will send to
+  await expect(page.getByText("Allowed Recipient (address)")).toBeVisible();
+  await page.getByText("Allowed Recipient (address)").locator("..").locator("input").fill(
+    "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+  );
 
   await expect(page.getByRole("button", { name: "Create Session" })).toBeVisible();
   await page.getByRole("button", { name: "Create Session" }).click();

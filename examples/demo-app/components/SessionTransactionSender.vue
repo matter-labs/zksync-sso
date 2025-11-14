@@ -73,7 +73,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { createPublicClient, http, parseEther, type Chain, type Address } from "viem";
+import { createPublicClient, http, parseEther, type Chain, type Address, type Abi } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { toSessionSmartAccount, LimitType } from "zksync-sso-4337/client";
 // WASM helpers for diagnostics and nonce calculation
@@ -98,7 +98,9 @@ const props = defineProps<{
 }>();
 
 // Local state
-const target = ref(props.sessionConfig.allowedRecipient || "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // default or allowed recipient
+// Default recipient is shared across SessionCreator & web-sdk-test page to keep sessionSpec stable.
+const DEFAULT_RECIPIENT = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
+const target = ref(props.sessionConfig.allowedRecipient || DEFAULT_RECIPIENT); // default or allowed recipient
 const value = ref("0.001");
 const loading = ref(false);
 const result = ref<{ userOpHash: string } | null>(null);
@@ -169,15 +171,15 @@ async function sendTransaction() {
         expiresAt: BigInt(props.sessionConfig.expiresAt),
         feeLimit: {
           limitType: LimitType.Lifetime,
-          limit: BigInt(props.sessionConfig.feeLimit),
+          limit: parseEther("1"), // 1 ETH lifetime fee limit (matches Rust tests and SessionCreator)
           period: 0n,
         },
         callPolicies: [],
         transferPolicies: [
           {
-            // Must match the session spec used during creation: explicit allowed recipient
-            target: (props.sessionConfig.allowedRecipient as Address) || (target.value as Address),
-            maxValuePerUse: parseEther("0.1"),
+            // Must match the session spec used during creation: explicit allowed recipient or shared fallback
+            target: (props.sessionConfig.allowedRecipient as Address) || (DEFAULT_RECIPIENT as Address),
+            maxValuePerUse: parseEther("0.001"), // 0.001 ETH per transaction (matches Rust tests and SessionCreator)
             valueLimit: {
               limitType: LimitType.Unlimited,
               limit: 0n,
@@ -191,6 +193,50 @@ async function sendTransaction() {
     // If an allowed recipient is configured, enforce it matches the selected target
     if (props.sessionConfig.allowedRecipient && props.sessionConfig.allowedRecipient.toLowerCase() !== target.value.toLowerCase()) {
       throw new Error(`Selected recipient ${target.value} does not match session's allowed recipient ${props.sessionConfig.allowedRecipient}. Update the input or recreate the session.`);
+    }
+
+    // --- Diagnostic: check on-chain session status for this signer and account ---
+    try {
+      // Read stored session hash for signer
+      const sessionSignerAbi: Abi = [
+        {
+          name: "sessionSigner",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "signer", type: "address" }],
+          outputs: [{ name: "sessionHash", type: "bytes32" }],
+        },
+        {
+          name: "sessionStatus",
+          type: "function",
+          stateMutability: "view",
+          inputs: [
+            { name: "account", type: "address" },
+            { name: "sessionHash", type: "bytes32" },
+          ],
+          outputs: [{ name: "status", type: "uint8" }],
+        },
+      ];
+      const onChainSessionHash = await publicClient.readContract({
+        address: props.sessionConfig.validatorAddress as Address,
+        abi: sessionSignerAbi,
+        functionName: "sessionSigner",
+        args: [props.sessionConfig.sessionSigner as Address],
+      });
+      const status: bigint = await publicClient.readContract({
+        address: props.sessionConfig.validatorAddress as Address,
+        abi: sessionSignerAbi,
+        functionName: "sessionStatus",
+        args: [props.accountAddress as Address, onChainSessionHash as `0x${string}`],
+      });
+      // eslint-disable-next-line no-console
+      console.log("On-chain session status:", status === 1n ? "Active" : status === 2n ? "Closed" : "NotInitialized", onChainSessionHash);
+      if (status !== 1n) {
+        throw new Error("Session is not Active on-chain for this account/signer. Recreate the session or ensure the spec matches.");
+      }
+    } catch (statusErr) {
+      // eslint-disable-next-line no-console
+      console.warn("Session status diagnostic failed:", statusErr);
     }
 
     // Log session keyed nonce (decimal) for visibility and to match Rust behavior

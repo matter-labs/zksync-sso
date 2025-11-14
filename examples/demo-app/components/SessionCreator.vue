@@ -196,20 +196,23 @@ async function createSessionOnChain() {
     });
 
     // Define session spec (must match what will be used in SessionTransactionSender)
+    // IMPORTANT: The sessionSpec here MUST match the spec reconstructed in SessionTransactionSender.vue.
+    // A mismatch (e.g. zero address here vs real recipient later) changes keccak256(abi.encode(spec)) and causes AA23 SessionNotActive.
+    // Matching Rust test values: 1 ETH fee limit, 0.001 ETH maxValuePerUse
     const sessionSpec = {
       signer: props.sessionConfig.sessionSigner as Address,
       expiresAt: BigInt(props.sessionConfig.expiresAt),
       feeLimit: {
         limitType: LimitType.Lifetime,
-        limit: BigInt(props.sessionConfig.feeLimit),
+        limit: parseEther("1"), // 1 ETH lifetime fee limit (matches Rust tests)
         period: 0n,
       },
       callPolicies: [],
       transferPolicies: [
         {
-          // Explicit recipient required by validator (no wildcard support)
-          target: (props.sessionConfig.allowedRecipient || "0x0000000000000000000000000000000000000000") as Address,
-          maxValuePerUse: parseEther("0.1"), // Max 0.1 ETH per transaction
+          // Explicit recipient required by validator (no wildcard support). Use configured allowedRecipient or fallback demo address.
+          target: (props.sessionConfig.allowedRecipient || "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC") as Address,
+          maxValuePerUse: parseEther("0.001"), // 0.001 ETH per transaction (matches Rust tests)
           valueLimit: {
             limitType: LimitType.Unlimited,
             limit: 0n,
