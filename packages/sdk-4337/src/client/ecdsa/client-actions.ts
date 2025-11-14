@@ -5,7 +5,7 @@ import type {
   Client,
   Transport,
 } from "viem";
-import type { BundlerClient, ToSmartAccountReturnType } from "viem/account-abstraction";
+import type { BundlerClient } from "viem/account-abstraction";
 
 import {
   type SmartAccountClientActions,
@@ -44,24 +44,11 @@ export function ecdsaClientActions<
     client: Client<TTransport, TChain, TAccount>;
   },
 ): EcdsaClientActions<TChain, TAccount extends Account ? TAccount : Account> {
-  // Lazy-load the smart account (cached after first load)
-  let smartAccountPromise: Promise<ToSmartAccountReturnType> | null = null;
-  const getSmartAccount = async (): Promise<ToSmartAccountReturnType> => {
-    if (!smartAccountPromise) {
-      smartAccountPromise = toEcdsaSmartAccount(config.ecdsaAccount);
-    }
-    return smartAccountPromise;
-  };
-
   // Return generic smart account actions
-  const baseActions = smartAccountClientActions<TTransport, TChain, TAccount>({
+  return smartAccountClientActions<TTransport, TChain, TAccount>({
     bundler: config.bundler,
-    accountFactory: getSmartAccount,
+    accountFactory: () => toEcdsaSmartAccount(config.ecdsaAccount),
     client: config.client,
     accountAddress: config.accountAddress,
   });
-
-  return {
-    ...baseActions,
-  };
 }

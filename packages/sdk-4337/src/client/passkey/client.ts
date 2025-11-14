@@ -168,7 +168,7 @@ export function createPasskeyClient<
   };
 
   // Create the client with all actions
-  // Use the same pattern as legacy SDK: extend with walletActions first, then override with custom actions
+  // Use standard pattern: extend with walletActions first, then override with custom actions
   const client = createClient({
     chain,
     transport,

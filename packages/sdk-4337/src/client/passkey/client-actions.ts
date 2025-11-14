@@ -7,7 +7,7 @@ import {
   type Hex,
   type Transport,
 } from "viem";
-import type { BundlerClient, ToSmartAccountReturnType } from "viem/account-abstraction";
+import type { BundlerClient } from "viem/account-abstraction";
 
 import {
   type SmartAccountClientActions,
@@ -30,12 +30,13 @@ export type PasskeyClientData<
 
 /**
  * Wallet actions type for passkey client
- * Extends generic smart account actions with passkey-specific actions
+ * Extends generic smart account actions with passkey-specific overrides
  */
-export type PasskeyClientActions<TChain extends Chain = Chain, TAccount extends Account = Account> = SmartAccountClientActions<TChain, TAccount> & {
+export type PasskeyClientActions<TChain extends Chain = Chain, TAccount extends Account = Account> = Omit<SmartAccountClientActions<TChain, TAccount>, "addPasskey"> & {
   /**
    * Add a passkey to the smart account.
    * Returns the transaction hash.
+   * The webauthnValidatorAddress is automatically injected from the client configuration.
    */
   addPasskey: (params: {
     credentialId: Hex;
@@ -58,19 +59,10 @@ export function passkeyClientActions<
     client: Client<TTransport, TChain, TAccount>;
   },
 ): PasskeyClientActions<TChain, TAccount extends Account ? TAccount : Account> {
-  // Lazy-load the smart account (cached after first load)
-  let smartAccountPromise: Promise<ToSmartAccountReturnType> | null = null;
-  const getSmartAccount = async (): Promise<ToSmartAccountReturnType> => {
-    if (!smartAccountPromise) {
-      smartAccountPromise = toPasskeySmartAccount(config.passkeyAccount);
-    }
-    return smartAccountPromise;
-  };
-
   // Get generic smart account actions
   const baseActions = smartAccountClientActions<TTransport, TChain, TAccount>({
     bundler: config.bundler,
-    accountFactory: getSmartAccount,
+    accountFactory: () => toPasskeySmartAccount(config.passkeyAccount),
     client: config.client,
     accountAddress: config.accountAddress,
   });
