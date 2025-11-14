@@ -1,7 +1,9 @@
-import type { Address, Hex } from "viem";
+import type { Address, Hex, PublicClient } from "viem";
 import { hexToBytes } from "viem";
 import {
+  decode_get_account_list_result,
   encode_add_passkey_call_data,
+  encode_get_account_list_call_data,
   PasskeyPayload,
   // @ts-expect-error - TypeScript doesn't understand package.json exports
 } from "zksync-sso-web-sdk/bundler";
@@ -106,4 +108,93 @@ export function addPasskey(params: AddPasskeyParams): AddPasskeyResult {
       data: encodedCallData,
     },
   };
+}
+
+/**
+ * Parameters for finding addresses by passkey credential ID
+ */
+export type FindAddressesByPasskeyParams = {
+  /** Public client for making RPC calls */
+  client: PublicClient;
+
+  /** Contract addresses */
+  contracts: {
+    /** WebAuthn validator address */
+    webauthnValidator: Address;
+  };
+
+  /** Passkey credential details */
+  passkey: {
+    /** Hex-encoded credential ID */
+    credentialId: Hex;
+    /** Origin domain (e.g., "https://example.com" or window.location.origin) */
+    originDomain: string;
+  };
+};
+
+/**
+ * Result from finding addresses by passkey
+ */
+export type FindAddressesByPasskeyResult = {
+  /** Array of smart account addresses associated with this passkey */
+  addresses: Address[];
+};
+
+/**
+ * Find all smart account addresses associated with a passkey credential ID.
+ * This queries the WebAuthnValidator contract to get the list of accounts
+ * that have registered this specific passkey.
+ *
+ * Uses Rust WASM SDK for encoding/decoding with viem for RPC calls.
+ *
+ * @param params - Parameters including client, validator address, and passkey details
+ * @returns Array of addresses associated with the passkey
+ *
+ * @example
+ * ```typescript
+ * import { createPublicClient, http } from "viem";
+ * import { findAddressesByPasskey } from "zksync-sso-4337/client";
+ *
+ * const publicClient = createPublicClient({
+ *   chain: zkSyncSepoliaTestnet,
+ *   transport: http(),
+ * });
+ *
+ * const { addresses } = await findAddressesByPasskey({
+ *   client: publicClient,
+ *   contracts: {
+ *     webauthnValidator: "0x...",
+ *   },
+ *   passkey: {
+ *     credentialId: "0x...",
+ *     originDomain: window.location.origin,
+ *   },
+ * });
+ *
+ * console.log(`Found ${addresses.length} accounts for this passkey`);
+ * ```
+ */
+export async function findAddressesByPasskey(
+  params: FindAddressesByPasskeyParams,
+): Promise<FindAddressesByPasskeyResult> {
+  const { client, contracts, passkey } = params;
+
+  // Encode the call data using Rust SDK
+  const callData = encode_get_account_list_call_data(
+    passkey.originDomain,
+    passkey.credentialId,
+  ) as Hex;
+
+  // Make the RPC call to the WebAuthnValidator contract
+  const result = await client.call({
+    to: contracts.webauthnValidator,
+    data: callData,
+  });
+
+  // Decode the result using Rust SDK
+  // Result is a JSON string of address array
+  const addressesJson = decode_get_account_list_result(result.data as Hex);
+  const addresses = JSON.parse(addressesJson) as Address[];
+
+  return { addresses };
 }

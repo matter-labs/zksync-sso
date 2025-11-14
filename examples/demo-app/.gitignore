@@ -27,3 +27,4 @@ forge-output-paymaster.json
 forge-output-erc1271.json
 contracts.json
 contracts-anvil.json
+public/contracts.json

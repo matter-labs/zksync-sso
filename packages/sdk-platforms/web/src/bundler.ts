@@ -27,6 +27,8 @@ export const {
   // These functions are used by the new viem-based SDK (packages/sdk/src/client-new)
   encode_get_nonce_call_data, // Encode EntryPoint.getNonce() call
   decode_nonce_result, // Decode nonce result from EntryPoint
+  encode_get_account_list_call_data, // Encode WebAuthnValidator.getAccountList() call
+  decode_get_account_list_result, // Decode account list result from WebAuthnValidator
   encode_execute_call_data, // Encode execute() call for smart account
   generate_eoa_stub_signature, // Generate stub signature for gas estimation (EOA)
   generate_passkey_stub_signature, // Generate stub signature for gas estimation (Passkey)
