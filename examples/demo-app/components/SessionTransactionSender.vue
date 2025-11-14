@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { createPublicClient, http, parseEther, type Chain, type Address } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { toSessionSmartAccount, LimitType } from "zksync-sso-4337/client";
@@ -103,6 +103,7 @@ const value = ref("0.001");
 const loading = ref(false);
 const result = ref<{ userOpHash: string } | null>(null);
 const error = ref("");
+const sessionStatus = computed(() => props.sessionConfig && props.sessionConfig.sessionSigner ? "Active" : "NotInitialized");
 
 async function sendTransaction() {
   loading.value = true;
@@ -112,6 +113,10 @@ async function sendTransaction() {
   try {
     // eslint-disable-next-line no-console
     console.log("Sending session transaction...");
+    // Check session status before sending
+    if (sessionStatus.value !== "Active") {
+      throw new Error(`Session status is not Active. Current status: ${sessionStatus.value}`);
+    }
 
     // Load contracts
     const response = await fetch("/contracts.json");

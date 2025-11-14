@@ -23,6 +23,9 @@
           <div>
             <strong>Fee Limit:</strong> {{ formatWei(sessionConfig.feeLimit) }} ETH
           </div>
+          <div v-if="sessionCreated">
+            <strong>Session Status:</strong> <span>{{ sessionStatus }}</span>
+          </div>
         </div>
       </div>
 
@@ -67,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { createPublicClient, http, parseEther, type Chain, type Address } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { createSession as createSessionAction, toEcdsaSmartAccount, LimitType } from "zksync-sso-4337/client";
@@ -98,6 +101,7 @@ const emit = defineEmits<{
 // Local state
 const loading = ref(false);
 const sessionCreated = ref(false);
+const sessionStatus = computed(() => sessionCreated.value ? "Active" : "NotInitialized");
 const result = ref<{ userOpHash: string } | null>(null);
 const error = ref("");
 
