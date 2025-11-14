@@ -437,9 +437,10 @@ mod tests {
 
         let err = result.unwrap_err();
         let err_str = format!("{err}");
-        // Surface signal: should mention user operation execution failure OR estimation revert.
+        // Surface signal: should mention AA23 (reverted during validation) or estimation failure.
+        // AA23 is the expected error code when session validation fails.
         eyre::ensure!(
-            err_str.contains("User operation") || err_str.contains("estimate"),
+            err_str.contains("AA23") || err_str.contains("User operation") || err_str.contains("estimate"),
             "Unexpected error content: {err_str}"
         );
 
