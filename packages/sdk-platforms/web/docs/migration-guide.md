@@ -427,6 +427,213 @@ The low-level WASM API is still useful for:
 - **Direct control**: Need precise control over all parameters
 - **Passkey-only flows**: Until viem integration supports passkeys
 
+## Migrating from Legacy Session Client (packages/sdk)
+
+If you're migrating from the old `createZksyncSessionClient` API (from `packages/sdk`) to the new viem-based session API, follow this guide.
+
+### Type Changes
+
+The new SDK uses numeric enums (compatible with smart contracts) instead of the old structure:
+
+```typescript
+// OLD (packages/sdk)
+import { LimitType, ConstraintCondition, SessionConfig } from '@zksync-sso/sdk';
+
+// NEW (packages/sdk-4337)
+import { LimitType, ConstraintCondition, SessionSpec } from 'zksync-sso-web-sdk';
+
+// Enum values are now numeric:
+// LimitType.Unlimited = 0
+// LimitType.Lifetime = 1
+// LimitType.Allowance = 2
+
+// For time-based allowances, use LIMIT_PERIODS:
+import { LIMIT_PERIODS, createAllowanceLimit } from 'zksync-sso-web-sdk';
+
+const hourlyLimit = createAllowanceLimit(LIMIT_PERIODS.Hourly, parseEther('1'));
+const dailyLimit = createAllowanceLimit(LIMIT_PERIODS.Daily, parseEther('10'));
+```
+
+### Client Creation
+
+```typescript
+// OLD (packages/sdk)
+import { createZksyncSessionClient } from '@zksync-sso/sdk';
+
+const client = createZksyncSessionClient({
+  chain,
+  transport: http('http://localhost:8545'),
+  account: {
+    address: accountAddress,
+    sessionKey: sessionPrivateKey,
+    sessionConfig: mySessionConfig,
+    sessionValidator: sessionValidatorAddress,
+  },
+  onSessionStateChange: (event) => {
+    console.log('Session state changed:', event);
+  },
+});
+
+// Send transaction
+const hash = await client.sendTransaction({
+  to: recipientAddress,
+  value: parseEther('0.1'),
+});
+
+// NEW (packages/sdk-4337)
+import { toSessionSmartAccount, startSessionMonitoring } from 'zksync-sso-web-sdk';
+import { createBundlerClient } from 'viem/account-abstraction';
+
+const publicClient = createPublicClient({
+  chain,
+  transport: http('http://localhost:8545'),
+});
+
+// Create session account
+const sessionAccount = await toSessionSmartAccount({
+  client: publicClient,
+  sessionKeyPrivateKey: sessionPrivateKey,
+  address: accountAddress,
+  sessionValidatorAddress,
+  sessionSpec: mySessionSpec,
+});
+
+// Create bundler client with session account
+const bundlerClient = createBundlerClient({
+  account: sessionAccount,
+  chain,
+  bundlerTransport: http('http://localhost:4337'),
+  client: publicClient,
+});
+
+// Optional: Start monitoring session state
+const monitor = startSessionMonitoring(
+  publicClient,
+  {
+    account: accountAddress,
+    sessionSpec: mySessionSpec,
+    contracts: {
+      sessionValidator: sessionValidatorAddress,
+    },
+  },
+  {
+    onSessionStateChange: (event) => {
+      console.log('Session state changed:', event);
+    },
+  }
+);
+
+// Send transaction
+const userOpHash = await bundlerClient.sendUserOperation({
+  calls: [{
+    to: recipientAddress,
+    value: parseEther('0.1'),
+  }],
+});
+
+// Stop monitoring when done
+monitor.stop();
+```
+
+### Converting Legacy SessionConfig
+
+If you have existing `SessionConfig` objects from the old SDK, use the compatibility helpers:
+
+```typescript
+import { legacySessionConfigToSpec } from 'zksync-sso-web-sdk';
+
+// Convert legacy config to new spec
+const sessionSpec = legacySessionConfigToSpec(legacySessionConfig);
+
+// Use with new SDK
+const sessionAccount = await toSessionSmartAccount({
+  client: publicClient,
+  sessionKeyPrivateKey,
+  address: accountAddress,
+  sessionValidatorAddress,
+  sessionSpec, // Converted spec
+});
+```
+
+### Session State Monitoring
+
+The new SDK provides flexible session monitoring:
+
+```typescript
+// Query session state once
+import { getSessionState, SessionStatus } from 'zksync-sso-web-sdk';
+
+const { sessionState } = await getSessionState(publicClient, {
+  account: accountAddress,
+  sessionSpec: mySessionSpec,
+  contracts: {
+    sessionValidator: sessionValidatorAddress,
+  },
+});
+
+console.log('Session status:', sessionState.status);
+console.log('Fees remaining:', sessionState.feesRemaining);
+
+// Continuous monitoring (replaces onSessionStateChange callback)
+import { startSessionMonitoring, SessionEventType } from 'zksync-sso-web-sdk';
+
+const monitor = startSessionMonitoring(
+  publicClient,
+  {
+    account: accountAddress,
+    sessionSpec: mySessionSpec,
+    contracts: {
+      sessionValidator: sessionValidatorAddress,
+    },
+  },
+  {
+    onSessionStateChange: (event) => {
+      if (event.type === SessionEventType.Expired) {
+        console.error('Session expired!');
+      } else if (event.type === SessionEventType.Warning) {
+        console.warn(event.message);
+      }
+    },
+    checkIntervalMs: 30000, // Check every 30 seconds
+    expirationWarningThresholdSeconds: 3600, // Warn 1 hour before expiry
+    feeLimitWarningThresholdPercent: 80, // Warn at 80% fee usage
+  }
+);
+
+// Stop monitoring
+monitor.stop();
+
+// Force immediate check
+await monitor.checkNow();
+```
+
+### Key Differences
+
+| Feature | Legacy SDK (`packages/sdk`) | New SDK (`packages/sdk-4337`) |
+|---------|----------------------------|-------------------------------|
+| **Client creation** | `createZksyncSessionClient()` | `toSessionSmartAccount()` + `createBundlerClient()` |
+| **Type names** | `SessionConfig`, `Limit` | `SessionSpec`, `UsageLimit` |
+| **Enum values** | Numeric (0, 1, 2) ✅ | Now numeric (0, 1, 2) ✅ |
+| **Time periods** | Direct enum values | Use `LIMIT_PERIODS` constants |
+| **State monitoring** | Built-in `onSessionStateChange` | Separate `startSessionMonitoring()` |
+| **State queries** | `client.getSessionState()` | `getSessionState(publicClient, ...)` |
+| **Transactions** | `client.sendTransaction()` | `bundlerClient.sendUserOperation()` |
+| **Batch calls** | Not supported | Not supported (yet) |
+
+### Migration Checklist
+
+- [ ] Update imports from `@zksync-sso/sdk` to `zksync-sso-web-sdk`
+- [ ] Change `SessionConfig` to `SessionSpec` (or use type alias)
+- [ ] Change `Limit` to `UsageLimit` (or use type alias)
+- [ ] Update time-based limits to use `LIMIT_PERIODS` constants
+- [ ] Replace `createZksyncSessionClient()` with `toSessionSmartAccount()`
+- [ ] Create separate `bundlerClient` with `createBundlerClient()`
+- [ ] Replace `onSessionStateChange` callback with `startSessionMonitoring()`
+- [ ] Update `sendTransaction()` to `sendUserOperation()`
+- [ ] Convert legacy `SessionConfig` objects using `legacySessionConfigToSpec()`
+- [ ] Test session expiration and fee limit warnings
+- [ ] Update error handling for viem error types
+
 ## Migration Checklist
 
 - [ ] Install viem dependency

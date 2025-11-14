@@ -2,16 +2,24 @@ import type { Address, Hex } from "viem";
 
 /**
  * Limit types for usage tracking
+ * Uses numeric values for on-chain compatibility
  */
 export enum LimitType {
-  Unlimited = "Unlimited",
-  Lifetime = "Lifetime",
-  Hourly = "Hourly",
-  Daily = "Daily",
-  Weekly = "Weekly",
-  Monthly = "Monthly",
-  Yearly = "Yearly",
+  Unlimited = 0,
+  Lifetime = 1,
+  Allowance = 2,
 }
+
+/**
+ * Period constants for time-based allowances (in seconds)
+ */
+export const LIMIT_PERIODS = {
+  Hourly: 3600n,
+  Daily: 86400n,
+  Weekly: 604800n,
+  Monthly: 2592000n, // 30 days
+  Yearly: 31536000n, // 365 days
+} as const;
 
 /**
  * Usage limit structure
@@ -27,15 +35,16 @@ export type UsageLimit = {
 
 /**
  * Constraint condition for parameter validation
+ * Uses numeric values for on-chain compatibility
  */
 export enum ConstraintCondition {
-  Unconstrained = "Unconstrained",
-  Equal = "Equal",
-  Greater = "Greater",
-  Less = "Less",
-  GreaterEqual = "GreaterEqual",
-  LessEqual = "LessEqual",
-  NotEqual = "NotEqual",
+  Unconstrained = 0,
+  Equal = 1,
+  Greater = 2,
+  Less = 3,
+  GreaterEqual = 4,
+  LessEqual = 5,
+  NotEqual = 6,
 }
 
 /**
@@ -125,27 +134,28 @@ export const createLifetimeLimit = (limit: bigint): UsageLimit => ({
 
 /**
  * Helper to create time-based allowance limit
+ * @param period - Period in seconds for the allowance window
+ * @param limit - Maximum value allowed within the period
  */
 export const createAllowanceLimit = (
-  limitType:
-    | LimitType.Hourly
-    | LimitType.Daily
-    | LimitType.Weekly
-    | LimitType.Monthly
-    | LimitType.Yearly,
+  period: bigint,
   limit: bigint,
-): UsageLimit => {
-  const periods: Record<string, bigint> = {
-    [LimitType.Hourly]: 3600n,
-    [LimitType.Daily]: 86400n,
-    [LimitType.Weekly]: 604800n,
-    [LimitType.Monthly]: 2592000n, // 30 days
-    [LimitType.Yearly]: 31536000n, // 365 days
-  };
+): UsageLimit => ({
+  limitType: LimitType.Allowance,
+  limit,
+  period,
+});
 
-  return {
-    limitType,
-    limit,
-    period: periods[limitType]!,
-  };
-};
+// ============================================================================
+// Backward Compatibility Type Aliases (for legacy SDK migration)
+// ============================================================================
+
+/**
+ * @deprecated Use SessionSpec instead. Provided for backward compatibility with legacy SDK.
+ */
+export type SessionConfig = SessionSpec;
+
+/**
+ * @deprecated Use UsageLimit instead. Provided for backward compatibility with legacy SDK.
+ */
+export type Limit = UsageLimit;
