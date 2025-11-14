@@ -367,29 +367,31 @@ mod tests {
     /// Test comprehensive session flow: deploy with session validator, create session, and transact
     #[tokio::test]
     async fn test_deploy_with_session_and_transact() -> eyre::Result<()> {
-        use crate::erc4337::{
-            account::{
-                erc7579::{Execution, calls::encode_calls},
-                modular_smart_account::{
-                    send::{SendParams, send_transaction},
-                    session::{
-                        create::create_session,
-                        send::keyed_nonce,
-                        session_lib::session_spec::{
-                            SessionSpec, limit_type::LimitType,
-                            transfer_spec::TransferSpec,
-                            usage_limit::UsageLimit,
+        use crate::{
+            erc4337::{
+                account::{
+                    erc7579::{Execution, calls::encode_calls},
+                    modular_smart_account::{
+                        send::{SendParams, send_transaction},
+                        session::{
+                            create::create_session,
+                            send::keyed_nonce,
+                            session_lib::session_spec::{
+                                SessionSpec, limit_type::LimitType,
+                                transfer_spec::TransferSpec,
+                                usage_limit::UsageLimit,
+                            },
+                            signature::session_signature,
                         },
-                        signature::session_signature,
+                        test_utilities::fund_account_with_default_amount,
                     },
-                    test_utilities::fund_account_with_default_amount,
                 },
+                signer::{Signer, create_eoa_signer},
             },
-            signer::{Signer, create_eoa_signer},
-        };
-        use crate::utils::alloy_utilities::test_utilities::{
-            TestInfraConfig,
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+            utils::alloy_utilities::test_utilities::{
+                TestInfraConfig,
+                start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+            },
         };
         use alloy::signers::local::PrivateKeySigner;
         use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};

@@ -280,7 +280,8 @@ mod tests {
     /// yet supply the session-specific nonce key). We expect estimation or validation
     /// to revert (AA23) rather than succeeding, and we assert on the error surface.
     #[tokio::test]
-    async fn test_send_transaction_session_missing_keyed_nonce() -> eyre::Result<()> {
+    async fn test_send_transaction_session_missing_keyed_nonce()
+    -> eyre::Result<()> {
         let (
             _,
             anvil_instance,
@@ -291,21 +292,30 @@ mod tests {
             bundler_client,
         ) = {
             let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-            let config = TestInfraConfig { signer_private_key: signer_private_key.clone() };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(&config).await?
+            let config = TestInfraConfig {
+                signer_private_key: signer_private_key.clone(),
+            };
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+                &config,
+            )
+            .await?
         };
 
         let session_key_module = contracts.session_validator;
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;
-        let entry_point_address = address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+        let entry_point_address =
+            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
 
         // Deterministic session key used purely for testing.
         let session_key_hex = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
-        let session_signer_address = PrivateKeySigner::from_str(session_key_hex)?.address();
+        let session_signer_address =
+            PrivateKeySigner::from_str(session_key_hex)?.address();
 
         let eoa_signers = EOASigners {
-            addresses: vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")],
+            addresses: vec![address!(
+                "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
+            )],
             validator_address: eoa_validator_address,
         };
 
@@ -316,12 +326,17 @@ mod tests {
             id: None,
             provider: provider.clone(),
             session_validator: None,
-        }).await?;
+        })
+        .await?;
 
-        fund_account_with_default_amount(account_address, provider.clone()).await?;
+        fund_account_with_default_amount(account_address, provider.clone())
+            .await?;
 
         // Install session key module via EOA signer.
-        let eoa_signer = create_eoa_signer(signer_private_key.clone(), eoa_validator_address)?;
+        let eoa_signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
         add_module(
             account_address,
             session_key_module,
@@ -329,7 +344,8 @@ mod tests {
             provider.clone(),
             bundler_client.clone(),
             eoa_signer.clone(),
-        ).await?;
+        )
+        .await?;
 
         // Create session spec (matches working Rust spec; target == recipient to isolate nonce issue).
         let expires_at = Uint::from(2088558400u64);
@@ -362,7 +378,8 @@ mod tests {
             bundler_client.clone(),
             provider.clone(),
             eoa_signer.clone(),
-        ).await?;
+        )
+        .await?;
 
         // Build session signer (stub signature + provider closure) identical to success case.
         let stub_sig = session_signature(
@@ -372,20 +389,31 @@ mod tests {
             Default::default(),
         )?;
         use alloy::primitives::FixedBytes; // local import for closure
-        use std::sync::Arc;
-        use std::future::Future;
-        use std::pin::Pin;
+        use std::{future::Future, pin::Pin, sync::Arc};
         let session_key_hex_owned = session_key_hex.to_string();
         let session_spec_arc = std::sync::Arc::new(session_spec.clone());
-        let signature_provider = Arc::new(move |hash: FixedBytes<32>| -> Pin<Box<dyn Future<Output = eyre::Result<Bytes>> + Send>> {
-            let session_key_hex = session_key_hex_owned.clone();
-            let session_spec = session_spec_arc.clone();
-            Box::pin(async move { session_signature(&session_key_hex, session_key_module, &session_spec, hash) })
-        });
-        let session_signer = Signer { provider: signature_provider, stub_signature: stub_sig };
+        let signature_provider = Arc::new(
+            move |hash: FixedBytes<32>| -> Pin<
+                Box<dyn Future<Output = eyre::Result<Bytes>> + Send>,
+            > {
+                let session_key_hex = session_key_hex_owned.clone();
+                let session_spec = session_spec_arc.clone();
+                Box::pin(async move {
+                    session_signature(
+                        &session_key_hex,
+                        session_key_module,
+                        &session_spec,
+                        hash,
+                    )
+                })
+            },
+        );
+        let session_signer =
+            Signer { provider: signature_provider, stub_signature: stub_sig };
 
         // Prepare a simple value transfer call.
-        let call = Execution { target, value: U256::from(1), data: Bytes::default() };
+        let call =
+            Execution { target, value: U256::from(1), data: Bytes::default() };
         let calldata = encode_calls(vec![call]).into();
 
         // Intentionally DO NOT provide nonce_key (simulating browser path). Expect failure.
@@ -399,7 +427,8 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: session_signer,
-        }).await;
+        })
+        .await;
 
         eyre::ensure!(
             result.is_err(),
