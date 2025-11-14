@@ -1514,7 +1514,9 @@ pub fn encode_get_account_list_call_data(
 /// Decode the result of WebAuthnValidator.getAccountList() call
 /// Returns JSON array of account addresses
 #[wasm_bindgen]
-pub fn decode_get_account_list_result(result: String) -> Result<String, JsValue> {
+pub fn decode_get_account_list_result(
+    result: String,
+) -> Result<String, JsValue> {
     use alloy::sol_types::SolType;
 
     // Remove 0x prefix if present
@@ -1525,7 +1527,8 @@ pub fn decode_get_account_list_result(result: String) -> Result<String, JsValue>
         .map_err(|e| JsValue::from_str(&format!("Invalid hex: {}", e)))?;
 
     // Decode address[] (dynamic array of addresses)
-    type AddressArray = alloy::sol_types::sol_data::Array<alloy::sol_types::sol_data::Address>;
+    type AddressArray =
+        alloy::sol_types::sol_data::Array<alloy::sol_types::sol_data::Address>;
     let addresses = <AddressArray as SolType>::abi_decode(&bytes)
         .map_err(|e| JsValue::from_str(&format!("Decode error: {}", e)))?;
 
