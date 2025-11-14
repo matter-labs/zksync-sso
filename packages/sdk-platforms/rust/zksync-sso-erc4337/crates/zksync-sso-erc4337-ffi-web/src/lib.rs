@@ -1484,6 +1484,62 @@ pub fn decode_nonce_result(result: String) -> Result<String, JsValue> {
     Ok(nonce.to_string())
 }
 
+/// Encode a call to WebAuthnValidator.getAccountList(string domain, bytes credentialId)
+/// Used for querying which accounts are associated with a passkey credential
+#[wasm_bindgen]
+pub fn encode_get_account_list_call_data(
+    domain: String,
+    credential_id: String,
+) -> Result<String, JsValue> {
+    use alloy::sol_types::SolCall;
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::WebAuthnValidator;
+
+    // Parse credential_id (can be 0x-prefixed or not)
+    let cred_id_hex = credential_id.trim_start_matches("0x");
+    let cred_id_bytes = hex::decode(cred_id_hex).map_err(|e| {
+        JsValue::from_str(&format!("Invalid credential_id hex: {}", e))
+    })?;
+
+    // Create the getAccountList call
+    let call = WebAuthnValidator::getAccountListCall {
+        domain,
+        credentialId: Bytes::from(cred_id_bytes),
+    };
+
+    // Encode the call
+    let encoded = call.abi_encode();
+    Ok(format!("0x{}", hex::encode(encoded)))
+}
+
+/// Decode the result of WebAuthnValidator.getAccountList() call
+/// Returns JSON array of account addresses
+#[wasm_bindgen]
+pub fn decode_get_account_list_result(result: String) -> Result<String, JsValue> {
+    use alloy::sol_types::SolType;
+
+    // Remove 0x prefix if present
+    let hex_str = result.trim_start_matches("0x");
+
+    // Decode hex to bytes
+    let bytes = hex::decode(hex_str)
+        .map_err(|e| JsValue::from_str(&format!("Invalid hex: {}", e)))?;
+
+    // Decode address[] (dynamic array of addresses)
+    type AddressArray = alloy::sol_types::sol_data::Array<alloy::sol_types::sol_data::Address>;
+    let addresses = <AddressArray as SolType>::abi_decode(&bytes)
+        .map_err(|e| JsValue::from_str(&format!("Decode error: {}", e)))?;
+
+    // Convert to hex strings with checksum
+    let address_strings: Vec<String> = addresses
+        .iter()
+        .map(|addr| format!("{:?}", addr)) // Uses alloy's Debug impl which adds 0x and checksum
+        .collect();
+
+    // Return as JSON array
+    serde_json::to_string(&address_strings)
+        .map_err(|e| JsValue::from_str(&format!("JSON error: {}", e)))
+}
+
 /// Encode a single execute() call for the smart account
 /// Used for encoding transaction calldata
 #[wasm_bindgen]
