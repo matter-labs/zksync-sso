@@ -1,17 +1,15 @@
-use crate::erc4337::entry_point::PackedUserOperation;
+use crate::erc4337::entry_point::contract::PackedUserOperation;
 use alloy::primitives::{Address, Bytes, FixedBytes, U256};
 use serde::{Deserialize, Serialize};
 
-pub mod alloy_helpers;
-pub mod call;
-pub mod estimated;
 pub mod hash;
-pub mod signature;
-pub mod signed;
-#[cfg(test)]
-pub mod tests;
-pub mod utils;
-pub mod wrapper_v07;
+
+pub(crate) mod alloy_helpers;
+pub(crate) mod call;
+pub(crate) mod estimated;
+pub(crate) mod signature;
+pub(crate) mod signed;
+pub(crate) mod utils;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignedAuthorization {

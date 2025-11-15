@@ -1,5 +1,5 @@
 use crate::erc4337::account::modular_smart_account::session::{
-    SessionLib::UsageLimit as SessionLibUsageLimit,
+    contract::SessionLib::UsageLimit as SessionLibUsageLimit,
     session_lib::session_spec::limit_type::LimitType,
 };
 use alloy::primitives::{U256, aliases::U48};

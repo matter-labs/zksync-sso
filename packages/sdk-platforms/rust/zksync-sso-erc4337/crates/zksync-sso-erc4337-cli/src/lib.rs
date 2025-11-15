@@ -40,6 +40,9 @@ enum Commands {
 
         #[arg(long)]
         session_validator_address: String,
+
+        #[arg(long)]
+        guardian_executor_address: String,
     },
 }
 
@@ -53,6 +56,7 @@ async fn handle_command(command: Commands) -> eyre::Result<()> {
             webauthn_validator_address,
             eoa_validator_address,
             session_validator_address,
+            guardian_executor_address,
         } => {
             let config = CoreConfig::new(
                 rpc_url.parse()?,
@@ -68,6 +72,7 @@ async fn handle_command(command: Commands) -> eyre::Result<()> {
                     webauthn_validator_address,
                     eoa_validator_address,
                     session_validator_address.to_string(),
+                    guardian_executor_address.to_string(),
                 )?,
             );
 

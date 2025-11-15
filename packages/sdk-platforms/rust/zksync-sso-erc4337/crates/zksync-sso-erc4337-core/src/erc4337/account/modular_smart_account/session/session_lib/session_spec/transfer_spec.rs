@@ -1,5 +1,5 @@
 use crate::erc4337::account::modular_smart_account::session::{
-    SessionLib::TransferSpec as SessionLibTransferSpec,
+    contract::SessionLib::TransferSpec as SessionLibTransferSpec,
     session_lib::session_spec::usage_limit::UsageLimit,
 };
 use alloy::primitives::{Address, U256};
@@ -37,7 +37,7 @@ impl From<TransferSpec> for SessionLibTransferSpec {
 mod tests {
     use super::*;
     use crate::erc4337::account::modular_smart_account::session::{
-        SessionLib::UsageLimit as SessionLibUsageLimit,
+        contract::SessionLib::UsageLimit as SessionLibUsageLimit,
         session_lib::session_spec::limit_type::LimitType,
     };
     use alloy::primitives::{Address, U256, address, aliases::U48};

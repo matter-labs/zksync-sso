@@ -1,4 +1,4 @@
-use crate::erc4337::account::modular_smart_account::session::SessionLib::LimitType as SessionLibLimitType;
+use crate::erc4337::account::modular_smart_account::session::contract::SessionLib::LimitType as SessionLibLimitType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

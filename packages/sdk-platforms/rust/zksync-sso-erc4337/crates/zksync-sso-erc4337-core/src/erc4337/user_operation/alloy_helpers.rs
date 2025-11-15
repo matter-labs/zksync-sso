@@ -1,4 +1,7 @@
-use crate::erc4337::user_operation::PackedUserOperation;
+use crate::erc4337::{
+    entry_point::contract::PackedUserOperation as EntryPointPackedUserOperation,
+    user_operation::PackedUserOperation,
+};
 use alloy::{
     primitives::{Address, Bytes, U256},
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
@@ -12,7 +15,7 @@ impl From<PackedUserOperation> for AlloyPackedUserOperation {
 
 // Convert from our entry_point::PackedUserOperation to alloy's PackedUserOperation
 fn convert_to_alloy_packed_user_op(
-    op: &crate::erc4337::entry_point::PackedUserOperation,
+    op: &EntryPointPackedUserOperation,
 ) -> AlloyPackedUserOperation {
     // Extract factory and factory_data from initCode
     let (factory, factory_data) = if op.initCode.len() >= 20 {

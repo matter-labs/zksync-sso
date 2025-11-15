@@ -3,7 +3,7 @@ pub mod status;
 
 use crate::{
     erc4337::account::modular_smart_account::session::{
-        SessionLib::SessionState as SessionLibSessionState,
+        contract::SessionLib::SessionState as SessionLibSessionState,
         session_lib::session_state::{limit_state::LimitState, status::Status},
     },
     utils::alloy_utilities::serde_helpers::{

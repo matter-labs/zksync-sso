@@ -1,4 +1,4 @@
-use crate::erc4337::account::modular_smart_account::session::SessionLib::Condition as SessionLibCondition;
+use crate::erc4337::account::modular_smart_account::session::contract::SessionLib::Condition as SessionLibCondition;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
