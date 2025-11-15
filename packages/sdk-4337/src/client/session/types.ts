@@ -2,12 +2,12 @@ import type { Address, Hex } from "viem";
 
 /**
  * Limit types for usage tracking
- * Uses numeric values for on-chain compatibility
+ * Uses string values to match Rust serialization format
  */
 export enum LimitType {
-  Unlimited = 0,
-  Lifetime = 1,
-  Allowance = 2,
+  Unlimited = "Unlimited",
+  Lifetime = "Lifetime",
+  Allowance = "Allowance",
 }
 
 /**
@@ -35,16 +35,16 @@ export type UsageLimit = {
 
 /**
  * Constraint condition for parameter validation
- * Uses numeric values for on-chain compatibility
+ * Uses string values to match Rust serialization format
  */
 export enum ConstraintCondition {
-  Unconstrained = 0,
-  Equal = 1,
-  Greater = 2,
-  Less = 3,
-  GreaterEqual = 4,
-  LessEqual = 5,
-  NotEqual = 6,
+  Unconstrained = "Unconstrained",
+  Equal = "Equal",
+  Greater = "Greater",
+  Less = "Less",
+  GreaterEqual = "GreaterEqual",
+  LessEqual = "LessEqual",
+  NotEqual = "NotEqual",
 }
 
 /**
@@ -145,6 +145,50 @@ export const createAllowanceLimit = (
   limit,
   period,
 });
+
+// ============================================================================
+// Enum Conversion Helpers for Contract ABIs
+// ============================================================================
+
+/**
+ * Convert LimitType enum to numeric value for contract calls
+ */
+export function limitTypeToNumber(limitType: LimitType): number {
+  switch (limitType) {
+    case LimitType.Unlimited:
+      return 0;
+    case LimitType.Lifetime:
+      return 1;
+    case LimitType.Allowance:
+      return 2;
+    default:
+      throw new Error(`Unknown LimitType: ${limitType}`);
+  }
+}
+
+/**
+ * Convert ConstraintCondition enum to numeric value for contract calls
+ */
+export function conditionToNumber(condition: ConstraintCondition): number {
+  switch (condition) {
+    case ConstraintCondition.Unconstrained:
+      return 0;
+    case ConstraintCondition.Equal:
+      return 1;
+    case ConstraintCondition.Greater:
+      return 2;
+    case ConstraintCondition.Less:
+      return 3;
+    case ConstraintCondition.GreaterEqual:
+      return 4;
+    case ConstraintCondition.LessEqual:
+      return 5;
+    case ConstraintCondition.NotEqual:
+      return 6;
+    default:
+      throw new Error(`Unknown ConstraintCondition: ${condition}`);
+  }
+}
 
 // ============================================================================
 // Backward Compatibility Type Aliases (for legacy SDK migration)

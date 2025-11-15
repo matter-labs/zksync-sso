@@ -2,12 +2,7 @@ import type { Abi, Address, Chain, Client, Hash, Hex, Transport } from "viem";
 import { encodeFunctionData } from "viem";
 import { type SmartAccount } from "viem/account-abstraction";
 
-import { type SessionSpec } from "../session/types.js";
-
-/**
- * Note: LimitType and ConstraintCondition are now numeric enums,
- * so they can be used directly in ABI encoding without conversion.
- */
+import { conditionToNumber, limitTypeToNumber, type SessionSpec } from "../session/types.js";
 
 /**
  * Parameters for creating a session on a smart account
@@ -181,12 +176,12 @@ export async function createSession<
     throw new Error("Client must have an account");
   }
 
-  // Convert SessionSpec to match ABI types
+  // Convert SessionSpec to match ABI types (enums to numbers)
   const sessionSpecForAbi = {
     signer: sessionSpec.signer,
     expiresAt: Number(sessionSpec.expiresAt),
     feeLimit: {
-      limitType: sessionSpec.feeLimit.limitType, // Already numeric
+      limitType: limitTypeToNumber(sessionSpec.feeLimit.limitType),
       limit: sessionSpec.feeLimit.limit,
       period: Number(sessionSpec.feeLimit.period),
     },
@@ -195,16 +190,16 @@ export async function createSession<
       selector: policy.selector,
       maxValuePerUse: policy.maxValuePerUse,
       valueLimit: {
-        limitType: policy.valueLimit.limitType, // Already numeric
+        limitType: limitTypeToNumber(policy.valueLimit.limitType),
         limit: policy.valueLimit.limit,
         period: Number(policy.valueLimit.period),
       },
       constraints: policy.constraints.map((constraint) => ({
-        condition: constraint.condition, // Already numeric
+        condition: conditionToNumber(constraint.condition),
         index: constraint.index,
         refValue: constraint.refValue,
         limit: {
-          limitType: constraint.limit.limitType, // Already numeric
+          limitType: limitTypeToNumber(constraint.limit.limitType),
           limit: constraint.limit.limit,
           period: Number(constraint.limit.period),
         },
@@ -214,7 +209,7 @@ export async function createSession<
       target: policy.target,
       maxValuePerUse: policy.maxValuePerUse,
       valueLimit: {
-        limitType: policy.valueLimit.limitType, // Already numeric
+        limitType: limitTypeToNumber(policy.valueLimit.limitType),
         limit: policy.valueLimit.limit,
         period: Number(policy.valueLimit.period),
       },

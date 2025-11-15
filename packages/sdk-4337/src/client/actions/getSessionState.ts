@@ -6,6 +6,7 @@ import type { Address, Chain, Client, PublicActions, Transport } from "viem";
 import { readContract } from "viem/actions";
 
 import type { SessionSpec } from "../session/types.js";
+import { conditionToNumber, limitTypeToNumber } from "../session/types.js";
 
 /**
  * Session status as stored on-chain
@@ -260,12 +261,12 @@ export async function getSessionState<
 ): Promise<GetSessionStateReturnType> {
   const { account, sessionSpec, contracts } = params;
 
-  // Convert SessionSpec to match ABI types
+  // Convert SessionSpec to match ABI types (enums to numbers)
   const sessionSpecForAbi = {
     signer: sessionSpec.signer,
     expiresAt: Number(sessionSpec.expiresAt),
     feeLimit: {
-      limitType: sessionSpec.feeLimit.limitType, // Already numeric
+      limitType: limitTypeToNumber(sessionSpec.feeLimit.limitType),
       limit: sessionSpec.feeLimit.limit,
       period: Number(sessionSpec.feeLimit.period),
     },
@@ -274,16 +275,16 @@ export async function getSessionState<
       selector: policy.selector,
       maxValuePerUse: policy.maxValuePerUse,
       valueLimit: {
-        limitType: policy.valueLimit.limitType, // Already numeric
+        limitType: limitTypeToNumber(policy.valueLimit.limitType),
         limit: policy.valueLimit.limit,
         period: Number(policy.valueLimit.period),
       },
       constraints: policy.constraints.map((constraint) => ({
-        condition: constraint.condition, // Already numeric
+        condition: conditionToNumber(constraint.condition),
         index: constraint.index,
         refValue: constraint.refValue,
         limit: {
-          limitType: constraint.limit.limitType, // Already numeric
+          limitType: limitTypeToNumber(constraint.limit.limitType),
           limit: constraint.limit.limit,
           period: Number(constraint.limit.period),
         },
@@ -293,7 +294,7 @@ export async function getSessionState<
       target: policy.target,
       maxValuePerUse: policy.maxValuePerUse,
       valueLimit: {
-        limitType: policy.valueLimit.limitType, // Already numeric
+        limitType: limitTypeToNumber(policy.valueLimit.limitType),
         limit: policy.valueLimit.limit,
         period: Number(policy.valueLimit.period),
       },
