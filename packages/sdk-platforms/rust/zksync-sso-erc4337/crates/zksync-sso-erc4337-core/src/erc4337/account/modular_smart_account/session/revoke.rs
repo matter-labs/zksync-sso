@@ -144,6 +144,7 @@ mod tests {
             webauthn_signer: None,
             id: None,
             provider: provider.clone(),
+            session_validator: None,
         })
         .await?;
 
@@ -327,6 +328,7 @@ mod tests {
             webauthn_signer: Some(passkey_signer),
             id: None,
             provider: provider.clone(),
+            session_validator: None,
         })
         .await?;
 

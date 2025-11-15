@@ -128,6 +128,7 @@ mod tests {
             webauthn_signer: None,
             id: None,
             provider: provider.clone(),
+            session_validator: None,
         })
         .await?;
 
@@ -258,6 +259,7 @@ mod tests {
                     factory_address,
                     eoa_signers: Some(eoa_signers),
                     webauthn_signer: None,
+                    session_validator: None,
                     id: None,
                     provider: unfunded_provider.clone(),
                 },

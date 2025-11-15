@@ -13,6 +13,7 @@ dockerized
 ethereum
 sepolia
 foundryup
+unpermitted
 
 // examples/bank-demo
 ctap
