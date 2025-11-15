@@ -26,6 +26,7 @@ export function sessionSpecToJSON(spec: SessionSpec): string {
         condition: constraint.condition,
         index: constraint.index.toString(),
         refValue: constraint.refValue,
+        limit: usageLimitToJSON(constraint.limit),
       })),
     })),
     transferPolicies: spec.transferPolicies.map((policy) => ({
