@@ -323,8 +323,10 @@
 import { ref, onMounted, computed } from "vue";
 import { createWalletClient, http, type Hash, type Hex, type Address, parseEther, formatEther, getAddress, custom } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { toEcdsaSmartAccount, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, addPasskey } from "zksync-sso-4337/client";
 import { createBundlerClient } from "viem/account-abstraction";
+
+import { createEcdsaClient, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId } from "zksync-sso-4337/client";
+
 import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
 
 // Types
@@ -751,43 +753,15 @@ async function registerPasskey() {
     const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
     // eslint-disable-next-line no-console
-    console.log("Registering passkey with WebAuthn validator...");
+    console.log("Registering passkey with WebAuthn validator using ECDSA client...");
     // eslint-disable-next-line no-console
     console.log("  Smart Account:", deploymentResult.value.address);
     // eslint-disable-next-line no-console
     console.log("  WebAuthn Validator:", passkeyConfig.value.validatorAddress);
 
-    // Prepare the add passkey transaction using new SDK
-    // eslint-disable-next-line no-console
-    console.log("  Preparing add passkey transaction...");
-    const { transaction } = addPasskey({
-      account: deploymentResult.value.address as Address,
-      contracts: {
-        webauthnValidator: passkeyConfig.value.validatorAddress as Address,
-      },
-      passkeySigner: {
-        credentialId: passkeyConfig.value.credentialId as Hex,
-        publicKey: {
-          x: passkeyConfig.value.passkeyX as Hex,
-          y: passkeyConfig.value.passkeyY as Hex,
-        },
-        originDomain: passkeyConfig.value.originDomain,
-      },
-    });
-
     // Create chain config and public client
     const chain = getChainConfig(contracts);
     const publicClient = await createPublicClient(contracts);
-
-    // Create smart account using EOA validator to sign the transaction
-    // eslint-disable-next-line no-console
-    console.log("  Creating smart account instance...");
-    const account = await toEcdsaSmartAccount({
-      client: publicClient,
-      signerPrivateKey: eoaSignerPrivateKey as Hex,
-      address: deploymentResult.value.address as Address,
-      eoaValidatorAddress: eoaValidatorAddress as Address,
-    });
 
     // Create bundler client
     const bundlerClient = createBundlerClient({
@@ -796,32 +770,37 @@ async function registerPasskey() {
       transport: http(bundlerUrl),
     });
 
-    // Send user operation
+    // Create ECDSA client
     // eslint-disable-next-line no-console
-    console.log("  Sending UserOperation to add passkey...");
-    const userOpHash = await bundlerClient.sendUserOperation({
-      account,
-      calls: [{
-        to: transaction.to,
-        data: transaction.data,
-        value: 0n,
-      }],
+    console.log("  Creating ECDSA client...");
+    const ecdsaClient = createEcdsaClient({
+      account: {
+        address: deploymentResult.value.address as Address,
+        signerPrivateKey: eoaSignerPrivateKey as Hex,
+        eoaValidatorAddress: eoaValidatorAddress as Address,
+      },
+      bundlerClient,
+      chain,
+      transport: http(), // Use default RPC URL (not bundler URL)
+    });
+
+    // Add passkey using the client
+    // eslint-disable-next-line no-console
+    console.log("  Adding passkey to smart account...");
+    const txHash = await ecdsaClient.addPasskey({
+      credentialId: passkeyConfig.value.credentialId as Hex,
+      publicKey: {
+        x: passkeyConfig.value.passkeyX as Hex,
+        y: passkeyConfig.value.passkeyY as Hex,
+      },
+      originDomain: passkeyConfig.value.originDomain,
+      webauthnValidatorAddress: passkeyConfig.value.validatorAddress as Address,
     });
 
     // eslint-disable-next-line no-console
-    console.log("  UserOperation hash:", userOpHash);
+    console.log("  Transaction confirmed! Hash:", txHash);
 
-    // Wait for receipt
-    // eslint-disable-next-line no-console
-    console.log("  Waiting for UserOperation receipt...");
-    const receipt = await bundlerClient.waitForUserOperationReceipt({
-      hash: userOpHash,
-    });
-
-    // eslint-disable-next-line no-console
-    console.log("  UserOperation confirmed! Receipt:", receipt);
-
-    passkeyRegisterResult.value = `Passkey registered successfully! UserOp hash: ${userOpHash}`;
+    passkeyRegisterResult.value = `Passkey registered successfully! Tx hash: ${txHash}`;
     passkeyRegistered.value = true;
 
     // eslint-disable-next-line no-console
