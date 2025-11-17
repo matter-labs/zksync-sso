@@ -1692,9 +1692,10 @@ pub fn encode_create_session_call_data(
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::SessionKeyValidator;
 
     // Parse SessionSpec from JSON
-    let spec: SessionSpec = serde_json::from_str(&session_spec_json).map_err(|e| {
-        JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
-    })?;
+    let spec: SessionSpec =
+        serde_json::from_str(&session_spec_json).map_err(|e| {
+            JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
+        })?;
 
     // Build createSession call and ABI encode
     let create_session_calldata =
@@ -1721,12 +1722,17 @@ pub fn encode_session_state_call_data(
     })?;
 
     // Parse SessionSpec from JSON
-    let spec: SessionSpec = serde_json::from_str(&session_spec_json).map_err(|e| {
-        JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
-    })?;
+    let spec: SessionSpec =
+        serde_json::from_str(&session_spec_json).map_err(|e| {
+            JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
+        })?;
 
     // Build sessionState call and ABI encode
-    let call_data = SessionKeyValidator::sessionStateCall { account: account_addr, spec: spec.into() }.abi_encode();
+    let call_data = SessionKeyValidator::sessionStateCall {
+        account: account_addr,
+        spec: spec.into(),
+    }
+    .abi_encode();
 
     Ok(format!("0x{}", hex::encode(call_data)))
 }
