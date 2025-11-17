@@ -75,7 +75,7 @@
 import { ref, computed } from "vue";
 import { createPublicClient, http, parseEther, type Chain, type Address, type Abi } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-import { toSessionSmartAccount, LimitType } from "zksync-sso-4337/client";
+import { createSessionClient, LimitType } from "zksync-sso-4337/client";
 // WASM helpers for diagnostics and nonce calculation
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -143,13 +143,10 @@ async function sendTransaction() {
       // Provide execution client so fees & non-bundler RPCs are fetched from the node, not the bundler.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       client: publicClient as any,
-      // Provide conservative gas defaults via estimateFeesPerGas hook to avoid zero gas fields
-      // when bundler-side estimation reverts during session validation.
       userOperation: {
         async estimateFeesPerGas() {
           const feesPerGas = await publicClient.estimateFeesPerGas();
           return {
-            // Conservative defaults (aligned with Passkey flow)
             callGasLimit: 2_000_000n,
             verificationGasLimit: 2_000_000n,
             preVerificationGas: 1_000_000n,
@@ -159,27 +156,24 @@ async function sendTransaction() {
       },
     });
 
-    // Create session account
-    const sessionAccount = await toSessionSmartAccount({
-      client: publicClient,
-      // Use correct parameter name expected by SDK: sessionKeyPrivateKey
-      sessionKeyPrivateKey: props.sessionConfig.sessionPrivateKey as `0x${string}`,
+    // Create session client (wraps session smart account)
+    const sessionClient = createSessionClient({
       address: props.accountAddress as Address,
       sessionValidatorAddress: props.sessionConfig.validatorAddress as Address,
+      sessionKeyPrivateKey: props.sessionConfig.sessionPrivateKey as `0x${string}`,
       sessionSpec: {
         signer: props.sessionConfig.sessionSigner as Address,
         expiresAt: BigInt(props.sessionConfig.expiresAt),
         feeLimit: {
           limitType: LimitType.Lifetime,
-          limit: parseEther("1"), // 1 ETH lifetime fee limit (matches Rust tests and SessionCreator)
+          limit: parseEther("1"),
           period: 0n,
         },
         callPolicies: [],
         transferPolicies: [
           {
-            // Must match the session spec used during creation: explicit allowed recipient or shared fallback
             target: (props.sessionConfig.allowedRecipient as Address) || (DEFAULT_RECIPIENT as Address),
-            maxValuePerUse: parseEther("0.001"), // 0.001 ETH per transaction (matches Rust tests and SessionCreator)
+            maxValuePerUse: parseEther("0.001"),
             valueLimit: {
               limitType: LimitType.Unlimited,
               limit: 0n,
@@ -188,6 +182,9 @@ async function sendTransaction() {
           },
         ],
       },
+      bundlerClient,
+      chain,
+      transport: http(),
     });
 
     // If an allowed recipient is configured, enforce it matches the selected target
@@ -223,12 +220,12 @@ async function sendTransaction() {
         functionName: "sessionSigner",
         args: [props.sessionConfig.sessionSigner as Address],
       });
-      const status: bigint = await publicClient.readContract({
+      const status = await publicClient.readContract({
         address: props.sessionConfig.validatorAddress as Address,
         abi: sessionSignerAbi,
         functionName: "sessionStatus",
         args: [props.accountAddress as Address, onChainSessionHash as `0x${string}`],
-      });
+      }) as bigint;
       // eslint-disable-next-line no-console
       console.log("On-chain session status:", status === 1n ? "Active" : status === 2n ? "Closed" : "NotInitialized", onChainSessionHash);
       if (status !== 1n) {
@@ -249,7 +246,7 @@ async function sendTransaction() {
     }
 
     // eslint-disable-next-line no-console
-    console.log("Session account created, sending UserOperation...");
+    console.log("Session client ready, sending transaction via bundler...");
 
     // Prepare calls
     const calls = [
@@ -261,15 +258,10 @@ async function sendTransaction() {
     ];
 
     // Send transaction (viem will automatically use the bundler's userOperation overrides above)
-    const userOpHash = await bundlerClient.sendUserOperation({
-      account: sessionAccount,
-      calls,
-    });
-
+    const txHash = await sessionClient.sendTransaction(calls[0]);
     // eslint-disable-next-line no-console
-    console.log("UserOperation sent:", userOpHash);
-
-    result.value = { userOpHash };
+    console.log("Session transaction sent (tx hash):", txHash);
+    result.value = { userOpHash: txHash };
   } catch (err: unknown) {
     // eslint-disable-next-line no-console
     console.error("Error sending session transaction:", err);
