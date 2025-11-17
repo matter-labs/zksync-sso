@@ -22,6 +22,7 @@ import {
   generate_eoa_stub_signature,
   sign_eoa_message,
   sign_eoa_user_operation_hash,
+  // @ts-expect-error - TypeScript doesn't understand package.json exports with node module resolution
 } from "zksync-sso-web-sdk/bundler";
 
 export type ToEcdsaSmartAccountParams<
@@ -129,27 +130,17 @@ export async function toEcdsaSmartAccount<
     async signUserOperation(params) {
       const sender = await this.getAddress();
 
-      // Some bundlers/flows invoke signing before all gas fields are populated.
-      // Default any undefined fields to 0n to avoid runtime errors; the final
-      // signing call will receive populated values.
-      const nonce = params.nonce ?? 0n;
-      const callGasLimit = params.callGasLimit ?? 0n;
-      const verificationGasLimit = params.verificationGasLimit ?? 0n;
-      const preVerificationGas = params.preVerificationGas ?? 0n;
-      const maxFeePerGas = params.maxFeePerGas ?? 0n;
-      const maxPriorityFeePerGas = params.maxPriorityFeePerGas ?? 0n;
-
       // Encode call data for EntryPoint.getUserOpHash() using Rust SDK
       const callData = encode_get_user_operation_hash_call_data(
         new EncodeGetUserOperationHashParams(
           sender,
-          nonce.toString(),
-          (params.callData ?? "0x") as Hex,
-          callGasLimit.toString(),
-          verificationGasLimit.toString(),
-          preVerificationGas.toString(),
-          maxFeePerGas.toString(),
-          maxPriorityFeePerGas.toString(),
+          params.nonce.toString(),
+          params.callData,
+          params.callGasLimit.toString(),
+          params.verificationGasLimit.toString(),
+          params.preVerificationGas.toString(),
+          params.maxFeePerGas.toString(),
+          params.maxPriorityFeePerGas.toString(),
         ),
       ) as Hex;
 
@@ -161,7 +152,7 @@ export async function toEcdsaSmartAccount<
       } as any);
 
       const signature = sign_eoa_user_operation_hash(
-        (userOpHash!) as Hex,
+        userOpHash,
         signerPrivateKey,
         eoaValidatorAddress,
       ) as Hex;

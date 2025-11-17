@@ -5,6 +5,7 @@
 
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { type Hex, hexToBytes, pad, toHex } from "viem";
+// @ts-expect-error - TypeScript doesn't understand package.json exports with node module resolution
 import { encode_passkey_signature } from "zksync-sso-web-sdk/bundler";
 
 /**
@@ -194,7 +195,7 @@ export async function signWithPasskey(
 
   // Prepend validator address (ModularSmartAccount format: 20 bytes validator + signature)
   const validatorBytes = hexToBytes(validatorAddress);
-  const signatureBytes_final = hexToBytes(passkeySignature as Hex);
+  const signatureBytes_final = hexToBytes(passkeySignature);
   const fullSignature = new Uint8Array(validatorBytes.length + signatureBytes_final.length);
   fullSignature.set(validatorBytes, 0);
   fullSignature.set(signatureBytes_final, validatorBytes.length);
