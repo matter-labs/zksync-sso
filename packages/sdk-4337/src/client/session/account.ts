@@ -21,7 +21,6 @@ import {
   generate_session_stub_signature_wasm,
   keyed_nonce_decimal,
   session_signature_no_validation_wasm,
-  // @ts-expect-error - TypeScript doesn't understand package.json exports with node module resolution
 } from "zksync-sso-web-sdk/bundler";
 
 import type { SessionSpec } from "./types.js";
@@ -178,7 +177,7 @@ export async function toSessionSmartAccount<
         new EncodeGetUserOperationHashParams(
           sender,
           nonce.toString(),
-          params.callData,
+          (params.callData ?? "0x") as Hex,
           callGasLimit.toString(),
           verificationGasLimit.toString(),
           preVerificationGas.toString(),

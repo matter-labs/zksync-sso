@@ -29,6 +29,8 @@ export const {
   decode_nonce_result, // Decode nonce result from EntryPoint
   encode_execute_call_data, // Encode execute() call for smart account
   encode_session_execute_call_data, // Encode session execute() call for smart account
+  encode_create_session_call_data,
+  encode_session_state_call_data,
   generate_eoa_stub_signature, // Generate stub signature for gas estimation (EOA)
   generate_session_stub_signature_wasm, // Generate stub signature for gas estimation (Session)
   generate_passkey_stub_signature, // Generate stub signature for gas estimation (Passkey)

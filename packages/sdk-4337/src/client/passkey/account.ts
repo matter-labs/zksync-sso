@@ -18,7 +18,6 @@ import {
   encode_get_user_operation_hash_call_data,
   EncodeGetUserOperationHashParams,
   generate_passkey_stub_signature,
-  // @ts-expect-error - TypeScript doesn't understand package.json exports with node module resolution
 } from "zksync-sso-web-sdk/bundler";
 
 import { signWithPasskey } from "./webauthn.js";
@@ -141,13 +140,13 @@ export async function toPasskeySmartAccount<
       const callData = encode_get_user_operation_hash_call_data(
         new EncodeGetUserOperationHashParams(
           sender,
-          params.nonce.toString(),
-          params.callData,
-          params.callGasLimit.toString(),
-          params.verificationGasLimit.toString(),
-          params.preVerificationGas.toString(),
-          params.maxFeePerGas.toString(),
-          params.maxPriorityFeePerGas.toString(),
+          params.nonce?.toString() ?? "0",
+          (params.callData ?? "0x") as Hex,
+          params.callGasLimit?.toString() ?? "0",
+          params.verificationGasLimit?.toString() ?? "0",
+          params.preVerificationGas?.toString() ?? "0",
+          params.maxFeePerGas?.toString() ?? "0",
+          params.maxPriorityFeePerGas?.toString() ?? "0",
         ),
       ) as Hex;
 

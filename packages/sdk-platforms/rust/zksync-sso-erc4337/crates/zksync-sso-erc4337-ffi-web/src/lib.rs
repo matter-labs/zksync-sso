@@ -4,6 +4,7 @@ use alloy::{
     providers::ProviderBuilder,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
     signers::local::PrivateKeySigner,
+    sol_types::SolCall,
 };
 use alloy_rpc_client::RpcClient;
 use wasm_bindgen::prelude::*;
@@ -1620,6 +1621,55 @@ pub fn generate_session_stub_signature_wasm(
         core_generate_session_stub_signature(validator_addr, &spec, ts_opt);
 
     Ok(format!("0x{}", hex::encode(stub)))
+}
+
+/// Encode createSession call data for SessionKeyValidator
+/// Accepts a JSON-encoded SessionSpec and returns hex-encoded calldata
+#[wasm_bindgen]
+pub fn encode_create_session_call_data(
+    session_spec_json: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::SessionSpec;
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::SessionKeyValidator;
+
+    // Parse SessionSpec from JSON
+    let spec: SessionSpec = serde_json::from_str(&session_spec_json).map_err(|e| {
+        JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
+    })?;
+
+    // Build createSession call and ABI encode
+    let create_session_calldata =
+        SessionKeyValidator::createSessionCall { sessionSpec: spec.into() }
+            .abi_encode();
+
+    Ok(format!("0x{}", hex::encode(create_session_calldata)))
+}
+
+/// Encode sessionState(account, spec) call data for SessionKeyValidator
+/// Accepts the smart account address and JSON-encoded SessionSpec and returns hex-encoded calldata
+#[wasm_bindgen]
+pub fn encode_session_state_call_data(
+    account: String,
+    session_spec_json: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::SessionSpec;
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::SessionKeyValidator;
+    use alloy::primitives::Address;
+
+    // Parse account address
+    let account_addr = account.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid account address: {}", e))
+    })?;
+
+    // Parse SessionSpec from JSON
+    let spec: SessionSpec = serde_json::from_str(&session_spec_json).map_err(|e| {
+        JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
+    })?;
+
+    // Build sessionState call and ABI encode
+    let call_data = SessionKeyValidator::sessionStateCall { account: account_addr, spec: spec.into() }.abi_encode();
+
+    Ok(format!("0x{}", hex::encode(call_data)))
 }
 
 /// Create a real session signature without relying on system time

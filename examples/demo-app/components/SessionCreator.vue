@@ -171,6 +171,16 @@ async function createSessionOnChain() {
       transport: http(),
     });
 
+    // Ensure the smart account is actually deployed on-chain
+    // eslint-disable-next-line no-console
+    console.log("Verifying smart account deployment before session creation...");
+    const onchainCode = await publicClient.getCode({ address: props.accountAddress as Address });
+    if (!onchainCode || onchainCode === "0x") {
+      throw new Error(
+        "Smart account is not deployed on-chain. Deploy the account first and ensure contracts.json points to the correct factory and validators.",
+      );
+    }
+
     // Create EOA smart account (authorized to create sessions)
     // eslint-disable-next-line no-console
     console.log("Creating EOA smart account...");

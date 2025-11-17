@@ -1,7 +1,6 @@
 import type { Hex } from "viem";
 import {
   generate_account_id,
-  // @ts-expect-error - TypeScript doesn't understand package.json exports
 } from "zksync-sso-web-sdk/bundler";
 
 /**

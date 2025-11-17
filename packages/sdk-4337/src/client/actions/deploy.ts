@@ -4,7 +4,6 @@ import {
   encode_deploy_account_call_data,
   generate_account_id,
   PasskeyPayload,
-  // @ts-expect-error - TypeScript doesn't understand package.json exports
 } from "zksync-sso-web-sdk/bundler";
 
 /**
@@ -140,7 +139,7 @@ export function prepareDeploySmartAccount(
   const accountId = customAccountId || (generate_account_id(userId || null) as Hex);
 
   // Convert passkey signers to PasskeyPayload format for Rust SDK
-  let passkeyPayload: typeof PasskeyPayload | null = null;
+  let passkeyPayload: unknown | null = null;
   if (passkeySigners && passkeySigners.length > 0) {
     if (passkeySigners.length > 1) {
       throw new Error(
@@ -167,7 +166,8 @@ export function prepareDeploySmartAccount(
     accountId,
     eoaSigners || null,
     contracts.eoaValidator || null,
-    passkeyPayload,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    passkeyPayload as any,
     contracts.webauthnValidator || null,
     (installSessionValidator && contracts.sessionValidator) || null,
   ) as Hex;

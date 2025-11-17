@@ -677,10 +677,9 @@ async function deployAccount() {
       console.warn("Failed to extract deployed address from logs:", extractErr);
     }
     if (!deployedAddress) {
-      // Fallback: attempt to use accountId as placeholder (will not be checksummed but prevents UI hang)
-      deployedAddress = "0x" + accountId.slice(2, 42);
-      // eslint-disable-next-line no-console
-      console.warn("Using fallback deployed address derived from accountId prefix:", deployedAddress);
+      throw new Error(
+        "Could not determine deployed account address from receipt logs. Ensure contracts.json matches the deployed contracts, and that the factory emitted AccountCreated.",
+      );
     }
     // eslint-disable-next-line no-console
     console.log("Account deployed at:", deployedAddress);

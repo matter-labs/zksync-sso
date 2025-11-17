@@ -1,8 +1,9 @@
-import type { Abi, Address, Chain, Client, Hash, Hex, Transport } from "viem";
-import { encodeFunctionData } from "viem";
+import type { Address, Chain, Client, Hash, Hex, Transport } from "viem";
 import { type SmartAccount } from "viem/account-abstraction";
+import { encode_create_session_call_data } from "zksync-sso-web-sdk/bundler";
 
-import { conditionToNumber, limitTypeToNumber, type SessionSpec } from "../session/types.js";
+import { type SessionSpec } from "../session/types.js";
+import { sessionSpecToJSON } from "../session/utils.js";
 
 /**
  * Parameters for creating a session on a smart account
@@ -37,86 +38,7 @@ export type CreateSessionReturnType = {
 /**
  * SessionKeyValidator ABI for createSession function
  */
-const SESSION_KEY_VALIDATOR_ABI = [
-  {
-    type: "function",
-    name: "createSession",
-    inputs: [
-      {
-        name: "sessionSpec",
-        type: "tuple",
-        components: [
-          { name: "signer", type: "address" },
-          { name: "expiresAt", type: "uint48" },
-          {
-            name: "feeLimit",
-            type: "tuple",
-            components: [
-              { name: "limitType", type: "uint8" },
-              { name: "limit", type: "uint256" },
-              { name: "period", type: "uint48" },
-            ],
-          },
-          {
-            name: "callPolicies",
-            type: "tuple[]",
-            components: [
-              { name: "target", type: "address" },
-              { name: "selector", type: "bytes4" },
-              { name: "maxValuePerUse", type: "uint256" },
-              {
-                name: "valueLimit",
-                type: "tuple",
-                components: [
-                  { name: "limitType", type: "uint8" },
-                  { name: "limit", type: "uint256" },
-                  { name: "period", type: "uint48" },
-                ],
-              },
-              {
-                name: "constraints",
-                type: "tuple[]",
-                components: [
-                  { name: "condition", type: "uint8" },
-                  { name: "index", type: "uint64" },
-                  { name: "refValue", type: "bytes32" },
-                  {
-                    name: "limit",
-                    type: "tuple",
-                    components: [
-                      { name: "limitType", type: "uint8" },
-                      { name: "limit", type: "uint256" },
-                      { name: "period", type: "uint48" },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            name: "transferPolicies",
-            type: "tuple[]",
-            components: [
-              { name: "target", type: "address" },
-              { name: "maxValuePerUse", type: "uint256" },
-              {
-                name: "valueLimit",
-                type: "tuple",
-                components: [
-                  { name: "limitType", type: "uint8" },
-                  { name: "limit", type: "uint256" },
-                  { name: "period", type: "uint48" },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-] as const satisfies Abi;
+// Encoding for createSession is delegated to the wasm helper in web-sdk.
 
 /**
  * Create a new session on a smart account
@@ -176,53 +98,9 @@ export async function createSession<
     throw new Error("Client must have an account");
   }
 
-  // Convert SessionSpec to match ABI types (enums to numbers)
-  const sessionSpecForAbi = {
-    signer: sessionSpec.signer,
-    expiresAt: Number(sessionSpec.expiresAt),
-    feeLimit: {
-      limitType: limitTypeToNumber(sessionSpec.feeLimit.limitType),
-      limit: sessionSpec.feeLimit.limit,
-      period: Number(sessionSpec.feeLimit.period),
-    },
-    callPolicies: sessionSpec.callPolicies.map((policy) => ({
-      target: policy.target,
-      selector: policy.selector,
-      maxValuePerUse: policy.maxValuePerUse,
-      valueLimit: {
-        limitType: limitTypeToNumber(policy.valueLimit.limitType),
-        limit: policy.valueLimit.limit,
-        period: Number(policy.valueLimit.period),
-      },
-      constraints: policy.constraints.map((constraint) => ({
-        condition: conditionToNumber(constraint.condition),
-        index: constraint.index,
-        refValue: constraint.refValue,
-        limit: {
-          limitType: limitTypeToNumber(constraint.limit.limitType),
-          limit: constraint.limit.limit,
-          period: Number(constraint.limit.period),
-        },
-      })),
-    })),
-    transferPolicies: sessionSpec.transferPolicies.map((policy) => ({
-      target: policy.target,
-      maxValuePerUse: policy.maxValuePerUse,
-      valueLimit: {
-        limitType: limitTypeToNumber(policy.valueLimit.limitType),
-        limit: policy.valueLimit.limit,
-        period: Number(policy.valueLimit.period),
-      },
-    })),
-  };
-
-  // Encode the createSession call
-  const callData = encodeFunctionData({
-    abi: SESSION_KEY_VALIDATOR_ABI,
-    functionName: "createSession",
-    args: [sessionSpecForAbi],
-  });
-
+  // Convert SessionSpec into JSON string expected by wasm helper
+  const sessionSpecJSON = sessionSpecToJSON(sessionSpec);
+  const callData = encode_create_session_call_data(sessionSpecJSON) as Hex;
   // Send the UserOperation to create the session using the bundler client method.
   // Note: We explicitly pass the account for broader viem compatibility.
   const bundler = client as unknown as {

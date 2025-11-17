@@ -3,7 +3,6 @@ import { hexToBytes } from "viem";
 import {
   encode_add_passkey_call_data,
   PasskeyPayload,
-  // @ts-expect-error - TypeScript doesn't understand package.json exports
 } from "zksync-sso-web-sdk/bundler";
 
 /**

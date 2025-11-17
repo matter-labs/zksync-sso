@@ -3,10 +3,12 @@
  */
 
 import type { Address, Chain, Client, PublicActions, Transport } from "viem";
-import { readContract } from "viem/actions";
+import type { Hex } from "viem";
+import { decodeAbiParameters } from "viem";
+import { encode_session_state_call_data } from "zksync-sso-web-sdk/bundler";
 
 import type { SessionSpec } from "../session/types.js";
-import { conditionToNumber, limitTypeToNumber } from "../session/types.js";
+import { sessionSpecToJSON } from "../session/utils.js";
 
 /**
  * Session status as stored on-chain
@@ -261,55 +263,27 @@ export async function getSessionState<
 ): Promise<GetSessionStateReturnType> {
   const { account, sessionSpec, contracts } = params;
 
-  // Convert SessionSpec to match ABI types (enums to numbers)
-  const sessionSpecForAbi = {
-    signer: sessionSpec.signer,
-    expiresAt: Number(sessionSpec.expiresAt),
-    feeLimit: {
-      limitType: limitTypeToNumber(sessionSpec.feeLimit.limitType),
-      limit: sessionSpec.feeLimit.limit,
-      period: Number(sessionSpec.feeLimit.period),
-    },
-    callPolicies: sessionSpec.callPolicies.map((policy) => ({
-      target: policy.target,
-      selector: policy.selector,
-      maxValuePerUse: policy.maxValuePerUse,
-      valueLimit: {
-        limitType: limitTypeToNumber(policy.valueLimit.limitType),
-        limit: policy.valueLimit.limit,
-        period: Number(policy.valueLimit.period),
-      },
-      constraints: policy.constraints.map((constraint) => ({
-        condition: conditionToNumber(constraint.condition),
-        index: constraint.index,
-        refValue: constraint.refValue,
-        limit: {
-          limitType: limitTypeToNumber(constraint.limit.limitType),
-          limit: constraint.limit.limit,
-          period: Number(constraint.limit.period),
-        },
-      })),
-    })),
-    transferPolicies: sessionSpec.transferPolicies.map((policy) => ({
-      target: policy.target,
-      maxValuePerUse: policy.maxValuePerUse,
-      valueLimit: {
-        limitType: limitTypeToNumber(policy.valueLimit.limitType),
-        limit: policy.valueLimit.limit,
-        period: Number(policy.valueLimit.period),
-      },
-    })),
-  };
+  // Encode using wasm helper and perform a single eth_call to get the raw result
+  const sessionSpecJSON = sessionSpecToJSON(sessionSpec);
+  const calldata = encode_session_state_call_data(account, sessionSpecJSON) as Hex;
+  const { data } = await client.call({
+    to: contracts.sessionValidator,
+    data: calldata,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
 
-  const sessionState = await readContract(client, {
-    address: contracts.sessionValidator,
-    abi: SESSION_KEY_VALIDATOR_ABI,
-    functionName: "sessionState",
-    args: [account, sessionSpecForAbi],
-  });
+  // Decode the result using viem's ABI decoder (re-uses the ABI for decoding only)
+  // Use viem's ABI decoder to decode the session state output
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const outputs = (SESSION_KEY_VALIDATOR_ABI[0] as any).outputs;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const decoded = decodeAbiParameters(outputs, data as Hex) as any;
+
+  // The top-level return is a single tuple; decoded[0] will be the struct
+  const top = decoded[0];
 
   return {
-    sessionState: sessionState as SessionState,
+    sessionState: top as SessionState,
   };
 }
 
