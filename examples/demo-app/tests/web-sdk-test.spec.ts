@@ -209,6 +209,112 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   console.log("✅ All passkey steps completed successfully!");
 });
 
+test("Find addresses by passkey credential ID", async ({ page }) => {
+  // Use Anvil account #4 for this test to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=4");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  console.log("Step 1: Enabling passkey configuration...");
+
+  // Enable passkey deployment
+  const passkeyCheckbox = page.getByLabel("Enable Passkey Deployment");
+  await expect(passkeyCheckbox).toBeVisible();
+  await passkeyCheckbox.check();
+
+  console.log("Step 2: Creating WebAuthn passkey...");
+
+  // Create a virtual authenticator for testing
+  const client = await page.context().newCDPSession(page);
+  await client.send("WebAuthn.enable");
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+    },
+  });
+
+  // Click Create New WebAuthn Passkey button
+  await page.getByRole("button", { name: "Create New WebAuthn Passkey" }).click();
+
+  // Wait for passkey creation to complete
+  await expect(page.getByText("Passkey created successfully!")).toBeVisible({ timeout: 10000 });
+
+  console.log("✓ WebAuthn passkey created successfully");
+
+  // Step 3: Deploy Account with Passkey
+  console.log("Step 3: Deploying smart account with passkey...");
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+
+  // Wait for deployment to complete
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+
+  // Verify passkey is enabled in deployment result
+  await expect(page.getByText("Passkey Enabled: Yes")).toBeVisible();
+
+  console.log("✓ Smart account with passkey deployed successfully");
+
+  // Get the deployed account address
+  const deployedAddressElement = page.getByTestId("deployed-account-address");
+  await expect(deployedAddressElement).toBeVisible();
+  const deployedAddress = await deployedAddressElement.textContent();
+  console.log(`Deployed account address: ${deployedAddress}`);
+
+  // Step 4: Find addresses by passkey
+  console.log("Step 4: Finding addresses by passkey credential ID...");
+
+  // Verify the "Find Addresses by Passkey" section is visible
+  const findAddressesSection = page.getByTestId("find-addresses-section");
+  await expect(findAddressesSection).toBeVisible();
+
+  // Click the "Scan Passkey to Find Accounts" button - this will automatically find accounts
+  const scanPasskeyButton = page.getByTestId("scan-passkey-button");
+  await expect(scanPasskeyButton).toBeVisible();
+  await scanPasskeyButton.click();
+
+  // Wait for the results to appear (scanning + finding happens automatically)
+  const foundAddressesResult = page.getByTestId("found-addresses-result");
+  await expect(foundAddressesResult).toBeVisible({ timeout: 15000 });
+
+  // Verify "Associated Accounts:" label is visible
+  await expect(page.getByText("Associated Accounts:")).toBeVisible();
+
+  // Get all found addresses
+  const foundAddressList = page.getByTestId("found-addresses-list");
+  await expect(foundAddressList).toBeVisible();
+
+  const addressItems = foundAddressList.getByTestId("found-address-item");
+  const addressCount = await addressItems.count();
+  console.log(`Found ${addressCount} address(es)`);
+
+  // Verify that the deployed address is in the list
+  let foundDeployedAddress = false;
+  for (let i = 0; i < addressCount; i++) {
+    const addressText = await addressItems.nth(i).textContent();
+    console.log(`  Address ${i + 1}: ${addressText}`);
+
+    // Check if this address item contains the deployed address
+    if (addressText && addressText.includes(deployedAddress || "")) {
+      foundDeployedAddress = true;
+      console.log("  ✓ Deployed address found in list!");
+    }
+  }
+
+  // Assert that we found the deployed address
+  expect(foundDeployedAddress, `Deployed address ${deployedAddress} should be in the found addresses list`).toBe(true);
+
+  console.log("✓ Successfully found addresses by passkey");
+  console.log("✓ Verified deployed address is in the found addresses list");
+
+  console.log("✅ Find addresses by passkey test completed successfully!");
+});
+
 test("Deploy with session support and send transaction using session key", async ({ page }) => {
   // Capture console messages from the browser
   page.on("console", (msg) => {
@@ -220,8 +326,8 @@ test("Deploy with session support and send transaction using session key", async
     console.error("[BROWSER ERROR]:", err);
   });
 
-  // Use Anvil account #4 for this test to avoid nonce conflicts
-  await page.goto("/web-sdk-test?fundingAccount=4");
+  // Use Anvil account #7 for session tests (renumbered to avoid conflict with passkey test #4)
+  await page.goto("/web-sdk-test?fundingAccount=7");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -327,7 +433,7 @@ test("Deploy with session support and send transaction using session key", async
   // Fill in target address for session transaction
   const sessionTargetInput = page.locator("input[placeholder=\"0x...\"]").nth(0);
   await expect(sessionTargetInput).toBeVisible();
-  await sessionTargetInput.fill("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // Anvil account #4
+  await sessionTargetInput.fill("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC");
 
   // Fill in session transaction amount
   const sessionAmountInput = page.locator("input[placeholder=\"0.001\"]").last();
@@ -351,8 +457,8 @@ test("Deploy with session support and send transaction using session key", async
 });
 
 test("Deploy account, enable session, modify session config, and send transaction", async ({ page }) => {
-  // Use Anvil account #5 for this test to avoid nonce conflicts
-  await page.goto("/web-sdk-test?fundingAccount=5");
+  // Use Anvil account #8 for this test (renumbered)
+  await page.goto("/web-sdk-test?fundingAccount=8");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -425,7 +531,7 @@ test("Deploy account, enable session, modify session config, and send transactio
   await expect(page.getByRole("button", { name: "Send Session Transaction" })).toBeVisible();
 
   const sessionTargetInput = page.locator("input[placeholder=\"0x...\"]").nth(0);
-  await sessionTargetInput.fill("0x90F79bf6EB2c4f870365E785982E1f101E93b906"); // Anvil account #5
+  await sessionTargetInput.fill("0x90F79bf6EB2c4f870365E785982E1f101E93b906");
 
   const sessionAmountInput = page.locator("input[placeholder=\"0.001\"]").last();
   await sessionAmountInput.fill("0.001"); // Match Rust test value
@@ -442,8 +548,8 @@ test("Deploy account, enable session, modify session config, and send transactio
 });
 
 test("Deploy account with session validator pre-installed", async ({ page }) => {
-  // Use Anvil account #6 for this test to avoid nonce conflicts
-  await page.goto("/web-sdk-test?fundingAccount=6");
+  // Use Anvil account #9 for this test (renumbered)
+  await page.goto("/web-sdk-test?fundingAccount=9");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -518,7 +624,7 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
   await expect(page.getByRole("button", { name: "Send Session Transaction" })).toBeVisible();
 
   const sessionTargetInput = page.locator("input[placeholder=\"0x...\"]").nth(0);
-  await sessionTargetInput.fill("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"); // Anvil account #6
+  await sessionTargetInput.fill("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65");
 
   const sessionAmountInput = page.locator("input[placeholder=\"0.001\"]").last();
   await sessionAmountInput.fill("0.001");

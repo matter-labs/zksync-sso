@@ -20,8 +20,13 @@ export type {
 export { getAccountAddressFromLogs, prepareDeploySmartAccount } from "./deploy.js";
 
 // Passkey management exports
-export type { AddPasskeyParams, AddPasskeyResult } from "./passkey.js";
-export { addPasskey } from "./passkey.js";
+export type {
+  AddPasskeyParams,
+  AddPasskeyResult,
+  FindAddressesByPasskeyParams,
+  FindAddressesByPasskeyResult,
+} from "./passkey.js";
+export { addPasskey, findAddressesByPasskey } from "./passkey.js";
 
 // Utilities
 export { generateAccountId } from "./utils.js";
