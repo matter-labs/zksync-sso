@@ -4,7 +4,6 @@ import {
   encode_deploy_account_call_data,
   generate_account_id,
   PasskeyPayload,
-  // @ts-expect-error - TypeScript doesn't understand package.json exports
 } from "zksync-sso-web-sdk/bundler";
 
 /**
@@ -19,6 +18,8 @@ export type PrepareDeploySmartAccountParams = {
     eoaValidator?: Address;
     /** WebAuthn validator address (required if passkeySigners provided) */
     webauthnValidator?: Address;
+    /** Session validator address (required if installing session support) */
+    sessionValidator?: Address;
   };
 
   /** Optional array of EOA signer addresses to install */
@@ -33,6 +34,9 @@ export type PrepareDeploySmartAccountParams = {
     /** Origin domain (e.g., "https://example.com" or window.location.origin) */
     originDomain: string;
   }>;
+
+  /** Optional: Install session validator module during deployment */
+  installSessionValidator?: boolean;
 
   /** Optional user ID for deterministic account deployment. If provided, generates deterministic accountId from userId */
   userId?: string;
@@ -74,8 +78,10 @@ export type PrepareDeploySmartAccountResult = {
  *   contracts: {
  *     factory: "0x...",
  *     eoaValidator: "0x...",
+ *     sessionValidator: "0x...",
  *   },
  *   eoaSigners: ["0x..."],
+ *   installSessionValidator: true,
  * });
  *
  * // Send transaction via your preferred method
@@ -89,7 +95,15 @@ export type PrepareDeploySmartAccountResult = {
 export function prepareDeploySmartAccount(
   params: PrepareDeploySmartAccountParams,
 ): PrepareDeploySmartAccountResult {
-  const { contracts, eoaSigners, passkeySigners, userId, accountId: customAccountId } = params;
+  // Destructure all needed params, including installSessionValidator which was previously omitted
+  const {
+    contracts,
+    eoaSigners,
+    passkeySigners,
+    userId,
+    accountId: customAccountId,
+    installSessionValidator,
+  } = params;
 
   // Validation: Check that required validators are provided
   if (eoaSigners && eoaSigners.length > 0 && !contracts.eoaValidator) {
@@ -101,6 +115,12 @@ export function prepareDeploySmartAccount(
   if (passkeySigners && passkeySigners.length > 0 && !contracts.webauthnValidator) {
     throw new Error(
       "webauthnValidator contract address is required when passkeySigners are provided",
+    );
+  }
+
+  if (installSessionValidator && !contracts.sessionValidator) {
+    throw new Error(
+      "sessionValidator contract address is required when installSessionValidator is true",
     );
   }
 
@@ -119,7 +139,7 @@ export function prepareDeploySmartAccount(
   const accountId = customAccountId || (generate_account_id(userId || null) as Hex);
 
   // Convert passkey signers to PasskeyPayload format for Rust SDK
-  let passkeyPayload: typeof PasskeyPayload | null = null;
+  let passkeyPayload: unknown | null = null;
   if (passkeySigners && passkeySigners.length > 0) {
     if (passkeySigners.length > 1) {
       throw new Error(
@@ -146,8 +166,10 @@ export function prepareDeploySmartAccount(
     accountId,
     eoaSigners || null,
     contracts.eoaValidator || null,
-    passkeyPayload,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    passkeyPayload as any,
     contracts.webauthnValidator || null,
+    (installSessionValidator && contracts.sessionValidator) || null,
   ) as Hex;
 
   return {

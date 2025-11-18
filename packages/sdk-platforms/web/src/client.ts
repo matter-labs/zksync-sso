@@ -27,6 +27,35 @@ export function setWasmBindings(bindings: {
 /**
  * High-level TypeScript wrapper for the zkSync SSO ERC-4337 client
  */
+/**
+ * zkSync SSO ERC-4337 Client for web applications
+ *
+ * Provides a WebAssembly-powered client for interacting with zkSync SSO
+ * smart accounts using the ERC-4337 (Account Abstraction) standard.
+ *
+ * @example
+ * ```typescript
+ * import { ZkSyncSsoClient } from '@zksync-sso/viem-session-sdk';
+ *
+ * const client = new ZkSyncSsoClient({
+ *   rpcUrl: 'https://sepolia.era.zksync.dev',
+ *   bundlerUrl: 'https://bundler.example.com',
+ *   contracts: {
+ *     entryPoint: '0x...',
+ *     accountFactory: '0x...',
+ *   },
+ * }, privateKey);
+ *
+ * const result = await client.sendUserOperation({
+ *   account: '0x...',
+ *   calls: [{
+ *     to: '0x...',
+ *     data: '0x',
+ *     value: '1000000000000000000',
+ *   }],
+ * });
+ * ```
+ */
 export class ZkSyncSsoClient {
   private client: any;
 

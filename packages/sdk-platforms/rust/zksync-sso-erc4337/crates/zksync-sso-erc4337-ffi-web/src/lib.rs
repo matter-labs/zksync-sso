@@ -4,6 +4,7 @@ use alloy::{
     providers::ProviderBuilder,
     rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation,
     signers::local::PrivateKeySigner,
+    sol_types::SolCall,
 };
 use alloy_rpc_client::RpcClient;
 use wasm_bindgen::prelude::*;
@@ -504,6 +505,7 @@ pub fn deploy_account(
                 factory_address: factory_addr,
                 eoa_signers,
                 webauthn_signer,
+                session_validator: None,
                 id: None,
                 provider,
             }
@@ -1607,6 +1609,205 @@ pub fn generate_eoa_stub_signature(
     Ok(format!("0x{}", hex::encode(&signature)))
 }
 
+/// Encode a session execute call's calldata
+/// This uses the session execution mode for ERC-7579 accounts
+#[wasm_bindgen]
+pub fn encode_session_execute_call_data(
+    target: String,
+    value: String,
+    data: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::encode::encode_session_user_operation;
+
+    // Parse target address
+    let target_addr = target.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid target address: {}", e))
+    })?;
+
+    // Parse value
+    let value_u256 = value
+        .parse::<U256>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid value: {}", e)))?;
+
+    // Parse data (hex string)
+    let data_hex = data.trim_start_matches("0x");
+    let data_bytes = if data_hex.is_empty() {
+        Bytes::default()
+    } else {
+        let bytes_vec = hex::decode(data_hex).map_err(|e| {
+            JsValue::from_str(&format!("Invalid data hex: {}", e))
+        })?;
+        Bytes::from(bytes_vec)
+    };
+
+    let encoded =
+        encode_session_user_operation(target_addr, value_u256, data_bytes);
+
+    Ok(format!("0x{}", hex::encode(encoded)))
+}
+
+/// Generate a session stub signature for gas estimation
+/// Accepts a JSON-encoded SessionSpec and optional timestamp
+#[wasm_bindgen]
+pub fn generate_session_stub_signature_wasm(
+    session_validator: String,
+    session_spec_json: String,
+    current_timestamp: Option<String>,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::encode::generate_session_stub_signature as core_generate_session_stub_signature;
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::SessionSpec;
+
+    // Parse validator address
+    let validator_addr = session_validator.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid session validator address: {}", e))
+    })?;
+
+    // Parse SessionSpec from JSON
+    let spec: SessionSpec =
+        serde_json::from_str(&session_spec_json).map_err(|e| {
+            JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
+        })?;
+
+    // Parse timestamp if provided
+    let ts_opt = match current_timestamp {
+        Some(ts) if !ts.is_empty() => Some(ts.parse::<u64>().map_err(|e| {
+            JsValue::from_str(&format!("Invalid timestamp: {}", e))
+        })?),
+        _ => None,
+    };
+
+    let stub =
+        core_generate_session_stub_signature(validator_addr, &spec, ts_opt);
+
+    Ok(format!("0x{}", hex::encode(stub)))
+}
+
+/// Encode createSession call data for SessionKeyValidator
+/// Accepts a JSON-encoded SessionSpec and returns hex-encoded calldata
+#[wasm_bindgen]
+pub fn encode_create_session_call_data(
+    session_spec_json: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::SessionSpec;
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::SessionKeyValidator;
+
+    // Parse SessionSpec from JSON
+    let spec: SessionSpec =
+        serde_json::from_str(&session_spec_json).map_err(|e| {
+            JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
+        })?;
+
+    // Build createSession call and ABI encode
+    let create_session_calldata =
+        SessionKeyValidator::createSessionCall { sessionSpec: spec.into() }
+            .abi_encode();
+
+    Ok(format!("0x{}", hex::encode(create_session_calldata)))
+}
+
+/// Encode sessionState(account, spec) call data for SessionKeyValidator
+/// Accepts the smart account address and JSON-encoded SessionSpec and returns hex-encoded calldata
+#[wasm_bindgen]
+pub fn encode_session_state_call_data(
+    account: String,
+    session_spec_json: String,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::SessionSpec;
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::SessionKeyValidator;
+    use alloy::primitives::Address;
+
+    // Parse account address
+    let account_addr = account.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid account address: {}", e))
+    })?;
+
+    // Parse SessionSpec from JSON
+    let spec: SessionSpec =
+        serde_json::from_str(&session_spec_json).map_err(|e| {
+            JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
+        })?;
+
+    // Build sessionState call and ABI encode
+    let call_data = SessionKeyValidator::sessionStateCall {
+        account: account_addr,
+        spec: spec.into(),
+    }
+    .abi_encode();
+
+    Ok(format!("0x{}", hex::encode(call_data)))
+}
+
+/// Create a real session signature without relying on system time
+/// Accepts private key, validator address, JSON-encoded SessionSpec, userOp hash, and optional timestamp
+#[wasm_bindgen]
+pub fn session_signature_no_validation_wasm(
+    private_key_hex: String,
+    session_validator: String,
+    session_spec_json: String,
+    userop_hash_hex: String,
+    current_timestamp: Option<String>,
+) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::signature_wasm::session_signature_no_validation as core_session_signature_no_validation;
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::session_lib::session_spec::SessionSpec;
+
+    // Parse validator address
+    let validator_addr = session_validator.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid session validator address: {}", e))
+    })?;
+
+    // Parse SessionSpec from JSON
+    let spec: SessionSpec =
+        serde_json::from_str(&session_spec_json).map_err(|e| {
+            JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
+        })?;
+
+    // Parse hash
+    let hash_hex = userop_hash_hex.trim_start_matches("0x");
+    let hash_bytes = hex::decode(hash_hex)
+        .map_err(|e| JsValue::from_str(&format!("Invalid hash hex: {}", e)))?;
+    if hash_bytes.len() != 32 {
+        return Err(JsValue::from_str("Hash must be 32 bytes"));
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&hash_bytes);
+    let hash = FixedBytes::<32>::from(arr);
+
+    // Parse timestamp if provided
+    let ts_opt = match current_timestamp {
+        Some(ts) if !ts.is_empty() => Some(ts.parse::<u64>().map_err(|e| {
+            JsValue::from_str(&format!("Invalid timestamp: {}", e))
+        })?),
+        _ => None,
+    };
+
+    // Sign
+    let signature = core_session_signature_no_validation(
+        &private_key_hex,
+        validator_addr,
+        &spec,
+        hash,
+        ts_opt,
+    )
+    .map_err(|e| {
+        JsValue::from_str(&format!("Failed to sign session: {}", e))
+    })?;
+
+    Ok(format!("0x{}", hex::encode(signature)))
+}
+
+/// Compute the keyed nonce (u192) from a session signer address
+#[wasm_bindgen]
+pub fn keyed_nonce_decimal(session_signer: String) -> Result<String, JsValue> {
+    use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::session::send::keyed_nonce as core_keyed_nonce;
+
+    let addr = session_signer
+        .parse::<Address>()
+        .map_err(|e| JsValue::from_str(&format!("Invalid address: {}", e)))?;
+
+    let u192 = core_keyed_nonce(addr);
+    Ok(u192.to_string())
+}
+
 /// Sign a message hash with EOA private key
 /// The message should already be hashed (e.g., via keccak256)
 #[wasm_bindgen]
@@ -1951,7 +2152,6 @@ pub fn generate_account_id(user_id: Option<String>) -> String {
 /// * `eoa_validator_address` - Required if eoa_signers is provided
 /// * `passkey_payload` - Optional passkey payload
 /// * `webauthn_validator_address` - Required if passkey_payload is provided
-///
 /// # Returns
 /// Hex-encoded call data for deployAccount(salt, initData)
 #[wasm_bindgen]
@@ -1961,6 +2161,7 @@ pub fn encode_deploy_account_call_data(
     eoa_validator_address: Option<String>,
     passkey_payload: Option<PasskeyPayload>,
     webauthn_validator_address: Option<String>,
+    session_validator_address: Option<String>,
 ) -> Result<String, JsValue> {
     use alloy::sol_types::SolCall;
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::{
@@ -2063,9 +2264,26 @@ pub fn encode_deploy_account_call_data(
         }
     };
 
+    // Parse session validator if provided
+    let session_validator_core = match session_validator_address {
+        Some(validator) => {
+            let validator_addr = validator.parse::<Address>().map_err(|e| {
+                JsValue::from_str(&format!(
+                    "Invalid session_validator_address: {}",
+                    e
+                ))
+            })?;
+            Some(validator_addr)
+        }
+        None => None,
+    };
+
     // Create init data using the same logic as deploy.rs
-    let init_data =
-        create_init_data_for_deployment(eoa_signers_core, webauthn_signer_core);
+    let init_data = create_init_data_for_deployment(
+        eoa_signers_core,
+        webauthn_signer_core,
+        session_validator_core,
+    );
 
     // Create the deployAccount call
     let call = MSAFactory::deployAccountCall {
@@ -2162,6 +2380,7 @@ pub fn encode_add_passkey_call_data(
 fn create_init_data_for_deployment(
     eoa_signers: Option<zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::EOASigners>,
     webauthn_signer: Option<zksync_sso_erc4337_core::erc4337::account::modular_smart_account::deploy::WebAuthNSigner>,
+    session_validator: Option<Address>,
 ) -> Bytes {
     use alloy::{
         sol,
@@ -2193,6 +2412,12 @@ fn create_init_data_for_deployment(
         let webauthn_signer_encoded = webauthn.passkey.abi_encode_params();
         modules.push(webauthn.validator_address);
         data.push(Bytes::from(webauthn_signer_encoded));
+    }
+
+    // Add Session validator if provided (no initialization data needed)
+    if let Some(session_val_addr) = session_validator {
+        modules.push(session_val_addr);
+        data.push(Bytes::new()); // Empty bytes for session validator
     }
 
     // Create initializeAccount call
@@ -2486,6 +2711,7 @@ mod tests {
             factory_address,
             eoa_signers: None, // No EOA signer
             webauthn_signer: Some(webauthn_signer),
+            session_validator: None,
             id: None,
             provider: provider.clone(),
         })

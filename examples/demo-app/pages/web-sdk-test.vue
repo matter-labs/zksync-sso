@@ -294,6 +294,39 @@
       :passkey-config="passkeyConfig"
     />
 
+    <!-- Session Configuration -->
+    <SessionConfig
+      v-model="sessionConfig"
+      :is-deployed="!!deploymentResult"
+    />
+
+    <!-- Create Session (must be done before sending session transactions) -->
+    <SessionCreator
+      v-if="deploymentResult && (sessionConfig.enabled || sessionConfig.deployWithSession) && fundResult && !sessionCreated && eoaValidatorAddress"
+      :account-address="deploymentResult.address"
+      :session-config="sessionConfig"
+      :eoa-validator-address="eoaValidatorAddress"
+      :eoa-private-key="eoaSignerPrivateKey"
+      @session-created="handleSessionCreated"
+    />
+
+    <!-- Session Create Success Banner (persists after child unmount) -->
+    <div
+      v-if="deploymentResult && sessionConfig.enabled && fundResult && sessionCreated"
+      class="mt-4 p-3 bg-green-50 border border-green-200 rounded"
+    >
+      <p class="font-medium text-green-800">
+        Session Created Successfully!
+      </p>
+    </div>
+
+    <!-- Send Session Transaction -->
+    <SessionTransactionSender
+      v-if="deploymentResult && sessionConfig.enabled && fundResult && sessionCreated"
+      :account-address="deploymentResult.address"
+      :session-config="sessionConfig"
+    />
+
     <!-- Address Computation Testing -->
     <div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
       <h2 class="text-lg font-semibold mb-3 text-blue-800">
@@ -464,6 +497,25 @@ const walletConfig = ref({
   isReady: false,
 });
 
+// Session configuration state
+const sessionConfig = ref({
+  enabled: false,
+  deployWithSession: false,
+  validatorAddress: "",
+  sessionPrivateKey: "",
+  sessionSigner: "",
+  expiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+  feeLimit: "150000000000000000", // 0.15 ETH in wei (ample headroom for verification+call gas)
+  // Added explicit allowedRecipient so session creation and usage share identical spec.
+  // MUST match the default in SessionTransactionSender.vue and SessionCreator.vue to avoid hash mismatches (AA23 SessionNotActive).
+  allowedRecipient: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+});
+
+// Session creation state
+const sessionCreated = ref(false);
+const eoaValidatorAddress = ref("");
+const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"; // Anvil account #1
+
 // Anvil private keys for accounts 0-9
 const anvilPrivateKeys = [
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Account #0
@@ -584,6 +636,15 @@ async function loadWebAuthnValidatorAddress() {
   }
 }
 
+/**
+ * Handler for when session is created
+ */
+function handleSessionCreated() {
+  sessionCreated.value = true;
+  // eslint-disable-next-line no-console
+  console.log("Session created successfully, ready to send session transactions");
+}
+
 // Deploy a new smart account
 async function deployAccount() {
   loading.value = true;
@@ -597,15 +658,23 @@ async function deployAccount() {
     // Load contracts configuration
     const contracts = await loadContracts();
     const factoryAddress = contracts.factory;
-    const eoaValidatorAddress = contracts.eoaValidator;
+    // Assign to reactive ref (previously shadowed by a local const causing SessionCreator not to mount)
+    eoaValidatorAddress.value = contracts.eoaValidator;
     const webauthnValidatorAddress = contracts.webauthnValidator;
+    const sessionValidatorAddress = contracts.sessionValidator;
 
     // eslint-disable-next-line no-console
     console.log("Loaded factory address from contracts.json:", factoryAddress);
     // eslint-disable-next-line no-console
-    console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress);
+    console.log("Loaded EOA validator address from contracts.json:", eoaValidatorAddress.value);
     // eslint-disable-next-line no-console
     console.log("Loaded WebAuthn validator address from contracts.json:", webauthnValidatorAddress);
+    // Ensure session validator address is populated when available (needed for pre-install flows)
+    if (!sessionConfig.value.validatorAddress && sessionValidatorAddress) {
+      sessionConfig.value.validatorAddress = sessionValidatorAddress;
+      // eslint-disable-next-line no-console
+      console.log("Loaded Session validator address from contracts.json:", sessionValidatorAddress);
+    }
 
     // Add a rich Anvil wallet as an EOA signer for additional security
     // Using Anvil account #1 (0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
@@ -669,11 +738,14 @@ async function deployAccount() {
     const { transaction, accountId } = prepareDeploySmartAccount({
       contracts: {
         factory: factoryAddress,
-        eoaValidator: eoaValidatorAddress,
+        // Use the actual address string, not the ref object
+        eoaValidator: eoaValidatorAddress.value as Address,
         webauthnValidator: passkeyConfig.value.enabled ? passkeyConfig.value.validatorAddress as Address : undefined,
+        sessionValidator: sessionConfig.value.deployWithSession ? sessionConfig.value.validatorAddress as Address : undefined,
       },
       eoaSigners: eoaSignersAddresses,
       passkeySigners: passkeySigners,
+      installSessionValidator: sessionConfig.value.deployWithSession,
       userId, // Pass userId for deterministic accountId generation
     });
 
@@ -685,7 +757,8 @@ async function deployAccount() {
     const walletClient = createWalletClient({
       account,
       chain,
-      transport: http(),
+      // Explicit RPC URL to avoid any ambiguity (previously relied on default)
+      transport: http(contracts.rpcUrl),
     });
 
     // eslint-disable-next-line no-console
@@ -702,13 +775,21 @@ async function deployAccount() {
     // eslint-disable-next-line no-console
     console.log("  Waiting for transaction confirmation...");
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
     // eslint-disable-next-line no-console
-    console.log("  Transaction confirmed in block:", receipt.blockNumber);
-
+    console.log("  Transaction confirmed in block:", receipt.blockNumber, "logs count:", receipt.logs.length);
     // Extract deployed address from AccountCreated event using utility function
-    const deployedAddress = getAccountAddressFromLogs(receipt.logs);
-
+    let deployedAddress: string | undefined;
+    try {
+      deployedAddress = getAccountAddressFromLogs(receipt.logs);
+    } catch (extractErr) {
+      // eslint-disable-next-line no-console
+      console.warn("Failed to extract deployed address from logs:", extractErr);
+    }
+    if (!deployedAddress) {
+      throw new Error(
+        "Could not determine deployed account address from receipt logs. Ensure contracts.json matches the deployed contracts, and that the factory emitted AccountCreated.",
+      );
+    }
     // eslint-disable-next-line no-console
     console.log("Account deployed at:", deployedAddress);
 
@@ -726,9 +807,27 @@ async function deployAccount() {
       passkeyRegistered.value = true;
     }
 
-    testResult.value = passkeyConfig.value.enabled
-      ? "Account deployed successfully with EOA signer and WebAuthn passkey! (Passkey automatically registered)"
-      : "Account deployed successfully with EOA signer!";
+    // Build success message
+    let successMessage = "Account deployed successfully with EOA signer";
+    if (passkeyConfig.value.enabled && sessionConfig.value.deployWithSession) {
+      successMessage += ", WebAuthn passkey, and Session validator! (Passkey automatically registered, session validator pre-installed)";
+    } else if (passkeyConfig.value.enabled) {
+      successMessage += " and WebAuthn passkey! (Passkey automatically registered)";
+    } else if (sessionConfig.value.deployWithSession) {
+      successMessage += " and Session validator! (Session validator pre-installed)";
+    } else {
+      successMessage += "!";
+    }
+
+    testResult.value = successMessage;
+
+    // If the session validator was pre-installed as part of deployment, automatically enable
+    // session configuration so that the SessionCreator component appears for creating the session.
+    if (sessionConfig.value.deployWithSession && !sessionConfig.value.enabled) {
+      sessionConfig.value.enabled = true;
+      // eslint-disable-next-line no-console
+      console.log("Auto-enabled sessionConfig.enabled because deployWithSession was true");
+    }
 
     // eslint-disable-next-line no-console
     console.log("Account deployment result:", deploymentResult.value);
@@ -991,6 +1090,46 @@ async function fundSmartAccount() {
     // eslint-disable-next-line no-console
     console.error("Funding failed:", err);
     fundError.value = `Failed to fund smart account: ${err instanceof Error ? err.message : String(err)}`;
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Compute smart account address using offline CREATE2 computation
+async function computeAddress() {
+  loading.value = true;
+  addressComputeError.value = "";
+  computedAddress.value = "";
+
+  try {
+    // Validate inputs
+    if (!isAddressParamsValid.value) {
+      throw new Error("Please fill in all address parameters correctly");
+    }
+
+    // Use the WASM function to compute the account ID
+    const accountId = compute_account_id(addressParams.value.userId);
+
+    // eslint-disable-next-line no-console
+    console.log("Computing address with parameters:");
+    // eslint-disable-next-line no-console
+    console.log("  Account ID:", accountId);
+    // eslint-disable-next-line no-console
+    console.log("  Deploy Wallet:", addressParams.value.deployWallet);
+    // eslint-disable-next-line no-console
+    console.log("  Factory:", addressParams.value.factory);
+    // eslint-disable-next-line no-console
+    console.log("  Bytecode Hash:", addressParams.value.bytecodeHash);
+    // eslint-disable-next-line no-console
+    console.log("  Proxy Address:", addressParams.value.proxyAddress);
+
+    // TODO: Implement offline CREATE2 address computation
+    // This would require implementing the same logic as the factory contract
+    throw new Error("Address computation not yet implemented - use deployment to get address");
+  } catch (err: unknown) {
+    // eslint-disable-next-line no-console
+    console.error("Address computation failed:", err);
+    addressComputeError.value = `Failed to compute address: ${err instanceof Error ? err.message : String(err)}`;
   } finally {
     loading.value = false;
   }

@@ -48,13 +48,15 @@ where
         factory_address,
         eoa_signers,
         webauthn_signer,
+        session_validator,
         id,
         provider,
     } = deploy_params;
 
     let account_id = id.unwrap_or(generate_random_account_id());
 
-    let init_data = create_init_data(eoa_signers, webauthn_signer);
+    let init_data =
+        create_init_data(eoa_signers, webauthn_signer, session_validator);
 
     let factory_data: Bytes =
         MSADeployAccount::new(account_id, init_data).encode().into();
@@ -185,6 +187,7 @@ mod tests {
                     factory_address,
                     eoa_signers: Some(eoa_signers),
                     webauthn_signer: None,
+                    session_validator: None,
                     id: None,
                     provider: provider.clone(),
                 },

@@ -57,6 +57,7 @@
     "dict-zksync",
     "dict-packages",
     "dict-misc",
+    "dict-rust",
     "dict-sol"
   ],
   "dictionaryDefinitions": [
@@ -79,6 +80,11 @@
       "name": "dict-sol",
       "addWords": true,
       "path": "./cspell-config/cspell-sol.txt"
+    },
+    {
+      "name": "dict-rust",
+      "addWords": true,
+      "path": "./cspell-config/cspell-rust.txt"
     },
     {
       "name": "dict-circom",

@@ -32,6 +32,139 @@ Rust/WebAssembly implementation of zkSync SSO ERC-4337 functionality.
 The SDK is **functional** and supports real ERC-4337 operations including
 account deployment and EOA-signed transactions.
 
+## Quick Start with Viem (Recommended)
+
+For most use cases, the viem-based session API provides the easiest integration:
+
+```typescript
+import { toSmartAccount } from 'viem/account-abstraction';
+import { 
+  getAccountInitCode, 
+  encodeSessionExecuteCallData,
+  generateSessionStubSignature 
+} from '@zksync-sso/viem-session-sdk/bundler';
+
+// 1. Create a smart account with session support
+const account = await toSmartAccount({
+  client: publicClient,
+  entryPoint: {
+    address: ENTRY_POINT_ADDRESS,
+    version: '0.8',
+  },
+  async getFactoryArgs() {
+    return {
+      factory: FACTORY_ADDRESS,
+      factoryData: await getAccountInitCode(userId, [eoaSigner]),
+    };
+  },
+  async encodeCallData(calls) {
+    // Use session-based encoding for transaction execution
+    return await encodeSessionExecuteCallData(
+      calls,
+      sessionSpec,
+      sessionValidatorAddress
+    );
+  },
+  async getStubSignature() {
+    return await generateSessionStubSignature(sessionSpec);
+  },
+});
+
+// 2. Create bundler client
+const bundlerClient = createBundlerClient({
+  account,
+  transport: http(BUNDLER_URL),
+  chain,
+  client: publicClient,
+});
+
+// 3. Send transactions with automatic session handling
+const userOpHash = await bundlerClient.sendUserOperation({
+  calls: [
+    {
+      to: recipientAddress,
+      value: parseEther('0.001'),
+      data: '0x',
+    },
+  ],
+});
+```
+
+### Session Specifications
+
+Sessions define time-limited, scoped permissions for transaction signing:
+
+```typescript
+interface SessionSpec {
+  signer: Address;           // Address authorized to use this session
+  expiresAt: bigint;         // Unix timestamp when session expires
+  feeLimit: {
+    limitType: LimitType;    // Unlimited | Lifetime | Allowance
+    limit: bigint;           // Max fee in wei
+    period: bigint;          // Period for Allowance type
+  };
+  callPolicies: CallPolicy[];        // Smart contract call restrictions
+  transferPolicies: TransferPolicy[]; // ETH transfer restrictions
+}
+```
+
+**Critical**: The session spec used when creating a session **must exactly
+match** the spec used when sending transactions, or you'll get
+`AA23 SessionNotActive` errors.
+
+### Complete Session Example
+
+```typescript
+// Define session parameters
+const sessionSpec = {
+  signer: sessionSignerAddress,
+  expiresAt: BigInt(Math.floor(Date.now() / 1000) + 86400), // 24 hours
+  feeLimit: {
+    limitType: LimitType.Lifetime,
+    limit: parseEther('1'), // Max 1 ETH in fees
+    period: 0n,
+  },
+  callPolicies: [],
+  transferPolicies: [
+    {
+      target: allowedRecipient,
+      maxValuePerUse: parseEther('0.001'), // Max 0.001 ETH per tx
+      valueLimit: {
+        limitType: LimitType.Unlimited,
+        limit: 0n,
+        period: 0n,
+      },
+    },
+  ],
+};
+
+// Create session on-chain (using EOA-controlled account)
+const createResult = await createSessionAction(eoaBundlerClient, {
+  sessionSpec,
+  contracts: { sessionValidator: SESSION_VALIDATOR_ADDRESS },
+});
+
+// Use session for transactions (using session-controlled account)
+const sendResult = await sessionBundlerClient.sendUserOperation({
+  calls: [
+    { to: allowedRecipient, value: parseEther('0.001'), data: '0x' },
+  ],
+});
+```
+
+See [examples/demo-app](../../examples/demo-app) for complete working examples
+with session creation and usage.
+
+## Documentation
+
+- **[Session API Guide](./docs/session-api.md)** - Comprehensive guide to
+  session-based transactions
+- **[Migration Guide](./docs/migration-guide.md)** - Migrating from low-level
+  WASM API to viem
+- **API Reference** - See inline JSDoc comments in TypeScript files
+- **Examples** - See [examples/demo-app](../../examples/demo-app) for working
+  code
+
 ## Installation
 
 This is a beta development package.

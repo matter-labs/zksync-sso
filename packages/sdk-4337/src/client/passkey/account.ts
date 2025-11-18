@@ -18,7 +18,6 @@ import {
   encode_get_user_operation_hash_call_data,
   EncodeGetUserOperationHashParams,
   generate_passkey_stub_signature,
-  // @ts-expect-error - TypeScript doesn't understand package.json exports with node module resolution
 } from "zksync-sso-web-sdk/bundler";
 
 import { signWithPasskey } from "./webauthn.js";
