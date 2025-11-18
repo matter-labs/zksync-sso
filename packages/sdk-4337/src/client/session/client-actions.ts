@@ -3,19 +3,15 @@ import type {
   Address,
   Chain,
   Client,
-  Hash,
   Transport,
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
-import { encode_create_session_call_data } from "zksync-sso-web-sdk/bundler";
 
 import {
   type SmartAccountClientActions,
   smartAccountClientActions,
 } from "../common/smart-account-client-actions.js";
 import { toSessionSmartAccount, type ToSessionSmartAccountParams } from "./account.js";
-import type { SessionSpec } from "./types.js";
-import { sessionSpecToJSON } from "./utils.js";
 
 /**
  * Extended client data needed for session smart account wrapper
@@ -32,17 +28,11 @@ export type SessionClientData<
 /**
  * Session client actions extend generic smart account actions but:
  *  - Remove addPasskey (not applicable for pure session key accounts)
- *  - Add createSession (send UserOp to create a session spec on-chain)
- *  - Add getSessionState (query on-chain session state)
- *  - Add sendSessionTransaction (alias of sendTransaction for clarity)
  */
 export type SessionClientActions<
   TChain extends Chain = Chain,
   TAccount extends Account = Account,
-> = Omit<SmartAccountClientActions<TChain, TAccount>, "addPasskey"> & {
-  /** Create a session on-chain using the provided specification */
-  createSession: (params: { sessionSpec: SessionSpec; contracts: { sessionValidator: Address } }) => Promise<Hash>;
-};
+> = Omit<SmartAccountClientActions<TChain, TAccount>, "addPasskey">;
 
 /**
  * Decorator providing session-specific client actions
@@ -63,24 +53,6 @@ export function sessionClientActions<
 
   return {
     ...base,
-    // Explicit session creation via validator module
-    createSession: async (params: { sessionSpec: SessionSpec; contracts: { sessionValidator: Address } }) => {
-      // Build smart account instance (lazy, not cached here; acceptable overhead for now)
-      const smartAccount = await toSessionSmartAccount(config.sessionAccount);
-      const sessionSpecJSON = sessionSpecToJSON(params.sessionSpec);
-      const callData = encode_create_session_call_data(sessionSpecJSON) as unknown as `0x${string}`;
-      const userOpHash = await config.bundler.sendUserOperation({
-        account: smartAccount,
-        calls: [
-          {
-            to: params.contracts.sessionValidator,
-            data: callData,
-            value: 0n,
-          },
-        ],
-      });
-      return userOpHash;
-    },
     // Remove addPasskey (not valid for session-only signing)
     addPasskey: undefined as never,
   } as SessionClientActions<TChain, TAccount extends Account ? TAccount : Account>;

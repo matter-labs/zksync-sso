@@ -126,16 +126,11 @@ const connectWithSSO = () => {
 
 This monorepo is comprised of the following packages, products, and examples:
 
-- `packages/sdk` is the `zksync-sso` JavaScript SDK
+- `packages/sdk-4337` is the `zksync-sso` JavaScript SDK
 - `packages/auth-server` is the Auth Server used for account creation and
   session key management
-- `packages/contracts` are the on-chain smart contracts behind ZKsync SSO
-  accounts
-- `examples/nft-quest` is an app demonstrating the use of ZKsync SSO with
-  sessions
-- `examples/nft-quest-contracts` are the smart contracts for `nft-quest`
-- `examples/demo-app` is a test app mostly used for CI testing
-- `examples/bank-demo` is an app demonstrating the fully embedded experience
+- `packages/erc4337-contracts` are the on-chain smart contracts behind ZKsync
+  SSO accounts
 
 ## Running development
 
@@ -218,8 +213,7 @@ command.
 
 ## Running/Debugging End-to-End Tests
 
-To execute the end-to-end tests for the `demo-app` (or similarly for
-`nft-quest`), you'll need to do some setup:
+To execute the end-to-end tests for the `demo-app` you'll need to do some setup:
 
 1. Start `anvil-zksync`
 2. Deploy the smart contracts, `pnpm --dir packages/contracts run deploy`

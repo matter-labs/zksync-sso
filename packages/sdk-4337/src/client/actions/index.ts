@@ -1,16 +1,14 @@
-// Session creation exports
-export type { CreateSessionParams, CreateSessionReturnType } from "./createSession.js";
-export { createSession } from "./createSession.js";
-
-// Session state query exports
+// Session actions exports
 export type {
+  CreateSessionParams,
+  CreateSessionReturnType,
   GetSessionStateParams,
   GetSessionStateReturnType,
   SessionState,
   SessionStateEvent,
   SessionStateEventCallback,
-} from "./getSessionState.js";
-export { getSessionState, SessionEventType, SessionStatus } from "./getSessionState.js";
+} from "./sessions.js";
+export { createSession, getSessionState, SessionEventType, SessionStatus } from "./sessions.js";
 
 // Smart account deployment (prepare-only) exports
 export type {

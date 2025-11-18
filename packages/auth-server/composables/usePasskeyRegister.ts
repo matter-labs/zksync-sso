@@ -17,10 +17,10 @@ export const usePasskeyRegister = () => {
   const { inProgress, error, execute: registerPasskey } = useAsync(async (): Promise<RegisterNewPasskeyReturnType> => {
     const name = generatePasskeyName();
     const result = await createWebAuthnCredential({
-      userName: name,
-      userDisplayName: name,
-      rpId: typeof window !== "undefined" ? window.location.hostname : "localhost",
+      rpId: window.location.hostname,
       rpName: "ZKsync SSO",
+      name: name,
+      displayName: name,
     });
 
     return {

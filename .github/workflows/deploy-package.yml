@@ -43,15 +43,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
-      # SDK depends on contracts
-      - name: Install contract dependencies
-        run: pnpm install -r --frozen-lockfile
-        working-directory: packages/contracts
-
-      - name: Build contracts
-        run: pnpm build
-        working-directory: packages/contracts
-
       # Web SDK depends on ERC-4337 contracts for WASM build
       - name: Install ERC-4337 contract dependencies
         run: forge soldeer install
@@ -61,16 +52,8 @@ jobs:
         run: forge build
         working-directory: packages/erc4337-contracts
 
-      # Local node to have target for deploy
-      - name: Era Test Node Action
-        uses: dutterbutter/anvil-zksync-action@v1.1.0
-
-      - name: Deploy contracts
-        run: pnpm run deploy --file ../auth-server/stores/local-node.json
-        working-directory: packages/contracts
-
       - name: Build the package
-        run: pnpm nx build sdk
+        run: pnpm nx build sdk-4337
 
       - name: Build the wagmi-connector package
         run: pnpm nx build connector-export
@@ -79,7 +62,7 @@ jobs:
         run: pnpm nx build web-sdk
 
       - name: Prepare package.json
-        working-directory: packages/sdk
+        working-directory: packages/sdk-4337
         run: node prepare-package.mjs
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
@@ -111,7 +94,7 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Publish SDK to NPM
-        working-directory: packages/sdk
+        working-directory: packages/sdk-4337
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
 
       - name: Publish wagmi connector to NPM
@@ -129,7 +112,7 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Publish SDK to GitHub Packages
-        working-directory: packages/sdk
+        working-directory: packages/sdk-4337
         run: |
           # Update package name for GitHub Packages to be scoped to the organization
           npm pkg set name="@matter-labs/zksync-sso"

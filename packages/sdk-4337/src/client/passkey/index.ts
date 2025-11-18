@@ -11,6 +11,7 @@ export {
 export {
   type CreateCredentialOptions,
   createWebAuthnCredential,
+  getPasskeyCredential,
   signWithPasskey,
   type SignWithPasskeyOptions,
   type WebAuthnCredential,

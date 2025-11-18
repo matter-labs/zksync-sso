@@ -432,7 +432,7 @@ import { createWalletClient, http, type Hash, type Hex, type Address, parseEther
 import { privateKeyToAccount } from "viem/accounts";
 import { createBundlerClient } from "viem/account-abstraction";
 
-import { createEcdsaClient, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, findAddressesByPasskey } from "zksync-sso-4337/client";
+import { createEcdsaClient, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, findAddressesByPasskey, getPasskeyCredential } from "zksync-sso-4337/client";
 
 import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
 
@@ -942,39 +942,19 @@ async function scanPasskeyForFindAccounts() {
     // eslint-disable-next-line no-console
     console.log("Requesting WebAuthn authentication to scan passkey...");
 
-    // Create a challenge for authentication
-    const challenge = new Uint8Array(32);
-    crypto.getRandomValues(challenge);
-
     // Request authentication to get the credential ID
-    const credential = await navigator.credentials.get({
-      publicKey: {
-        challenge,
-        timeout: 60000,
-        rpId: window.location.hostname,
-        userVerification: "required",
-      },
-    });
-
-    if (!credential || credential.type !== "public-key") {
-      throw new Error("Failed to authenticate with passkey");
-    }
-
-    const pkCredential = credential as PublicKeyCredential;
-
-    // Extract credential ID
-    const credentialId = new Uint8Array(pkCredential.rawId);
-    const credentialIdHex = `0x${Array.from(credentialId).map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+    const credential = await getPasskeyCredential();
+    if (!credential) throw new Error("No credential returned from WebAuthn");
 
     // Set the scanned passkey details
-    findPasskeyCredentialId.value = credentialIdHex;
+    findPasskeyCredentialId.value = credential.credentialIdHex;
     findPasskeyOriginDomain.value = window.location.origin;
     findPasskeyScanned.value = true;
 
     // eslint-disable-next-line no-console
     console.log("Passkey scanned successfully:");
     // eslint-disable-next-line no-console
-    console.log("  Credential ID:", credentialIdHex);
+    console.log("  Credential ID:", credential.credentialIdHex);
     // eslint-disable-next-line no-console
     console.log("  Origin:", window.location.origin);
 
@@ -995,10 +975,10 @@ async function scanPasskeyForFindAccounts() {
     const result = await findAddressesByPasskey({
       client: publicClient,
       contracts: {
-        webauthnValidator: contracts.webauthnValidator as Address,
+        webauthnValidator: contracts.webauthnValidator,
       },
       passkey: {
-        credentialId: credentialIdHex as Hex,
+        credentialId: credential.credentialIdHex,
         originDomain: window.location.origin,
       },
     });

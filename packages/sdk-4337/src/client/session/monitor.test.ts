@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { SessionState } from "../actions/getSessionState.js";
-import { SessionStatus } from "../actions/getSessionState.js";
+import type { SessionState } from "../actions/sessions.js";
+import { SessionStatus } from "../actions/sessions.js";
 import { shouldWarnAboutSession } from "./monitor.js";
 import type { SessionSpec } from "./types.js";
 import { LimitType } from "./types.js";

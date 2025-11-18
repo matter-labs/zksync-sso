@@ -1,6 +1,0 @@
-{
-  "sessionValidator": "0x64Fa4b6fCF655024e6d540E0dFcA4142107D4fBC",
-  "webauthnValidator": "0x006ecc2D79242F1986b7cb5F636d6E3f499f1026",
-  "factory": "0x7230ae6D4a2C367ff8493a76c15F8832c62f9fE9",
-  "bundlerUrl": "https://sepolia.era.zksync.dev"
-}

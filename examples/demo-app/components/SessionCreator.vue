@@ -73,7 +73,7 @@
 import { ref, computed } from "vue";
 import { createPublicClient, http, parseEther, type Chain, type Address } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-import { createSession as createSessionAction, toEcdsaSmartAccount, LimitType } from "zksync-sso-4337/client";
+import { createSession, toEcdsaSmartAccount, LimitType } from "zksync-sso-4337/client";
 
 interface SessionConfig {
   enabled: boolean;
@@ -244,7 +244,7 @@ async function createSessionOnChain() {
     // Create the session on-chain
     let sessionResult;
     try {
-      sessionResult = await createSessionAction(bundlerClient, {
+      sessionResult = await createSession(bundlerClient, {
         sessionSpec,
         contracts: {
           sessionValidator: props.sessionConfig.validatorAddress as Address,

@@ -1,20 +1,11 @@
 import type { Address, Chain, Hash, PublicRpcSchema, RpcSchema as RpcSchemaGeneric, WalletRpcSchema } from "viem";
 
-import type { SessionPreferences } from "../client/session/index.js";
-import type { SessionSpecJSON } from "../client/session/utils.js";
+import type { SessionRequiredContracts } from "../client/index.js";
 import type { Message } from "../communicator/index.js";
-import type { AppMetadata } from "../communicator/interface.js";
 import type { SerializedEthereumRpcError } from "../errors/index.js";
-
-export interface RequestArguments<M extends Method<TSchema>, TSchema extends RpcSchemaGeneric = RpcSchema> {
-  readonly method: M;
-  readonly params?: ExtractParams<M, TSchema>;
-}
-
-export type SessionRequiredContracts = {
-  webauthnValidator: Address;
-  sessionValidator: Address;
-};
+import type { AppMetadata, RequestArguments } from "./interface.js";
+import type { SessionPreferences } from "./session/index.js";
+import type { SessionConfigJSON } from "./session/utils.js";
 
 export type AuthServerRpcSchema = [
   {
@@ -29,22 +20,20 @@ export type AuthServerRpcSchema = [
         activeChainId: Chain["id"];
         session?: {
           sessionKey: Hash;
-          sessionConfig: SessionSpecJSON;
+          sessionConfig: SessionConfigJSON;
         };
       };
       chainsInfo: {
         id: Chain["id"];
         capabilities: Record<string, unknown>;
         contracts: SessionRequiredContracts;
+        bundlerUrl?: string;
       }[];
     };
   },
 ];
-
 export type RpcSchema = WalletRpcSchema | PublicRpcSchema | AuthServerRpcSchema;
-
 export type Method<TSchema extends RpcSchemaGeneric = RpcSchema> = TSchema[number]["Method"];
-
 export type ExtractParams<
   TMethod extends Method<TSchema>,
   TSchema extends RpcSchemaGeneric = RpcSchema,
@@ -53,7 +42,6 @@ export type ExtractParams<
     ? R
     : never
   : never;
-
 export type ExtractReturnType<
   TMethod extends Method<TSchema>,
   TSchema extends RpcSchemaGeneric = RpcSchema,

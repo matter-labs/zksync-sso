@@ -1,5 +1,4 @@
-import { type Hex, toHex } from "viem";
-import { findAddressesByPasskey } from "zksync-sso-4337/client";
+import { findAddressesByPasskey, getPasskeyCredential } from "zksync-sso-4337/client";
 
 export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
   const chainId = toRef(_chainId);
@@ -10,9 +9,7 @@ export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
     const client = getPublicClient({ chainId: chainId.value });
 
     const credential = await getPasskeyCredential();
-    if (!credential) {
-      throw new Error("No credential found");
-    }
+    if (!credential) throw new Error("No credential found");
 
     try {
       const contracts = contractsByChain[chainId.value];
@@ -24,23 +21,18 @@ export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
           webauthnValidator: contracts.webauthnValidator,
         },
         passkey: {
-          credentialId: credential.id as Hex,
-          originDomain: typeof window !== "undefined" ? window.location.origin : "http://localhost",
+          credentialId: credential.credentialIdHex,
+          originDomain: window.location.origin,
         },
       });
-
-      if (!result.addresses || result.addresses.length === 0) {
-        throw new Error("No accounts found for this passkey");
-      }
+      if (!result.addresses.length) throw new Error("No accounts found for this passkey");
 
       // Use the first address found
       const address = result.addresses[0];
 
       login({
-        username: credential.id, // Use credential ID as username for now
         address,
-        passkey: toHex(new Uint8Array(0)), // Legacy field, not used with sdk-4337
-        credentialId: credential.id as Hex,
+        credentialId: credential.credentialIdHex,
       });
       return { success: true } as const;
     } catch (error) {

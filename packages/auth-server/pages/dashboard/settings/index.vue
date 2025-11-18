@@ -1,5 +1,7 @@
 <template>
-  <div class="flex flex-col flex-1">
+  <div />
+  <!-- TODO: Recovery methods not yet available in sdk-4337 -->
+  <!-- <div class="flex flex-col flex-1">
     <Card
       v-if="recoveryMethods.length === 0"
       class="border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600"
@@ -10,8 +12,7 @@
       <p class="text-yellow-700 mb-4 dark:text-yellow-300">
         Configure your account recovery methods to ensure your account is secure.
       </p>
-      <!-- TODO: Recovery methods not yet available in sdk-4337 -->
-      <!-- <AddRecoveryMethodModal
+      <AddRecoveryMethodModal
         @closed="refreshGuardians"
       >
         <template #trigger>
@@ -21,7 +22,7 @@
             Add Recovery Method
           </Button>
         </template>
-      </AddRecoveryMethodModal> -->
+      </AddRecoveryMethodModal>
     </Card>
     <div v-else>
       <div class="space-y-6">
@@ -129,21 +130,17 @@
             </Button>
           </div>
         </Card>
-        <!-- TODO: Recovery methods not yet available in sdk-4337 -->
-        <!-- <AddRecoveryMethodModal
-          @closed="refreshGuardians"
-        /> -->
+        <AddRecoveryMethodModal @closed="refreshGuardians" />
       </div>
     </div>
-  </div>
+  </div> -->
 </template>
 
 <script setup lang="ts">
-import { ShieldCheckIcon, SparklesIcon, WalletIcon } from "@heroicons/vue/24/solid";
+/* import { ShieldCheckIcon, SparklesIcon, WalletIcon } from "@heroicons/vue/24/solid";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 
-// TODO: Recovery methods not yet available in sdk-4337
-// import AddRecoveryMethodModal from "~/components/account-recovery/AddRecoveryMethodModal.vue";
+import AddRecoveryMethodModal from "~/components/account-recovery/AddRecoveryMethodModal.vue";
 import CopyToClipboard from "~/components/common/CopyToClipboard.vue";
 import Button from "~/components/zk/button.vue";
 import Card from "~/components/zk/panel/card.vue";
@@ -208,5 +205,5 @@ watchEffect(async () => {
     await getGuardians(accountAddress);
     await getOidcAccounts(accountAddress);
   }
-});
+}); */
 </script>

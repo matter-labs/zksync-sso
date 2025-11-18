@@ -1,29 +1,26 @@
 import { useAppKitProvider } from "@reown/appkit/vue";
 import { type Address, createPublicClient, createWalletClient, custom, type Hex, http, publicActions, walletActions } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
-import { eip712WalletActions } from "viem/zksync";
+import { /* generatePrivateKey, */ privateKeyToAccount } from "viem/accounts";
+import { localhost } from "viem/chains";
 import { createPasskeyClient } from "zksync-sso-4337/client";
 
 // TODO: OIDC and guardian recovery are not yet available in sdk-4337
 // import { createZkSyncOidcClient, type ZkSyncSsoClient } from "zksync-sso/client/oidc";
 // import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
-import eraSepoliaChainData from "./era-sepolia.json";
 import localChainData from "./local-node.json";
 
-export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
+export const supportedChains = [localhost];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
-  [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.url,
-  [zksyncInMemoryNode.id]: "http://localhost:3010",
+  [localhost.id]: "http://localhost:3010",
 };
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
-  [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
-  [zksyncInMemoryNode.id]: "http://localhost:3020",
+  [localhost.id]: "http://localhost:3020",
 };
 
 type ChainContracts = {
+  eoaValidator: Address;
   webauthnValidator: Address;
   sessionValidator: Address;
   factory: Address;
@@ -32,15 +29,11 @@ type ChainContracts = {
 };
 
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
-  [zksyncSepoliaTestnet.id]: eraSepoliaChainData as ChainContracts,
-  [zksyncInMemoryNode.id]: localChainData as ChainContracts,
+  [localhost.id]: localChainData as ChainContracts,
 };
 
 export const chainParameters: Record<SupportedChainId, { blockTime: number }> = {
-  [zksyncSepoliaTestnet.id]: {
-    blockTime: 15,
-  },
-  [zksyncInMemoryNode.id]: {
+  [localhost.id]: {
     blockTime: 1,
   },
 };
@@ -117,8 +110,8 @@ export const useClientStore = defineStore("client", () => {
         address: address.value,
         validatorAddress: contracts.webauthnValidator,
         credentialId: credentialId.value,
-        rpId: typeof window !== "undefined" ? window.location.hostname : "localhost",
-        origin: typeof window !== "undefined" ? window.location.origin : "http://localhost",
+        rpId: window.location.hostname,
+        origin: window.location.origin,
       },
       bundlerClient,
       chain,
@@ -177,8 +170,8 @@ export const useClientStore = defineStore("client", () => {
         address,
         validatorAddress: contracts.webauthnValidator,
         credentialId,
-        rpId: typeof window !== "undefined" ? window.location.hostname : "localhost",
-        origin: typeof window !== "undefined" ? window.location.origin : "http://localhost",
+        rpId: window.location.hostname,
+        origin: window.location.origin,
       },
       bundlerClient,
       chain,
@@ -191,13 +184,15 @@ export const useClientStore = defineStore("client", () => {
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
 
     const throwAwayClient = createWalletClient({
-      account: privateKeyToAccount(generatePrivateKey()),
+      account: privateKeyToAccount(
+        // generatePrivateKey()
+        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Anvil Rich account // TODO: Implement paymaster instead of relying on rich account
+      ),
       chain,
       transport: createTransport(),
     })
       .extend(publicActions)
-      .extend(walletActions)
-      .extend(eip712WalletActions());
+      .extend(walletActions);
     return throwAwayClient;
   };
 
@@ -223,8 +218,7 @@ export const useClientStore = defineStore("client", () => {
       transport: custom(provider as any),
     })
       .extend(publicActions)
-      .extend(walletActions)
-      .extend(eip712WalletActions());
+      .extend(walletActions);
   };
 
   return {

@@ -30,7 +30,7 @@
   },
   "peerDependencies": {
     "viem": "^2.30.0",
-    "zksync-sso": "workspace:*"
+    "zksync-sso-4337": "workspace:*"
   },
   "author": "Matter Labs",
   "license": "MIT",

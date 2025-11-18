@@ -8,7 +8,7 @@
         "cwd": "packages/auth-server",
         "command": "pnpm run copy:snarkjs && PORT=3002 nuxt dev"
       },
-      "dependsOn": ["^build", "zksync-sso-contracts:deploy", "nft-quest-contracts:deploy:local"]
+      "dependsOn": ["^build", "demo-app:deploy-contracts-erc4337"]
     },
     "dev:all": {
       "executor": "nx:run-commands",

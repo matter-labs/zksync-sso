@@ -1,4 +1,3 @@
-import type { Hex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
 import type { SessionSpec } from "zksync-sso-4337/client";
@@ -49,14 +48,17 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
       contracts: {
         factory: chainContracts.factory,
         webauthnValidator: chainContracts.webauthnValidator,
+        eoaValidator: chainContracts.eoaValidator,
+        sessionValidator: chainContracts.sessionValidator,
       },
       passkeySigners: [{
-        credentialId: credentialId as Hex,
+        credentialId: credentialId,
         publicKey: credentialPublicKey,
-        originDomain: typeof window !== "undefined" ? window.location.origin : "http://localhost",
+        originDomain: window.location.origin,
       }],
       eoaSigners: [ownerAddress],
       userId: credentialId, // Use credential ID as unique user ID
+      installSessionValidator: true,
     });
 
     // Send deployment transaction

@@ -24,6 +24,8 @@ async function getSimpleWebAuthn() {
   return simpleWebAuthnModule;
 }
 
+type Hex = `0x${string}`;
+
 /**
  * Configuration options for creating a WebAuthn credential
  */
@@ -69,17 +71,18 @@ export interface WebAuthnCredential {
   /**
    * Raw credential ID (hex string with 0x prefix)
    */
-  credentialId: string;
+  credentialId: Hex;
 
-  /**
-   * X coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
-   */
-  publicKeyX: string;
-
-  /**
-   * Y coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
-   */
-  publicKeyY: string;
+  publicKey: {
+    /**
+     * X coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
+     */
+    x: Hex;
+    /**
+     * Y coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
+     */
+    y: Hex;
+  };
 
   /**
    * Origin where the credential was created
@@ -90,10 +93,10 @@ export interface WebAuthnCredential {
 /**
  * Convert a Uint8Array to a hex string with 0x prefix
  */
-function bytesToHex(bytes: Uint8Array): string {
+function bytesToHex(bytes: Uint8Array): Hex {
   return "0x" + Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+    .join("") as Hex;
 }
 
 /**
@@ -223,8 +226,10 @@ export async function createWebAuthnCredential(
 
   return {
     credentialId: bytesToHex(credId),
-    publicKeyX: bytesToHex(xBuffer),
-    publicKeyY: bytesToHex(yBuffer),
+    publicKey: {
+      x: bytesToHex(xBuffer),
+      y: bytesToHex(yBuffer),
+    },
     origin: window.location.origin,
   };
 }

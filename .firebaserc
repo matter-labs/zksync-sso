@@ -6,20 +6,6 @@
           "zksync-auth-server-staging"
         ]
       }
-    },
-    "stake-demo-app": {
-      "hosting": {
-        "stake-demo-app": [
-          "stake-demo-app"
-        ]
-      }
-    },
-    "nft-quest-testnet": {
-      "hosting": {
-        "nft-quest-testnet": [
-          "nft-quest-testnet"
-        ]
-      }
     }
   },
   "etags": {}

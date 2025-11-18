@@ -26,7 +26,7 @@ async function preparePackageJson() {
       for (const [dep, depVersion] of Object.entries(packageJson.peerDependencies)) {
         if (depVersion === "workspace:*") {
           // Replace workspace protocol with proper version range
-          if (dep === "zksync-sso") {
+          if (dep === "zksync-sso-4337") {
             packageJson.peerDependencies[dep] = `^${version}`;
             console.log(`Replaced workspace dependency for ${dep} with ^${version}`);
           }
@@ -38,7 +38,7 @@ async function preparePackageJson() {
     if (packageJson.dependencies) {
       for (const [dep, depVersion] of Object.entries(packageJson.dependencies)) {
         if (depVersion === "workspace:*") {
-          if (dep === "zksync-sso") {
+          if (dep === "zksync-sso-4337") {
             packageJson.dependencies[dep] = `^${version}`;
             console.log(`Replaced workspace dependency for ${dep} with ^${version}`);
           }

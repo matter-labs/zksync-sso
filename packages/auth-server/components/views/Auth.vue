@@ -61,8 +61,6 @@
 </template>
 
 <script lang="ts" setup>
-import { toHex } from "viem";
-
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();
 const { requestChain, requestMethod } = storeToRefs(useRequestsStore());
@@ -87,9 +85,8 @@ const registerAccount = async () => {
     const result = await createAccount();
     if (result) {
       login({
-        username: result.credentialId,
         address: result.address,
-        passkey: toHex(result.credentialPublicKey),
+        credentialId: result.credentialId,
       });
       navigateTo("/confirm/connect");
     }

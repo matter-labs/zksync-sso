@@ -15,23 +15,6 @@ sepolia
 foundryup
 unpermitted
 
-// examples/bank-demo
-ctap
-Aave
-aave
-jdoe
-wght
-topup
-OBAGNSGT
-OXBB
-Usdc
-usdc
-
-// examples/nft-quest
-Fren
-fren
-nfts
-
 // auth-server
 oidc
 Oidc

@@ -10,7 +10,7 @@
     <WalletConnectSessionRequestModal />
     <WalletConnectSessionProposalModal />
 
-    <Teleport to="body">
+    <!-- <Teleport to="body">
       <div
         v-if="pendingRecovery"
         class="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-2xl flex gap-4 backdrop-blur-sm p-6 border bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700/50 w-[calc(100vw-32px)] md:max-w-lg"
@@ -39,24 +39,24 @@
           </div>
         </div>
       </div>
-    </Teleport>
+    </Teleport> -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { ExclamationTriangleIcon } from "@heroicons/vue/24/solid";
+/* import { ExclamationTriangleIcon } from "@heroicons/vue/24/solid"; */
 
-const accountStore = useAccountStore();
 const walletConnectStore = useWalletConnectStore();
-const { checkRecoveryRequest, discardRecovery } = useRecoveryGuardian();
-
-const pendingRecovery = ref(false);
-
 onMounted(async () => {
   await walletConnectStore.initialize();
 });
 
-watchEffect(async () => {
+/* const accountStore = useAccountStore();
+const { checkRecoveryRequest, discardRecovery } = useRecoveryGuardian();
+
+const pendingRecovery = ref(false); */
+
+/* watchEffect(async () => {
   if (!accountStore.address) return;
   const recoveryRequest = await checkRecoveryRequest({ address: accountStore.address });
   pendingRecovery.value = recoveryRequest?.pendingRecovery ?? false;
@@ -69,7 +69,7 @@ const cancelRecovery = async () => {
 
 const dismissWarning = () => {
   pendingRecovery.value = false;
-};
+}; */
 
 definePageMeta({
   middleware: ["logged-in"],

@@ -3,8 +3,10 @@ on:
   push:
     branches: [ "main" ]
     paths:
+      - "packages/erc4337-contracts/**"
+      - "packages/sdk-platforms/rust/**"
       - "packages/auth-server/**"
-      - "packages/sdk/**"
+      - "packages/sdk-4337/**"
   workflow_dispatch:
 
 env:
@@ -30,26 +32,6 @@ jobs:
         with:
           node-version: lts/Iron
           cache: 'pnpm'
-
-      # SDK depends on contracts
-      - name: Install contract dependencies
-        run: pnpm install -r --frozen-lockfile
-        working-directory: packages/contracts
-
-      - name: Build contracts
-        run: pnpm run build
-        working-directory: packages/contracts
-
-      # Local node to have target for deploy
-      - name: Era Test Node Action
-        uses: dutterbutter/anvil-zksync-action@v1.1.0
-
-      - name: Deploy contracts
-        run: pnpm run deploy --file ../auth-server/stores/local-node.json
-        working-directory: packages/contracts
-
-      - name: Install dependencies
-        run: pnpm install -r --frozen-lockfile
 
       - name: Build apps
         env:

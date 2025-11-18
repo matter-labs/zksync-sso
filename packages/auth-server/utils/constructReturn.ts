@@ -1,9 +1,7 @@
-import type { AuthServerRpcSchema, ExtractReturnType, SessionSpec } from "zksync-sso-4337/client";
+import type { SessionSpec } from "zksync-sso-4337/client";
+import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso-4337/client-auth-server";
 
-// Type alias for compatibility
-type SessionConfig = SessionSpec;
-
-export const constructReturn = (address: `0x${string}`, chainId: number, session?: { sessionKey: `0x${string}`; sessionConfig: SessionConfig }): ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> => {
+export const constructReturn = (address: `0x${string}`, chainId: number, session?: { sessionKey: `0x${string}`; sessionConfig: SessionSpec }): ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> => {
   return {
     account: {
       address,
@@ -24,6 +22,7 @@ export const constructReturn = (address: `0x${string}`, chainId: number, session
         },
       },
       contracts: contractsByChain[chain.id],
+      bundlerUrl: contractsByChain[chain.id].bundlerUrl,
     })),
   };
 };

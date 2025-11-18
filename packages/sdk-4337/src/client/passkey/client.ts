@@ -5,6 +5,7 @@ import {
   createClient,
   createPublicClient,
   type Hex,
+  type JsonRpcAccount,
   type Prettify,
   type PublicActions,
   publicActions,
@@ -68,7 +69,7 @@ export type PasskeyClient<
   Client<
     TTransport,
     TChain,
-    undefined,
+    JsonRpcAccount,
     TRpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...TRpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema]
@@ -172,7 +173,7 @@ export function createPasskeyClient<
   const client = createClient({
     chain,
     transport,
-    account: undefined,
+    account: { address: accountConfig.address, type: "json-rpc" },
     type: "walletClient",
     key: params.key || "zksync-sso-passkey-client",
     name: params.name || "ZKsync SSO Passkey Client",

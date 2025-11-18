@@ -31,12 +31,13 @@
           Log In
         </ZkButton>
 
-        <ZkLink
+        <!-- TODO: uncomment when recovery will be enabled -->
+        <!-- <ZkLink
           class="w-fit mx-auto mt-2"
           href="/recovery"
         >
           Recover your account
-        </ZkLink>
+        </ZkLink> -->
       </div>
 
       <CommonHeightTransition :opened="!!accountLoginError">
@@ -58,8 +59,6 @@
 </template>
 
 <script setup lang="ts">
-import { toHex } from "viem";
-
 definePageMeta({
   middleware: ["logged-out"],
 });
@@ -79,9 +78,8 @@ const signUp = async () => {
   const result = await createAccount();
   if (!result) return;
   login({
-    username: result.credentialId,
     address: result.address,
-    passkey: toHex(result.credentialPublicKey),
+    credentialId: result.credentialId,
   });
   navigateTo("/dashboard");
 };
@@ -92,10 +90,9 @@ const logIn = async () => {
     navigateTo("/dashboard");
     return;
   }
-  if (result?.recoveryRequest?.isReady === false) {
+  /* if (result?.recoveryRequest?.isReady === false) {
     navigateTo(`/recovery/account-not-ready?address=${result!.recoveryRequest.accountAddress}`);
     return;
-  }
-  // TODO: handle rest of the cases
+  } */
 };
 </script>

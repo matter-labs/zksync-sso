@@ -152,7 +152,7 @@
 </template>
 
 <script lang="ts" setup>
-import { toHex, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import { createPasskeyClient } from "zksync-sso-4337/client";
 
 const runtimeConfig = useRuntimeConfig();
@@ -225,9 +225,8 @@ const { inProgress: associateInProgress, execute: executeAssociation, error: ass
   await associateAddress(passkeyClient.account.address, message, signature);
 
   login({
-    username: accountDeploymentResult.value.credentialId,
     address: accountDeploymentResult.value.address,
-    passkey: toHex(accountDeploymentResult.value.credentialPublicKey),
+    credentialId: accountDeploymentResult.value.credentialId,
   });
   addressAssociated.value = true;
 
@@ -265,9 +264,9 @@ const logIn = async () => {
     navigateTo("/dashboard");
     return;
   }
-  if (result?.recoveryRequest?.isReady === false) {
-    navigateTo(`/recovery/account-not-ready?address=${result!.recoveryRequest.accountAddress}`);
-    return;
-  }
+  // if (result?.recoveryRequest?.isReady === false) {
+  //   navigateTo(`/recovery/account-not-ready?address=${result!.recoveryRequest.accountAddress}`);
+  //   return;
+  // }
 };
 </script>
