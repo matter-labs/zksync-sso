@@ -14,6 +14,7 @@ ethereum
 sepolia
 foundryup
 unpermitted
+dapps
 
 // examples/bank-demo
 ctap
