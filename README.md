@@ -131,6 +131,9 @@ This monorepo is comprised of the following packages, products, and examples:
   session key management
 - `packages/erc4337-contracts` are the on-chain smart contracts behind ZKsync
   SSO accounts
+- `examples/nft-quest` is an app demonstrating the use of ZKsync SSO with
+  sessions
+- `examples/nft-quest-contracts` are the smart contracts for `nft-quest`
 
 ## Running development
 
