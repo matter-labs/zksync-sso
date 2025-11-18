@@ -3,6 +3,22 @@ import type { Address, Hex } from "viem";
 import type { SessionSpec, UsageLimit } from "./types.js";
 
 /**
+ * Utility type that converts all bigint values to strings recursively
+ */
+export type ConvertBigIntToString<T> = T extends bigint
+  ? string
+  : T extends Array<infer U>
+    ? Array<ConvertBigIntToString<U>>
+    : T extends object
+      ? { [K in keyof T]: ConvertBigIntToString<T[K]> }
+      : T;
+
+/**
+ * SessionSpec with all bigint values converted to strings for JSON serialization
+ */
+export type SessionSpecJSON = ConvertBigIntToString<SessionSpec>;
+
+/**
  * Converts a SessionSpec to JSON string format expected by WASM bindings.
  * All bigint values are converted to strings for safe serialization.
  */

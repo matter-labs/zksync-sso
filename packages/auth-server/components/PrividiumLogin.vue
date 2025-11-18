@@ -153,7 +153,7 @@
 
 <script lang="ts" setup>
 import { toHex, zeroAddress } from "viem";
-import { createZksyncPasskeyClient } from "zksync-sso/client/passkey";
+import { createPasskeyClient } from "zksync-sso-4337/client";
 
 const runtimeConfig = useRuntimeConfig();
 const chainId = runtimeConfig.public.chainId as SupportedChainId;
@@ -176,17 +176,19 @@ const getClient = () => {
   if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
   const contracts = contractsByChain[chainId];
 
-  const client = createZksyncPasskeyClient({
-    address: accountDeploymentResult.value.address,
-    credentialPublicKey: accountDeploymentResult.value.credentialPublicKey,
-    userName: accountDeploymentResult.value.credentialId,
-    userDisplayName: accountDeploymentResult.value.credentialId,
-    contracts,
+  return createPasskeyClient({
+    account: {
+      address: accountDeploymentResult.value.address,
+      validatorAddress: contracts.webauthnValidator,
+      credentialId: accountDeploymentResult.value.credentialId,
+      rpId: window.location.hostname,
+      origin: window.location.origin,
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    bundlerClient: null as any, // Not needed for address association
     chain,
     transport: createTransport(),
   });
-
-  return client;
 };
 
 const { inProgress: associateInProgress, execute: executeAssociation, error: associationError } = useAsync(async () => {

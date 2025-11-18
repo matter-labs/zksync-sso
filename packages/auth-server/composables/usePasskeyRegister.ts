@@ -1,5 +1,11 @@
-import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
-import { registerNewPasskey } from "zksync-sso/client/passkey";
+import type { Hex } from "viem";
+import { createWebAuthnCredential } from "zksync-sso-4337/client";
+
+// Return type matching what components expect
+export type RegisterNewPasskeyReturnType = {
+  credentialId: Hex;
+  credentialPublicKey: { x: Hex; y: Hex };
+};
 
 export const usePasskeyRegister = () => {
   const generatePasskeyName = () => {
@@ -10,10 +16,17 @@ export const usePasskeyRegister = () => {
 
   const { inProgress, error, execute: registerPasskey } = useAsync(async (): Promise<RegisterNewPasskeyReturnType> => {
     const name = generatePasskeyName();
-    return await registerNewPasskey({
+    const result = await createWebAuthnCredential({
       userName: name,
       userDisplayName: name,
+      rpId: typeof window !== "undefined" ? window.location.hostname : "localhost",
+      rpName: "ZKsync SSO",
     });
+
+    return {
+      credentialId: result.credentialId,
+      credentialPublicKey: result.publicKey,
+    };
   });
 
   return {

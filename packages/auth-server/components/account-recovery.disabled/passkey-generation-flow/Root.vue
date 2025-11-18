@@ -32,7 +32,9 @@
 <script setup lang="ts">
 import type { Address } from "viem";
 import { ref } from "vue";
-import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
+
+// eslint-disable-next-line import/order
+import type { RegisterNewPasskeyReturnType } from "~/composables/usePasskeyRegister";
 
 import Step1 from "./Step1.vue";
 import Step2 from "./Step2.vue";

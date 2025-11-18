@@ -1,10 +1,11 @@
 import { StorageSerializers, useStorage } from "@vueuse/core";
-import { type Address, type Hash, toBytes } from "viem";
+import { type Address, type Hash, type Hex, toBytes } from "viem";
 
 type SmartAccount = {
   username: string;
   address: Address;
-  passkey: Hash;
+  passkey: Hash; // Legacy: credentialPublicKey
+  credentialId?: Hex; // NEW: Required for sdk-4337
 };
 
 export const useAccountStore = defineStore("account", () => {
@@ -13,6 +14,7 @@ export const useAccountStore = defineStore("account", () => {
   });
   const address = computed(() => accountData.value?.address || null);
   const passkey = computed(() => accountData.value?.passkey ? toBytes(accountData.value?.passkey) : null);
+  const credentialId = computed(() => accountData.value?.credentialId || null);
   const username = computed(() => accountData.value?.username || null);
   const isLoggedIn = computed(() => !!address.value);
   const login = (data: SmartAccount) => {
@@ -30,6 +32,7 @@ export const useAccountStore = defineStore("account", () => {
   return {
     address,
     passkey,
+    credentialId,
     username,
     isLoggedIn,
     subscribeOnAccountChange,

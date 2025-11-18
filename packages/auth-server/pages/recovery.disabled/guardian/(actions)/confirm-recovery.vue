@@ -160,6 +160,7 @@ const recoveryParams = computedAsync(async () => RecoveryParamsSchema.parseAsync
   credentialPublicKey: route.query.credentialPublicKey,
   checksum: route.query.checksum,
 }).catch((err) => {
+  // eslint-disable-next-line no-console
   console.error(err);
   generalError.value = "Invalid recovery parameters. Please verify the URL and try again.";
 }));
@@ -188,6 +189,7 @@ const guardians = computedAsync(async () => {
     );
   } catch (err) {
     loadingGuardiansError.value = "An error occurred while loading the guardians. Please try again.";
+    // eslint-disable-next-line no-console
     console.error(err);
   } finally {
     isLoadingGuardians.value = false;
@@ -222,6 +224,7 @@ const handleConfirmRecovery = async () => {
     confirmGuardianErrorMessage.value = null;
   } catch (err) {
     confirmGuardianErrorMessage.value = "An error occurred while confirming the guardian. Please try again.";
+    // eslint-disable-next-line no-console
     console.error(err);
   }
 };

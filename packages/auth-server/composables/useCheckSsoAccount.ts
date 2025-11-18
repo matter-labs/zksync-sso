@@ -1,3 +1,7 @@
+// TODO: This composable uses AAFactoryAbi which is only for guardian logic (not available in sdk-4337)
+// This composable has been commented out as it's only used in recovery flows
+
+/*
 import type { Address } from "viem";
 import { AAFactoryAbi } from "zksync-sso/abi";
 
@@ -25,3 +29,4 @@ export const useCheckSsoAccount = (_chainId: MaybeRef<SupportedChainId>) => {
     error,
   };
 };
+*/

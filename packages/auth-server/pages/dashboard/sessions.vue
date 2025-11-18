@@ -84,8 +84,8 @@
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
 import type { Hex } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
-import { SessionKeyValidatorAbi } from "zksync-sso/abi";
-import type { SessionConfig } from "zksync-sso/utils";
+import { SessionKeyValidatorAbi } from "zksync-sso-4337/abi";
+import type { SessionConfig } from "zksync-sso-4337/client";
 
 const { defaultChain, getPublicClient } = useClientStore();
 const { address } = storeToRefs(useAccountStore());

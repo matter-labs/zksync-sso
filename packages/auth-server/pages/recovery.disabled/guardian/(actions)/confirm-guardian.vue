@@ -192,6 +192,7 @@ const confirmGuardianAction = async () => {
     await getGuardians(accountAddress.value);
   } catch (err) {
     confirmGuardianError.value = "An error occurred while confirming the guardian. Please try again.";
+    // eslint-disable-next-line no-console
     console.error(err);
   }
 };

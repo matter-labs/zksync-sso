@@ -21,7 +21,10 @@
 
 <script setup lang="ts">
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
-import type { SessionConfig } from "zksync-sso/utils";
+import type { SessionSpec } from "zksync-sso-4337/client";
+
+// Type alias for compatibility
+type SessionConfig = SessionSpec;
 
 const advancedInfoOpened = ref(false);
 

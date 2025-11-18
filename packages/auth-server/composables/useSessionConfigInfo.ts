@@ -3,7 +3,10 @@ import { erc20Abi, formatUnits, toFunctionSelector } from "viem";
 import type { Address } from "viem/accounts";
 import { zksyncInMemoryNode } from "viem/zksync";
 import type { UnwrapRef } from "vue";
-import { type Limit, LimitType, LimitUnlimited, type SessionConfig } from "zksync-sso/utils";
+import { type Limit, LimitType, LimitUnlimited, type SessionSpec } from "zksync-sso-4337/client";
+
+// Type alias for compatibility
+type SessionConfig = SessionSpec;
 
 export const useSessionConfigInfo = (
   _chainId: MaybeRef<SupportedChainId>,

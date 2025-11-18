@@ -140,6 +140,7 @@ const handleConfirmGuardian = async () => {
     emit("next");
   } catch (err) {
     confirmGuardianErrorMessage.value = "An error occurred while confirming the guardian. Please try again.";
+    // eslint-disable-next-line no-console
     console.error(err);
   }
 };

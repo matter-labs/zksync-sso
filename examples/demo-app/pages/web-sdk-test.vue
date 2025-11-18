@@ -76,7 +76,10 @@
         </div>
         <div>
           <strong>Account Address:</strong>
-          <code class="bg-white px-2 py-1 rounded text-xs ml-2" data-testid="deployed-account-address">{{ deploymentResult.address }}</code>
+          <code
+            class="bg-white px-2 py-1 rounded text-xs ml-2"
+            data-testid="deployed-account-address"
+          >{{ deploymentResult.address }}</code>
         </div>
         <div v-if="deploymentResult.eoaSigner">
           <strong>EOA Signer:</strong>
@@ -185,7 +188,10 @@
                 class="mt-2"
                 data-testid="found-addresses-result"
               >
-                <ul class="space-y-1" data-testid="found-addresses-list">
+                <ul
+                  class="space-y-1"
+                  data-testid="found-addresses-list"
+                >
                   <li
                     v-for="(address, index) in foundAddresses"
                     :key="address"

@@ -1,3 +1,8 @@
+// TODO: OIDC recovery is not yet available in zksync-sso-4337
+// This composable has been commented out until OIDC support is added to sdk-4337
+// Related: useOidcClient is commented out in stores/client.ts
+
+/*
 import { type Address, encodeAbiParameters, encodeFunctionData, type Hex, keccak256 } from "viem";
 import { OidcRecoveryValidatorAbi } from "zksync-sso/abi";
 import type { OidcData } from "zksync-sso/client/oidc";
@@ -157,3 +162,4 @@ export const useRecoveryOidc = () => {
     hashPasskeyData,
   };
 };
+*/

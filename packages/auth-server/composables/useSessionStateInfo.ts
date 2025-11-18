@@ -1,7 +1,10 @@
 import { FetchError } from "ofetch";
 import { erc20Abi, formatUnits, toFunctionSelector } from "viem";
 import type { Address } from "viem/accounts";
-import { LimitType, type SessionConfig, type SessionState } from "zksync-sso/utils";
+import { LimitType, type SessionSpec, type SessionState } from "zksync-sso-4337/client";
+
+// Type alias for compatibility
+type SessionConfig = SessionSpec;
 
 export const useSessionStateInfo = (
   _chainId: MaybeRef<SupportedChainId>,

@@ -1,6 +1,8 @@
+import type { Hex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { deployModularAccount } from "zksync-sso/client";
-import type { SessionConfig } from "zksync-sso/utils";
+import { waitForTransactionReceipt } from "viem/actions";
+import type { SessionSpec } from "zksync-sso-4337/client";
+import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
 export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividiumMode = false) => {
   const chainId = toRef(_chainId);
@@ -8,14 +10,16 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
   const { registerPasskey } = usePasskeyRegister();
   const { fetchAddressAssociationMessage, associateAddress, deleteAddressAssociation } = usePrividiumAddressAssociation();
 
-  const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionConfig, "signer">) => {
+  const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionSpec, "signer">) => {
     const result = await registerPasskey();
     if (!result) {
       throw new Error("Failed to register passkey");
     }
     const { credentialPublicKey, credentialId } = result;
 
-    let sessionData: SessionConfig | undefined;
+    // TODO: Session support during deployment - to be implemented
+    // For now, sessions can be added after deployment
+    let sessionData: SessionSpec | undefined;
     const sessionKey = generatePrivateKey();
     const signer = privateKeyToAddress(sessionKey);
     if (session) {
@@ -25,7 +29,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
       };
     }
 
-    // Don't yet want this to be imported as part of the setup process
+    // EOA owner for initial deployment signing
     const ownerKey = generatePrivateKey();
     const ownerAddress = privateKeyToAddress(ownerKey);
 
@@ -39,24 +43,31 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
     }
 
     const chainContracts = contractsByChain[chainId.value];
-    const deployedAccount = await deployModularAccount(deployerClient, {
-      accountFactory: chainContracts.accountFactory,
-      passkeyModule: {
-        location: chainContracts.passkey,
-        credentialId,
-        credentialPublicKey,
+
+    // Prepare deployment transaction using sdk-4337
+    const { transaction } = prepareDeploySmartAccount({
+      contracts: {
+        factory: chainContracts.factory,
+        webauthnValidator: chainContracts.webauthnValidator,
       },
-      paymaster: {
-        location: chainContracts.accountPaymaster,
-      },
-      uniqueAccountId: credentialId,
-      sessionModule: {
-        location: chainContracts.session,
-        initialSession: sessionData,
-      },
-      owners: [ownerAddress],
-      installNoDataModules: [chainContracts.recovery, chainContracts.recoveryOidc],
+      passkeySigners: [{
+        credentialId: credentialId as Hex,
+        publicKey: credentialPublicKey,
+        originDomain: typeof window !== "undefined" ? window.location.origin : "http://localhost",
+      }],
+      eoaSigners: [ownerAddress],
+      userId: credentialId, // Use credential ID as unique user ID
     });
+
+    // Send deployment transaction
+    const hash = await deployerClient.sendTransaction(transaction);
+    const receipt = await waitForTransactionReceipt(deployerClient, { hash });
+
+    // Extract deployed account address from logs
+    const address = getAccountAddressFromLogs(receipt.logs);
+    if (!address) {
+      throw new Error("Failed to extract account address from deployment logs");
+    }
 
     // Clean up temporary association for Prividium mode
     if (prividiumMode) {
@@ -68,7 +79,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
     }
 
     return {
-      address: deployedAccount.address,
+      address,
       chainId: chainId.value,
       sessionKey: session ? sessionKey : undefined,
       signer,

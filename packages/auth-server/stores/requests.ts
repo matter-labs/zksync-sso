@@ -1,4 +1,4 @@
-import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage } from "zksync-sso/client-auth-server";
+import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage } from "zksync-sso-4337/client";
 
 export const useRequestsStore = defineStore("requests", () => {
   const { appMeta } = useAppMeta();

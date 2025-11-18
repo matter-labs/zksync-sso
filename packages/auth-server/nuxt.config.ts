@@ -1,5 +1,7 @@
 import { defineNuxtConfig } from "nuxt/config";
 import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import topLevelAwait from "vite-plugin-top-level-await";
+import wasm from "vite-plugin-wasm";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -46,6 +48,10 @@ export default defineNuxtConfig({
     preference: "dark",
   },
   vite: {
+    plugins: [
+      wasm(),
+      topLevelAwait(),
+    ],
     css: {
       preprocessorOptions: {
         scss: {
@@ -53,6 +59,13 @@ export default defineNuxtConfig({
           api: "modern",
         },
       },
+    },
+    worker: {
+      format: "es",
+      plugins: () => [
+        wasm(),
+        topLevelAwait(),
+      ],
     },
   },
   eslint: {

@@ -34,7 +34,8 @@
 
 <script setup lang="ts">
 import type { Address } from "viem";
-import type { RegisterNewPasskeyReturnType } from "zksync-sso/client/passkey";
+
+import type { RegisterNewPasskeyReturnType } from "~/composables/usePasskeyRegister";
 
 const props = defineProps<{
   accountAddress: Address;
