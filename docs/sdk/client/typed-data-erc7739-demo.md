@@ -59,11 +59,34 @@ with ERC-7739 and validate it on-chain via ERC-1271 in the demo app.
 
 ## Deploy & Try
 
-- Deploy demo contracts (includes `ERC1271Caller`):
+- This demo currently works only on Anvil (local EVM).
+
+- Option A: Deploy only the `ERC1271Caller` used by the demo (recommended for
+  this demo):
 
 ```bash
-nx run examples-demo-app:deploy:forge
+anvil
+nx run demo-app:deploy-erc1271-caller
 ```
 
-- Start the demo app and open the Web SDK Test page.
-- Use the new "Typed Data (ERC-7739)" section to sign & verify.
+- Option B (4337 dev flow on Anvil): Deploy 4337 factory + ERC1271Caller, then
+  run dev:
+
+```bash
+anvil
+nx run demo-app:dev:erc4337:anvil
+```
+
+- Start the demo app and open the Web SDK Test page:
+
+```bash
+nx run demo-app:dev
+```
+
+- In the "Typed Data (ERC-7739)" section, connect, sign, and verify on-chain.
+
+Notes:
+
+- Requires a local Anvil at `http://localhost:8545`.
+- Uses an Anvil test private key for deployment (configurable via
+  `PRIVATE_KEY`).

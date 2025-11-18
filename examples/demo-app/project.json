@@ -76,6 +76,13 @@
         "command": "forge build"
       }
     },
+    "deploy-erc1271-caller": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "./scripts/deploy-erc1271-caller.sh"
+      }
+    },
     "deploy-contracts": {
       "executor": "nx:run-commands",
       "options": {
@@ -99,6 +106,23 @@
         "command": "./scripts/deploy-msa-anvil.sh"
       },
       "dependsOn": ["build-erc4337-contracts"]
+    },
+    "deploy-contracts-erc4337-runtime": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "echo '{\"deployedTo\":\"0x0000000000000000000000000000000000000000\"}' > forge-output-paymaster.json",
+            "prefix": "Stub-Paymaster:"
+          },
+          {
+            "command": "./scripts/deploy-erc1271-caller.sh",
+            "prefix": "ERC1271Caller:"
+          }
+        ]
+      },
+      "dependsOn": ["deploy-msa-factory"]
     },
     "build:local": {
       "executor": "nx:run-commands",
@@ -125,6 +149,23 @@
       },
       "dependsOn": ["build:local"]
     },
+    "dev:erc4337:anvil": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "pnpm nx dev auth-server",
+            "prefix": "Auth-Server:"
+          },
+          {
+            "command": "PORT=3004 nuxt dev",
+            "prefix": "Demo-App:"
+          }
+        ]
+      },
+      "dependsOn": ["deploy-contracts-erc4337-runtime"]
+    },
     "e2e:setup": {
       "executor": "nx:run-commands",
       "options": {
@@ -139,7 +180,7 @@
         "cwd": "examples/demo-app",
         "command": "pnpm exec playwright install chromium"
       },
-      "dependsOn": ["deploy-contracts-erc4337"]
+      "dependsOn": ["deploy-contracts-erc4337-runtime"]
     },
     "e2e": {
       "executor": "nx:run-commands",

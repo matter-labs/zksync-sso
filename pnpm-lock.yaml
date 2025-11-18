@@ -159,9 +159,6 @@ importers:
       '@nuxtjs/google-fonts':
         specifier: ^3.2.0
         version: 3.2.0(magicast@0.3.5)(rollup@4.30.1)
-      '@openzeppelin/contracts':
-        specifier: ^5.4.0
-        version: 5.4.0
       '@simplewebauthn/browser':
         specifier: ^13.1.0
         version: 13.1.0
@@ -199,6 +196,9 @@ importers:
       '@nuxtjs/tailwindcss':
         specifier: ^6.12.0
         version: 6.12.2(magicast@0.3.5)(rollup@4.30.1)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@24.3.3)(typescript@5.6.2))
+      '@openzeppelin/contracts':
+        specifier: ^5.4.0
+        version: 5.4.0
       '@playwright/test':
         specifier: ^1.47.2
         version: 1.48.1
@@ -19969,6 +19969,14 @@ snapshots:
       chai: 5.1.2
       tinyrainbow: 1.2.0
 
+  '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))':
+    dependencies:
+      '@vitest/spy': 2.1.8
+      estree-walker: 3.0.3
+      magic-string: 0.30.19
+    optionalDependencies:
+      vite: 5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)
+
   '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))':
     dependencies:
       '@vitest/spy': 2.1.8
@@ -26922,7 +26930,7 @@ snapshots:
       vue: 3.5.21(typescript@5.6.2)
       vue-bundle-renderer: 2.1.1
       vue-devtools-stub: 0.1.0
-      vue-router: 4.4.5(vue@3.5.21(typescript@5.6.2))
+      vue-router: 4.4.5(vue@3.5.13(typescript@5.6.2))
     optionalDependencies:
       '@parcel/watcher': 2.4.1
       '@types/node': 22.8.0
@@ -29703,7 +29711,7 @@ snapshots:
       unplugin: 1.14.1
       yaml: 2.6.0
     optionalDependencies:
-      vue-router: 4.4.5(vue@3.5.21(typescript@5.6.2))
+      vue-router: 4.4.5(vue@3.5.13(typescript@5.6.2))
     transitivePeerDependencies:
       - rollup
       - vue
@@ -30292,7 +30300,7 @@ snapshots:
   vitest@2.1.8(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       '@vitest/expect': 2.1.8
-      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))
+      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
       '@vitest/pretty-format': 2.1.8
       '@vitest/runner': 2.1.8
       '@vitest/snapshot': 2.1.8
@@ -30408,6 +30416,11 @@ snapshots:
   vue-load-image@1.1.0(vue@3.5.24(typescript@5.6.2)):
     dependencies:
       vue: 3.5.24(typescript@5.6.2)
+
+  vue-router@4.4.5(vue@3.5.13(typescript@5.6.2)):
+    dependencies:
+      '@vue/devtools-api': 6.6.4
+      vue: 3.5.13(typescript@5.6.2)
 
   vue-router@4.4.5(vue@3.5.21(typescript@5.6.2)):
     dependencies:
