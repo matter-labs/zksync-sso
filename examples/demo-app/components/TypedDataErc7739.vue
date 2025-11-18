@@ -1,5 +1,8 @@
 <template>
-  <div class="bg-purple-50 p-4 rounded-lg mb-4 border border-purple-200">
+  <div
+    class="bg-purple-50 p-4 rounded-lg mb-4 border border-purple-200"
+    data-testid="typed-data-section"
+  >
     <h2 class="text-lg font-semibold mb-3 text-purple-800">
       Typed Data (ERC-7739) Signature & ERC-1271 Verification
     </h2>
@@ -12,17 +15,20 @@
         <p class="font-medium">
           Typed Data:
         </p>
-        <pre class="bg-white p-3 rounded border overflow-x-auto">{{ JSON.stringify(erc7739TypedData, null, 2) }}</pre>
+        <pre class="bg-white p-3 rounded border overflow-x-auto">{{ typedDataDisplay }}</pre>
       </div>
 
       <div
-        v-if="erc1271CallerAddress"
+        v-if="hasErc1271Caller"
         class="text-xs text-gray-600"
       >
         <p class="font-medium">
           ERC1271 Caller:
         </p>
-        <code class="bg-white px-2 py-1 rounded">{{ erc1271CallerAddress }}</code>
+        <code
+          class="bg-white px-2 py-1 rounded"
+          data-testid="erc1271-caller-address"
+        >{{ erc1271CallerAddress }}</code>
       </div>
 
       <div
@@ -35,6 +41,7 @@
         <button
           :disabled="isConnectingTypedData"
           class="w-full px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50"
+          data-testid="typeddata-connect"
           @click="connectForTypedData"
         >
           {{ isConnectingTypedData ? 'Connecting...' : 'Connect for Typed Data' }}
@@ -48,6 +55,7 @@
         <button
           :disabled="isSigningErc7739 || !accountAddress"
           class="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
+          data-testid="typeddata-sign"
           @click="signErc7739"
         >
           {{ isSigningErc7739 ? 'Signing...' : 'Sign Typed Data (ERC-7739)' }}
@@ -69,6 +77,7 @@
           <button
             :disabled="!erc7739Signature || isVerifyingErc7739 || !accountAddress"
             class="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+            data-testid="typeddata-verify"
             @click="verifyErc7739"
           >
             {{ isVerifyingErc7739 ? 'Verifying...' : 'Verify On-Chain (ERC-1271)' }}
@@ -79,7 +88,10 @@
           v-if="erc7739VerifyResult !== null"
           class="mt-2"
         >
-          <p :class="erc7739VerifyResult ? 'text-green-700' : 'text-red-700'">
+          <p
+            :class="erc7739VerifyResult ? 'text-green-700' : 'text-red-700'"
+            data-testid="typeddata-result"
+          >
             <strong>Verification Result:</strong>
             {{ erc7739VerifyResult ? 'Valid ✓' : 'Invalid ✗' }}
           </p>
@@ -97,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import type { Address, Hex } from "viem";
 import { http } from "viem";
 import { createConfig as createWagmiConfig, reconnect as wagmiReconnect, signTypedData as wagmiSignTypedData, readContract as wagmiReadContract, connect as wagmiConnect } from "@wagmi/core";
@@ -110,6 +122,8 @@ const props = defineProps<{
 }>();
 
 const erc1271CallerAddress = (Erc1271CallerDeployment as { deployedTo?: string }).deployedTo as Address | undefined;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
+const hasErc1271Caller = computed(() => !!erc1271CallerAddress && erc1271CallerAddress.toLowerCase() !== ZERO_ADDRESS.toLowerCase());
 
 const erc7739TypedData = {
   types: {
@@ -124,6 +138,17 @@ const erc7739TypedData = {
     value: 42n,
   },
 } as const;
+
+// Create a displayable version of typed data (converting BigInts to strings)
+const typedDataDisplay = computed(() => {
+  return JSON.stringify({
+    ...erc7739TypedData,
+    message: {
+      ...erc7739TypedData.message,
+      value: erc7739TypedData.message.value.toString(),
+    },
+  }, null, 2);
+});
 
 const typedDataWagmiConfig = ref<ReturnType<typeof createWagmiConfig> | null>(null);
 const isConnectingTypedData = ref(false);
@@ -158,7 +183,7 @@ async function connectForTypedData() {
 }
 
 async function signErc7739() {
-  if (!erc1271CallerAddress) {
+  if (!hasErc1271Caller.value) {
     erc7739Error.value = "ERC1271Caller is not deployed. Run the deploy task first.";
     return;
   }
@@ -181,7 +206,7 @@ async function signErc7739() {
       name: "ERC1271Caller",
       version: "1.0.0",
       chainId: contracts.chainId,
-      verifyingContract: erc1271CallerAddress,
+      verifyingContract: erc1271CallerAddress as Address,
     } as const;
 
     const signature = await wagmiSignTypedData(typedDataWagmiConfig.value, {
@@ -201,13 +226,13 @@ async function signErc7739() {
 }
 
 async function verifyErc7739() {
-  if (!erc1271CallerAddress || !erc7739Signature.value || !props.accountAddress || !typedDataWagmiConfig.value) return;
+  if (!hasErc1271Caller.value || !erc7739Signature.value || !props.accountAddress || !typedDataWagmiConfig.value) return;
   try {
     isVerifyingErc7739.value = true;
     erc7739Error.value = null;
 
     const isValid = await wagmiReadContract(typedDataWagmiConfig.value, {
-      address: erc1271CallerAddress,
+      address: erc1271CallerAddress as Address,
       abi: [{
         type: "function",
         name: "validateStruct",
