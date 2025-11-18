@@ -22,7 +22,6 @@ import {
   generate_eoa_stub_signature,
   sign_eoa_message,
   sign_eoa_user_operation_hash,
-  // @ts-expect-error - TypeScript doesn't understand package.json exports with node module resolution
 } from "zksync-sso-web-sdk/bundler";
 
 export type ToEcdsaSmartAccountParams<
@@ -152,7 +151,7 @@ export async function toEcdsaSmartAccount<
       } as any);
 
       const signature = sign_eoa_user_operation_hash(
-        userOpHash,
+        userOpHash!,
         signerPrivateKey,
         eoaValidatorAddress,
       ) as Hex;
