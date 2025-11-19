@@ -90,9 +90,6 @@ importers:
       zksync-sso-4337:
         specifier: workspace:*
         version: link:packages/sdk-4337
-      zksync-sso-wagmi-connector:
-        specifier: workspace:*
-        version: link:packages/connector-export
 
   examples/demo-app:
     dependencies:
@@ -129,9 +126,6 @@ importers:
       zksync-sso-4337:
         specifier: workspace:*
         version: link:../../packages/sdk-4337
-      zksync-sso-wagmi-connector:
-        specifier: workspace:*
-        version: link:../../packages/connector-export
     devDependencies:
       '@nuxt/eslint':
         specifier: ^0.5.7
@@ -475,19 +469,6 @@ importers:
       yargs:
         specifier: ^17.7.2
         version: 17.7.2
-
-  packages/connector-export:
-    dependencies:
-      viem:
-        specifier: ^2.30.0
-        version: 2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
-      zksync-sso-4337:
-        specifier: workspace:*
-        version: link:../sdk-4337
-    devDependencies:
-      vitest:
-        specifier: ^2.1.8
-        version: 2.1.8(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0)
 
   packages/contracts:
     dependencies:
@@ -15505,10 +15486,10 @@ snapshots:
   '@matterlabs/hardhat-zksync-node@1.2.0(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))':
     dependencies:
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       chai: 4.5.0
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       fs-extra: 11.2.0
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
       proxyquire: 2.1.3
@@ -15523,10 +15504,10 @@ snapshots:
   '@matterlabs/hardhat-zksync-node@1.2.0(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))':
     dependencies:
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       chai: 4.5.0
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       fs-extra: 11.2.0
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
       proxyquire: 2.1.3
@@ -15541,10 +15522,10 @@ snapshots:
   '@matterlabs/hardhat-zksync-node@1.2.0(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))':
     dependencies:
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       chai: 4.5.0
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       fs-extra: 11.2.0
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
       proxyquire: 2.1.3
@@ -15617,8 +15598,8 @@ snapshots:
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts-hardhat-zksync-upgradable': '@openzeppelin/contracts@5.4.0'
       '@openzeppelin/defender-sdk-base-client': 1.15.0
-      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.3.7)
-      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.3.7)
+      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.4.3)
+      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.4.3)
       '@openzeppelin/hardhat-upgrades': 3.5.0(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/upgrades-core': 1.40.0
       chalk: 4.1.2
@@ -15628,7 +15609,7 @@ snapshots:
       fs-extra: 11.2.0
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
       proper-lockfile: 4.1.2
-      semver: 7.6.3
+      semver: 7.7.3
       solidity-ast: 0.4.59
       zksync-ethers: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
     transitivePeerDependencies:
@@ -15650,8 +15631,8 @@ snapshots:
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts-hardhat-zksync-upgradable': '@openzeppelin/contracts@5.4.0'
       '@openzeppelin/defender-sdk-base-client': 1.15.0
-      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.3.7)
-      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.3.7)
+      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.4.3)
+      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.4.3)
       '@openzeppelin/hardhat-upgrades': 3.5.0(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/upgrades-core': 1.40.0
       chalk: 4.1.2
@@ -15661,7 +15642,7 @@ snapshots:
       fs-extra: 11.2.0
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
       proper-lockfile: 4.1.2
-      semver: 7.6.3
+      semver: 7.7.3
       solidity-ast: 0.4.59
       zksync-ethers: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
     transitivePeerDependencies:
@@ -15683,8 +15664,8 @@ snapshots:
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts-hardhat-zksync-upgradable': '@openzeppelin/contracts@5.4.0'
       '@openzeppelin/defender-sdk-base-client': 1.15.0
-      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.3.7)
-      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.3.7)
+      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.4.3)
+      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.4.3)
       '@openzeppelin/hardhat-upgrades': 3.5.0(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)))(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/upgrades-core': 1.40.0
       chalk: 4.1.2
@@ -15694,7 +15675,7 @@ snapshots:
       fs-extra: 11.2.0
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
       proper-lockfile: 4.1.2
-      semver: 7.6.3
+      semver: 7.7.3
       solidity-ast: 0.4.59
       zksync-ethers: 6.15.0(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))
     transitivePeerDependencies:
@@ -15715,13 +15696,13 @@ snapshots:
       '@ethersproject/address': 5.7.0
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-verify': 2.0.11(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       cbor: 9.0.2
       chai: 4.5.0
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
-      semver: 7.6.3
+      semver: 7.7.3
       sinon: 18.0.1
       sinon-chai: 3.7.0(chai@4.5.0)(sinon@18.0.1)
     transitivePeerDependencies:
@@ -15734,13 +15715,13 @@ snapshots:
       '@ethersproject/address': 5.7.0
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-verify': 2.0.11(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       cbor: 9.0.2
       chai: 4.5.0
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
-      semver: 7.6.3
+      semver: 7.7.3
       sinon: 18.0.1
       sinon-chai: 3.7.0(chai@4.5.0)(sinon@18.0.1)
     transitivePeerDependencies:
@@ -15753,13 +15734,13 @@ snapshots:
       '@ethersproject/address': 5.7.0
       '@matterlabs/hardhat-zksync-solc': 1.2.5(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-verify': 2.0.11(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       cbor: 9.0.2
       chai: 4.5.0
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
-      semver: 7.6.3
+      semver: 7.7.3
       sinon: 18.0.1
       sinon-chai: 3.7.0(chai@4.5.0)(sinon@18.0.1)
     transitivePeerDependencies:
@@ -15988,8 +15969,8 @@ snapshots:
     dependencies:
       '@ethereumjs/tx': 4.2.0
       '@types/debug': 4.1.12
-      debug: 4.3.7(supports-color@8.1.1)
-      semver: 7.6.3
+      debug: 4.4.3
+      semver: 7.7.3
       superstruct: 1.0.4
     transitivePeerDependencies:
       - supports-color
@@ -16295,7 +16276,7 @@ snapshots:
       '@nomicfoundation/ignition-core': 0.15.10(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       '@nomicfoundation/ignition-ui': 0.15.10
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       fs-extra: 10.1.0
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
       json5: 2.2.3
@@ -16381,7 +16362,7 @@ snapshots:
       '@ethersproject/address': 5.6.1
       '@nomicfoundation/solidity-analyzer': 0.1.2
       cbor: 9.0.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       ethers: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       fs-extra: 10.1.0
       immer: 10.0.2
@@ -18430,19 +18411,19 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@openzeppelin/defender-sdk-deploy-client@1.15.0(debug@4.3.7)':
+  '@openzeppelin/defender-sdk-deploy-client@1.15.0(debug@4.4.3)':
     dependencies:
       '@openzeppelin/defender-sdk-base-client': 1.15.0
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       lodash: 4.17.21
     transitivePeerDependencies:
       - debug
       - encoding
 
-  '@openzeppelin/defender-sdk-network-client@1.15.0(debug@4.3.7)':
+  '@openzeppelin/defender-sdk-network-client@1.15.0(debug@4.4.3)':
     dependencies:
       '@openzeppelin/defender-sdk-base-client': 1.15.0
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       lodash: 4.17.21
     transitivePeerDependencies:
       - debug
@@ -18452,11 +18433,11 @@ snapshots:
     dependencies:
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/defender-sdk-base-client': 1.15.0
-      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.3.7)
-      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.3.7)
+      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.4.3)
+      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.4.3)
       '@openzeppelin/upgrades-core': 1.40.0
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       ethereumjs-util: 7.1.5
       ethers: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
@@ -18472,11 +18453,11 @@ snapshots:
     dependencies:
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/defender-sdk-base-client': 1.15.0
-      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.3.7)
-      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.3.7)
+      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.4.3)
+      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.4.3)
       '@openzeppelin/upgrades-core': 1.40.0
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       ethereumjs-util: 7.1.5
       ethers: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@22.15.33)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
@@ -18492,11 +18473,11 @@ snapshots:
     dependencies:
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10))(hardhat@2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10))
       '@openzeppelin/defender-sdk-base-client': 1.15.0
-      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.3.7)
-      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.3.7)
+      '@openzeppelin/defender-sdk-deploy-client': 1.15.0(debug@4.4.3)
+      '@openzeppelin/defender-sdk-network-client': 1.15.0(debug@4.4.3)
       '@openzeppelin/upgrades-core': 1.40.0
       chalk: 4.1.2
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.4.3
       ethereumjs-util: 7.1.5
       ethers: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       hardhat: 2.22.17(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
@@ -20454,6 +20435,14 @@ snapshots:
       '@vitest/utils': 2.1.8
       chai: 5.1.2
       tinyrainbow: 1.2.0
+
+  '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))':
+    dependencies:
+      '@vitest/spy': 2.1.8
+      estree-walker: 3.0.3
+      magic-string: 0.30.19
+    optionalDependencies:
+      vite: 5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)
 
   '@vitest/mocker@2.1.8(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))':
     dependencies:
@@ -22858,13 +22847,13 @@ snapshots:
 
   axios@0.26.1:
     dependencies:
-      follow-redirects: 1.15.9(debug@4.3.7)
+      follow-redirects: 1.15.9(debug@4.4.3)
     transitivePeerDependencies:
       - debug
 
-  axios@1.7.7(debug@4.3.7):
+  axios@1.7.7(debug@4.4.3):
     dependencies:
-      follow-redirects: 1.15.9(debug@4.3.7)
+      follow-redirects: 1.15.9(debug@4.4.3)
       form-data: 4.0.1
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -24760,7 +24749,7 @@ snapshots:
   eth-gas-reporter@0.2.27(bufferutil@4.0.8)(utf-8-validate@5.0.10):
     dependencies:
       '@solidity-parser/parser': 0.14.5
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       cli-table3: 0.5.1
       colors: 1.4.0
       ethereum-cryptography: 1.2.0
@@ -25252,6 +25241,10 @@ snapshots:
   follow-redirects@1.15.9(debug@4.3.7):
     optionalDependencies:
       debug: 4.3.7(supports-color@8.1.1)
+
+  follow-redirects@1.15.9(debug@4.4.3):
+    optionalDependencies:
+      debug: 4.4.3
 
   for-each@0.3.3:
     dependencies:
@@ -25876,7 +25869,7 @@ snapshots:
   http-proxy@1.18.1:
     dependencies:
       eventemitter3: 4.0.7
-      follow-redirects: 1.15.9(debug@4.3.7)
+      follow-redirects: 1.15.9(debug@4.4.3)
       requires-port: 1.0.0
     transitivePeerDependencies:
       - debug
@@ -27717,7 +27710,7 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.0-rc.46
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
@@ -27770,7 +27763,7 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.0-rc.46
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
@@ -27822,7 +27815,7 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.0-rc.46
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
@@ -27874,7 +27867,7 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.0-rc.46
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.7.7(debug@4.3.7)
+      axios: 1.7.7(debug@4.4.3)
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
@@ -29446,7 +29439,7 @@ snapshots:
       pify: 4.0.1
       recursive-readdir: 2.2.3
       sc-istanbul: 0.4.6
-      semver: 7.6.3
+      semver: 7.7.3
       shelljs: 0.8.5
       web3-utils: 1.10.4
 
@@ -31105,7 +31098,7 @@ snapshots:
   vitest@2.1.8(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0):
     dependencies:
       '@vitest/expect': 2.1.8
-      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@24.3.3)(sass@1.80.4)(terser@5.36.0))
+      '@vitest/mocker': 2.1.8(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
       '@vitest/pretty-format': 2.1.8
       '@vitest/runner': 2.1.8
       '@vitest/snapshot': 2.1.8
