@@ -1,0 +1,4 @@
+[profile.default]
+src = "smart-contracts"
+libs = ["node_modules"]
+remappings = ["@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"]

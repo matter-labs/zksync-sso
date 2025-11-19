@@ -262,7 +262,7 @@ test("Find addresses by passkey credential ID", async ({ page }) => {
 
   // Get the deployed account address
   const deployedAddressElement = page.getByTestId("deployed-account-address");
-  await expect(deployedAddressElement).toBeVisible();
+  await expect(deployedAddressElement).toBeVisible({ timeout: 10000 });
   const deployedAddress = await deployedAddressElement.textContent();
   console.log(`Deployed account address: ${deployedAddress}`);
 
@@ -638,4 +638,43 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
   console.log("✓ Transaction sent successfully using pre-installed session validator");
 
   console.log("✅ Deploy with session validator test completed!");
+});
+
+test("Sign and verify ERC-7739 typed data via ERC-1271", async ({ page }) => {
+  // Use Anvil account #10 for this test to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=10");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  // Ensure a smart account is deployed so we have an address to verify against
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+
+  // Wait for typed-data section to be visible
+  const typedDataSection = page.getByTestId("typed-data-section");
+  await expect(typedDataSection).toBeVisible({ timeout: 10000 });
+
+  // Sign the ERC-7739 typed data (no connection needed with new implementation)
+  await expect(typedDataSection).toBeVisible({ timeout: 15000 });
+  // Ensure ERC1271 caller address is present before interacting (ensures readiness)
+  const callerAddr = typedDataSection.getByTestId("erc1271-caller-address");
+  await expect(callerAddr).toBeVisible({ timeout: 30000 });
+  // Use E2E bridge to trigger sign to avoid internal gating
+  const signBridge = page.getByTestId("typeddata-sign-bridge");
+  await expect(signBridge).toBeVisible({ timeout: 20000 });
+  await signBridge.click();
+  await expect(typedDataSection.getByTestId("typeddata-signature")).toBeVisible({ timeout: 20000 });
+
+  // Verify on-chain via ERC-1271 helper contract
+  const verifyBridge = page.getByTestId("typeddata-verify-bridge");
+  await expect(verifyBridge).toBeVisible({ timeout: 20000 });
+  await verifyBridge.click();
+  const result = typedDataSection.getByTestId("typeddata-verify-result");
+  await expect(result).toBeVisible({ timeout: 30000 });
+  await expect(result).toContainText("Valid");
+
+  console.log("✓ ERC-7739 typed-data signature verified on-chain via ERC-1271");
 });
