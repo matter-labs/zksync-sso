@@ -640,7 +640,7 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
   console.log("✅ Deploy with session validator test completed!");
 });
 
-test.skip("Sign and verify ERC-7739 typed data via ERC-1271", async ({ page }) => {
+test("Sign and verify ERC-7739 typed data via ERC-1271", async ({ page }) => {
   // Use Anvil account #10 for this test to avoid nonce conflicts
   await page.goto("/web-sdk-test?fundingAccount=10");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
@@ -657,21 +657,25 @@ test.skip("Sign and verify ERC-7739 typed data via ERC-1271", async ({ page }) =
   const typedDataSection = page.getByTestId("typed-data-section");
   await expect(typedDataSection).toBeVisible({ timeout: 10000 });
 
-  // If connect is required, connect first
-  const connectBtn = page.getByTestId("typeddata-connect");
-  if (await connectBtn.isVisible()) {
-    await connectBtn.click();
-    // Wait for connection to complete (sign button becomes visible)
-    await expect(page.getByTestId("typeddata-sign")).toBeVisible({ timeout: 10000 });
-  }
-
-  // Sign the ERC-7739 typed data
-  await page.getByTestId("typeddata-sign").click();
-  await expect(page.getByText("Encoded Signature:")).toBeVisible({ timeout: 20000 });
+  // Sign the ERC-7739 typed data (no connection needed with new implementation)
+  const tdSection = page.getByTestId("typed-data-section");
+  await expect(tdSection).toBeVisible({ timeout: 15000 });
+  // Ensure ERC1271 caller address is present before interacting (ensures readiness)
+  const callerAddr = tdSection.getByTestId("erc1271-caller-address");
+  await expect(callerAddr).toBeVisible({ timeout: 30000 });
+  // Small settle wait to allow client-side hydration to render actions
+  await page.waitForTimeout(250);
+  // Use E2E bridge to trigger sign to avoid internal gating
+  const signBridge = page.getByTestId("typeddata-sign-bridge");
+  await expect(signBridge).toBeVisible({ timeout: 20000 });
+  await signBridge.click();
+  await expect(tdSection.getByTestId("typeddata-signature")).toBeVisible({ timeout: 20000 });
 
   // Verify on-chain via ERC-1271 helper contract
-  await page.getByTestId("typeddata-verify").click();
-  const result = page.getByTestId("typeddata-result");
+  const verifyBridge = page.getByTestId("typeddata-verify-bridge");
+  await expect(verifyBridge).toBeVisible({ timeout: 20000 });
+  await verifyBridge.click();
+  const result = tdSection.getByTestId("typeddata-verify-result");
   await expect(result).toBeVisible({ timeout: 30000 });
   await expect(result).toContainText("Valid");
 
