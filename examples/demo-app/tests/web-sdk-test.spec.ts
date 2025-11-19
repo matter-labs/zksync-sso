@@ -658,24 +658,21 @@ test("Sign and verify ERC-7739 typed data via ERC-1271", async ({ page }) => {
   await expect(typedDataSection).toBeVisible({ timeout: 10000 });
 
   // Sign the ERC-7739 typed data (no connection needed with new implementation)
-  const tdSection = page.getByTestId("typed-data-section");
-  await expect(tdSection).toBeVisible({ timeout: 15000 });
+  await expect(typedDataSection).toBeVisible({ timeout: 15000 });
   // Ensure ERC1271 caller address is present before interacting (ensures readiness)
-  const callerAddr = tdSection.getByTestId("erc1271-caller-address");
+  const callerAddr = typedDataSection.getByTestId("erc1271-caller-address");
   await expect(callerAddr).toBeVisible({ timeout: 30000 });
-  // Small settle wait to allow client-side hydration to render actions
-  await page.waitForTimeout(250);
   // Use E2E bridge to trigger sign to avoid internal gating
   const signBridge = page.getByTestId("typeddata-sign-bridge");
   await expect(signBridge).toBeVisible({ timeout: 20000 });
   await signBridge.click();
-  await expect(tdSection.getByTestId("typeddata-signature")).toBeVisible({ timeout: 20000 });
+  await expect(typedDataSection.getByTestId("typeddata-signature")).toBeVisible({ timeout: 20000 });
 
   // Verify on-chain via ERC-1271 helper contract
   const verifyBridge = page.getByTestId("typeddata-verify-bridge");
   await expect(verifyBridge).toBeVisible({ timeout: 20000 });
   await verifyBridge.click();
-  const result = tdSection.getByTestId("typeddata-verify-result");
+  const result = typedDataSection.getByTestId("typeddata-verify-result");
   await expect(result).toBeVisible({ timeout: 30000 });
   await expect(result).toContainText("Valid");
 
