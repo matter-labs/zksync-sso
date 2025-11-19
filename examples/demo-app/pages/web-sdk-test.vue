@@ -104,7 +104,36 @@
     </div>
 
     <!-- Typed Data (ERC-7739) extracted component -->
-    <TypedDataErc7739 :account-address="deploymentResult?.address" />
+    <TypedDataErc7739
+      ref="typedDataRef"
+      :account-address="deploymentResult?.address"
+    />
+
+    <!-- E2E Bridge for Typed Data actions (exposed methods) -->
+    <div
+      class="bg-purple-50 p-2 rounded border border-purple-200 mb-4"
+      data-testid="typeddata-e2e-bridge"
+    >
+      <p class="text-xs text-purple-800 mb-2">
+        E2E Bridge: Typed Data Actions
+      </p>
+      <div class="flex gap-2">
+        <button
+          class="px-3 py-1 bg-purple-500 text-white rounded"
+          data-testid="typeddata-sign-bridge"
+          @click="typedDataRef?.signErc7739?.()"
+        >
+          Sign Typed Data
+        </button>
+        <button
+          class="px-3 py-1 bg-green-600 text-white rounded"
+          data-testid="typeddata-verify-bridge"
+          @click="typedDataRef?.verifyErc7739?.()"
+        >
+          Verify Signature
+        </button>
+      </div>
+    </div>
 
     <!-- Find Addresses by Passkey component -->
     <FindAddressesByPasskey />
@@ -321,6 +350,8 @@ const testResult = ref("");
 const error = ref("");
 const loading = ref(false);
 const deploymentResult = ref<DeploymentResult | null>(null);
+// E2E bridge ref to call TypedDataErc7739 actions
+const typedDataRef = ref<{ signErc7739?: () => void; verifyErc7739?: () => void } | null>(null);
 
 // Address computation parameters
 const addressParams = ref({
