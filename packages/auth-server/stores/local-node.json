@@ -1,8 +1,8 @@
 {
-  "beacon": "0x443e62E809Ed93cf04a7e0Aa238480A8ae74de28",
-  "eoaValidator": "0x067B18909cCaB20BD44B18102528901f69B8eA71",
-  "sessionValidator": "0xde612c1b1C06982551157FB53E61a123c6045DFC",
-  "webauthnValidator": "0x41b6892Bf7aFB4feeACDd96AAf34205124380A47",
-  "factory": "0xd49b4bf75E90f8A839e2a93D8aa950370062259a",
+  "beacon": "0x0efdDbB35e9BBc8c762E5B4a0f627210b6c9A721",
+  "eoaValidator": "0xd2571E989390F4F654572BE25Da2f4Ec41CB2cc8",
+  "sessionValidator": "0xEc5AB17Cc35221cdF54EaEb0868eA82d4D75D9Bf",
+  "webauthnValidator": "0xd512108c249cC5ec5370491AD916Be31bb88Dad2",
+  "factory": "0xbe38809914b552f295cD3e8dF2e77b3DA69cBC8b",
   "bundlerUrl": "http://localhost:4337"
 }
