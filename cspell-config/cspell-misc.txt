@@ -40,3 +40,4 @@ zyfi
 Fren
 fren
 nfts
+wght
