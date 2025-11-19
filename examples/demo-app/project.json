@@ -149,23 +149,6 @@
       },
       "dependsOn": ["build:local"]
     },
-    "dev:erc4337:anvil": {
-      "executor": "nx:run-commands",
-      "options": {
-        "cwd": "examples/demo-app",
-        "commands": [
-          {
-            "command": "pnpm nx dev auth-server",
-            "prefix": "Auth-Server:"
-          },
-          {
-            "command": "PORT=3004 nuxt dev",
-            "prefix": "Demo-App:"
-          }
-        ]
-      },
-      "dependsOn": ["deploy-contracts-erc4337-runtime"]
-    },
     "e2e:setup": {
       "executor": "nx:run-commands",
       "options": {
