@@ -33,6 +33,9 @@ zkout
 cancun
 EVMLA
 
+// paymasters
+zyfi
+
 // examples/nft-quest
 Fren
 fren
