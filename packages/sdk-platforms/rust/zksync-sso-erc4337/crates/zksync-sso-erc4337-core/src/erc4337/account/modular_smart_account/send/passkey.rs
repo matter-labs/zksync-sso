@@ -1,5 +1,5 @@
 use crate::erc4337::{
-    account::modular_smart_account::send::{SendParams, send_transaction},
+    account::modular_smart_account::send::{SendUserOpParams, send_user_op},
     bundler::pimlico::client::BundlerClient,
     paymaster::params::PaymasterParams,
     signer::{SignatureProvider, Signer},
@@ -43,7 +43,7 @@ where
     let signer =
         Signer { provider: signature_provider, stub_signature: stub_sig };
 
-    _ = send_transaction(SendParams {
+    _ = send_user_op(SendUserOpParams {
         account,
         entry_point,
         factory_payload: None,
@@ -66,16 +66,30 @@ pub mod tests {
         erc4337::{
             account::{
                 erc7579::{
-                    Execution, add_module::add_module, calls::encode_calls,
-                    module_installed::is_module_installed,
+                    calls::encoded_call_data,
+                    module::{
+                        Module,
+                        add::{AddModuleParams, AddModulePayload, add_module},
+                        installed::{
+                            IsModuleInstalledParams, is_module_installed,
+                        },
+                    },
                 },
                 modular_smart_account::{
-                    add_passkey::{PasskeyPayload, add_passkey},
                     deploy::{DeployAccountParams, EOASigners, deploy_account},
+                    passkey::add::{
+                        AddPasskeyParams, PasskeyPayload, add_passkey,
+                    },
                     test_utilities::fund_account_with_default_amount,
                 },
             },
+            bundler::Bundler,
+            entry_point::{
+                contract::EntryPoint::PackedUserOperation,
+                nonce::{GetNonceWithKeyParams, get_nonce_with_key},
+            },
             signer::{create_eoa_signer, test_utils::get_signature_from_js},
+            user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point,
         },
         utils::alloy_utilities::test_utilities::{
             TestInfraConfig,
@@ -83,8 +97,11 @@ pub mod tests {
         },
     };
     use alloy::{
-        primitives::{Bytes, U256, address, bytes, fixed_bytes},
-        rpc::types::TransactionRequest,
+        primitives::{Bytes, U256, Uint, address, bytes, fixed_bytes},
+        rpc::types::{
+            TransactionRequest,
+            erc4337::PackedUserOperation as AlloyPackedUserOperation,
+        },
     };
     use std::sync::Arc;
 
@@ -137,12 +154,13 @@ pub mod tests {
 
         println!("Account deployed");
 
-        let is_eoa_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_eoa_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(
             is_eoa_module_installed,
@@ -159,19 +177,24 @@ pub mod tests {
         )?;
 
         {
-            add_module(
-                address,
-                webauthn_module,
+            add_module(AddModuleParams {
+                account_address: address,
+                module: AddModulePayload::webauthn(webauthn_module),
                 entry_point_address,
-                provider.clone(),
-                bundler_client.clone(),
-                signer.clone(),
-            )
+                paymaster: None,
+                provider: provider.clone(),
+                bundler_client: bundler_client.clone(),
+                signer: signer.clone(),
+            })
             .await?;
 
             let is_web_authn_module_installed =
-                is_module_installed(webauthn_module, address, provider.clone())
-                    .await?;
+                is_module_installed(IsModuleInstalledParams {
+                    module: Module::webauthn_validator(webauthn_module),
+                    account: address,
+                    provider: provider.clone(),
+                })
+                .await?;
 
             eyre::ensure!(
                 is_web_authn_module_installed,
@@ -192,29 +215,22 @@ pub mod tests {
 
         let passkey = PasskeyPayload { credential_id, passkey, origin_domain };
 
-        add_passkey(
-            address,
+        add_passkey(AddPasskeyParams {
+            account_address: address,
             passkey,
-            webauthn_module,
+            webauthn_validator: webauthn_module,
             entry_point_address,
-            provider.clone(),
-            bundler_client.clone(),
+            paymaster: None,
+            provider: provider.clone(),
+            bundler_client: bundler_client.clone(),
             signer,
-        )
+        })
         .await?;
 
         println!("Passkey successfully added");
 
         // Send transaction using passkey signer
-        let call = {
-            let target = address;
-            let value = U256::from(1);
-            let data = Bytes::default();
-            Execution { target, value, data }
-        };
-
-        let calls = vec![call];
-        let calldata = encode_calls(calls).into();
+        let calldata = encoded_call_data(address, None, Some(U256::from(1)));
 
         let signature_provider: SignatureProvider =
             Arc::new(move |hash: FixedBytes<32>| {
@@ -249,12 +265,6 @@ pub mod tests {
     /// 3. Submit with signed UserOp
     #[tokio::test]
     async fn test_send_transaction_webauthn_two_step() -> eyre::Result<()> {
-        use crate::erc4337::{
-            account::modular_smart_account::nonce::get_nonce, bundler::Bundler,
-            entry_point::EntryPoint::PackedUserOperation,
-            user_operation::hash::v08::get_user_operation_hash_entry_point,
-        };
-        use alloy::rpc::types::erc4337::PackedUserOperation as AlloyPackedUserOperation;
         let (
             _,
             anvil_instance,
@@ -319,19 +329,24 @@ pub mod tests {
 
         // Install WebAuthn validator
         {
-            add_module(
-                address,
-                webauthn_module,
+            add_module(AddModuleParams {
+                account_address: address,
+                module: AddModulePayload::webauthn(webauthn_module),
                 entry_point_address,
-                provider.clone(),
-                bundler_client.clone(),
-                signer.clone(),
-            )
+                paymaster: None,
+                provider: provider.clone(),
+                bundler_client: bundler_client.clone(),
+                signer: signer.clone(),
+            })
             .await?;
 
             let is_web_authn_module_installed =
-                is_module_installed(webauthn_module, address, provider.clone())
-                    .await?;
+                is_module_installed(IsModuleInstalledParams {
+                    module: Module::webauthn_validator(webauthn_module),
+                    account: address,
+                    provider: provider.clone(),
+                })
+                .await?;
 
             eyre::ensure!(
                 is_web_authn_module_installed,
@@ -354,15 +369,16 @@ pub mod tests {
         let passkey_payload =
             PasskeyPayload { credential_id, passkey, origin_domain };
 
-        add_passkey(
-            address,
-            passkey_payload,
-            webauthn_module,
+        add_passkey(AddPasskeyParams {
+            account_address: address,
+            passkey: passkey_payload,
+            webauthn_validator: webauthn_module,
             entry_point_address,
-            provider.clone(),
-            bundler_client.clone(),
+            paymaster: None,
+            provider: provider.clone(),
+            bundler_client: bundler_client.clone(),
             signer,
-        )
+        })
         .await?;
 
         println!("Passkey successfully added");
@@ -372,20 +388,16 @@ pub mod tests {
         // Step 1: Build UserOperation and get hash to sign
         println!("\nStep 1: Building UserOperation...");
 
-        let call = {
-            let target = address;
-            let value = U256::from(1);
-            let data = Bytes::default();
-            Execution { target, value, data }
-        };
+        let call_data = encoded_call_data(address, None, Some(U256::from(1)));
 
-        let calls = vec![call];
-        let call_data: Bytes = encode_calls(calls).into();
-
-        let nonce_key = alloy::primitives::Uint::from(0);
-        let nonce =
-            get_nonce(entry_point_address, address, nonce_key, &provider)
-                .await?;
+        let nonce_key = Uint::from(0);
+        let nonce = get_nonce_with_key(GetNonceWithKeyParams {
+            sender: address,
+            entry_point: entry_point_address,
+            key: nonce_key,
+            provider: provider.clone(),
+        })
+        .await?;
 
         // Create stub signature for gas estimation
         // Use all-zeros hash to generate a real passkey signature for estimation

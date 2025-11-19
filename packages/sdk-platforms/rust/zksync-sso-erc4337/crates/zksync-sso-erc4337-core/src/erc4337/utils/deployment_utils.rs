@@ -119,6 +119,8 @@ pub async fn deploy_contracts(
         extract_contract_address(&lines, "SessionKeyValidator")?;
     let webauthn_validator =
         extract_contract_address(&lines, "WebAuthnValidator")?;
+    let guardian_executor =
+        extract_contract_address(&lines, "GuardianExecutor")?;
     let account_factory = extract_contract_address(&lines, "MSAFactory")?;
 
     let contracts = Contracts {
@@ -127,6 +129,7 @@ pub async fn deploy_contracts(
         webauthn_validator,
         account_factory,
         entry_point,
+        guardian_executor,
     };
 
     let provider = {

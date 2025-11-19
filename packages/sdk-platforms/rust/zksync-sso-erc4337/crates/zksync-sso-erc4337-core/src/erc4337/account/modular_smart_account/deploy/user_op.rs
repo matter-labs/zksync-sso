@@ -4,7 +4,7 @@ use crate::erc4337::{
             DeployAccountParams, MSADeployAccount, create_init_data,
             generate_random_account_id, get_account_created_address,
         },
-        send::{FactoryPayload, SendParams, send_transaction},
+        send::{FactoryPayload, SendUserOpParams, send_user_op},
     },
     bundler::pimlico::client::BundlerClient,
     entry_point::sender_address::get_sender_address,
@@ -69,7 +69,7 @@ where
     )
     .await?;
 
-    let user_op_receipt = send_transaction(SendParams {
+    let user_op_receipt = send_user_op(SendUserOpParams {
         account: predicted_account_address,
         entry_point: entry_point_address,
         factory_payload: Some(FactoryPayload {
@@ -117,7 +117,10 @@ mod tests {
     use crate::{
         erc4337::{
             account::{
-                erc7579::module_installed::is_module_installed,
+                erc7579::module::{
+                    Module,
+                    installed::{IsModuleInstalledParams, is_module_installed},
+                },
                 modular_smart_account::{
                     deploy::EOASigners,
                     test_utilities::fund_account_with_default_amount,
@@ -201,12 +204,13 @@ mod tests {
 
         fund_account_with_default_amount(address, provider.clone()).await?;
 
-        let is_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
         eyre::ensure!(is_module_installed, "Module is not installed");
 
         drop(mock_paymaster);

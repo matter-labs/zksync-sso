@@ -2,7 +2,8 @@ use crate::{
     config::contracts::Contracts,
     erc4337::account::modular_smart_account::{
         session::{
-            SessionKeyValidator, session_lib::session_spec::SessionSpec,
+            contract::SessionKeyValidator,
+            session_lib::session_spec::SessionSpec,
         },
         utils::{
             calculate_from_block, create_logs_filter_with_range,
@@ -116,16 +117,17 @@ mod tests {
         config::contracts::Contracts,
         erc4337::{
             account::{
-                erc7579::{
-                    add_module::add_module,
-                    module_installed::is_module_installed,
+                erc7579::module::{
+                    Module,
+                    add::{AddModuleParams, AddModulePayload, add_module},
+                    installed::{IsModuleInstalledParams, is_module_installed},
                 },
                 modular_smart_account::{
                     deploy::{DeployAccountParams, EOASigners, deploy_account},
                     session::{
-                        create::create_session,
+                        create::{CreateSessionParams, create_session},
                         hash::hash_session,
-                        revoke::revoke_session,
+                        revoke::{RevokeSessionParams, revoke_session},
                         session_lib::session_spec::{
                             limit_type::LimitType, transfer_spec::TransferSpec,
                             usage_limit::UsageLimit,
@@ -212,12 +214,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_eoa_module_installed = is_module_installed(
-            eoa_validator_address,
-            account_address,
-            provider.clone(),
-        )
-        .await?;
+        let is_eoa_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: account_address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(
             is_eoa_module_installed,
@@ -233,22 +236,24 @@ mod tests {
                 eoa_validator_address,
             )?;
 
-            add_module(
+            add_module(AddModuleParams {
                 account_address,
-                session_key_module,
+                module: AddModulePayload::session_key(session_key_module),
                 entry_point_address,
-                provider.clone(),
-                bundler_client.clone(),
+                paymaster: None,
+                provider: provider.clone(),
+                bundler_client: bundler_client.clone(),
                 signer,
-            )
+            })
             .await?;
 
-            let is_session_key_module_installed = is_module_installed(
-                session_key_module,
-                account_address,
-                provider.clone(),
-            )
-            .await?;
+            let is_session_key_module_installed =
+                is_module_installed(IsModuleInstalledParams {
+                    module: Module::session_key_validator(session_key_module),
+                    account: account_address,
+                    provider: provider.clone(),
+                })
+                .await?;
 
             eyre::ensure!(
                 is_session_key_module_installed,
@@ -290,15 +295,16 @@ mod tests {
             }
         };
 
-        create_session(
+        create_session(CreateSessionParams {
             account_address,
-            session_spec_1.clone(),
+            spec: session_spec_1.clone(),
             entry_point_address,
-            session_key_module,
-            bundler_client.clone(),
-            provider.clone(),
-            signer.clone(),
-        )
+            session_key_validator: session_key_module,
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: signer.clone(),
+        })
         .await?;
 
         println!("Session 1 created");
@@ -330,15 +336,16 @@ mod tests {
             }
         };
 
-        create_session(
+        create_session(CreateSessionParams {
             account_address,
-            session_spec_2.clone(),
+            spec: session_spec_2.clone(),
             entry_point_address,
-            session_key_module,
-            bundler_client.clone(),
-            provider.clone(),
-            signer.clone(),
-        )
+            session_key_validator: session_key_module,
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: signer.clone(),
+        })
         .await?;
 
         println!("Session 2 created");
@@ -370,30 +377,32 @@ mod tests {
             }
         };
 
-        create_session(
+        create_session(CreateSessionParams {
             account_address,
-            session_spec_3.clone(),
+            spec: session_spec_3.clone(),
             entry_point_address,
-            session_key_module,
-            bundler_client.clone(),
-            provider.clone(),
-            signer.clone(),
-        )
+            session_key_validator: session_key_module,
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: signer.clone(),
+        })
         .await?;
 
         println!("Session 3 created");
 
         // Revoke session 2
         let session_hash_2 = hash_session(session_spec_2.clone());
-        revoke_session(
+        revoke_session(RevokeSessionParams {
             account_address,
-            session_hash_2,
+            session_hash: session_hash_2,
             entry_point_address,
-            session_key_module,
-            bundler_client.clone(),
-            provider.clone(),
-            signer.clone(),
-        )
+            session_key_validator: session_key_module,
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: signer.clone(),
+        })
         .await?;
 
         println!("Session 2 revoked");

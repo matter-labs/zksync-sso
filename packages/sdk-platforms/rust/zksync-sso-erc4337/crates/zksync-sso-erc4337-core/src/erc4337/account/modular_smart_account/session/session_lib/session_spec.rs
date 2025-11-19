@@ -6,7 +6,7 @@ pub mod transfer_spec;
 pub mod usage_limit;
 
 use crate::erc4337::account::modular_smart_account::session::{
-    SessionLib::{
+    contract::SessionLib::{
         CallSpec as SessionLibCallSpec, SessionSpec as SessionLibSessionSpec,
         TransferSpec as SessionLibTransferSpec,
         UsageLimit as SessionLibUsageLimit,
@@ -119,7 +119,7 @@ impl From<SessionLibCallSpec> for Policy {
 mod tests {
     use super::*;
     use crate::erc4337::account::modular_smart_account::session::{
-        SessionLib::{
+        contract::SessionLib::{
             SessionSpec as SessionLibSpec, UsageLimit as SessionLibUsageLimit,
         },
         session_lib::session_spec::{

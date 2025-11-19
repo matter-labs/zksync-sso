@@ -2,15 +2,17 @@ pub mod eoa;
 pub mod passkey;
 
 use crate::erc4337::{
-    account::modular_smart_account::nonce::get_nonce,
     bundler::{
         Bundler, models::receipt::UserOperationReceipt,
         pimlico::client::BundlerClient,
     },
-    entry_point::EntryPoint,
+    entry_point::{
+        contract::EntryPoint,
+        nonce::{GetNonceWithKeyParams, get_nonce_with_key},
+    },
     paymaster::params::{PaymasterParams, build_paymaster_and_data},
     signer::Signer,
-    user_operation::hash::v08::get_user_operation_hash_entry_point,
+    user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point,
 };
 use alloy::{
     primitives::{Address, Bytes, U256, Uint},
@@ -26,7 +28,7 @@ pub struct FactoryPayload {
 }
 
 #[derive(Clone)]
-pub struct SendParams<P: Provider + Send + Sync + Clone> {
+pub struct SendUserOpParams<P: Provider + Send + Sync + Clone> {
     pub account: Address,
     pub entry_point: Address,
     pub factory_payload: Option<FactoryPayload>,
@@ -38,13 +40,13 @@ pub struct SendParams<P: Provider + Send + Sync + Clone> {
     pub signer: Signer,
 }
 
-pub async fn send_transaction<P>(
-    params: SendParams<P>,
+pub async fn send_user_op<P>(
+    params: SendUserOpParams<P>,
 ) -> eyre::Result<UserOperationReceipt>
 where
     P: Provider + Send + Sync + Clone,
 {
-    let SendParams {
+    let SendUserOpParams {
         account,
         entry_point,
         factory_payload,
@@ -58,7 +60,13 @@ where
 
     let nonce_key = nonce_key.unwrap_or_else(|| Uint::from(0));
 
-    let nonce = get_nonce(entry_point, account, nonce_key, &provider).await?;
+    let nonce = get_nonce_with_key(GetNonceWithKeyParams {
+        sender: account,
+        entry_point,
+        key: nonce_key,
+        provider: provider.clone(),
+    })
+    .await?;
 
     let (estimated_gas, mut user_op) = {
         let alloy_user_op = {
