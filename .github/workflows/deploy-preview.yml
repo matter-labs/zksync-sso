@@ -47,6 +47,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
+      # Web SDK depends on ERC-4337 contracts for WASM build
+      - name: Install foundry
+        uses: foundry-rs/foundry-toolchain@v1.5.0
+        
+      - name: Install ERC-4337 contract dependencies
+        run: forge soldeer install
+        working-directory: packages/erc4337-contracts
+
+      - name: Build ERC-4337 contracts
+        run: forge build
+        working-directory: packages/erc4337-contracts
+
       - name: Build Auth Server
         env:
           NUXT_PUBLIC_DEFAULT_CHAIN_ID: 300

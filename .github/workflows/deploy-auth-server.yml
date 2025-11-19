@@ -33,6 +33,30 @@ jobs:
           node-version: lts/Iron
           cache: 'pnpm'
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
+
+      # Web SDK depends on ERC-4337 contracts for WASM build
+      - name: Install foundry
+        uses: foundry-rs/foundry-toolchain@v1.5.0
+        
+      - name: Install ERC-4337 contract dependencies
+        run: forge soldeer install
+        working-directory: packages/erc4337-contracts
+
+      - name: Build ERC-4337 contracts
+        run: forge build
+        working-directory: packages/erc4337-contracts
+
       - name: Build apps
         env:
           NUXT_PUBLIC_DEFAULT_CHAIN_ID: 300
