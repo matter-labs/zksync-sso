@@ -1,4 +1,4 @@
-use crate::erc4337::entry_point::PackedUserOperation;
+use crate::erc4337::entry_point::contract::PackedUserOperation;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserOperationEstimated(PackedUserOperation);

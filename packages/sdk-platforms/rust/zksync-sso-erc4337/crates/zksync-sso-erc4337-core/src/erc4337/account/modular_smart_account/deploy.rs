@@ -2,9 +2,11 @@ pub mod user_op;
 
 use crate::erc4337::{
     account::modular_smart_account::{
-        MSAFactory::{self, deployAccountCall},
-        ModularSmartAccount::initializeAccountCall,
-        add_passkey::PasskeyPayload,
+        contract::{
+            MSAFactory, MSAFactory::deployAccountCall,
+            ModularSmartAccount::initializeAccountCall,
+        },
+        passkey::add::PasskeyPayload,
     },
     utils::check_deployed::{Contract, check_contract_deployed},
 };
@@ -116,6 +118,22 @@ where
     Ok(address)
 }
 
+pub fn deploy_accout_call_data(
+    account_id: FixedBytes<32>,
+    init_data: Bytes,
+) -> Bytes {
+    let call =
+        MSAFactory::deployAccountCall { salt: account_id, initData: init_data };
+    call.abi_encode().into()
+}
+
+pub fn initialize_account_call_data(
+    modules: Vec<Address>,
+    data: Vec<Bytes>,
+) -> Bytes {
+    MSAInitializeAccount::new(modules, data).encode().into()
+}
+
 fn get_account_created_address(
     receipt: &TransactionReceipt,
 ) -> eyre::Result<Address> {
@@ -137,7 +155,7 @@ fn create_init_data(
 ) -> Bytes {
     let (data, modules) =
         modules_from_signers(eoa_signers, webauthn_signer, session_validator);
-    MSAInitializeAccount::new(modules, data).encode().into()
+    initialize_account_call_data(modules, data)
 }
 
 fn modules_from_signers(
@@ -194,10 +212,44 @@ fn generate_random_id() -> [u8; 32] {
 mod tests {
     use super::*;
     use crate::{
-        erc4337::account::erc7579::module_installed::is_module_installed,
-        utils::alloy_utilities::test_utilities::start_anvil_and_deploy_contracts,
+        erc4337::{
+            account::{
+                erc7579::{
+                    calls::{Execution, encode_calls},
+                    module::{
+                        Module,
+                        installed::{
+                            IsModuleInstalledParams, is_module_installed,
+                        },
+                    },
+                },
+                modular_smart_account::{
+                    send::{SendUserOpParams, send_user_op},
+                    session::{
+                        create::{CreateSessionParams, create_session},
+                        send::keyed_nonce,
+                        session_lib::session_spec::{
+                            SessionSpec, limit_type::LimitType,
+                            transfer_spec::TransferSpec,
+                            usage_limit::UsageLimit,
+                        },
+                        signature::session_signature,
+                    },
+                    test_utilities::fund_account_with_default_amount,
+                },
+            },
+            signer::{Signer, create_eoa_signer},
+        },
+        utils::alloy_utilities::test_utilities::{
+            TestInfraConfig, start_anvil_and_deploy_contracts,
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+        },
     };
-    use alloy::primitives::{U256, Uint, address};
+    use alloy::{
+        primitives::{U256, Uint, address},
+        signers::local::PrivateKeySigner,
+    };
+    use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
 
     #[tokio::test]
     async fn test_deploy_account_basic() -> eyre::Result<()> {
@@ -249,12 +301,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
         eyre::ensure!(is_module_installed, "Module is not installed");
 
         drop(anvil_instance);
@@ -286,12 +339,15 @@ mod tests {
 
         println!("Account deployed with session validator");
 
-        let is_module_installed = is_module_installed(
-            session_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::session_key_validator(
+                    session_validator_address,
+                ),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
         eyre::ensure!(
             is_module_installed,
             "Session validator module is not installed"
@@ -336,11 +392,11 @@ mod tests {
         println!("Account deployed with EOA and session validators");
 
         // Verify EOA validator is installed
-        let is_eoa_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
+        let is_eoa_installed = is_module_installed(IsModuleInstalledParams {
+            module: Module::eoa_validator(eoa_validator_address),
+            account: address,
+            provider: provider.clone(),
+        })
         .await?;
         eyre::ensure!(
             is_eoa_installed,
@@ -348,12 +404,15 @@ mod tests {
         );
 
         // Verify session validator is installed
-        let is_session_installed = is_module_installed(
-            session_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_session_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::session_key_validator(
+                    session_validator_address,
+                ),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
         eyre::ensure!(
             is_session_installed,
             "Session validator module is not installed"
@@ -367,35 +426,6 @@ mod tests {
     /// Test comprehensive session flow: deploy with session validator, create session, and transact
     #[tokio::test]
     async fn test_deploy_with_session_and_transact() -> eyre::Result<()> {
-        use crate::{
-            erc4337::{
-                account::{
-                    erc7579::{Execution, calls::encode_calls},
-                    modular_smart_account::{
-                        send::{SendParams, send_transaction},
-                        session::{
-                            create::create_session,
-                            send::keyed_nonce,
-                            session_lib::session_spec::{
-                                SessionSpec, limit_type::LimitType,
-                                transfer_spec::TransferSpec,
-                                usage_limit::UsageLimit,
-                            },
-                            signature::session_signature,
-                        },
-                        test_utilities::fund_account_with_default_amount,
-                    },
-                },
-                signer::{Signer, create_eoa_signer},
-            },
-            utils::alloy_utilities::test_utilities::{
-                TestInfraConfig,
-                start_anvil_and_deploy_contracts_and_start_bundler_with_config,
-            },
-        };
-        use alloy::signers::local::PrivateKeySigner;
-        use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
-
         // Start test infrastructure
         let (
             _,
@@ -452,20 +482,23 @@ mod tests {
         println!("✓ Account deployed with session validator pre-installed");
 
         // Verify both modules are installed
-        let is_eoa_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
+        let is_eoa_installed = is_module_installed(IsModuleInstalledParams {
+            module: Module::eoa_validator(eoa_validator_address),
+            account: address,
+            provider: provider.clone(),
+        })
         .await?;
         eyre::ensure!(is_eoa_installed, "EOA validator not installed");
 
-        let is_session_installed = is_module_installed(
-            session_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_session_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::session_key_validator(
+                    session_validator_address,
+                ),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
         eyre::ensure!(is_session_installed, "Session validator not installed");
 
         println!("✓ Both EOA and Session validators verified as installed");
@@ -503,15 +536,16 @@ mod tests {
             }],
         };
 
-        create_session(
-            address,
-            session_spec.clone(),
+        create_session(CreateSessionParams {
+            account_address: address,
+            spec: session_spec.clone(),
             entry_point_address,
-            session_validator_address,
-            bundler_client.clone(),
-            provider.clone(),
-            eoa_signer,
-        )
+            session_key_validator: session_validator_address,
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: eoa_signer,
+        })
         .await?;
 
         println!("✓ Session created successfully");
@@ -519,8 +553,8 @@ mod tests {
         // Send transaction using the session key
         let call = {
             let value = U256::from(1_000_000_000_000_000u64); // 0.001 ETH
-            let data = Bytes::default();
-            Execution { target, value, data }
+            let call_data = Bytes::default();
+            Execution { target, value, call_data }
         };
 
         let calls = vec![call];
@@ -568,7 +602,7 @@ mod tests {
 
         let keyed_nonce = keyed_nonce(session_signer_address);
 
-        send_transaction(SendParams {
+        send_user_op(SendUserOpParams {
             account: address,
             entry_point: entry_point_address,
             factory_payload: None,

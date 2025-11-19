@@ -1,39 +1,57 @@
 use crate::erc4337::{
     account::{
-        erc7579::{Execution, calls::encode_calls},
+        erc7579::calls::encoded_call_with_target_and_data,
         modular_smart_account::{
-            send::{SendParams, send_transaction},
-            session::SessionKeyValidator,
+            send::{SendUserOpParams, send_user_op},
+            session::contract::SessionKeyValidator,
         },
     },
     bundler::pimlico::client::BundlerClient,
+    paymaster::params::PaymasterParams,
     signer::Signer,
 };
 use alloy::{
-    primitives::{Address, Bytes, FixedBytes, U256},
+    primitives::{Address, Bytes, FixedBytes},
     providers::Provider,
     sol_types::SolCall,
 };
 
+#[derive(Clone)]
+pub struct RevokeSessionParams<P: Provider + Send + Sync + Clone> {
+    pub account_address: Address,
+    pub session_hash: FixedBytes<32>,
+    pub entry_point_address: Address,
+    pub session_key_validator: Address,
+    pub paymaster: Option<PaymasterParams>,
+    pub bundler_client: BundlerClient,
+    pub provider: P,
+    pub signer: Signer,
+}
+
 pub async fn revoke_session<P: Provider + Send + Sync + Clone>(
-    account_address: Address,
-    session_hash: FixedBytes<32>,
-    entry_point_address: Address,
-    session_key_validator: Address,
-    bundler_client: BundlerClient,
-    provider: P,
-    signer: Signer,
+    params: RevokeSessionParams<P>,
 ) -> eyre::Result<()> {
+    let RevokeSessionParams {
+        account_address,
+        session_hash,
+        entry_point_address,
+        session_key_validator,
+        paymaster,
+        bundler_client,
+        provider,
+        signer,
+    } = params;
+
     let call_data =
         revoke_session_call_data(session_hash, session_key_validator);
 
-    send_transaction(SendParams {
+    send_user_op(SendUserOpParams {
         account: account_address,
         entry_point: entry_point_address,
         factory_payload: None,
         call_data,
         nonce_key: None,
-        paymaster: None,
+        paymaster,
         bundler_client,
         provider,
         signer,
@@ -52,15 +70,10 @@ fn revoke_session_call_data(
             .abi_encode()
             .into();
 
-    let call = {
-        let target = session_key_validator;
-        let value = U256::from(0);
-        let data = create_session_calldata;
-        Execution { target, value, data }
-    };
-
-    let calls = vec![call];
-    encode_calls(calls).into()
+    encoded_call_with_target_and_data(
+        session_key_validator,
+        create_session_calldata,
+    )
 }
 
 #[cfg(test)]
@@ -69,18 +82,19 @@ mod tests {
     use crate::{
         erc4337::{
             account::{
-                erc7579::{
-                    add_module::add_module,
-                    module_installed::is_module_installed,
+                erc7579::module::{
+                    Module,
+                    add::{AddModuleParams, AddModulePayload, add_module},
+                    installed::{IsModuleInstalledParams, is_module_installed},
                 },
                 modular_smart_account::{
-                    add_passkey::PasskeyPayload,
                     deploy::{
                         DeployAccountParams, EOASigners, WebAuthNSigner,
                         deploy_account,
                     },
+                    passkey::add::PasskeyPayload,
                     session::{
-                        create::create_session,
+                        create::{CreateSessionParams, create_session},
                         hash::hash_session,
                         session_lib::session_spec::{
                             SessionSpec, limit_type::LimitType,
@@ -150,12 +164,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_eoa_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_eoa_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(
             is_eoa_module_installed,
@@ -170,22 +185,24 @@ mod tests {
                 eoa_validator_address,
             )?;
 
-            add_module(
-                address,
-                session_key_module,
+            add_module(AddModuleParams {
+                account_address: address,
+                module: AddModulePayload::session_key(session_key_module),
                 entry_point_address,
-                provider.clone(),
-                bundler_client.clone(),
+                paymaster: None,
+                provider: provider.clone(),
+                bundler_client: bundler_client.clone(),
                 signer,
-            )
+            })
             .await?;
 
-            let is_session_key_module_installed = is_module_installed(
-                session_key_module,
-                address,
-                provider.clone(),
-            )
-            .await?;
+            let is_session_key_module_installed =
+                is_module_installed(IsModuleInstalledParams {
+                    module: Module::session_key_validator(session_key_module),
+                    account: address,
+                    provider: provider.clone(),
+                })
+                .await?;
 
             eyre::ensure!(
                 is_session_key_module_installed,
@@ -225,15 +242,16 @@ mod tests {
                 }],
             };
 
-            create_session(
-                address,
-                session_spec.clone(),
+            create_session(CreateSessionParams {
+                account_address: address,
+                spec: session_spec.clone(),
                 entry_point_address,
-                session_key_module,
-                bundler_client.clone(),
-                provider.clone(),
-                signer.clone(),
-            )
+                session_key_validator: session_key_module,
+                paymaster: None,
+                bundler_client: bundler_client.clone(),
+                provider: provider.clone(),
+                signer: signer.clone(),
+            })
             .await?;
 
             session_spec.clone()
@@ -253,21 +271,18 @@ mod tests {
 
         println!("Session status: {:?}", session_status);
 
-        let expected_session_status = 1;
-        eyre::ensure!(
-            session_status == expected_session_status,
-            "Session is not active"
-        );
+        eyre::ensure!(session_status.is_active(), "Session is not active");
 
-        revoke_session(
-            address,
+        revoke_session(RevokeSessionParams {
+            account_address: address,
             session_hash,
             entry_point_address,
-            session_key_module,
-            bundler_client,
-            provider,
-            signer,
-        )
+            session_key_validator: session_key_module,
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: signer.clone(),
+        })
         .await?;
 
         println!("\n\n\nSession successfully revoked\n\n\n");
@@ -334,12 +349,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_passkey_module_installed = is_module_installed(
-            webauthn_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_passkey_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::webauthn_validator(webauthn_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(
             is_passkey_module_installed,
@@ -351,22 +367,24 @@ mod tests {
         let signer = create_test_webauthn_js_signer();
 
         {
-            add_module(
-                address,
-                session_key_module,
+            add_module(AddModuleParams {
+                account_address: address,
+                module: AddModulePayload::session_key(session_key_module),
                 entry_point_address,
-                provider.clone(),
-                bundler_client.clone(),
-                signer.clone(),
-            )
+                paymaster: None,
+                provider: provider.clone(),
+                bundler_client: bundler_client.clone(),
+                signer: signer.clone(),
+            })
             .await?;
 
-            let is_session_key_module_installed = is_module_installed(
-                session_key_module,
-                address,
-                provider.clone(),
-            )
-            .await?;
+            let is_session_key_module_installed =
+                is_module_installed(IsModuleInstalledParams {
+                    module: Module::session_key_validator(session_key_module),
+                    account: address,
+                    provider: provider.clone(),
+                })
+                .await?;
 
             eyre::ensure!(
                 is_session_key_module_installed,
@@ -400,15 +418,16 @@ mod tests {
             }],
         };
 
-        create_session(
-            address,
-            session_spec.clone(),
+        create_session(CreateSessionParams {
+            account_address: address,
+            spec: session_spec.clone(),
             entry_point_address,
-            session_key_module,
-            bundler_client.clone(),
-            provider.clone(),
-            signer.clone(),
-        )
+            session_key_validator: session_key_module,
+            paymaster: None,
+            bundler_client: bundler_client.clone(),
+            provider: provider.clone(),
+            signer: signer.clone(),
+        })
         .await?;
 
         println!("\n\n\nSession successfully created\n\n\n");
@@ -425,24 +444,21 @@ mod tests {
 
         println!("Session status: {:?}", session_status);
 
-        let expected_session_status = 1;
-        eyre::ensure!(
-            session_status == expected_session_status,
-            "Session is not active"
-        );
+        eyre::ensure!(session_status.is_active(), "Session is not active");
 
         {
             let session_hash = hash_session(session_spec.clone());
 
-            revoke_session(
-                address,
+            revoke_session(RevokeSessionParams {
+                account_address: address,
                 session_hash,
                 entry_point_address,
-                session_key_module,
-                bundler_client,
-                provider,
-                signer,
-            )
+                session_key_validator: session_key_module,
+                paymaster: None,
+                bundler_client: bundler_client.clone(),
+                provider: provider.clone(),
+                signer: signer.clone(),
+            })
             .await?;
         }
 

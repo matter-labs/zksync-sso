@@ -1,5 +1,5 @@
 use crate::erc4337::account::modular_smart_account::session::{
-    SessionLib::Constraint as SessionLibConstraint,
+    contract::SessionLib::Constraint as SessionLibConstraint,
     session_lib::session_spec::{
         condition::Condition, usage_limit::UsageLimit,
     },

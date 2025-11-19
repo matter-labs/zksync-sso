@@ -1,40 +1,62 @@
 use crate::erc4337::{
     account::{
-        erc7579::{Execution, calls::encode_calls},
+        erc7579::calls::encoded_call_with_target_and_data,
         modular_smart_account::{
-            send::{SendParams, send_transaction},
+            send::{SendUserOpParams, send_user_op},
             session::{
-                SessionKeyValidator, session_lib::session_spec::SessionSpec,
+                contract::SessionKeyValidator,
+                session_lib::session_spec::SessionSpec,
             },
         },
     },
     bundler::pimlico::client::BundlerClient,
+    paymaster::params::PaymasterParams,
     signer::Signer,
 };
 use alloy::{
-    primitives::{Address, Bytes, U256},
+    primitives::{Address, Bytes},
     providers::Provider,
     sol_types::SolCall,
 };
 
-pub async fn create_session<P: Provider + Send + Sync + Clone>(
-    account_address: Address,
-    spec: SessionSpec,
-    entry_point_address: Address,
-    session_key_validator: Address,
-    bundler_client: BundlerClient,
-    provider: P,
-    signer: Signer,
-) -> eyre::Result<()> {
+#[derive(Clone)]
+pub struct CreateSessionParams<P: Provider + Send + Sync + Clone> {
+    pub account_address: Address,
+    pub spec: SessionSpec,
+    pub entry_point_address: Address,
+    pub session_key_validator: Address,
+    pub paymaster: Option<PaymasterParams>,
+    pub bundler_client: BundlerClient,
+    pub provider: P,
+    pub signer: Signer,
+}
+
+pub async fn create_session<P>(
+    params: CreateSessionParams<P>,
+) -> eyre::Result<()>
+where
+    P: Provider + Send + Sync + Clone,
+{
+    let CreateSessionParams {
+        account_address,
+        spec,
+        entry_point_address,
+        session_key_validator,
+        paymaster,
+        bundler_client,
+        provider,
+        signer,
+    } = params;
+
     let call_data = add_session_call_data(spec, session_key_validator);
 
-    send_transaction(SendParams {
+    send_user_op(SendUserOpParams {
         account: account_address,
         entry_point: entry_point_address,
         factory_payload: None,
         call_data,
         nonce_key: None,
-        paymaster: None,
+        paymaster,
         bundler_client,
         provider,
         signer,
@@ -44,24 +66,18 @@ pub async fn create_session<P: Provider + Send + Sync + Clone>(
     Ok(())
 }
 
+pub fn create_session_call_data(spec: SessionSpec) -> Bytes {
+    SessionKeyValidator::createSessionCall { sessionSpec: spec.into() }
+        .abi_encode()
+        .into()
+}
+
 fn add_session_call_data(
     spec: SessionSpec,
     session_key_validator: Address,
 ) -> Bytes {
-    let create_session_calldata =
-        SessionKeyValidator::createSessionCall { sessionSpec: spec.into() }
-            .abi_encode()
-            .into();
-
-    let call = {
-        let target = session_key_validator;
-        let value = U256::from(0);
-        let data = create_session_calldata;
-        Execution { target, value, data }
-    };
-
-    let calls = vec![call];
-    encode_calls(calls).into()
+    let calldata = create_session_call_data(spec);
+    encoded_call_with_target_and_data(session_key_validator, calldata)
 }
 
 #[cfg(test)]
@@ -70,16 +86,17 @@ mod tests {
     use crate::{
         erc4337::{
             account::{
-                erc7579::{
-                    add_module::add_module,
-                    module_installed::is_module_installed,
+                erc7579::module::{
+                    Module,
+                    add::{AddModuleParams, AddModulePayload, add_module},
+                    installed::{IsModuleInstalledParams, is_module_installed},
                 },
                 modular_smart_account::{
-                    add_passkey::PasskeyPayload,
                     deploy::{
                         DeployAccountParams, EOASigners, WebAuthNSigner,
                         deploy_account,
                     },
+                    passkey::add::PasskeyPayload,
                     session::session_lib::session_spec::{
                         limit_type::LimitType, transfer_spec::TransferSpec,
                         usage_limit::UsageLimit,
@@ -146,12 +163,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_eoa_module_installed = is_module_installed(
-            eoa_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_eoa_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::eoa_validator(eoa_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(
             is_eoa_module_installed,
@@ -166,22 +184,24 @@ mod tests {
                 eoa_validator_address,
             )?;
 
-            add_module(
-                address,
-                session_key_module,
+            add_module(AddModuleParams {
+                account_address: address,
+                module: AddModulePayload::session_key(session_key_module),
                 entry_point_address,
-                provider.clone(),
-                bundler_client.clone(),
+                paymaster: None,
+                provider: provider.clone(),
+                bundler_client: bundler_client.clone(),
                 signer,
-            )
+            })
             .await?;
 
-            let is_session_key_module_installed = is_module_installed(
-                session_key_module,
-                address,
-                provider.clone(),
-            )
-            .await?;
+            let is_session_key_module_installed =
+                is_module_installed(IsModuleInstalledParams {
+                    module: Module::session_key_validator(session_key_module),
+                    account: address,
+                    provider: provider.clone(),
+                })
+                .await?;
 
             eyre::ensure!(
                 is_session_key_module_installed,
@@ -221,15 +241,16 @@ mod tests {
                 }],
             };
 
-            create_session(
-                address,
-                session_spec,
+            create_session(CreateSessionParams {
+                account_address: address,
+                spec: session_spec,
                 entry_point_address,
-                session_key_module,
+                session_key_validator: session_key_module,
+                paymaster: None,
                 bundler_client,
                 provider,
                 signer,
-            )
+            })
             .await?;
         }
 
@@ -297,12 +318,13 @@ mod tests {
 
         println!("Account deployed");
 
-        let is_passkey_module_installed = is_module_installed(
-            webauthn_validator_address,
-            address,
-            provider.clone(),
-        )
-        .await?;
+        let is_passkey_module_installed =
+            is_module_installed(IsModuleInstalledParams {
+                module: Module::webauthn_validator(webauthn_validator_address),
+                account: address,
+                provider: provider.clone(),
+            })
+            .await?;
 
         eyre::ensure!(
             is_passkey_module_installed,
@@ -314,22 +336,24 @@ mod tests {
         let signer = create_test_webauthn_js_signer();
 
         {
-            add_module(
-                address,
-                session_key_module,
+            add_module(AddModuleParams {
+                account_address: address,
+                module: AddModulePayload::session_key(session_key_module),
                 entry_point_address,
-                provider.clone(),
-                bundler_client.clone(),
-                signer.clone(),
-            )
+                paymaster: None,
+                provider: provider.clone(),
+                bundler_client: bundler_client.clone(),
+                signer: signer.clone(),
+            })
             .await?;
 
-            let is_session_key_module_installed = is_module_installed(
-                session_key_module,
-                address,
-                provider.clone(),
-            )
-            .await?;
+            let is_session_key_module_installed =
+                is_module_installed(IsModuleInstalledParams {
+                    module: Module::session_key_validator(session_key_module),
+                    account: address,
+                    provider: provider.clone(),
+                })
+                .await?;
 
             eyre::ensure!(
                 is_session_key_module_installed,
@@ -364,15 +388,16 @@ mod tests {
                 }],
             };
 
-            create_session(
-                address,
-                session_spec,
+            create_session(CreateSessionParams {
+                account_address: address,
+                spec: session_spec,
                 entry_point_address,
-                session_key_module,
+                session_key_validator: session_key_module,
+                paymaster: None,
                 bundler_client,
                 provider,
-                signer.clone(),
-            )
+                signer: signer.clone(),
+            })
             .await?;
         }
 

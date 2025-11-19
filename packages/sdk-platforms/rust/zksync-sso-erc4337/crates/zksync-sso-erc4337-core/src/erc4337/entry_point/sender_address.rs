@@ -1,4 +1,4 @@
-use crate::erc4337::entry_point::{
+use crate::erc4337::entry_point::contract::{
     EntryPoint,
     EntryPoint::{
         SenderAddressResult, getSenderAddressCall, getSenderAddressReturn,

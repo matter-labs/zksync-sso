@@ -1,7 +1,7 @@
 use crate::erc4337::account::{
-    erc7579::executeCall,
+    erc7579::calls::encode_execution_call_data,
     modular_smart_account::session::{
-        SessionLib::SessionSpec as SessionLibSessionSpec,
+        contract::SessionLib::SessionSpec as SessionLibSessionSpec,
         session_lib::session_spec::SessionSpec,
         signature_wasm::get_period_id_no_validation,
     },
@@ -10,7 +10,6 @@ use alloy::{
     dyn_abi::SolType,
     primitives::{Address, Bytes, FixedBytes, U256, Uint},
     sol,
-    sol_types::SolCall,
 };
 
 /// Encode execute call data for a session transaction.
@@ -36,7 +35,7 @@ pub fn encode_session_user_operation(
     };
 
     // Pack execution: target (20 bytes) + value (32 bytes) + data (variable)
-    let execution: Bytes = [
+    let execution_call_data: Bytes = [
         target.as_slice(),
         value
             .as_le_bytes()
@@ -50,7 +49,7 @@ pub fn encode_session_user_operation(
     .concat()
     .into();
 
-    executeCall { mode, execution }.abi_encode().into()
+    encode_execution_call_data(mode, execution_call_data)
 }
 
 /// Generate a stub signature for gas estimation.
@@ -141,8 +140,8 @@ mod tests {
         .concat()
         .into();
 
-        let expected = executeCall { mode, execution };
-        let expected_encoded: Bytes = expected.abi_encode().into();
+        let expected_encoded: Bytes =
+            encode_execution_call_data(mode, execution);
 
         assert_eq!(encoded, expected_encoded);
     }
