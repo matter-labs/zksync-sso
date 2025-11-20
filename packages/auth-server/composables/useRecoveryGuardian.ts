@@ -1,14 +1,9 @@
-// TODO: Guardian recovery is not yet available in zksync-sso-4337
-// This composable has been commented out until guardian recovery support is added to sdk-4337
-// Related: useRecoveryClient is commented out in stores/client.ts
-
-/*
 import type { Account, Address, Chain, Client, Hex, Transport } from "viem";
 import { encodeFunctionData, keccak256, pad, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 import { GuardianRecoveryValidatorAbi } from "zksync-sso/abi";
-import { confirmGuardian as sdkConfirmGuardian } from "zksync-sso/client";
+import { confirmGuardian as sdkConfirmGuardian, proposeGuardian as sdkProposeGuardian, removeGuardian as sdkRemoveGuardian } from "zksync-sso/client";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
 
 const getGuardiansInProgress = ref(false);
@@ -16,8 +11,9 @@ const getGuardiansError = ref<Error | null>(null);
 const getGuardiansData = ref<readonly { addr: Address; isReady: boolean }[] | null>(null);
 
 export const useRecoveryGuardian = () => {
-  const { getClient, getPublicClient, getRecoveryClient, defaultChain } = useClientStore();
-  const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
+  const { getClient, getPublicClient, getRecoveryClient, defaultChain, contractsByChain } = useClientStore();
+  const contracts = contractsByChain[defaultChain!.id];
+  const paymasterAddress = contracts.accountPaymaster;
 
   const getGuardedAccountsInProgress = ref(false);
   const getGuardedAccountsError = ref<Error | null>(null);
@@ -27,9 +23,10 @@ export const useRecoveryGuardian = () => {
     getGuardedAccountsError.value = null;
 
     try {
+      if (!contracts.recovery) throw new Error("Recovery contract address not configured");
       const client = getPublicClient({ chainId: defaultChain.id });
       return await client.readContract({
-        address: contractsByChain[defaultChain.id].recovery,
+        address: contracts.recovery,
         abi: GuardianRecoveryValidatorAbi,
         functionName: "guardianOf",
         args: [keccak256(toHex(window.location.origin)), guardianAddress],
@@ -47,9 +44,10 @@ export const useRecoveryGuardian = () => {
     getGuardiansError.value = null;
 
     try {
+      if (!contracts.recovery) throw new Error("Recovery contract address not configured");
       const client = getPublicClient({ chainId: defaultChain.id });
       const data = await client.readContract({
-        address: contractsByChain[defaultChain.id].recovery,
+        address: contracts.recovery,
         abi: GuardianRecoveryValidatorAbi,
         functionName: "guardiansFor",
         args: [keccak256(toHex(window.location.origin)), guardedAccount],
@@ -72,9 +70,10 @@ export const useRecoveryGuardian = () => {
     getRecoveryError.value = null;
 
     try {
+      if (!contracts.recovery) throw new Error("Recovery contract address not configured");
       const client = getPublicClient({ chainId: defaultChain.id });
       return await client.readContract({
-        address: contractsByChain[defaultChain.id].recovery,
+        address: contracts.recovery,
         abi: GuardianRecoveryValidatorAbi,
         functionName: "getPendingRecoveryData",
         args: [keccak256(toHex(window.location.origin)), account],
@@ -88,9 +87,15 @@ export const useRecoveryGuardian = () => {
   }
 
   const { inProgress: proposeGuardianInProgress, error: proposeGuardianError, execute: proposeGuardian } = useAsync(async (address: Address) => {
+    if (!contracts.recovery) throw new Error("Recovery contract address not configured");
+    if (!paymasterAddress) throw new Error("Paymaster address not configured");
+
     const client = getClient({ chainId: defaultChain.id });
-    const tx = await client.proposeGuardian({
+    const tx = await sdkProposeGuardian(client, {
       newGuardian: address,
+      contracts: {
+        recovery: contracts.recovery,
+      },
       paymaster: {
         address: paymasterAddress,
       },
@@ -100,9 +105,15 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: removeGuardianInProgress, error: removeGuardianError, execute: removeGuardian } = useAsync(async (address: Address) => {
+    if (!contracts.recovery) throw new Error("Recovery contract address not configured");
+    if (!paymasterAddress) throw new Error("Paymaster address not configured");
+
     const client = getClient({ chainId: defaultChain.id });
-    const tx = await client.removeGuardian({
+    const tx = await sdkRemoveGuardian(client, {
       guardian: address,
+      contracts: {
+        recovery: contracts.recovery,
+      },
       paymaster: {
         address: paymasterAddress,
       },
@@ -113,10 +124,13 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: confirmGuardianInProgress, error: confirmGuardianError, execute: confirmGuardian } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ client, accountToGuard }: { client: Client<transport, chain, account>; accountToGuard: Address }) => {
+    if (!contracts.recovery) throw new Error("Recovery contract address not configured");
+    if (!paymasterAddress) throw new Error("Paymaster address not configured");
+
     const { transactionReceipt } = await sdkConfirmGuardian(client, {
       accountToGuard,
       contracts: {
-        recovery: contractsByChain[defaultChain.id].recovery,
+        recovery: contracts.recovery,
       },
       paymaster: {
         address: paymasterAddress,
@@ -127,9 +141,11 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: discardRecoveryInProgress, error: discardRecoveryError, execute: discardRecovery } = useAsync(async () => {
+    if (!contracts.recovery) throw new Error("Recovery contract address not configured");
+
     const client = getClient({ chainId: defaultChain.id });
     const tx = await client.writeContract({
-      address: contractsByChain[defaultChain.id].recovery,
+      address: contracts.recovery,
       abi: GuardianRecoveryValidatorAbi,
       functionName: "discardRecovery",
       args: [keccak256(toHex(window.location.origin))],
@@ -142,6 +158,9 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: initRecoveryInProgress, error: initRecoveryError, execute: initRecovery } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ accountToRecover, credentialPublicKey, accountId, client }: { accountToRecover: Address; credentialPublicKey: Uint8Array<ArrayBufferLike>; accountId: string; client: Client<transport, chain, account> }) => {
+    if (!contracts.recovery) throw new Error("Recovery contract address not configured");
+    if (!paymasterAddress) throw new Error("Paymaster address not configured");
+
     const publicKeyBytes = getPublicKeyBytesFromPasskeySignature(credentialPublicKey);
     const publicKeyHex = [
       pad(`0x${publicKeyBytes[0].toString("hex")}`),
@@ -161,8 +180,8 @@ export const useRecoveryGuardian = () => {
 
     const sendTransactionArgs = {
       account: client.account,
-      to: contractsByChain[defaultChain.id].recovery,
-      paymaster: contractsByChain[defaultChain!.id].accountPaymaster,
+      to: contracts.recovery,
+      paymaster: paymasterAddress,
       paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
       data: calldata,
       gas: 10_000_000n, // TODO: Remove when gas estimation is fixed
@@ -174,16 +193,18 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: checkRecoveryRequestInProgress, error: checkRecoveryRequestError, execute: checkRecoveryRequest } = useAsync(async ({ credentialId, address }: { credentialId?: string; address?: Address }) => {
+    if (!contracts.recovery) throw new Error("Recovery contract address not configured");
+
     const client = getPublicClient({ chainId: defaultChain.id });
     const [requestValidityTime, requestDelayTime] = await Promise.all([
       client.readContract({
-        address: contractsByChain[defaultChain.id].recovery,
+        address: contracts.recovery,
         abi: GuardianRecoveryValidatorAbi,
         functionName: "REQUEST_VALIDITY_TIME",
         args: [],
       }),
       client.readContract({
-        address: contractsByChain[defaultChain.id].recovery,
+        address: contracts.recovery,
         abi: GuardianRecoveryValidatorAbi,
         functionName: "REQUEST_DELAY_TIME",
         args: [],
@@ -212,7 +233,7 @@ export const useRecoveryGuardian = () => {
     }
 
     const eventsFilter = {
-      address: contractsByChain[defaultChain.id].recovery,
+      address: contracts.recovery,
       abi: GuardianRecoveryValidatorAbi,
       args,
       fromBlock: validFromBlock,
@@ -283,6 +304,8 @@ export const useRecoveryGuardian = () => {
   });
 
   const { inProgress: executeRecoveryInProgress, error: executeRecoveryError, execute: executeRecovery } = useAsync(async ({ accountAddress, credentialId, rawPublicKey }: { accountAddress: Address; credentialId: string; rawPublicKey: readonly [Hex, Hex] }) => {
+    if (!paymasterAddress) throw new Error("Paymaster address not configured");
+
     const recoveryClient = getRecoveryClient({ chainId: defaultChain.id, address: accountAddress });
     return await recoveryClient.addAccountOwnerPasskey({
       credentialId,
@@ -328,4 +351,3 @@ export const useRecoveryGuardian = () => {
     executeRecovery,
   };
 };
-*/

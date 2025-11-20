@@ -13,6 +13,16 @@ pnpm --dir packages/contracts run deploy
 pnpm nx dev auth-server
 ```
 
+## Testing Guardian Recovery
+
+See [GUARDIAN_TESTING.md](./GUARDIAN_TESTING.md) for a comprehensive manual
+testing guide for the guardian recovery feature, including:
+
+- Setting up SSO accounts as guardians
+- Using external wallets as guardians
+- Managing multiple guardians
+- Edge cases and troubleshooting
+
 ## How to deploy to a new chain
 
 If you are a ZKsync chain operator, there are a few more updates to make to
