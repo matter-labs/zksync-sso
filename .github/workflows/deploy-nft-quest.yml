@@ -1,10 +1,11 @@
 name: "Deploy NFT Quest Testnet"
+# Temporarily disabled - only manual dispatch available
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - "examples/nft-quest/**"
-      - "packages/sdk/**"
+  # push:
+  #   branches: [ "main" ]
+  #   paths:
+  #     - "examples/nft-quest/**"
+  #     - "packages/sdk/**"
   workflow_dispatch:
 
 env:
