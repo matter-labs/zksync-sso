@@ -1,5 +1,5 @@
 # Stage 1: Build dependencies (Rust + Foundry)
-FROM rust:1.83-bookworm AS rust-builder
+FROM rustlang/rust:nightly-bookworm AS rust-builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
