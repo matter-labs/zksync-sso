@@ -1,21 +1,24 @@
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { deployModularAccount } from "zksync-sso/client";
-import type { SessionConfig } from "zksync-sso/utils";
+import type { SessionSpec } from "zksync-sso-4337/client";
+import { sessionSpecToJSON } from "zksync-sso-4337/client";
 
 export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividiumMode = false) => {
   const chainId = toRef(_chainId);
   const { getThrowAwayClient } = useClientStore();
   const { registerPasskey } = usePasskeyRegister();
   const { fetchAddressAssociationMessage, associateAddress, deleteAddressAssociation } = usePrividiumAddressAssociation();
+  const runtimeConfig = useRuntimeConfig();
 
-  const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionConfig, "signer">) => {
+  const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionSpec, "signer">) => {
     const result = await registerPasskey();
     if (!result) {
       throw new Error("Failed to register passkey");
     }
     const { credentialPublicKey, credentialId } = result;
 
-    let sessionData: SessionConfig | undefined;
+    // TODO: Session support during deployment - to be implemented
+    // For now, sessions can be added after deployment
+    let sessionData: SessionSpec | undefined;
     const sessionKey = generatePrivateKey();
     const signer = privateKeyToAddress(sessionKey);
     if (session) {
@@ -25,7 +28,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
       };
     }
 
-    // Don't yet want this to be imported as part of the setup process
+    // EOA owner for initial deployment signing
     const ownerKey = generatePrivateKey();
     const ownerAddress = privateKeyToAddress(ownerKey);
 
@@ -38,25 +41,40 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
       await associateAddress(deployerClient.account.address, message, signature);
     }
 
-    const chainContracts = contractsByChain[chainId.value];
-    const deployedAccount = await deployModularAccount(deployerClient, {
-      accountFactory: chainContracts.accountFactory,
-      passkeyModule: {
-        location: chainContracts.passkey,
+    // Call backend API to deploy account
+    const apiUrl = runtimeConfig.public.authServerApiUrl;
+    if (!apiUrl) {
+      throw new Error("Auth Server API URL is not configured");
+    }
+
+    const response = await fetch(`${apiUrl}/api/deploy-account`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chainId: chainId.value,
         credentialId,
         credentialPublicKey,
-      },
-      paymaster: {
-        location: chainContracts.accountPaymaster,
-      },
-      uniqueAccountId: credentialId,
-      sessionModule: {
-        location: chainContracts.session,
-        initialSession: sessionData,
-      },
-      owners: [ownerAddress],
-      installNoDataModules: [chainContracts.recovery, chainContracts.recoveryOidc],
+        originDomain: window.location.origin,
+        session: sessionData ? sessionSpecToJSON(sessionData) : undefined,
+        userId: credentialId, // Use credential ID as unique user ID
+        eoaSigners: [ownerAddress],
+      }),
     });
+
+    const data = await response.json();
+
+    // Check for errors in response
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    if (!data.address) {
+      throw new Error("No address returned from deployment API");
+    }
+
+    const address = data.address;
 
     // Clean up temporary association for Prividium mode
     if (prividiumMode) {
@@ -68,7 +86,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
     }
 
     return {
-      address: deployedAccount.address,
+      address,
       chainId: chainId.value,
       sessionKey: session ? sessionKey : undefined,
       signer,

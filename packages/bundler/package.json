@@ -1,0 +1,32 @@
+{
+  "name": "bundler",
+  "version": "0.0.1",
+  "description": "ERC-4337 bundler with CORS proxy for zkSync SSO",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "node --import tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "zksync",
+    "account-abstraction",
+    "ERC4337",
+    "bundler",
+    "alto"
+  ],
+  "author": "Matter Labs <zksync.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@pimlico/alto": "^0.0.19",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.2"
+  }
+}

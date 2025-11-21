@@ -3,8 +3,8 @@
  * Includes credential creation and signing functions
  */
 
-import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
-import { type Hex, hexToBytes, pad, toHex } from "viem";
+import { type PublicKeyCredentialCreationOptionsJSON, startAuthentication, startRegistration } from "@simplewebauthn/browser";
+import { bytesToHex, type Hex, hexToBytes, pad, toHex } from "viem";
 import { encode_passkey_signature } from "zksync-sso-web-sdk/bundler";
 
 /**
@@ -199,7 +199,7 @@ export async function signWithPasskey(
   fullSignature.set(validatorBytes, 0);
   fullSignature.set(signatureBytes_final, validatorBytes.length);
 
-  const hexString = `0x${Array.from(fullSignature).map((b) => b.toString(16).padStart(2, "0")).join("")}` as const;
+  const hexString = bytesToHex(fullSignature);
   return hexString as Hex;
 }
 
@@ -214,23 +214,15 @@ export interface CreateCredentialOptions {
   /**
    * Relying Party (RP) name - typically your application name
    */
-  rpName?: string;
+  rpName: string;
 
   /**
    * Relying Party ID - typically your domain (e.g., "example.com")
-   * If not provided, defaults to window.location.hostname
    */
-  rpId?: string;
+  rpId: string;
 
-  /**
-   * User display name
-   */
-  userName?: string;
-
-  /**
-   * User email or identifier
-   */
-  userEmail?: string;
+  displayName: string;
+  name: string;
 
   /**
    * Timeout in milliseconds (default: 60000)
@@ -252,31 +244,24 @@ export interface WebAuthnCredential {
   /**
    * Raw credential ID (hex string with 0x prefix)
    */
-  credentialId: string;
+  credentialId: Hex;
 
-  /**
-   * X coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
-   */
-  publicKeyX: string;
+  publicKey: {
+    /**
+     * X coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
+     */
+    x: Hex;
 
-  /**
-   * Y coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
-   */
-  publicKeyY: string;
+    /**
+     * Y coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
+     */
+    y: Hex;
+  };
 
   /**
    * Origin where the credential was created
    */
   origin: string;
-}
-
-/**
- * Convert a Uint8Array to a hex string with 0x prefix (helper for credential creation)
- */
-function bytesToHex(bytes: Uint8Array): string {
-  return "0x" + Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
 }
 
 /**
@@ -324,9 +309,7 @@ function base64urlToBuffer(base64url: string): Uint8Array {
  * @returns Promise resolving to the credential details
  * @throws Error if WebAuthn is not supported or credential creation fails
  */
-export async function createWebAuthnCredential(
-  options: CreateCredentialOptions = {},
-): Promise<WebAuthnCredential> {
+export async function createWebAuthnCredential(options: CreateCredentialOptions): Promise<WebAuthnCredential> {
   // Check if WebAuthn is supported
   if (!window.PublicKeyCredential) {
     throw new Error("WebAuthn is not supported in this browser");
@@ -341,16 +324,16 @@ export async function createWebAuthnCredential(
   window.crypto.getRandomValues(userId);
 
   // Prepare registration options for SimpleWebAuthn
-  const registrationOptions = {
+  const registrationOptions: PublicKeyCredentialCreationOptionsJSON = {
     challenge: arrayBufferToBase64url(challenge),
     rp: {
-      name: options.rpName || "ZKsync SSO",
-      id: options.rpId || window.location.hostname,
+      name: options.rpName,
+      id: options.rpId,
     },
     user: {
       id: arrayBufferToBase64url(userId),
-      name: options.userEmail || "user@example.com",
-      displayName: options.userName || "Demo User",
+      name: options.name,
+      displayName: options.displayName,
     },
     pubKeyCredParams: [
       {
@@ -398,15 +381,20 @@ export async function createWebAuthnCredential(
   const coseKeyOffset = credIdOffset + credIdLength;
   const coseKey = authenticatorData.slice(coseKeyOffset);
 
-  console.log("COSE key bytes:", Array.from(coseKey).map((b) => b.toString(16).padStart(2, "0")).join(" "));
-
   // Parse COSE key to extract public key coordinates
   const [xBuffer, yBuffer] = parseCOSEKey(coseKey);
 
+  console.log({
+    credential,
+    credentialId: bytesToHex(credId),
+  });
+
   return {
     credentialId: bytesToHex(credId),
-    publicKeyX: bytesToHex(xBuffer),
-    publicKeyY: bytesToHex(yBuffer),
+    publicKey: {
+      x: bytesToHex(xBuffer),
+      y: bytesToHex(yBuffer),
+    },
     origin: window.location.origin,
   };
 }
@@ -518,4 +506,23 @@ function parseCOSEKey(publicPasskey: Uint8Array): [Uint8Array, Uint8Array] {
   }
 
   return [x, y];
+}
+
+export async function getPasskeyCredential() {
+  const credential = await navigator.credentials.get({
+    publicKey: {
+      challenge: new Uint8Array(32),
+      userVerification: "discouraged",
+    },
+  });
+  if (!credential) return null;
+  if (credential.type !== "public-key") throw new Error("Invalid credential type");
+  const credentialIdHex = bytesToHex(new Uint8Array((credential as PublicKeyCredential).rawId));
+  console.log({
+    credentialIdHex,
+  });
+  return {
+    credentialIdHex,
+    ...credential as PublicKeyCredential,
+  };
 }

@@ -1,10 +1,9 @@
 import { StorageSerializers, useStorage } from "@vueuse/core";
-import { type Address, type Hash, toBytes } from "viem";
+import type { Address, Hex } from "viem";
 
 type SmartAccount = {
-  username: string;
   address: Address;
-  passkey: Hash;
+  credentialId: Hex;
 };
 
 export const useAccountStore = defineStore("account", () => {
@@ -12,8 +11,7 @@ export const useAccountStore = defineStore("account", () => {
     serializer: StorageSerializers.object,
   });
   const address = computed(() => accountData.value?.address || null);
-  const passkey = computed(() => accountData.value?.passkey ? toBytes(accountData.value?.passkey) : null);
-  const username = computed(() => accountData.value?.username || null);
+  const credentialId = computed(() => accountData.value?.credentialId || null);
   const isLoggedIn = computed(() => !!address.value);
   const login = (data: SmartAccount) => {
     accountData.value = data;
@@ -29,8 +27,7 @@ export const useAccountStore = defineStore("account", () => {
 
   return {
     address,
-    passkey,
-    username,
+    credentialId,
     isLoggedIn,
     subscribeOnAccountChange,
     login,

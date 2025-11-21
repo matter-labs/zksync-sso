@@ -1,5 +1,7 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import { localhost } from "viem/chains";
+import topLevelAwait from "vite-plugin-top-level-await";
+import wasm from "vite-plugin-wasm";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -46,6 +48,10 @@ export default defineNuxtConfig({
     preference: "dark",
   },
   vite: {
+    plugins: [
+      wasm(),
+      topLevelAwait(),
+    ],
     css: {
       preprocessorOptions: {
         scss: {
@@ -53,6 +59,13 @@ export default defineNuxtConfig({
           api: "modern",
         },
       },
+    },
+    worker: {
+      format: "es",
+      plugins: () => [
+        wasm(),
+        topLevelAwait(),
+      ],
     },
   },
   eslint: {
@@ -69,15 +82,10 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncSepoliaTestnet.id,
-      [zksyncInMemoryNode.id]: {
-        nftQuestAddress: "0x1325100533fbd113f82c52626944DC3332360A57",
-      },
-      [zksyncSepoliaTestnet.id]: {
-        nftQuestAddress: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
-      },
+      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || localhost.id,
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
+      authServerApiUrl: process.env.NUXT_PUBLIC_AUTH_SERVER_API_URL || "http://localhost:3004",
       prividiumMode: process.env.PRIVIDIUM_MODE === "true",
       prividium: {
         clientId: process.env.PRIVIDIUM_CLIENT_ID || "",

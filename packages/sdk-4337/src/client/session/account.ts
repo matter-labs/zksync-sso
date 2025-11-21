@@ -26,6 +26,11 @@ import {
 import type { SessionSpec } from "./types.js";
 import { sessionSpecToJSON } from "./utils.js";
 
+export type SessionRequiredContracts = {
+  /** Session validator contract address (required for signature generation). */
+  sessionValidator: Address;
+};
+
 export type ToSessionSmartAccountParams<
   TTransport extends Transport = Transport,
   TChain extends Chain = Chain,
@@ -36,12 +41,12 @@ export type ToSessionSmartAccountParams<
   sessionKeyPrivateKey: Hash;
   /** Smart account address (required - no counterfactual support). */
   address: Address;
-  /** Session validator contract address (required for signature generation). */
-  sessionValidatorAddress: Address;
   /** Session specification defining policies and limits. */
   sessionSpec: SessionSpec;
   /** Optional timestamp override (for testing or special timestamp handling). */
   currentTimestamp?: bigint;
+  /** Session required contracts. */
+  contracts: SessionRequiredContracts;
 };
 
 /**
@@ -55,7 +60,7 @@ export async function toSessionSmartAccount<
   client,
   sessionKeyPrivateKey,
   address,
-  sessionValidatorAddress,
+  contracts,
   sessionSpec,
   currentTimestamp,
 }: ToSessionSmartAccountParams<TTransport, TChain>): Promise<ToSmartAccountReturnType> {
@@ -134,7 +139,7 @@ export async function toSessionSmartAccount<
       // Generate session stub signature for gas estimation
       const timestampStr = currentTimestamp?.toString();
       return generate_session_stub_signature_wasm(
-        sessionValidatorAddress,
+        contracts.sessionValidator,
         sessionSpecJSON,
         timestampStr,
       ) as Hex;
@@ -203,7 +208,7 @@ export async function toSessionSmartAccount<
       // Sign using session key with no validation (contract will validate)
       const signature = session_signature_no_validation_wasm(
         sessionKeyPrivateKey,
-        sessionValidatorAddress,
+        contracts.sessionValidator,
         sessionSpecJSON,
         userOpHash!,
         timestampStr,

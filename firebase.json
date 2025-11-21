@@ -18,12 +18,6 @@
       ]
     },
     {
-      "target": "stake-demo-app",
-      "trailingSlash": false,
-      "public": "examples/bank-demo/.output/public",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
-    },
-    {
       "target": "nft-quest-testnet",
       "trailingSlash": false,
       "public": "examples/nft-quest/.output/public",

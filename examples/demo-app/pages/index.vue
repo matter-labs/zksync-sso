@@ -32,20 +32,12 @@
       v-if="address"
       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-3 mr-4 disabled:bg-slate-300"
       :disabled="isSendingEth"
-      @click="sendTokens(false)"
+      @click="sendTokens()"
     >
       Send 0.1 ETH
     </button>
-    <button
-      v-if="address"
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-3 disabled:bg-slate-300"
-      :disabled="isSendingEth"
-      @click="sendTokens(true)"
-    >
-      Send 0.1 ETH with Paymaster
-    </button>
 
-    <div
+    <!-- <div
       v-if="address"
       class="mt-8 border-t pt-4"
     >
@@ -92,7 +84,7 @@
           <strong>Typed Data Verification Result:</strong> {{ isValidTypedDataSignature ? 'Valid ✓' : 'Invalid ✗' }}
         </p>
       </div>
-    </div>
+    </div> -->
 
     <div
       v-if="errorMessage"
@@ -106,13 +98,12 @@
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract } from "@wagmi/core";
 import { createWalletClient, createPublicClient, http, parseEther, type Address, type Hash } from "viem";
-import { zksyncSsoConnector } from "zksync-sso-wagmi-connector";
+import { zksyncSsoConnector } from "zksync-sso-4337/connector";
 import { privateKeyToAccount } from "viem/accounts";
-import { getGeneralPaymasterInput, zksyncInMemoryNode } from "viem/zksync";
-import PaymasterContract from "../forge-output-paymaster.json";
+import { localhost } from "viem/chains";
 import ERC1271CallerContract from "../forge-output-erc1271.json";
 
-const chain = zksyncInMemoryNode;
+const chain = localhost;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 
@@ -152,7 +143,7 @@ const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
 
   const richClient = createWalletClient({
-    account: privateKeyToAccount("0x3eb15da85647edd9a1159a4a13b9e7c56877c4eb33f614546d4db06a51868b1c"),
+    account: privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"), // Rich anvil account
     chain: chain,
     transport: http(),
   });
@@ -223,7 +214,7 @@ const disconnectWallet = async () => {
 /* Send ETH */
 const isSendingEth = ref<boolean>(false);
 
-const sendTokens = async (usePaymaster: boolean) => {
+const sendTokens = async () => {
   if (!address.value) return;
 
   errorMessage.value = "";
@@ -231,19 +222,10 @@ const sendTokens = async (usePaymaster: boolean) => {
   try {
     let transactionHash;
 
-    if (usePaymaster) {
-      transactionHash = await sendTransaction(wagmiConfig, {
-        to: testTransferTarget,
-        value: parseEther("0.1"),
-        paymaster: PaymasterContract.deployedTo as Address,
-        paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
-      });
-    } else {
-      transactionHash = await sendTransaction(wagmiConfig, {
-        to: testTransferTarget,
-        value: parseEther("0.1"),
-      });
-    }
+    transactionHash = await sendTransaction(wagmiConfig, {
+      to: testTransferTarget,
+      value: parseEther("0.1"),
+    });
 
     // FIXME: When not using sessions, sendTransaction returns a map and not a string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -303,7 +285,7 @@ const typedData = {
   },
 } as const;
 
-const signTypedDataHandler = async () => {
+const _signTypedDataHandler = async () => {
   if (!address.value) return;
 
   errorMessage.value = "";

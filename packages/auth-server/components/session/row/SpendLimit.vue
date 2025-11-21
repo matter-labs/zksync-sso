@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import type { SessionConfig, SessionState } from "zksync-sso/utils";
+import type { SessionConfig, SessionState } from "zksync-sso-4337/client";
 
 const props = defineProps<{
   config: SessionConfig;

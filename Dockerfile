@@ -8,7 +8,7 @@ FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 RUN pnpm install --prod=false --frozen-lockfile
-RUN pnpm --filter='!./packages/sdk-platforms/*' --filter='!./packages/sdk-4337' -r run build
+RUN pnpm --filter='!./packages/sdk-platforms/*' --filter='!./packages/sdk-4337' --filter='!./packages/auth-server-api' -r run build
 RUN pnpm deploy --filter=oidc-server --prod /prod/oidc-server
 
 FROM base AS oidc-server

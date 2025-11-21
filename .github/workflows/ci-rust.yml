@@ -5,100 +5,17 @@ permissions:
 on:
   push:
     paths:
-      - "packages/contracts/**"
       - "packages/erc4337-contracts/**"
       - "packages/sdk-platforms/rust/**"
       - ".github/workflows/ci-rust.yml"
   pull_request:
     paths:
-      - "packages/contracts/**"
       - "packages/erc4337-contracts/**"
       - "packages/sdk-platforms/rust/**"
       - ".github/workflows/ci-rust.yml"
   workflow_dispatch:
 
 jobs:
-  rust-sdk:
-    name: Rust Legacy SDK
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        config:
-          - debug
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.4
-
-      - name: Install Rust
-        run: |
-          rustup update stable && rustup default stable
-          rustup toolchain install nightly
-
-      - name: Run rustfmt
-        run: |
-          rustup component add rustfmt --toolchain nightly
-          cargo +nightly fmt --all -- --check
-        working-directory: packages/sdk-platforms/rust/zksync-sso
-
-      - name: Install Anvil ZKsync Manually
-        run: |
-          SCRIPT_PATH=".github/workflows/scripts/install-anvil-zksync.sh"
-          chmod +x "$SCRIPT_PATH"
-          bash "$SCRIPT_PATH"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.11.0
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/Iron
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install -r --frozen-lockfile
-
-      - name: Install contract dependencies
-        run: pnpm install -r --frozen-lockfile
-        working-directory: packages/contracts
-
-      - name: Build contracts
-        run: pnpm build
-        working-directory: packages/contracts
-
-      - name: Run clippy
-        run: |
-          rustup component add clippy --toolchain stable
-          rustup component add --toolchain 1.90.0-x86_64-unknown-linux-gnu clippy
-          cargo clippy --all-targets -- -D warnings
-        working-directory: packages/sdk-platforms/rust/zksync-sso
-
-      - name: Start anvil-zksync node
-        run: |
-          anvil-zksync --cache=none run > anvil-zksync.log 2>&1 &
-          # Wait a few seconds to ensure the node starts
-          sleep 5
-          # Verify it's running
-          if ! pgrep -f "anvil-zksync"; then
-            echo "Error: anvil-zksync failed to start"
-            cat anvil-zksync.log
-            exit 1
-          fi
-
-      - name: Run rust tests
-        run: cargo test -- --test-threads=1
-        working-directory: packages/sdk-platforms/rust/zksync-sso
-
-      # - name: Run integration tests
-      #   run: cargo test test_complete_zksync_sso_integration -- --ignored
-      #   working-directory: packages/sdk-platforms/rust/zksync-sso
-
   rust-sdk-erc4337:
     name: Rust 4337 SDK
     runs-on: ubuntu-latest

@@ -1,48 +1,59 @@
 import { useAppKitProvider } from "@reown/appkit/vue";
-import { type Address, createPublicClient, createWalletClient, custom, http, publicActions, walletActions } from "viem";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
-import { eip712WalletActions } from "viem/zksync";
-import { createZkSyncOidcClient, type ZkSyncSsoClient } from "zksync-sso/client/oidc";
-import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
-import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
+import { type Address, createPublicClient, createWalletClient, custom, type Hex, http, publicActions, walletActions } from "viem";
+import { createBundlerClient } from "viem/account-abstraction";
+import { /* generatePrivateKey, */ privateKeyToAccount } from "viem/accounts";
+import { localhost, sepolia } from "viem/chains";
+import { createPasskeyClient } from "zksync-sso-4337/client";
 
-import eraSepoliaChainData from "./era-sepolia.json";
+// TODO: OIDC and guardian recovery are not yet available in sdk-4337
+// import { createZkSyncOidcClient, type ZkSyncSsoClient } from "zksync-sso/client/oidc";
+// import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 import localChainData from "./local-node.json";
 
-export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
+export const supportedChains = [localhost, sepolia];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
-  [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.url,
-  [zksyncInMemoryNode.id]: "http://localhost:3010",
+  [localhost.id]: "http://localhost:3010",
+  [sepolia.id]: "https://sepolia.etherscan.io",
 };
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
-  [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
-  [zksyncInMemoryNode.id]: "http://localhost:3020",
+  [localhost.id]: "http://localhost:3020",
+  [sepolia.id]: "https://api-sepolia.etherscan.io/api",
 };
 
-type ChainContracts = PasskeyRequiredContracts & {
-  accountFactory: NonNullable<PasskeyRequiredContracts["accountFactory"]>;
-  accountPaymaster: Address;
+type ChainContracts = {
+  eoaValidator: Address;
+  webauthnValidator: Address;
+  sessionValidator: Address;
+  factory: Address;
+  bundlerUrl?: string;
+  beacon?: Address; // Optional, for deployment
 };
 
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
-  [zksyncSepoliaTestnet.id]: eraSepoliaChainData as ChainContracts,
-  [zksyncInMemoryNode.id]: localChainData as ChainContracts,
+  [localhost.id]: localChainData as ChainContracts,
+  [sepolia.id]: {
+    eoaValidator: "0x027ce1d8244318e38c3B65E3EABC2537BD712077",
+    webauthnValidator: "0xAbcB5AB6eBb69F4F5F8cf1a493F56Ad3d28562bd",
+    sessionValidator: "0x09fbd5b956AF5c64C7eB4fb473E7E64DAF0f79D7",
+    factory: "0xF33128d7Cd2ab37Af12B3a22D9dA79f928c2B450",
+    bundlerUrl: "https://bundler-api.sso.zksync.dev",
+    beacon: "0xd1Ab9B640995124D3FD311d70BA4F216AD5b1aD5",
+  },
 };
 
 export const chainParameters: Record<SupportedChainId, { blockTime: number }> = {
-  [zksyncSepoliaTestnet.id]: {
-    blockTime: 15,
-  },
-  [zksyncInMemoryNode.id]: {
+  [localhost.id]: {
     blockTime: 1,
+  },
+  [sepolia.id]: {
+    blockTime: 12,
   },
 };
 
 export const useClientStore = defineStore("client", () => {
   const runtimeConfig = useRuntimeConfig();
-  const { address, username, passkey } = storeToRefs(useAccountStore());
+  const { address, credentialId } = storeToRefs(useAccountStore());
   const prividiumAuthStore = usePrividiumAuthStore();
 
   const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
@@ -75,18 +86,47 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
-  const getClient = ({ chainId }: { chainId: SupportedChainId }) => {
-    if (!address.value) throw new Error("Address is not set");
+  const getBundlerClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
     const contracts = contractsByChain[chainId];
+    const publicClient = getPublicClient({ chainId });
 
-    const client = createZksyncPasskeyClient({
-      address: address.value,
-      credentialPublicKey: passkey.value!,
-      userName: username.value!,
-      userDisplayName: username.value!,
-      contracts,
+    return createBundlerClient({
+      client: publicClient,
+      chain,
+      transport: http(contracts.bundlerUrl || "http://localhost:4337"),
+      userOperation: {
+        async estimateFeesPerGas() {
+          const feesPerGas = await publicClient.estimateFeesPerGas();
+          return {
+            callGasLimit: 2_000_000n,
+            verificationGasLimit: 2_000_000n,
+            preVerificationGas: 1_000_000n,
+            ...feesPerGas,
+          } as const;
+        },
+      },
+    });
+  };
+
+  const getClient = ({ chainId }: { chainId: SupportedChainId }) => {
+    if (!address.value) throw new Error("Address is not set");
+    if (!credentialId.value) throw new Error("Credential ID is not set");
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+    const contracts = contractsByChain[chainId];
+    const bundlerClient = getBundlerClient({ chainId });
+
+    const client = createPasskeyClient({
+      account: {
+        address: address.value,
+        validatorAddress: contracts.webauthnValidator,
+        credentialId: credentialId.value,
+        rpId: window.location.hostname,
+        origin: window.location.origin,
+      },
+      bundlerClient,
       chain,
       transport: createTransport(),
     });
@@ -94,54 +134,59 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
-  const getRecoveryClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }) => {
-    const chain = supportedChains.find((chain) => chain.id === chainId);
-    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
-    const contracts = contractsByChain[chainId];
+  // TODO: Guardian recovery not yet available in sdk-4337
+  // const getRecoveryClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }) => {
+  //   const chain = supportedChains.find((chain) => chain.id === chainId);
+  //   if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+  //   const contracts = contractsByChain[chainId];
+  //
+  //   const client = createZksyncRecoveryGuardianClient({
+  //     address,
+  //     contracts,
+  //     chain: chain,
+  //     transport: createTransport(),
+  //   });
+  //
+  //   return client;
+  // };
 
-    const client = createZksyncRecoveryGuardianClient({
-      address,
-      contracts,
-      chain: chain,
-      transport: createTransport(),
-    });
-
-    return client;
-  };
-
-  const getOidcClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }): ZkSyncSsoClient => {
-    const chain = supportedChains.find((chain) => chain.id === chainId);
-    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
-    const contracts = contractsByChain[chainId];
-
-    return createZkSyncOidcClient({
-      address,
-      contracts,
-      chain: chain,
-      transport: http(),
-    });
-  };
+  // TODO: OIDC client not yet available in sdk-4337
+  // const getOidcClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }): ZkSyncSsoClient => {
+  //   const chain = supportedChains.find((chain) => chain.id === chainId);
+  //   if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+  //   const contracts = contractsByChain[chainId];
+  //
+  //   return createZkSyncOidcClient({
+  //     address,
+  //     contracts,
+  //     chain: chain,
+  //     transport: http(),
+  //   });
+  // };
 
   const getConfigurableClient = ({
     chainId,
     address,
-    credentialPublicKey,
-    username,
+    credentialId,
   }: {
     chainId: SupportedChainId;
     address: Address;
-    credentialPublicKey: Uint8Array<ArrayBufferLike>;
-    username: string;
+    credentialId: Hex;
   }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
     const contracts = contractsByChain[chainId];
-    return createZksyncPasskeyClient({
-      address,
-      credentialPublicKey,
-      userName: username,
-      userDisplayName: username,
-      contracts,
+    const bundlerClient = getBundlerClient({ chainId });
+
+    return createPasskeyClient({
+      account: {
+        address,
+        validatorAddress: contracts.webauthnValidator,
+        credentialId,
+        rpId: window.location.hostname,
+        origin: window.location.origin,
+      },
+      bundlerClient,
       chain,
       transport: createTransport(),
     });
@@ -152,13 +197,15 @@ export const useClientStore = defineStore("client", () => {
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
 
     const throwAwayClient = createWalletClient({
-      account: privateKeyToAccount(generatePrivateKey()),
+      account: privateKeyToAccount(
+        // generatePrivateKey()
+        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Anvil Rich account // TODO: Implement paymaster instead of relying on rich account
+      ),
       chain,
       transport: createTransport(),
     })
       .extend(publicActions)
-      .extend(walletActions)
-      .extend(eip712WalletActions());
+      .extend(walletActions);
     return throwAwayClient;
   };
 
@@ -184,19 +231,19 @@ export const useClientStore = defineStore("client", () => {
       transport: custom(provider as any),
     })
       .extend(publicActions)
-      .extend(walletActions)
-      .extend(eip712WalletActions());
+      .extend(walletActions);
   };
 
   return {
     defaultChain,
     createTransport,
     getPublicClient,
+    getBundlerClient,
     getClient,
     getThrowAwayClient,
     getWalletClient,
-    getRecoveryClient,
+    // getRecoveryClient, // TODO: Not available in sdk-4337
     getConfigurableClient,
-    getOidcClient,
+    // getOidcClient, // TODO: Not available in sdk-4337
   };
 });

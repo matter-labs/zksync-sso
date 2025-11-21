@@ -68,10 +68,20 @@
       "import": "./dist/_esm/index.js",
       "require": "./dist/_cjs/index.js"
     },
+    "./connector": {
+      "types": "./dist/_types/connector/index.d.ts",
+      "import": "./dist/_esm/connector/index.js",
+      "require": "./dist/_cjs/connector/index.js"
+    },
     "./abi": {
       "types": "./dist/_types/abi/index.d.ts",
       "import": "./dist/_esm/abi/index.js",
       "require": "./dist/_cjs/abi/index.js"
+    },
+    "./client-auth-server": {
+      "types": "./dist/_types/client-auth-server/index.d.ts",
+      "import": "./dist/_esm/client-auth-server/index.js",
+      "require": "./dist/_cjs/client-auth-server/index.js"
     },
     "./client": {
       "types": "./dist/_types/client/index.d.ts",
@@ -95,11 +105,23 @@
       ".": [
         "./dist/_types/index.d.ts"
       ],
-      "client": [
-        "./dist/_types/client/index.d.ts"
+      "connector": [
+        "./dist/_types/connector/index.d.ts"
       ],
       "abi": [
         "./dist/_types/abi/index.d.ts"
+      ],
+      "client-auth-server": [
+        "./dist/_types/client-auth-server/index.d.ts"
+      ],
+      "client": [
+        "./dist/_types/client/index.d.ts"
+      ],
+      "client/ecdsa": [
+        "./dist/_types/client/ecdsa/index.d.ts"
+      ],
+      "client/passkey": [
+        "./dist/_types/client/passkey/index.d.ts"
       ]
     }
   },

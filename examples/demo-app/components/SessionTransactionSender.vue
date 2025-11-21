@@ -159,7 +159,9 @@ async function sendTransaction() {
     // Create session client (wraps session smart account)
     const sessionClient = createSessionClient({
       address: props.accountAddress as Address,
-      sessionValidatorAddress: props.sessionConfig.validatorAddress as Address,
+      contracts: {
+        sessionValidator: props.sessionConfig.validatorAddress as Address,
+      },
       sessionKeyPrivateKey: props.sessionConfig.sessionPrivateKey as `0x${string}`,
       sessionSpec: {
         signer: props.sessionConfig.sessionSigner as Address,

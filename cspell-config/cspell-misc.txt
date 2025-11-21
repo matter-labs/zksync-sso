@@ -15,23 +15,6 @@ sepolia
 foundryup
 unpermitted
 
-// examples/bank-demo
-ctap
-Aave
-aave
-jdoe
-wght
-topup
-OBAGNSGT
-OXBB
-Usdc
-usdc
-
-// examples/nft-quest
-Fren
-fren
-nfts
-
 // auth-server
 oidc
 Oidc
@@ -52,3 +35,17 @@ EVMLA
 
 // paymasters
 zyfi
+
+// examples/nft-quest
+Fren
+fren
+nfts
+wght
+
+// packages/auther-server-api
+rustup
+distroless
+debian
+
+// packages/bundler
+pimlico

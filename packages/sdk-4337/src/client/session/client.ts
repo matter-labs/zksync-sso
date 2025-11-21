@@ -16,7 +16,7 @@ import {
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
 
-import type { ToSessionSmartAccountParams } from "./account.js";
+import type { SessionRequiredContracts, ToSessionSmartAccountParams } from "./account.js";
 import { type SessionClientActions, sessionClientActions } from "./client-actions.js";
 import type { SessionSpec } from "./types.js";
 
@@ -27,12 +27,12 @@ export type CreateSessionClientParams<
 > = {
   /** Smart account address (already deployed) */
   address: Address;
-  /** Session validator contract address */
-  sessionValidatorAddress: Address;
   /** Session key private key */
   sessionKeyPrivateKey: Hash;
   /** Session specification governing allowed actions */
   sessionSpec: SessionSpec;
+  /** Session required contracts */
+  contracts: SessionRequiredContracts;
   /** Bundler client instance */
   bundlerClient: BundlerClient;
   /** Chain config */
@@ -80,7 +80,7 @@ export function createSessionClient<
 ): SessionClient<TTransport, TChain, TRpcSchema> {
   const {
     address,
-    sessionValidatorAddress,
+    contracts,
     sessionKeyPrivateKey,
     sessionSpec,
     bundlerClient,
@@ -94,7 +94,7 @@ export function createSessionClient<
   const sessionAccountParams: ToSessionSmartAccountParams = {
     client: publicClient as ToSessionSmartAccountParams["client"],
     address,
-    sessionValidatorAddress,
+    contracts,
     sessionKeyPrivateKey,
     sessionSpec,
     currentTimestamp,

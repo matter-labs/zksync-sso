@@ -161,7 +161,7 @@ import { useIntervalFn } from "@vueuse/core";
 import { type Address, formatUnits, type SendTransactionRequest } from "viem";
 import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
 import Web3Avatar from "web3-avatar-vue";
-import type { ExtractParams } from "zksync-sso/client-auth-server";
+import type { ExtractParams } from "zksync-sso-4337/client";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();

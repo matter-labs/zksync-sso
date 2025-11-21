@@ -1,3 +1,7 @@
+// TODO: OIDC/Google OAuth is not yet available in zksync-sso-4337
+// This composable has been commented out until OIDC support is added to sdk-4337
+
+/*
 import { JWT } from "zksync-sso-circuits";
 
 function extractJwt(hashStr: string): JWT {
@@ -84,3 +88,4 @@ export function useGoogleOauth() {
     error,
   };
 }
+*/

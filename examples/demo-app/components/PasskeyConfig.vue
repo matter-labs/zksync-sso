@@ -166,15 +166,15 @@ async function handleCreatePasskey() {
     const credential = await createWebAuthnCredential({
       rpName: "SSO Demo",
       rpId: window.location.hostname,
-      userName: "Demo User",
-      userEmail: "demo-user@zksync-sso.example",
+      displayName: "Demo User",
+      name: "demo-user@zksync-sso.example",
       timeout: 60000,
     });
 
     // Update the passkey configuration
     config.value.credentialId = credential.credentialId;
-    config.value.passkeyX = credential.publicKeyX;
-    config.value.passkeyY = credential.publicKeyY;
+    config.value.passkeyX = credential.publicKey.x;
+    config.value.passkeyY = credential.publicKey.y;
     config.value.originDomain = credential.origin;
 
     // eslint-disable-next-line no-console

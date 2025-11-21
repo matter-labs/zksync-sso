@@ -12,8 +12,8 @@ import type {
   SessionEventType,
   SessionState,
   SessionStateEventCallback,
-} from "../actions/getSessionState.js";
-import { getSessionState, SessionStatus } from "../actions/getSessionState.js";
+} from "../actions/sessions.js";
+import { getSessionState, SessionStatus } from "../actions/sessions.js";
 import type { SessionSpec } from "../session/types.js";
 
 /**

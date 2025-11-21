@@ -7,13 +7,6 @@
         ]
       }
     },
-    "stake-demo-app": {
-      "hosting": {
-        "stake-demo-app": [
-          "stake-demo-app"
-        ]
-      }
-    },
     "nft-quest-testnet": {
       "hosting": {
         "nft-quest-testnet": [

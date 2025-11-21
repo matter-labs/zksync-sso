@@ -1,5 +1,7 @@
 <template>
-  <div class="flex flex-col flex-1">
+  <div />
+  <!-- TODO: Recovery methods not yet available in sdk-4337 -->
+  <!-- <div class="flex flex-col flex-1">
     <Card
       v-if="recoveryMethods.length === 0"
       class="border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600"
@@ -128,16 +130,14 @@
             </Button>
           </div>
         </Card>
-        <AddRecoveryMethodModal
-          @closed="refreshGuardians"
-        />
+        <AddRecoveryMethodModal @closed="refreshGuardians" />
       </div>
     </div>
-  </div>
+  </div> -->
 </template>
 
 <script setup lang="ts">
-import { ShieldCheckIcon, SparklesIcon, WalletIcon } from "@heroicons/vue/24/solid";
+/* import { ShieldCheckIcon, SparklesIcon, WalletIcon } from "@heroicons/vue/24/solid";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 
 import AddRecoveryMethodModal from "~/components/account-recovery/AddRecoveryMethodModal.vue";
@@ -205,5 +205,5 @@ watchEffect(async () => {
     await getGuardians(accountAddress);
     await getOidcAccounts(accountAddress);
   }
-});
+}); */
 </script>

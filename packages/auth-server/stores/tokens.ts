@@ -111,6 +111,7 @@ export const useTokensStore = defineStore("tokens", () => {
       }[];
     }>(`${blockExplorerApiByChain[args.chainId]}?module=token&action=tokeninfo&contractaddress=${args.tokenAddress}`).catch((err) => {
       fetchError = err;
+      // eslint-disable-next-line no-console
       console.error("Failed to fetch token info from block explorer", err);
       return { result: [] };
     });

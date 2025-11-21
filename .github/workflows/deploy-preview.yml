@@ -2,8 +2,10 @@ name: "Preview Auth Server"
 on:
   pull_request:
     paths:
+      - "packages/erc4337-contracts/**"
+      - "packages/sdk-platforms/rust/**"
       - "packages/auth-server/**"
-      - "packages/sdk/**"
+      - "packages/sdk-4337/**"
   workflow_dispatch:
 
 env:
@@ -33,31 +35,34 @@ jobs:
           node-version: lts/Iron
           cache: 'pnpm'
 
-      # SDK depends on contracts
-      - name: Install contract dependencies
-        run: pnpm install -r --frozen-lockfile
-        working-directory: packages/contracts
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
 
-      - name: Build contracts
-        run: pnpm run build
-        working-directory: packages/contracts
-
-      # Local node to have target for deploy
-      - name: Era Test Node Action
-        uses: dutterbutter/anvil-zksync-action@v1.1.0
-
-      - name: Deploy contracts
-        run: pnpm run deploy --file ../auth-server/stores/local-node.json
-        working-directory: packages/contracts
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
+
+      # Web SDK depends on ERC-4337 contracts for WASM build
+      - name: Install foundry
+        uses: foundry-rs/foundry-toolchain@v1.5.0
+        
+      - name: Install ERC-4337 contract dependencies
+        run: forge soldeer install
+        working-directory: packages/erc4337-contracts
+
+      - name: Build ERC-4337 contracts
+        run: forge build
+        working-directory: packages/erc4337-contracts
 
       - name: Build Auth Server
         env:
           NUXT_PUBLIC_DEFAULT_CHAIN_ID: 300
           NUXT_PUBLIC_SALT_SERVICE_URL: "https://sso-oidc.zksync.dev/salt"
-
         run: pnpm nx build auth-server
 
       - name: Deploy preview

@@ -8,11 +8,14 @@ import {
   type Transport,
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
+import { encode_create_session_call_data } from "zksync-sso-web-sdk/bundler";
 
 import {
   type SmartAccountClientActions,
   smartAccountClientActions,
 } from "../common/smart-account-client-actions.js";
+import type { SessionSpec } from "../session/types.js";
+import { sessionSpecToJSON } from "../session/utils.js";
 import { toPasskeySmartAccount, type ToPasskeySmartAccountParams } from "./account.js";
 
 /**
@@ -43,6 +46,11 @@ export type PasskeyClientActions<TChain extends Chain = Chain, TAccount extends 
     publicKey: { x: Hex; y: Hex };
     originDomain: string;
   }) => Promise<Hash>;
+
+  /**
+   * Create a session on-chain using the provided specification
+   */
+  createSession: (params: { sessionSpec: SessionSpec; contracts: { sessionValidator: Address } }) => Promise<Hash>;
 };
 
 /**
@@ -82,6 +90,25 @@ export function passkeyClientActions<
         ...params,
         webauthnValidatorAddress: config.validatorAddress,
       });
+    },
+
+    // Create a session on-chain using the provided specification
+    createSession: async (params: { sessionSpec: SessionSpec; contracts: { sessionValidator: Address } }) => {
+      // Build smart account instance (lazy, not cached here; acceptable overhead for now)
+      const smartAccount = await toPasskeySmartAccount(config.passkeyAccount);
+      const sessionSpecJSON = sessionSpecToJSON(params.sessionSpec);
+      const callData = encode_create_session_call_data(sessionSpecJSON) as unknown as `0x${string}`;
+      const userOpHash = await config.bundler.sendUserOperation({
+        account: smartAccount,
+        calls: [
+          {
+            to: params.contracts.sessionValidator,
+            data: callData,
+            value: 0n,
+          },
+        ],
+      });
+      return userOpHash;
     },
   };
 }

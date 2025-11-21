@@ -1,3 +1,8 @@
+// TODO: Guardian recovery is not yet available in zksync-sso-4337
+// This composable has been commented out until guardian recovery support is added to sdk-4337
+// Related: useRecoveryClient is commented out in stores/client.ts
+
+/*
 import type { Account, Address, Chain, Client, Hex, Transport } from "viem";
 import { encodeFunctionData, keccak256, pad, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
@@ -323,3 +328,4 @@ export const useRecoveryGuardian = () => {
     executeRecovery,
   };
 };
+*/

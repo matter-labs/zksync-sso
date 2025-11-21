@@ -18,9 +18,7 @@
     "viem": "2.30.0",
     "vue": "^3.4.21",
     "wagmi": "^2.12.17",
-    "zksync-sso": "workspace:*",
-    "zksync-sso-4337": "workspace:*",
-    "zksync-sso-wagmi-connector": "workspace:*"
+    "zksync-sso-4337": "workspace:*"
   },
   "devDependencies": {
     "@nuxt/eslint": "^0.5.7",

@@ -164,7 +164,7 @@ export function prepareDeploySmartAccount(
 
   const encodedCallData = encode_deploy_account_call_data(
     accountId,
-    eoaSigners || null,
+    eoaSigners || [],
     contracts.eoaValidator || null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     passkeyPayload as any,

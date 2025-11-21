@@ -1,4 +1,4 @@
-import type { SessionPreferences } from "zksync-sso";
+import type { SessionPreferences } from "zksync-sso-4337/client";
 
 export const useAppSession = () => {
   const { request } = storeToRefs(useRequestsStore());

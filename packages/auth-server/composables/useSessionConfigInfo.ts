@@ -1,9 +1,12 @@
 import { FetchError } from "ofetch";
 import { erc20Abi, formatUnits, toFunctionSelector } from "viem";
 import type { Address } from "viem/accounts";
-import { zksyncInMemoryNode } from "viem/zksync";
+import { localhost } from "viem/chains";
 import type { UnwrapRef } from "vue";
-import { type Limit, LimitType, LimitUnlimited, type SessionConfig } from "zksync-sso/utils";
+import { type Limit, LimitType, LimitUnlimited, type SessionSpec } from "zksync-sso-4337/client";
+
+// Type alias for compatibility
+type SessionConfig = SessionSpec;
 
 export const useSessionConfigInfo = (
   _chainId: MaybeRef<SupportedChainId>,
@@ -200,7 +203,7 @@ export const useSessionConfigInfo = (
       actions.push("Unlimited spend is requested for some of the tokens.");
     }
 
-    if (chainId.value !== zksyncInMemoryNode.id && fetchTokensError.value) {
+    if (chainId.value !== localhost.id && fetchTokensError.value) {
       actions.push("Failed to fetch token information. Displayed tokens and spend limits may be incorrect.");
     }
 

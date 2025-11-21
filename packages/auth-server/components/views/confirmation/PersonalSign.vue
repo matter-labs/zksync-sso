@@ -77,7 +77,7 @@
 <script lang="ts" setup>
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { hexToString, isHex } from "viem";
-import type { ExtractParams } from "zksync-sso/client-auth-server";
+import type { ExtractParams } from "zksync-sso-4337/client";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();

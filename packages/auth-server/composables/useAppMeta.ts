@@ -1,5 +1,5 @@
 import { useStorage } from "@vueuse/core";
-import type { AppMetadata } from "zksync-sso";
+import type { AppMetadata } from "zksync-sso-4337/client";
 
 export const useAppMeta = () => {
   const route = useRoute();

@@ -65,7 +65,7 @@
     </div>
 
     <CommonAlert
-      v-if="defaultChain.id === zksyncInMemoryNode.id && sessions?.length"
+      v-if="defaultChain.id === localhost.id && sessions?.length"
       class="mt-4"
     >
       <template #icon>
@@ -73,7 +73,7 @@
       </template>
       <template #default>
         <p class="text-sm">
-          Timestamps on {{ zksyncInMemoryNode.name }} start from 0 and incremented by 1 with each block. Therefore session time isn't accurate.
+          Timestamps on {{ localhost.name }} start from 0 and incremented by 1 with each block. Therefore session time isn't accurate.
         </p>
       </template>
     </CommonAlert>
@@ -83,9 +83,9 @@
 <script setup lang="ts">
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
 import type { Hex } from "viem";
-import { zksyncInMemoryNode } from "viem/chains";
-import { SessionKeyValidatorAbi } from "zksync-sso/abi";
-import type { SessionConfig } from "zksync-sso/utils";
+import { localhost } from "viem/chains";
+import { SessionKeyValidatorAbi } from "zksync-sso-4337/abi";
+import type { SessionConfig } from "zksync-sso-4337/client";
 
 const { defaultChain, getPublicClient } = useClientStore();
 const { address } = storeToRefs(useAccountStore());

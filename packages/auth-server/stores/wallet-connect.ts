@@ -24,11 +24,13 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
     updateOpenSessions();
 
     walletKit.value.on("session_proposal", async (proposal: WalletKitTypes.SessionProposal) => {
+      // eslint-disable-next-line no-console
       console.log("[WC] Session proposal received", proposal);
       useWalletConnectStore().sessionProposal = proposal;
     });
 
     walletKit.value.on("session_request", async (req: WalletKitTypes.SessionRequest) => {
+      // eslint-disable-next-line no-console
       console.log("[WC] Session request received", req);
       switch (req.params.request.method) {
         case "eth_sendRawTransaction":
@@ -43,6 +45,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
               response: { id: req.id, result: tx, jsonrpc: "2.0" },
             });
           } catch (error) {
+            // eslint-disable-next-line no-console
             console.error("[WC] Error sending raw transaction", error);
             await walletKit.value!.respondSessionRequest({
               topic: req.topic,
@@ -57,11 +60,13 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
           useWalletConnectStore().sessionRequest = req;
           break;
         default:
+          // eslint-disable-next-line no-console
           console.warn("[WC] Unsupported session request received", req);
       }
     });
 
     walletKit.value.on("session_delete", (req: WalletKitTypes.SessionDelete) => {
+      // eslint-disable-next-line no-console
       console.log("[WC] Session deleted received", req);
       useWalletConnectStore().updateOpenSessions();
     });

@@ -152,8 +152,8 @@
 </template>
 
 <script lang="ts" setup>
-import { toHex, zeroAddress } from "viem";
-import { createZksyncPasskeyClient } from "zksync-sso/client/passkey";
+import { zeroAddress } from "viem";
+import { createPasskeyClient } from "zksync-sso-4337/client";
 
 const runtimeConfig = useRuntimeConfig();
 const chainId = runtimeConfig.public.chainId as SupportedChainId;
@@ -176,17 +176,19 @@ const getClient = () => {
   if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
   const contracts = contractsByChain[chainId];
 
-  const client = createZksyncPasskeyClient({
-    address: accountDeploymentResult.value.address,
-    credentialPublicKey: accountDeploymentResult.value.credentialPublicKey,
-    userName: accountDeploymentResult.value.credentialId,
-    userDisplayName: accountDeploymentResult.value.credentialId,
-    contracts,
+  return createPasskeyClient({
+    account: {
+      address: accountDeploymentResult.value.address,
+      validatorAddress: contracts.webauthnValidator,
+      credentialId: accountDeploymentResult.value.credentialId,
+      rpId: window.location.hostname,
+      origin: window.location.origin,
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    bundlerClient: null as any, // Not needed for address association
     chain,
     transport: createTransport(),
   });
-
-  return client;
 };
 
 const { inProgress: associateInProgress, execute: executeAssociation, error: associationError } = useAsync(async () => {
@@ -223,9 +225,8 @@ const { inProgress: associateInProgress, execute: executeAssociation, error: ass
   await associateAddress(passkeyClient.account.address, message, signature);
 
   login({
-    username: accountDeploymentResult.value.credentialId,
     address: accountDeploymentResult.value.address,
-    passkey: toHex(accountDeploymentResult.value.credentialPublicKey),
+    credentialId: accountDeploymentResult.value.credentialId,
   });
   addressAssociated.value = true;
 
@@ -263,9 +264,9 @@ const logIn = async () => {
     navigateTo("/dashboard");
     return;
   }
-  if (result?.recoveryRequest?.isReady === false) {
-    navigateTo(`/recovery/account-not-ready?address=${result!.recoveryRequest.accountAddress}`);
-    return;
-  }
+  // if (result?.recoveryRequest?.isReady === false) {
+  //   navigateTo(`/recovery/account-not-ready?address=${result!.recoveryRequest.accountAddress}`);
+  //   return;
+  // }
 };
 </script>

@@ -25,6 +25,7 @@ function main() {
       baseDir = dirname(dirname(mainEntry));
     }
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.warn("[copy-snarkjs] snarkjs not installed yet; skipping copy", e);
     return; // don't fail install, maybe another step will install it
   }
@@ -51,10 +52,12 @@ function main() {
         }
       }
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.warn("[copy-snarkjs] Error scanning for snarkjs.min.js", e);
     }
   }
   if (!src) {
+    // eslint-disable-next-line no-console
     console.warn(
       "[copy-snarkjs] Could not locate snarkjs.min.js inside package; looked in: " + candidateRelPaths.join(", "),
     );
@@ -75,14 +78,17 @@ function main() {
       const srcStat = statSync(src);
       const destStat = statSync(dest);
       if (destStat.mtimeMs >= srcStat.mtimeMs) {
+        // eslint-disable-next-line no-console
         console.log("[copy-snarkjs] Existing snarkjs.min.js is up to date");
         return;
       }
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.warn("[copy-snarkjs] Error checking existing snarkjs.min.js", e);
     }
   }
   copyFileSync(src, dest);
+  // eslint-disable-next-line no-console
   console.log(`[copy-snarkjs] Copied ${src} -> ${dest}`);
 }
 

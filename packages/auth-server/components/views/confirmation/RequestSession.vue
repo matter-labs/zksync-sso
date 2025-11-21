@@ -128,11 +128,11 @@
 
 <script lang="ts" setup>
 import { useNow } from "@vueuse/core";
-import { parseEther, toHex } from "viem";
+import { parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import type { SessionPreferences } from "zksync-sso";
-import { type ExtractReturnType, formatSessionPreferences, type Method, type RPCResponseMessage } from "zksync-sso/client-auth-server";
-import { LimitType } from "zksync-sso/utils";
+import { formatSessionPreferences, type SessionPreferences } from "zksync-sso-4337/client";
+import { LimitType } from "zksync-sso-4337/client";
+import type { ExtractReturnType, Method, RPCResponseMessage } from "zksync-sso-4337/client-auth-server";
 
 const props = defineProps({
   sessionPreferences: {
@@ -281,9 +281,8 @@ const confirmConnection = async () => {
       const accountData = await createAccount(sessionConfig.value);
       if (!accountData) return;
       login({
-        username: accountData.credentialId,
         address: accountData.address,
-        passkey: toHex(accountData.credentialPublicKey),
+        credentialId: accountData.credentialId,
       });
 
       response = {
@@ -299,7 +298,6 @@ const confirmConnection = async () => {
     } else {
       // create a new session for the existing account
       const client = getClient({ chainId: requestChainId.value });
-      const paymasterAddress = contractsByChain[requestChainId.value].accountPaymaster;
       const sessionKey = generatePrivateKey();
       const session = {
         sessionKey,
@@ -310,11 +308,12 @@ const confirmConnection = async () => {
       };
 
       await client.createSession({
-        sessionConfig: session.sessionConfig,
-        paymaster: {
-          address: paymasterAddress,
+        sessionSpec: session.sessionConfig,
+        contracts: {
+          sessionValidator: contractsByChain[requestChainId.value].sessionValidator,
         },
       });
+
       response = {
         result: constructReturn(
           client.account.address,
