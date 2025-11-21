@@ -59,7 +59,7 @@ jobs:
 
       - name: Build apps
         env:
-          NUXT_PUBLIC_DEFAULT_CHAIN_ID: 300
+          NUXT_PUBLIC_DEFAULT_CHAIN_ID: 11155111
           NUXT_PUBLIC_SALT_SERVICE_URL: "https://sso-oidc.zksync.dev/salt"
         run: pnpm nx build auth-server
 

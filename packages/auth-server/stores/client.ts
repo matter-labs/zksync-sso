@@ -2,7 +2,7 @@ import { useAppKitProvider } from "@reown/appkit/vue";
 import { type Address, createPublicClient, createWalletClient, custom, type Hex, http, publicActions, walletActions } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { /* generatePrivateKey, */ privateKeyToAccount } from "viem/accounts";
-import { localhost } from "viem/chains";
+import { localhost, sepolia } from "viem/chains";
 import { createPasskeyClient } from "zksync-sso-4337/client";
 
 // TODO: OIDC and guardian recovery are not yet available in sdk-4337
@@ -10,13 +10,15 @@ import { createPasskeyClient } from "zksync-sso-4337/client";
 // import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 import localChainData from "./local-node.json";
 
-export const supportedChains = [localhost];
+export const supportedChains = [localhost, sepolia];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
   [localhost.id]: "http://localhost:3010",
+  [sepolia.id]: "https://sepolia.etherscan.io",
 };
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
   [localhost.id]: "http://localhost:3020",
+  [sepolia.id]: "https://api-sepolia.etherscan.io/api",
 };
 
 type ChainContracts = {
@@ -30,11 +32,22 @@ type ChainContracts = {
 
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [localhost.id]: localChainData as ChainContracts,
+  [sepolia.id]: {
+    eoaValidator: "0x027ce1d8244318e38c3B65E3EABC2537BD712077",
+    webauthnValidator: "0xAbcB5AB6eBb69F4F5F8cf1a493F56Ad3d28562bd",
+    sessionValidator: "0x09fbd5b956AF5c64C7eB4fb473E7E64DAF0f79D7",
+    factory: "0xF33128d7Cd2ab37Af12B3a22D9dA79f928c2B450",
+    bundlerUrl: "https://bundler-api.sso.zksync.dev",
+    beacon: "0xd1Ab9B640995124D3FD311d70BA4F216AD5b1aD5",
+  },
 };
 
 export const chainParameters: Record<SupportedChainId, { blockTime: number }> = {
   [localhost.id]: {
     blockTime: 1,
+  },
+  [sepolia.id]: {
+    blockTime: 12,
   },
 };
 
