@@ -41,3 +41,8 @@ Fren
 fren
 nfts
 wght
+
+// packages/auther-server-api
+rustup
+distroless
+debian
