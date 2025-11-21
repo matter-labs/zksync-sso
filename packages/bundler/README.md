@@ -72,13 +72,13 @@ docker run -p 4337:4337 -p 4338:4338 \
 ### Pre-built Image
 
 ```bash
-docker pull matterlabs/sso-bundler:latest
+docker pull ghcr.io/matter-labs/sso-bundler:latest
 
 docker run -p 4337:4337 -p 4338:4338 \
   -e EXECUTOR_PRIVATE_KEY=0x... \
   -e UTILITY_PRIVATE_KEY=0x... \
   -e RPC_URL=https://sepolia.drpc.org \
-  matterlabs/sso-bundler:latest
+  ghcr.io/matter-labs/sso-bundler:latest
 ```
 
 ## Environment Variables
