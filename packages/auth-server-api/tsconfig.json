@@ -1,0 +1,27 @@
+{
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    // Enable latest features
+    "lib": ["ESNext"],
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleDetection": "force",
+    "allowJs": true,
+
+    // Bundler mode
+    "moduleResolution": "nodenext",
+    "verbatimModuleSyntax": true,
+    "noEmit": false,
+    "outDir": "./dist",
+
+    // Best practices
+    "strict": true,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // Some stricter flags (disabled by default)
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false
+  }
+}

@@ -1,13 +1,13 @@
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { waitForTransactionReceipt } from "viem/actions";
 import type { SessionSpec } from "zksync-sso-4337/client";
-import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
+import { sessionSpecToJSON } from "zksync-sso-4337/client";
 
 export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividiumMode = false) => {
   const chainId = toRef(_chainId);
   const { getThrowAwayClient } = useClientStore();
   const { registerPasskey } = usePasskeyRegister();
   const { fetchAddressAssociationMessage, associateAddress, deleteAddressAssociation } = usePrividiumAddressAssociation();
+  const runtimeConfig = useRuntimeConfig();
 
   const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionSpec, "signer">) => {
     const result = await registerPasskey();
@@ -41,35 +41,40 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
       await associateAddress(deployerClient.account.address, message, signature);
     }
 
-    const chainContracts = contractsByChain[chainId.value];
+    // Call backend API to deploy account
+    const apiUrl = runtimeConfig.public.authServerApiUrl;
+    if (!apiUrl) {
+      throw new Error("Auth Server API URL is not configured");
+    }
 
-    // Prepare deployment transaction using sdk-4337
-    const { transaction } = prepareDeploySmartAccount({
-      contracts: {
-        factory: chainContracts.factory,
-        webauthnValidator: chainContracts.webauthnValidator,
-        eoaValidator: chainContracts.eoaValidator,
-        sessionValidator: chainContracts.sessionValidator,
+    const response = await fetch(`${apiUrl}/api/deploy-account`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-      passkeySigners: [{
-        credentialId: credentialId,
-        publicKey: credentialPublicKey,
+      body: JSON.stringify({
+        chainId: chainId.value,
+        credentialId,
+        credentialPublicKey,
         originDomain: window.location.origin,
-      }],
-      eoaSigners: [ownerAddress],
-      userId: credentialId, // Use credential ID as unique user ID
-      installSessionValidator: true,
+        session: sessionData ? sessionSpecToJSON(sessionData) : undefined,
+        userId: credentialId, // Use credential ID as unique user ID
+        eoaSigners: [ownerAddress],
+      }),
     });
 
-    // Send deployment transaction
-    const hash = await deployerClient.sendTransaction(transaction);
-    const receipt = await waitForTransactionReceipt(deployerClient, { hash });
+    const data = await response.json();
 
-    // Extract deployed account address from logs
-    const address = getAccountAddressFromLogs(receipt.logs);
-    if (!address) {
-      throw new Error("Failed to extract account address from deployment logs");
+    // Check for errors in response
+    if (data.error) {
+      throw new Error(data.error);
     }
+
+    if (!data.address) {
+      throw new Error("No address returned from deployment API");
+    }
+
+    const address = data.address;
 
     // Clean up temporary association for Prividium mode
     if (prividiumMode) {

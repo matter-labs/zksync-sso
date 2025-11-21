@@ -4,6 +4,8 @@ import { ConstraintCondition, LimitType, LimitUnlimited, LimitZero, type Session
 import type { ContractWriteMutability, IndexedValues } from "./type-utils.js";
 import { encodedInputToAbiChunks, getParameterChunkIndex, isDynamicInputType, isFollowedByDynamicInputType, msStringToSeconds } from "./utils.js";
 
+export * from "./utils.js";
+
 export type PartialLimit = bigint | {
   limit: bigint;
   period?: string | bigint;

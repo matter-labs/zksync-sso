@@ -1,0 +1,79 @@
+name: Build and push Auth Server API Docker image
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-push-image:
+    name: Build and push Auth Server API Docker image
+    runs-on: [matterlabs-ci-runner]
+    # Only run docker build/push for the main repository, not forks
+    # Allow manual dispatch from any repository
+    if: github.repository == 'matter-labs/zksync-sso'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+
+      - name: Set git SHA
+        id: git_sha
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Set Docker tag
+        id: docker_tag
+        run: |
+          ts=$(date +%s%N | cut -b1-13)
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "tag=${{ steps.git_sha.outputs.sha_short }}-${ts}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "tag=none" >> $GITHUB_OUTPUT
+          else
+            echo "Unsupported event ${GITHUB_EVENT_NAME} or ref ${GITHUB_REF}, only refs/heads/, refs/tags/, pull_request, and workflow_dispatch are supported."
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.0
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GAR
+        run: |
+          gcloud auth configure-docker us-docker.pkg.dev -q
+
+      - name: Build and push auth-server-api image
+        id: docker_build_auth_server_api
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: Dockerfile
+          target: auth-server-api
+          push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch' }}
+          tags: |
+            matterlabs/sso-auth-server-api:${{ steps.docker_tag.outputs.tag }}
+            matterlabs/sso-auth-server-api:latest
+            us-docker.pkg.dev/matterlabs-infra/matterlabs-docker/sso-auth-server-api:${{ steps.docker_tag.outputs.tag }}
+            us-docker.pkg.dev/matterlabs-infra/matterlabs-docker/sso-auth-server-api:latest
+
+      - name: Print image digest to summary
+        run: |
+          echo "Auth Server API Image tag: ${{ steps.docker_tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
