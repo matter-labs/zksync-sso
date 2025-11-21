@@ -8,9 +8,8 @@ FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 RUN pnpm install --prod=false --frozen-lockfile
-RUN pnpm --filter='!./packages/sdk-platforms/*' --filter='!./packages/sdk-4337' -r run build
+RUN pnpm --filter='!./packages/sdk-platforms/*' --filter='!./packages/sdk-4337' --filter='!./packages/auth-server-api' -r run build
 RUN pnpm deploy --filter=oidc-server --prod /prod/oidc-server
-RUN pnpm deploy --filter=auth-server-api --prod /prod/auth-server-api
 
 FROM base AS oidc-server
 COPY --from=build /prod/oidc-server /prod/oidc-server
@@ -23,11 +22,3 @@ CMD [ "node", "dist/salt-service.js" ]
 
 FROM oidc-server AS key-registry
 CMD [ "node", "dist/update-keys-service.js" ]
-
-FROM base AS auth-server-api
-COPY --from=build /prod/auth-server-api /prod/auth-server-api
-WORKDIR /prod/auth-server-api
-COPY --from=build /usr/src/app/packages/auth-server-api/dist ./dist
-ENV PORT=3003
-EXPOSE 3003
-CMD [ "node", "dist/index.js" ]
