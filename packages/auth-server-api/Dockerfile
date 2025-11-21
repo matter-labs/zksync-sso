@@ -61,8 +61,6 @@ RUN forge build
 
 # Build ERC-4337 related packages
 WORKDIR /usr/src/app
-RUN pnpm nx build web-sdk
-RUN pnpm nx build sdk-4337
 
 # Build auth-server-api
 RUN pnpm nx build auth-server-api
