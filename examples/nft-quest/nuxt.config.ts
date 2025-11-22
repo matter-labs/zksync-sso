@@ -1,5 +1,17 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import type { Chain } from "viem/chains";
+import topLevelAwait from "vite-plugin-top-level-await";
+import wasm from "vite-plugin-wasm";
+
+// Anvil chain configuration (chain ID 31337)
+const anvilChain: Chain = {
+  id: 31337,
+  name: "Anvil",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["http://127.0.0.1:8545"] },
+  },
+};
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -19,7 +31,7 @@ export default defineNuxtConfig({
   $production: {
     runtimeConfig: {
       public: {
-        chain: zksyncSepoliaTestnet,
+        chain: anvilChain, // Update to use testnet when deploying
         contracts: {
           nft: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
           paymaster: "0x60eef092977DF2738480a6986e2aCD10236b1FA7",
@@ -57,10 +69,10 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chain: zksyncInMemoryNode,
+      chain: anvilChain,
       contracts: {
-        nft: "0xF4E1ee85f0645b5871B03bc40d151C174F0e86f6",
-        paymaster: "0x25B89fa6e157937f845ec0Fb41733B29bc20A4d3",
+        nft: process.env.NUXT_PUBLIC_CONTRACTS_NFT || "0x4c07ce6454D5340591f62fD7d3978B6f42Ef953e",
+        paymaster: process.env.NUXT_PUBLIC_CONTRACTS_PAYMASTER || "",
       },
       baseUrl: "http://localhost:3006",
       authServerUrl: "http://localhost:3002/confirm",
@@ -77,6 +89,10 @@ export default defineNuxtConfig({
     },
   },
   vite: {
+    plugins: [
+      wasm(),
+      topLevelAwait(),
+    ],
     css: {
       preprocessorOptions: {
         scss: {
