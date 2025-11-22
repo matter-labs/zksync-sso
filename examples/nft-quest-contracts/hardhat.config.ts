@@ -30,16 +30,32 @@ const config: HardhatUserConfig = {
     hardhat: {
       zksync: true,
     },
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      // anvil standard chain; no zksync features, used for minimal ERC721 deploy
+      zksync: false,
+    },
   },
   zksolc: {
     version: "latest",
     settings: {
-      // find all available options in the official documentation
-      // https://docs.zksync.io/build/tooling/hardhat/hardhat-zksync-solc#configuration
+      // enable viaIR for complex system contract compilation when needed
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+      viaIR: true,
     },
   },
   solidity: {
     version: "0.8.17",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+      viaIR: true,
+    },
   },
 };
 

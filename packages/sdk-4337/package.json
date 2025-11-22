@@ -68,6 +68,11 @@
       "import": "./dist/_esm/index.js",
       "require": "./dist/_cjs/index.js"
     },
+    "./account": {
+      "types": "./dist/_types/account/index.d.ts",
+      "import": "./dist/_esm/account/index.js",
+      "require": "./dist/_cjs/account/index.js"
+    },
     "./connector": {
       "types": "./dist/_types/connector/index.d.ts",
       "import": "./dist/_esm/connector/index.js",
@@ -104,6 +109,9 @@
     "*": {
       ".": [
         "./dist/_types/index.d.ts"
+      ],
+      "account": [
+        "./dist/_types/account/index.d.ts"
       ],
       "connector": [
         "./dist/_types/connector/index.d.ts"

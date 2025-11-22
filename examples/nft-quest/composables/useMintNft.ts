@@ -1,30 +1,34 @@
-import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import type { Address } from "viem";
-import { getGeneralPaymasterInput } from "viem/zksync";
 
 export const useMintNft = async (_address: MaybeRef<Address>) => {
   const address = toRef(_address);
 
   return await useAsyncData("mintZeek", async () => {
     const runtimeConfig = useRuntimeConfig();
-    const { wagmiConfig } = storeToRefs(useConnectorStore());
+    const clientStore = useClientStore();
+
+    // WORKAROUND: Use throw-away client (rich account #0) to mint
+    // TODO: Use passkey client with bundler once factory contracts are deployed
+    const client = clientStore.getThrowAwayClient();
 
     const mintingForAddress = address.value;
-    const transactionHash = await writeContract(wagmiConfig.value, {
+
+    // Submit mint transaction directly (not via bundler)
+    const hash = await client.writeContract({
       address: runtimeConfig.public.contracts.nft as Address,
       abi: nftAbi,
       functionName: "mint",
       args: [mintingForAddress],
-      paymaster: runtimeConfig.public.contracts.paymaster as Address,
-      paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
     });
 
-    const transactionReceipt = await waitForTransactionReceipt(wagmiConfig.value, { hash: transactionHash });
-    if (transactionReceipt.status === "reverted") {
-      throw new Error("Transaction reverted");
+    // Wait for transaction receipt
+    const receipt = await client.waitForTransactionReceipt({ hash });
+
+    if (receipt.status !== "success") {
+      throw new Error("Mint transaction failed");
     }
 
-    return transactionReceipt;
+    return receipt;
   }, {
     server: false,
     immediate: false,
