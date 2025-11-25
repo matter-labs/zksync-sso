@@ -23,6 +23,7 @@ use alloy::{
 pub struct CreateSessionParams<P: Provider + Send + Sync + Clone> {
     pub account_address: Address,
     pub spec: SessionSpec,
+    pub proof: Bytes,
     pub entry_point_address: Address,
     pub session_key_validator: Address,
     pub paymaster: Option<PaymasterParams>,
@@ -40,6 +41,7 @@ where
     let CreateSessionParams {
         account_address,
         spec,
+        proof,
         entry_point_address,
         session_key_validator,
         paymaster,
@@ -48,7 +50,7 @@ where
         signer,
     } = params;
 
-    let call_data = add_session_call_data(spec, session_key_validator);
+    let call_data = add_session_call_data(spec, proof, session_key_validator);
 
     send_user_op(SendUserOpParams {
         account: account_address,
@@ -66,17 +68,18 @@ where
     Ok(())
 }
 
-pub fn create_session_call_data(spec: SessionSpec) -> Bytes {
-    SessionKeyValidator::createSessionCall { sessionSpec: spec.into() }
+pub fn create_session_call_data(spec: SessionSpec, proof: Bytes) -> Bytes {
+    SessionKeyValidator::createSessionCall { sessionSpec: spec.into(), proof }
         .abi_encode()
         .into()
 }
 
 fn add_session_call_data(
     spec: SessionSpec,
+    proof: Bytes,
     session_key_validator: Address,
 ) -> Bytes {
-    let calldata = create_session_call_data(spec);
+    let calldata = create_session_call_data(spec, proof);
     encoded_call_with_target_and_data(session_key_validator, calldata)
 }
 

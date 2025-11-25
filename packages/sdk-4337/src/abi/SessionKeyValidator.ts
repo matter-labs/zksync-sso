@@ -129,6 +129,10 @@ export const SessionKeyValidatorAbi = [{
         }],
       }],
     }],
+  }, {
+    name: "proof",
+    type: "bytes",
+    internalType: "bytes",
   }],
   outputs: [],
   stateMutability: "nonpayable",

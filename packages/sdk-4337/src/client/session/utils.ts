@@ -1,5 +1,6 @@
-import type { Address, Hex } from "viem";
+import { type Address, encodeAbiParameters, type Hex, keccak256 } from "viem";
 
+import { SessionKeyValidatorAbi } from "../../abi/SessionKeyValidator.js";
 import type { SessionSpec, UsageLimit } from "./types.js";
 
 /**
@@ -129,4 +130,24 @@ export function isSessionExpired(
  */
 export function getSessionExpiryDate(spec: SessionSpec): Date {
   return new Date(Number(spec.expiresAt) * 1000);
+}
+
+/**
+ * Computes the hash of a session specification.
+ * This hash is signed by the session key to prove ownership.
+ */
+export function getSessionHash(spec: SessionSpec): Hex {
+  const createSessionFunction = SessionKeyValidatorAbi.find(
+    (x) => x.type === "function" && x.name === "createSession",
+  );
+  if (!createSessionFunction) throw new Error("createSession function not found in ABI");
+
+  const sessionSpecParam = createSessionFunction.inputs.find((x) => x.name === "sessionSpec");
+  if (!sessionSpecParam) throw new Error("sessionSpec param not found in createSession ABI");
+
+  const encoded = encodeAbiParameters(
+    [sessionSpecParam],
+    [spec as any],
+  );
+  return keccak256(encoded);
 }

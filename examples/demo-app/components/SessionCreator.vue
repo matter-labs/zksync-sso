@@ -71,9 +71,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { createPublicClient, http, parseEther, type Chain, type Address } from "viem";
+import { createPublicClient, http, parseEther, type Address, type Chain } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-import { createSession, toEcdsaSmartAccount, LimitType } from "zksync-sso-4337/client";
+import { privateKeyToAccount } from "viem/accounts";
+import { createSession, toEcdsaSmartAccount, LimitType, getSessionHash } from "zksync-sso-4337/client";
 
 interface SessionConfig {
   enabled: boolean;
@@ -234,11 +235,20 @@ async function createSessionOnChain() {
 
     // eslint-disable-next-line no-console
     console.log("Session spec created:", sessionSpec);
+
+    // Generate proof
+    const sessionHash = getSessionHash(sessionSpec);
+    const sessionSignerAccount = privateKeyToAccount(props.sessionConfig.sessionPrivateKey as `0x${string}`);
+    const proof = await sessionSignerAccount.sign({
+      hash: sessionHash,
+    });
+
     // eslint-disable-next-line no-console
     console.log("Calling createSession with:", {
       bundlerClient: !!bundlerClient,
       sessionSpec: !!sessionSpec,
       sessionValidator: props.sessionConfig.validatorAddress,
+      proof,
     });
 
     // Create the session on-chain
@@ -246,6 +256,7 @@ async function createSessionOnChain() {
     try {
       sessionResult = await createSession(bundlerClient, {
         sessionSpec,
+        proof,
         contracts: {
           sessionValidator: props.sessionConfig.validatorAddress as Address,
         },
