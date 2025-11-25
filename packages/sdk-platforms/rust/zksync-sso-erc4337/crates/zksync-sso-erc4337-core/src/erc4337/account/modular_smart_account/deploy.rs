@@ -545,6 +545,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: eoa_signer,
+            proof: Bytes::default(),
         })
         .await?;
 

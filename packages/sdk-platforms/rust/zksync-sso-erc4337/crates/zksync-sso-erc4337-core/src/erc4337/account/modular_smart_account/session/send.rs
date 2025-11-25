@@ -208,6 +208,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: signer.clone(),
+            proof: Bytes::default(),
         })
         .await?;
 
@@ -383,6 +384,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: eoa_signer.clone(),
+            proof: Bytes::default(),
         })
         .await?;
 

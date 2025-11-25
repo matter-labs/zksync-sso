@@ -1,6 +1,8 @@
 use crate::erc4337::account::modular_smart_account::guardian::contract::GuardianExecutor;
 use alloy::{
-    primitives::{Address, Bytes}, providers::Provider, rpc::types::TransactionReceipt,
+    primitives::{Address, Bytes},
+    providers::Provider,
+    rpc::types::TransactionReceipt,
 };
 
 #[derive(Clone)]

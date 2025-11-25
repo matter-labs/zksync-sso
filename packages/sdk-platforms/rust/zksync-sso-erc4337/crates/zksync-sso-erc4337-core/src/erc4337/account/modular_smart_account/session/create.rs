@@ -253,6 +253,7 @@ mod tests {
                 bundler_client,
                 provider,
                 signer,
+                proof: Bytes::default(),
             })
             .await?;
         }
@@ -400,6 +401,7 @@ mod tests {
                 bundler_client,
                 provider,
                 signer: signer.clone(),
+                proof: Bytes::default(),
             })
             .await?;
         }

@@ -1693,12 +1693,12 @@ pub fn encode_create_session_call_data(
             JsValue::from_str(&format!("Invalid SessionSpec JSON: {}", e))
         })?;
 
-    let proof_bytes = hex::decode(proof.trim_start_matches("0x")).map_err(|e| {
-        JsValue::from_str(&format!("Invalid proof hex: {}", e))
-    })?;
+    let proof_bytes = hex::decode(proof.trim_start_matches("0x"))
+        .map_err(|e| JsValue::from_str(&format!("Invalid proof hex: {}", e)))?;
 
     // Build createSession call and ABI encode
-    let create_session_calldata = create_session_call_data_core(spec, proof_bytes.into());
+    let create_session_calldata =
+        create_session_call_data_core(spec, proof_bytes.into());
 
     Ok(format!("0x{}", hex::encode(create_session_calldata)))
 }

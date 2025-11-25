@@ -144,7 +144,7 @@ mod tests {
         },
     };
     use alloy::{
-        primitives::{FixedBytes, U256, Uint, address},
+        primitives::{Bytes, FixedBytes, U256, Uint, address},
         rpc::types::{BlockNumberOrTag, FilterBlockOption, FilterSet},
     };
     use std::collections::HashSet;
@@ -304,6 +304,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: signer.clone(),
+            proof: Bytes::default(),
         })
         .await?;
 
@@ -345,6 +346,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: signer.clone(),
+            proof: Bytes::default(),
         })
         .await?;
 
@@ -386,6 +388,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: signer.clone(),
+            proof: Bytes::default(),
         })
         .await?;
 
