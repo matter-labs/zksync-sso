@@ -1,5 +1,5 @@
 // Bundler-specific entry point for web applications
-import * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
+import * as wasm from "../pkg-bundler/zksync_sso_erc4337_web_ffi.js";
 
 export * from "./types";
 export * from "./webauthn";

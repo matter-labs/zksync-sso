@@ -10,7 +10,7 @@ import {
   prepare_passkey_user_operation,
   SendTransactionConfig,
   submit_passkey_user_operation,
-} from "../pkg-bundler/zksync_sso_erc4337_web_ffi";
+} from "../pkg-bundler/zksync_sso_erc4337_web_ffi.js";
 
 /**
  * Convert hex string to Uint8Array
