@@ -2,8 +2,8 @@ import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import type { Chain } from "viem";
-import { localhost, sepolia } from "viem/chains";
+import { type Chain, defineChain } from "viem";
+import { localhost } from "viem/chains";
 import { z } from "zod";
 
 // Load environment variables
@@ -69,7 +69,27 @@ if (!FACTORY_ADDRESS || !EOA_VALIDATOR_ADDRESS || !WEBAUTHN_VALIDATOR_ADDRESS ||
 }
 
 // Supported chains configuration
-const SUPPORTED_CHAINS: Chain[] = [localhost, sepolia];
+const zksyncOsTestnet = defineChain({
+  id: 8022833,
+  name: "ZKsyncOS Testnet",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "ZKsyncOS Testnet Explorer",
+      url: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
+    },
+  },
+});
+const SUPPORTED_CHAINS: Chain[] = [localhost, zksyncOsTestnet];
 
 function getChain(chainId: number): Chain {
   const chain = SUPPORTED_CHAINS.find((c) => c.id === chainId);
