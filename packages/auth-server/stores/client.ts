@@ -37,7 +37,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     webauthnValidator: "0xAbcB5AB6eBb69F4F5F8cf1a493F56Ad3d28562bd",
     sessionValidator: "0x09fbd5b956AF5c64C7eB4fb473E7E64DAF0f79D7",
     factory: "0xF33128d7Cd2ab37Af12B3a22D9dA79f928c2B450",
-    bundlerUrl: "https://bundler-api.sso.zksync.dev",
+    bundlerUrl: "https://bundler-api.stage-sso.zksync.dev",
     beacon: "0xd1Ab9B640995124D3FD311d70BA4F216AD5b1aD5",
   },
 };
