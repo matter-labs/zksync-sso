@@ -56,12 +56,12 @@
       >
         Confirm Recovery
       </ZkButton>
-      <CommonConnectButton
+      <!-- <CommonConnectButton
         v-if="!selectedGuardianInfo?.isSsoAccount"
         type="primary"
         class="w-full mt-4"
         :disabled="initRecoveryInProgress || getConfigurableAccountInProgress"
-      />
+      /> -->
     </template>
 
     <ZkButton
