@@ -59,24 +59,52 @@ WORKDIR /usr/src/app/packages/erc4337-contracts
 RUN forge soldeer install
 RUN forge build
 
-# Build ERC-4337 related packages
+# Build ERC-4337 related packages (following CI build order)
 WORKDIR /usr/src/app
 
-# Build auth-server-api
-RUN pnpm nx build auth-server-api
+# Build in correct dependency order: web-sdk -> sdk-4337 -> auth-server-api
+RUN pnpm nx build web-sdk
+RUN pnpm nx build sdk-4337 || (echo "===SDK-4337 Build Failed, trying direct build===" && cd packages/sdk-4337 && pnpm build)
+RUN pnpm nx build auth-server-api || (echo "===Auth-Server-API Build Failed, trying direct build===" && cd packages/auth-server-api && pnpm build)
 
 # Deploy only production dependencies for auth-server-api
 RUN pnpm deploy --filter=auth-server-api --prod /prod/auth-server-api
 
 # Stage 3: Production runtime
-# Using distroless for minimal attack surface
-FROM gcr.io/distroless/nodejs22-debian12:nonroot AS production
+FROM node:22-slim AS production
+
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy the deployed auth-server-api with its dependencies
-COPY --from=builder --chown=nonroot:nonroot /prod/auth-server-api /prod/auth-server-api
+COPY --from=builder /prod/auth-server-api /prod/auth-server-api
 
 # Copy the built dist folder
-COPY --from=builder --chown=nonroot:nonroot /usr/src/app/packages/auth-server-api/dist /prod/auth-server-api/dist
+COPY --from=builder /usr/src/app/packages/auth-server-api/dist /prod/auth-server-api/dist
+
+# Copy sdk-4337 built files to node_modules
+COPY --from=builder /usr/src/app/packages/sdk-4337/dist /prod/auth-server-api/node_modules/zksync-sso-4337/dist
+
+# Copy web-sdk built files and WASM packages to .pnpm directory structure
+RUN mkdir -p $(find /prod/auth-server-api/node_modules/.pnpm -type d -name "zksync-sso-web-sdk" 2>/dev/null | head -1)
+COPY --from=builder /usr/src/app/packages/sdk-platforms/web/pkg-bundler /tmp/pkg-bundler
+COPY --from=builder /usr/src/app/packages/sdk-platforms/web/pkg-node /tmp/pkg-node
+COPY --from=builder /usr/src/app/packages/sdk-platforms/web/dist /tmp/web-dist
+RUN PNPM_WEB_SDK=$(find /prod/auth-server-api/node_modules/.pnpm -type d -name "zksync-sso-web-sdk" 2>/dev/null | head -1) && \
+    if [ -n "$PNPM_WEB_SDK" ]; then \
+      cp -r /tmp/pkg-bundler "$PNPM_WEB_SDK/" && \
+      cp -r /tmp/pkg-node "$PNPM_WEB_SDK/" && \
+      cp -r /tmp/web-dist "$PNPM_WEB_SDK/dist"; \
+    fi && \
+    rm -rf /tmp/pkg-bundler /tmp/pkg-node /tmp/web-dist
+
+# Copy sdk-4337 built files to .pnpm directory structure
+COPY --from=builder /usr/src/app/packages/sdk-4337/dist /tmp/sdk-4337-dist
+RUN PNPM_SDK_4337=$(find /prod/auth-server-api/node_modules/.pnpm -type d -name "zksync-sso-4337" 2>/dev/null | head -1) && \
+    if [ -n "$PNPM_SDK_4337" ]; then \
+      cp -r /tmp/sdk-4337-dist "$PNPM_SDK_4337/dist"; \
+    fi && \
+    rm -rf /tmp/sdk-4337-dist
 
 WORKDIR /prod/auth-server-api
 
@@ -86,7 +114,7 @@ ENV NODE_ENV=production
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD ["node", "-e", "require('http').get('http://localhost:3004/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+  CMD ["curl", "-f", "http://localhost:3004/api/health"]
 
 # Expose port
 EXPOSE 3004

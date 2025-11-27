@@ -84,7 +84,7 @@ export async function startBundler(): Promise<void> {
 
   // Start Alto bundler
   log("SETUP", "Starting Alto bundler on port 4338...", colors.cyan);
-  alto = spawn("alto", ["--config", ALTO_CONFIG], {
+  alto = spawn("npx", ["alto", "--config", ALTO_CONFIG, "--port", "4338"], {
     stdio: "inherit",
     shell: true,
   });
