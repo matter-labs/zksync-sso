@@ -2,11 +2,9 @@ import type { Request, Response } from "express";
 import { type Address, createPublicClient, createWalletClient, type Hex, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
-import { localhost } from "viem/chains";
-import { getAccountAddressFromLogs, prepareDeploySmartAccount, type SessionSpecJSON } from "zksync-sso-4337/client";
-import { parseSessionConfigJSON } from "zksync-sso-4337/client-auth-server";
+import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
-import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
+import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
 import { deployAccountSchema } from "../schemas.js";
 
 type DeployAccountRequest = {
@@ -14,7 +12,6 @@ type DeployAccountRequest = {
   credentialId: Hex;
   credentialPublicKey: { x: Hex; y: Hex };
   originDomain: string;
-  session?: SessionSpecJSON;
   userId?: string;
   eoaSigners?: Address[];
 };
@@ -33,21 +30,19 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
 
     const body = req.body as DeployAccountRequest;
 
-    // Convert session from JSON (with string bigints) to SessionSpec (with actual bigints)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const initialSession = body.session ? parseSessionConfigJSON(body.session) : undefined;
-    // TODO: Use initialSession during deployment
+    // Get chain from request
+    const chain = getChain(body.chainId);
 
     // Create clients
     const publicClient = createPublicClient({
-      chain: localhost,
+      chain,
       transport: http(env.RPC_URL),
     });
 
     const deployerAccount = privateKeyToAccount(env.DEPLOYER_PRIVATE_KEY as Hex);
     const walletClient = createWalletClient({
       account: deployerAccount,
-      chain: localhost,
+      chain,
       transport: http(env.RPC_URL),
     });
 

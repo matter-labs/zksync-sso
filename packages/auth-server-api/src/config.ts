@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import type { Chain } from "viem";
+import { localhost, sepolia } from "viem/chains";
 import { z } from "zod";
 
 // Load environment variables
@@ -31,7 +33,6 @@ const envSchema = z.object({
   PORT: z.string().default("3004"),
   CORS_ORIGINS: z.string().default("http://localhost:3003,http://localhost:3002,http://localhost:3000"),
   DEPLOYER_PRIVATE_KEY: z.string().default("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"),
-  CHAIN_ID: z.string().default("1337"),
   RPC_URL: z.string().default("http://127.0.0.1:8545"),
   BUNDLER_URL: z.string().default("http://127.0.0.1:4337"),
   FACTORY_ADDRESS: z.string().optional(),
@@ -67,4 +68,15 @@ if (!FACTORY_ADDRESS || !EOA_VALIDATOR_ADDRESS || !WEBAUTHN_VALIDATOR_ADDRESS ||
   process.exit(1);
 }
 
-export { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS };
+// Supported chains configuration
+const SUPPORTED_CHAINS: Chain[] = [localhost, sepolia];
+
+function getChain(chainId: number): Chain {
+  const chain = SUPPORTED_CHAINS.find((c) => c.id === chainId);
+  if (!chain) {
+    throw new Error(`Unsupported chainId: ${chainId}. Supported: ${SUPPORTED_CHAINS.map((c) => c.id).join(", ")}`);
+  }
+  return chain;
+}
+
+export { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, SESSION_VALIDATOR_ADDRESS, SUPPORTED_CHAINS, WEBAUTHN_VALIDATOR_ADDRESS };
