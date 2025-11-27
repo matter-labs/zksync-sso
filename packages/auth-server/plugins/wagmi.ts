@@ -1,12 +1,15 @@
-import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
-import { WagmiPlugin } from "@wagmi/vue";
+// TODO: Figure out why this causes error:
+// `TypeError: Cannot set properties of undefined (setting 'type')`
 
-const queryClient = new QueryClient();
+// import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
+// import { WagmiPlugin } from "@wagmi/vue";
 
-export default defineNuxtPlugin((nuxtApp) => {
-  const { wagmiConfig } = useAppKit();
+// const queryClient = new QueryClient();
 
-  nuxtApp.vueApp
-    .use(WagmiPlugin, { config: wagmiConfig })
-    .use(VueQueryPlugin, { queryClient });
+export default defineNuxtPlugin((_nuxtApp) => {
+  // const { wagmiConfig } = useAppKit();
+
+  // nuxtApp.vueApp
+  //   .use(WagmiPlugin, { config: wagmiConfig })
+  //   .use(VueQueryPlugin, { queryClient });
 });
