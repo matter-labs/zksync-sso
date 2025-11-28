@@ -1,8 +1,8 @@
 import { useAppKitProvider } from "@reown/appkit/vue";
-import { type Address, createPublicClient, createWalletClient, custom, type Hex, http, publicActions, walletActions } from "viem";
+import { type Address, createPublicClient, createWalletClient, custom, defineChain, type Hex, http, publicActions, walletActions } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { /* generatePrivateKey, */ privateKeyToAccount } from "viem/accounts";
-import { localhost, sepolia } from "viem/chains";
+import { localhost } from "viem/chains";
 import { createPasskeyClient } from "zksync-sso-4337/client";
 
 // TODO: OIDC and guardian recovery are not yet available in sdk-4337
@@ -10,15 +10,36 @@ import { createPasskeyClient } from "zksync-sso-4337/client";
 // import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 import localChainData from "./local-node.json";
 
-export const supportedChains = [localhost, sepolia];
+const zksyncOsTestnet = defineChain({
+  id: 8022833,
+  name: "ZKsyncOS Testnet",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "ZKsyncOS Testnet Explorer",
+      url: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
+    },
+  },
+});
+
+export const supportedChains = [localhost, zksyncOsTestnet];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
   [localhost.id]: "http://localhost:3010",
-  [sepolia.id]: "https://sepolia.etherscan.io",
+  [zksyncOsTestnet.id]: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
 };
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
   [localhost.id]: "http://localhost:3020",
-  [sepolia.id]: "https://api-sepolia.etherscan.io/api",
+  [zksyncOsTestnet.id]: "https://block-explorer-api.zksync-os-testnet-alpha.zksync.dev/api",
 };
 
 type ChainContracts = {
@@ -32,13 +53,13 @@ type ChainContracts = {
 
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [localhost.id]: localChainData as ChainContracts,
-  [sepolia.id]: {
-    eoaValidator: "0x027ce1d8244318e38c3B65E3EABC2537BD712077",
-    webauthnValidator: "0xAbcB5AB6eBb69F4F5F8cf1a493F56Ad3d28562bd",
-    sessionValidator: "0x09fbd5b956AF5c64C7eB4fb473E7E64DAF0f79D7",
-    factory: "0xF33128d7Cd2ab37Af12B3a22D9dA79f928c2B450",
+  [zksyncOsTestnet.id]: {
+    eoaValidator: "0x3497392f9662Da3de1EC2AfE8724CdBF6b884088",
+    webauthnValidator: "0xa5C2c5C723239C0cD11a5691954CdAC4369C874b",
+    sessionValidator: "0x2bF3B894aA2C13A1545C6982bBbee435B5168b52",
+    factory: "0x757b5c9854d327A6B76840c996dfAac0F6b3Dc1f",
     bundlerUrl: "https://bundler-api.stage-sso.zksync.dev",
-    beacon: "0xd1Ab9B640995124D3FD311d70BA4F216AD5b1aD5",
+    beacon: "0x1D779D791B55a093dE60da664C3F301a87f96C62",
   },
 };
 
@@ -46,8 +67,8 @@ export const chainParameters: Record<SupportedChainId, { blockTime: number }> = 
   [localhost.id]: {
     blockTime: 1,
   },
-  [sepolia.id]: {
-    blockTime: 12,
+  [zksyncOsTestnet.id]: {
+    blockTime: 1,
   },
 };
 
