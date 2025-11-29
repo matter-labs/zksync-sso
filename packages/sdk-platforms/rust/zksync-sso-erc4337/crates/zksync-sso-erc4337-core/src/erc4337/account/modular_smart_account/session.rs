@@ -11,4 +11,4 @@ pub mod signature_wasm;
 pub mod state;
 pub mod status;
 
-mod contract;
+pub mod contract;

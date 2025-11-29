@@ -2,12 +2,12 @@ import type { Address, Hex } from "viem";
 
 /**
  * Limit types for usage tracking
- * Uses string values to match Rust serialization format
+ * Uses numeric values to match contract enum
  */
 export enum LimitType {
-  Unlimited = "Unlimited",
-  Lifetime = "Lifetime",
-  Allowance = "Allowance",
+  Unlimited = 0,
+  Lifetime = 1,
+  Allowance = 2,
 }
 
 /**

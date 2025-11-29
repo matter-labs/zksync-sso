@@ -50,7 +50,7 @@ export type PasskeyClientActions<TChain extends Chain = Chain, TAccount extends 
   /**
    * Create a session on-chain using the provided specification
    */
-  createSession: (params: { sessionSpec: SessionSpec; contracts: { sessionValidator: Address } }) => Promise<Hash>;
+  createSession: (params: { sessionSpec: SessionSpec; proof: Hex; contracts: { sessionValidator: Address } }) => Promise<Hash>;
 };
 
 /**
@@ -93,11 +93,11 @@ export function passkeyClientActions<
     },
 
     // Create a session on-chain using the provided specification
-    createSession: async (params: { sessionSpec: SessionSpec; contracts: { sessionValidator: Address } }) => {
+    createSession: async (params: { sessionSpec: SessionSpec; proof: Hex; contracts: { sessionValidator: Address } }) => {
       // Build smart account instance (lazy, not cached here; acceptable overhead for now)
       const smartAccount = await toPasskeySmartAccount(config.passkeyAccount);
       const sessionSpecJSON = sessionSpecToJSON(params.sessionSpec);
-      const callData = encode_create_session_call_data(sessionSpecJSON) as unknown as `0x${string}`;
+      const callData = encode_create_session_call_data(sessionSpecJSON, params.proof) as unknown as `0x${string}`;
       const userOpHash = await config.bundler.sendUserOperation({
         account: smartAccount,
         calls: [
