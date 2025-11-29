@@ -144,10 +144,12 @@ mod tests {
         },
     };
     use alloy::{
-        primitives::{Bytes, FixedBytes, U256, Uint, address},
+        primitives::{FixedBytes, U256, Uint, address, keccak256},
         rpc::types::{BlockNumberOrTag, FilterBlockOption, FilterSet},
+        signers::{SignerSync, local::PrivateKeySigner},
+        sol_types::SolValue,
     };
-    use std::collections::HashSet;
+    use std::{collections::HashSet, str::FromStr};
 
     fn create_session_logs_filter(
         session_key_validator_address: Address,
@@ -270,11 +272,12 @@ mod tests {
 
         // Create first session (will remain active)
         let session_spec_1 = {
-            let signer_address =
-                address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
+            let signer_key =
+                PrivateKeySigner::from_str(&signer_private_key).unwrap();
+            let signer_address = signer_key.address();
             let expires_at = Uint::from(2088558400u64);
             let target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
-            SessionSpec {
+            let spec = SessionSpec {
                 signer: signer_address,
                 expires_at,
                 call_policies: vec![],
@@ -292,31 +295,39 @@ mod tests {
                         period: Uint::from(0),
                     },
                 }],
-            }
-        };
+            };
 
-        create_session(CreateSessionParams {
-            account_address,
-            spec: session_spec_1.clone(),
-            entry_point_address,
-            session_key_validator: session_key_module,
-            paymaster: None,
-            bundler_client: bundler_client.clone(),
-            provider: provider.clone(),
-            signer: signer.clone(),
-            proof: Bytes::default(),
-        })
-        .await?;
+            let session_hash = hash_session(spec.clone());
+            let hash_to_sign =
+                keccak256((session_hash, account_address).abi_encode());
+            let signature = signer_key.sign_hash_sync(&hash_to_sign).unwrap();
+            let proof = signature.as_bytes();
+
+            create_session(CreateSessionParams {
+                account_address,
+                spec: spec.clone(),
+                entry_point_address,
+                session_key_validator: session_key_module,
+                paymaster: None,
+                bundler_client: bundler_client.clone(),
+                provider: provider.clone(),
+                signer: signer.clone(),
+                proof: proof.into(),
+            })
+            .await?;
+
+            spec
+        };
 
         println!("Session 1 created");
 
         // Create second session (will be revoked)
         let session_spec_2 = {
-            let signer_address =
-                address!("0xb0Ee7A142d267C1f36714E4a8F75612F20a79721");
+            let signer_key = PrivateKeySigner::random();
+            let signer_address = signer_key.address();
             let expires_at = Uint::from(2088558400u64);
             let target = address!("0xb0Ee7A142d267C1f36714E4a8F75612F20a79721");
-            SessionSpec {
+            let spec = SessionSpec {
                 signer: signer_address,
                 expires_at,
                 call_policies: vec![],
@@ -334,31 +345,39 @@ mod tests {
                         period: Uint::from(0),
                     },
                 }],
-            }
-        };
+            };
 
-        create_session(CreateSessionParams {
-            account_address,
-            spec: session_spec_2.clone(),
-            entry_point_address,
-            session_key_validator: session_key_module,
-            paymaster: None,
-            bundler_client: bundler_client.clone(),
-            provider: provider.clone(),
-            signer: signer.clone(),
-            proof: Bytes::default(),
-        })
-        .await?;
+            let session_hash = hash_session(spec.clone());
+            let hash_to_sign =
+                keccak256((session_hash, account_address).abi_encode());
+            let signature = signer_key.sign_hash_sync(&hash_to_sign).unwrap();
+            let proof = signature.as_bytes();
+
+            create_session(CreateSessionParams {
+                account_address,
+                spec: spec.clone(),
+                entry_point_address,
+                session_key_validator: session_key_module,
+                paymaster: None,
+                bundler_client: bundler_client.clone(),
+                provider: provider.clone(),
+                signer: signer.clone(),
+                proof: proof.into(),
+            })
+            .await?;
+
+            spec
+        };
 
         println!("Session 2 created");
 
         // Create third session (will remain active)
         let session_spec_3 = {
-            let signer_address =
-                address!("0xc0Ee7A142d267C1f36714E4a8F75612F20a79722");
+            let signer_key = PrivateKeySigner::random();
+            let signer_address = signer_key.address();
             let expires_at = Uint::from(2088558400u64);
             let target = address!("0xc0Ee7A142d267C1f36714E4a8F75612F20a79722");
-            SessionSpec {
+            let spec = SessionSpec {
                 signer: signer_address,
                 expires_at,
                 call_policies: vec![],
@@ -376,21 +395,29 @@ mod tests {
                         period: Uint::from(0),
                     },
                 }],
-            }
-        };
+            };
 
-        create_session(CreateSessionParams {
-            account_address,
-            spec: session_spec_3.clone(),
-            entry_point_address,
-            session_key_validator: session_key_module,
-            paymaster: None,
-            bundler_client: bundler_client.clone(),
-            provider: provider.clone(),
-            signer: signer.clone(),
-            proof: Bytes::default(),
-        })
-        .await?;
+            let session_hash = hash_session(spec.clone());
+            let hash_to_sign =
+                keccak256((session_hash, account_address).abi_encode());
+            let signature = signer_key.sign_hash_sync(&hash_to_sign).unwrap();
+            let proof = signature.as_bytes();
+
+            create_session(CreateSessionParams {
+                account_address,
+                spec: spec.clone(),
+                entry_point_address,
+                session_key_validator: session_key_module,
+                paymaster: None,
+                bundler_client: bundler_client.clone(),
+                provider: provider.clone(),
+                signer: signer.clone(),
+                proof: proof.into(),
+            })
+            .await?;
+
+            spec
+        };
 
         println!("Session 3 created");
 

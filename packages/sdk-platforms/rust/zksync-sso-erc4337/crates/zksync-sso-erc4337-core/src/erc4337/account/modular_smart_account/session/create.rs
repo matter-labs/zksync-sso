@@ -116,7 +116,12 @@ mod tests {
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::primitives::{U256, Uint, address, bytes, fixed_bytes};
+    use alloy::{
+        primitives::{U256, Uint, address, bytes, fixed_bytes, keccak256},
+        signers::{SignerSync, local::PrivateKeySigner},
+        sol_types::SolValue,
+    };
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn test_create_session() -> eyre::Result<()> {
@@ -244,6 +249,18 @@ mod tests {
                 }],
             };
 
+            // Calculate proof
+            let session_lib_spec: crate::erc4337::account::modular_smart_account::session::contract::SessionLib::SessionSpec = session_spec.clone().into();
+            let session_hash = keccak256(session_lib_spec.abi_encode());
+            let digest = keccak256((session_hash, address).abi_encode());
+
+            let session_signer_instance =
+                PrivateKeySigner::from_str(&signer_private_key)?;
+            let proof = session_signer_instance
+                .sign_hash_sync(&digest)?
+                .as_bytes()
+                .into();
+
             create_session(CreateSessionParams {
                 account_address: address,
                 spec: session_spec,
@@ -253,7 +270,7 @@ mod tests {
                 bundler_client,
                 provider,
                 signer,
-                proof: Bytes::default(),
+                proof,
             })
             .await?;
         }
@@ -273,7 +290,7 @@ mod tests {
             anvil_instance,
             provider,
             contracts,
-            _,
+            signer_private_key,
             bundler,
             bundler_client,
         ) = {
@@ -392,6 +409,18 @@ mod tests {
                 }],
             };
 
+            // Calculate proof
+            let session_lib_spec: crate::erc4337::account::modular_smart_account::session::contract::SessionLib::SessionSpec = session_spec.clone().into();
+            let session_hash = keccak256(session_lib_spec.abi_encode());
+            let digest = keccak256((session_hash, address).abi_encode());
+
+            let session_signer_instance =
+                PrivateKeySigner::from_str(&signer_private_key)?;
+            let proof = session_signer_instance
+                .sign_hash_sync(&digest)?
+                .as_bytes()
+                .into();
+
             create_session(CreateSessionParams {
                 account_address: address,
                 spec: session_spec,
@@ -401,7 +430,7 @@ mod tests {
                 bundler_client,
                 provider,
                 signer: signer.clone(),
-                proof: Bytes::default(),
+                proof,
             })
             .await?;
         }

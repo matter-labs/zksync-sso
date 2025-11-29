@@ -218,6 +218,7 @@ mod tests {
                     calls::{Execution, encode_calls},
                     module::{
                         Module,
+                        add::{AddModuleParams, AddModulePayload, add_module},
                         installed::{
                             IsModuleInstalledParams, is_module_installed,
                         },
@@ -246,8 +247,9 @@ mod tests {
         },
     };
     use alloy::{
-        primitives::{U256, Uint, address},
-        signers::local::PrivateKeySigner,
+        primitives::{U256, Uint, address, keccak256},
+        signers::{SignerSync, local::PrivateKeySigner},
+        sol_types::SolValue,
     };
     use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
 
@@ -458,30 +460,27 @@ mod tests {
             PrivateKeySigner::from_str(session_key_hex)?.address();
         println!("Session signer address: {}", session_signer_address);
 
-        // Deploy account WITH session validator pre-installed
+        // Deploy account WITHOUT session validator pre-installed
         let signers =
             vec![address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")];
         let eoa_signers = EOASigners {
             addresses: signers,
             validator_address: eoa_validator_address,
         };
-        let session_config = SessionValidatorConfig {
-            validator_address: session_validator_address,
-        };
 
         let address = deploy_account(DeployAccountParams {
             factory_address,
             eoa_signers: Some(eoa_signers),
             webauthn_signer: None,
-            session_validator: Some(session_config),
+            session_validator: None,
             id: None,
             provider: provider.clone(),
         })
         .await?;
 
-        println!("✓ Account deployed with session validator pre-installed");
+        println!("✓ Account deployed (without session validator)");
 
-        // Verify both modules are installed
+        // Verify EOA module is installed
         let is_eoa_installed = is_module_installed(IsModuleInstalledParams {
             module: Module::eoa_validator(eoa_validator_address),
             account: address,
@@ -490,6 +489,31 @@ mod tests {
         .await?;
         eyre::ensure!(is_eoa_installed, "EOA validator not installed");
 
+        // Fund the account
+        fund_account_with_default_amount(address, provider.clone()).await?;
+        println!("✓ Account funded");
+
+        // Create EOA signer
+        let eoa_signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
+
+        // Install Session Validator Module
+        add_module(AddModuleParams {
+            account_address: address,
+            module: AddModulePayload::session_key(session_validator_address),
+            entry_point_address,
+            paymaster: None,
+            provider: provider.clone(),
+            bundler_client: bundler_client.clone(),
+            signer: eoa_signer.clone(),
+        })
+        .await?;
+
+        println!("✓ Session validator installed");
+
+        // Verify session module is installed
         let is_session_installed =
             is_module_installed(IsModuleInstalledParams {
                 module: Module::session_key_validator(
@@ -502,16 +526,6 @@ mod tests {
         eyre::ensure!(is_session_installed, "Session validator not installed");
 
         println!("✓ Both EOA and Session validators verified as installed");
-
-        // Fund the account
-        fund_account_with_default_amount(address, provider.clone()).await?;
-        println!("✓ Account funded");
-
-        // Create a session using EOA signer
-        let eoa_signer = create_eoa_signer(
-            signer_private_key.clone(),
-            eoa_validator_address,
-        )?;
 
         let expires_at = Uint::from(2088558400u64); // Year 2036
         let target = address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
@@ -536,6 +550,16 @@ mod tests {
             }],
         };
 
+        // Calculate proof
+        let session_lib_spec: crate::erc4337::account::modular_smart_account::session::contract::SessionLib::SessionSpec = session_spec.clone().into();
+        let session_hash = keccak256(session_lib_spec.abi_encode());
+        let digest = keccak256((session_hash, address).abi_encode());
+
+        let session_signer_instance =
+            PrivateKeySigner::from_str(session_key_hex)?;
+        let proof =
+            session_signer_instance.sign_hash_sync(&digest)?.as_bytes().into();
+
         create_session(CreateSessionParams {
             account_address: address,
             spec: session_spec.clone(),
@@ -545,7 +569,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: eoa_signer,
-            proof: Bytes::default(),
+            proof,
         })
         .await?;
 
