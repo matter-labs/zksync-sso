@@ -1,7 +1,7 @@
 import { type Address, encodeAbiParameters, type Hex, keccak256 } from "viem";
 
 import { SessionKeyValidatorAbi } from "../../abi/SessionKeyValidator.js";
-import type { SessionSpec, UsageLimit } from "./types.js";
+import { LimitType, type SessionSpec, type UsageLimit } from "./types.js";
 
 /**
  * Utility type that converts all bigint values to strings recursively
@@ -24,11 +24,17 @@ export type SessionSpecJSON = ConvertBigIntToString<SessionSpec>;
  * All bigint values are converted to strings for safe serialization.
  */
 export function sessionSpecToJSON(spec: SessionSpec): string {
-  const usageLimitToJSON = (limit: UsageLimit) => ({
-    limitType: limit.limitType,
-    limit: limit.limit.toString(),
-    period: limit.period.toString(),
-  });
+  const usageLimitToJSON = (limit: UsageLimit) => {
+    let limitType = "Unlimited";
+    if (limit.limitType === LimitType.Lifetime) limitType = "Lifetime";
+    else if (limit.limitType === LimitType.Allowance) limitType = "Allowance";
+
+    return {
+      limitType,
+      limit: limit.limit.toString(),
+      period: limit.period.toString(),
+    };
+  };
 
   return JSON.stringify({
     signer: spec.signer,
