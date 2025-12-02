@@ -117,7 +117,9 @@ mod tests {
         },
     };
     use alloy::{
-        primitives::{Address, Bytes, U256, Uint, address, bytes, fixed_bytes, keccak256},
+        primitives::{
+            Address, Bytes, U256, Uint, address, bytes, fixed_bytes, keccak256,
+        },
         signers::{SignerSync, local::PrivateKeySigner},
         sol_types::SolValue,
     };
@@ -135,10 +137,7 @@ mod tests {
 
         let session_signer_instance =
             PrivateKeySigner::from_str(signer_private_key)?;
-        Ok(session_signer_instance
-            .sign_hash_sync(&digest)?
-            .as_bytes()
-            .into())
+        Ok(session_signer_instance.sign_hash_sync(&digest)?.as_bytes().into())
     }
 
     #[tokio::test]
