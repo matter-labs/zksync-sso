@@ -117,11 +117,29 @@ mod tests {
         },
     };
     use alloy::{
-        primitives::{U256, Uint, address, bytes, fixed_bytes, keccak256},
+        primitives::{Address, Bytes, U256, Uint, address, bytes, fixed_bytes, keccak256},
         signers::{SignerSync, local::PrivateKeySigner},
         sol_types::SolValue,
     };
     use std::str::FromStr;
+
+    fn generate_session_proof(
+        session_spec: &SessionSpec,
+        account_address: Address,
+        signer_private_key: &str,
+    ) -> eyre::Result<Bytes> {
+        let session_lib_spec: crate::erc4337::account::modular_smart_account::session::contract::SessionLib::SessionSpec =
+            session_spec.clone().into();
+        let session_hash = keccak256(session_lib_spec.abi_encode());
+        let digest = keccak256((session_hash, account_address).abi_encode());
+
+        let session_signer_instance =
+            PrivateKeySigner::from_str(signer_private_key)?;
+        Ok(session_signer_instance
+            .sign_hash_sync(&digest)?
+            .as_bytes()
+            .into())
+    }
 
     #[tokio::test]
     async fn test_create_session() -> eyre::Result<()> {
@@ -250,16 +268,11 @@ mod tests {
             };
 
             // Calculate proof
-            let session_lib_spec: crate::erc4337::account::modular_smart_account::session::contract::SessionLib::SessionSpec = session_spec.clone().into();
-            let session_hash = keccak256(session_lib_spec.abi_encode());
-            let digest = keccak256((session_hash, address).abi_encode());
-
-            let session_signer_instance =
-                PrivateKeySigner::from_str(&signer_private_key)?;
-            let proof = session_signer_instance
-                .sign_hash_sync(&digest)?
-                .as_bytes()
-                .into();
+            let proof = generate_session_proof(
+                &session_spec,
+                address,
+                &signer_private_key,
+            )?;
 
             create_session(CreateSessionParams {
                 account_address: address,
@@ -410,16 +423,11 @@ mod tests {
             };
 
             // Calculate proof
-            let session_lib_spec: crate::erc4337::account::modular_smart_account::session::contract::SessionLib::SessionSpec = session_spec.clone().into();
-            let session_hash = keccak256(session_lib_spec.abi_encode());
-            let digest = keccak256((session_hash, address).abi_encode());
-
-            let session_signer_instance =
-                PrivateKeySigner::from_str(&signer_private_key)?;
-            let proof = session_signer_instance
-                .sign_hash_sync(&digest)?
-                .as_bytes()
-                .into();
+            let proof = generate_session_proof(
+                &session_spec,
+                address,
+                &signer_private_key,
+            )?;
 
             create_session(CreateSessionParams {
                 account_address: address,

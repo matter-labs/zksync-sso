@@ -146,13 +146,14 @@ export function getSessionHash(spec: SessionSpec): Hex {
   const createSessionFunction = SessionKeyValidatorAbi.find(
     (x) => x.type === "function" && x.name === "createSession",
   );
-  if (!createSessionFunction) throw new Error("createSession function not found in ABI");
+  if (!createSessionFunction) throw new Error("createSession function not found in SessionKeyValidator ABI");
 
   const sessionSpecParam = createSessionFunction.inputs.find((x) => x.name === "sessionSpec");
-  if (!sessionSpecParam) throw new Error("sessionSpec param not found in createSession ABI");
+  if (!sessionSpecParam) throw new Error("sessionSpec parameter not found in createSession function inputs");
 
   const encoded = encodeAbiParameters(
     [sessionSpecParam],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [spec as any],
   );
   return keccak256(encoded);
