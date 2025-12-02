@@ -7,13 +7,10 @@ export const useMintNft = async (_address: MaybeRef<Address>) => {
     const runtimeConfig = useRuntimeConfig();
     const clientStore = useClientStore();
 
-    // WORKAROUND: Use throw-away client (rich account #0) to mint
-    // TODO: Use passkey client with bundler once factory contracts are deployed
-    const client = clientStore.getThrowAwayClient();
+    const client = clientStore.getClient();
 
     const mintingForAddress = address.value;
 
-    // Submit mint transaction directly (not via bundler)
     const hash = await client.writeContract({
       address: runtimeConfig.public.contracts.nft as Address,
       abi: nftAbi,

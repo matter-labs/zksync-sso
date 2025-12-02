@@ -1,11 +1,9 @@
 import type { Address, Hex } from "viem";
-import { createPublicClient, createWalletClient, http, publicActions } from "viem";
+import { createPublicClient, http } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-import { privateKeyToAccount } from "viem/accounts";
 import type { Chain } from "viem/chains";
+import { getGeneralPaymasterInput } from "viem/zksync";
 import { createPasskeyClient } from "zksync-sso-4337/client";
-
-import contractsConfig from "../contracts-anvil.json";
 
 // Anvil chain configuration (chain ID 31337)
 const anvilChain: Chain = {
@@ -31,11 +29,26 @@ export const useClientStore = defineStore("client", () => {
 
   const getBundlerClient = () => {
     const publicClient = getPublicClient();
+    const runtimeConfig = useRuntimeConfig();
+    const paymasterAddress = runtimeConfig.public.contracts.paymaster as Address;
+    const bundlerUrl = runtimeConfig.public.bundlerUrl as string;
 
     return createBundlerClient({
       client: publicClient,
       chain,
-      transport: http(contractsConfig.bundlerUrl),
+      transport: http(bundlerUrl),
+      paymaster: {
+        async getPaymasterData() {
+          return {
+            paymasterAndData: `${paymasterAddress}${getGeneralPaymasterInput({ innerInput: "0x" }).substring(2)}` as Hex,
+          };
+        },
+        async getPaymasterStubData() {
+          return {
+            paymasterAndData: `${paymasterAddress}${getGeneralPaymasterInput({ innerInput: "0x" }).substring(2)}` as Hex,
+          };
+        },
+      },
       userOperation: {
         async estimateFeesPerGas() {
           const feesPerGas = await publicClient.estimateFeesPerGas();
@@ -54,12 +67,13 @@ export const useClientStore = defineStore("client", () => {
     if (!address.value) throw new Error("Address is not set");
     if (!credentialId.value) throw new Error("Credential ID is not set");
 
+    const runtimeConfig = useRuntimeConfig();
     const bundlerClient = getBundlerClient();
 
     const client = createPasskeyClient({
       account: {
         address: address.value,
-        validatorAddress: contractsConfig.webauthnValidator as Address,
+        validatorAddress: runtimeConfig.public.contracts.webauthnValidator as Address,
         credentialId: credentialId.value,
         rpId: window.location.hostname,
         origin: window.location.origin,
@@ -72,18 +86,6 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
-  const getThrowAwayClient = () => {
-    const throwAwayClient = createWalletClient({
-      account: privateKeyToAccount(
-        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Anvil rich account
-      ),
-      chain,
-      transport: http(),
-    })
-      .extend(publicActions);
-    return throwAwayClient;
-  };
-
   const getConfigurableClient = ({
     address: addr,
     credentialId: credId,
@@ -91,12 +93,13 @@ export const useClientStore = defineStore("client", () => {
     address: Address;
     credentialId: Hex;
   }) => {
+    const runtimeConfig = useRuntimeConfig();
     const bundlerClient = getBundlerClient();
 
     return createPasskeyClient({
       account: {
         address: addr,
-        validatorAddress: contractsConfig.webauthnValidator as Address,
+        validatorAddress: runtimeConfig.public.contracts.webauthnValidator as Address,
         credentialId: credId,
         rpId: window.location.hostname,
         origin: window.location.origin,
@@ -109,11 +112,9 @@ export const useClientStore = defineStore("client", () => {
 
   return {
     chain,
-    contractsConfig,
     getPublicClient,
     getBundlerClient,
     getClient,
-    getThrowAwayClient,
     getConfigurableClient,
   };
 });

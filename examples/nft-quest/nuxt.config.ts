@@ -35,7 +35,9 @@ export default defineNuxtConfig({
         contracts: {
           nft: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
           paymaster: "0x60eef092977DF2738480a6986e2aCD10236b1FA7",
+          webauthnValidator: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
         },
+        bundlerUrl: "http://localhost:4337",
         baseUrl: "https://nft.zksync.dev",
         authServerUrl: "https://auth-test.zksync.dev/confirm",
         explorerUrl: "https://sepolia.explorer.zksync.io",
@@ -73,7 +75,9 @@ export default defineNuxtConfig({
       contracts: {
         nft: process.env.NUXT_PUBLIC_CONTRACTS_NFT || "0x4c07ce6454D5340591f62fD7d3978B6f42Ef953e",
         paymaster: process.env.NUXT_PUBLIC_CONTRACTS_PAYMASTER || "",
+        webauthnValidator: process.env.NUXT_PUBLIC_CONTRACTS_WEBAUTHN_VALIDATOR || "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       },
+      bundlerUrl: process.env.NUXT_PUBLIC_BUNDLER_URL || "http://localhost:4337",
       baseUrl: "http://localhost:3006",
       authServerUrl: "http://localhost:3002/confirm",
       explorerUrl: "http://localhost:3010",
