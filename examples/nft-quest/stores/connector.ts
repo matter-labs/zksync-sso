@@ -1,5 +1,12 @@
 import { startRegistration } from "@simplewebauthn/browser";
 import type { Address, Hex } from "viem";
+import { concat, decodeErrorResult, encodeFunctionData } from "viem";
+import { entryPoint07Address } from "viem/account-abstraction";
+import { prepareDeploySmartAccount } from "zksync-sso-4337/client";
+
+import contractsConfig from "../contracts-anvil.json";
+import { useAccountStore } from "./account";
+import { useClientStore } from "./client";
 
 export const useConnectorStore = defineStore("connector", () => {
   const accountStore = useAccountStore();
@@ -113,19 +120,61 @@ export const useConnectorStore = defineStore("connector", () => {
       const toHex = (arr: Uint8Array) => `0x${Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("")}` as Hex;
       const x = toHex(xBytes);
       const y = toHex(yBytes);
-      // WORKAROUND: Use Anvil rich account #1 for testing
-      // This bypasses smart account deployment which requires factory contracts
-      // TODO: Deploy factory contracts once forge deployment issue is resolved
-      const richAccountAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" as Address;
+      const clientStore = useClientStore();
+      const publicClient = clientStore.getPublicClient();
 
-      console.log("WORKAROUND: Using rich account", {
-        address: richAccountAddress,
-        credentialId: credIdHex,
-        passkeyCoords: { x, y },
+      const { transaction } = prepareDeploySmartAccount({
+        contracts: {
+          factory: contractsConfig.factory as Address,
+          webauthnValidator: contractsConfig.webauthnValidator as Address,
+        },
+        passkeySigners: [{
+          credentialId: credIdHex,
+          publicKey: { x, y },
+          originDomain: window.location.origin,
+        }],
       });
-      accountStore.setAccount(richAccountAddress, credIdHex);
-      return { address: richAccountAddress, credentialId: credIdHex };
+
+      const initCode = concat([transaction.to, transaction.data]);
+      const entryPoint = entryPoint07Address;
+
+      let senderAddress: Address;
+      try {
+        await publicClient.call({
+          to: entryPoint,
+          data: encodeFunctionData({
+            abi: [{
+              name: "getSenderAddress",
+              type: "function",
+              stateMutability: "view",
+              inputs: [{ name: "initCode", type: "bytes" }],
+              outputs: [],
+            }],
+            functionName: "getSenderAddress",
+            args: [initCode],
+          }),
+        });
+        throw new Error("getSenderAddress did not revert");
+      } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = (e as any).data || (e as any).cause?.data || (e as any).cause?.cause?.data;
+        if (!data) throw e;
+
+        const error = decodeErrorResult({
+          abi: [{
+            name: "SenderAddressResult",
+            type: "error",
+            inputs: [{ name: "sender", type: "address" }],
+          }],
+          data,
+        });
+        senderAddress = error.args[0];
+      }
+
+      accountStore.setAccount(senderAddress, credIdHex);
+      return { address: senderAddress, credentialId: credIdHex };
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Failed to connect account:", error);
       throw error;
     }

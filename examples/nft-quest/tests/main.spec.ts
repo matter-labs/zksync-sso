@@ -84,8 +84,8 @@ test("Create account with passkey and mint NFT", async ({ page }) => {
   await expect(page.getByText("You've got Zeek.")).toBeVisible();
 
   // Send a friend the NFT
-  const richWallet0 = "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049";
-  await page.getByPlaceholder("Wallet address").fill(richWallet0);
+  const randomRecipient = "0x1234567890123456789012345678901234567890";
+  await page.getByPlaceholder("Wallet address").fill(randomRecipient);
   await page.getByRole("button", { name: "Mint and send" }).click();
   await expect(page.getByTestId("spinner")).not.toBeVisible({ timeout: 60000 });
   await expect(page.getByText("You've sent the minted copy to")).toBeVisible({ timeout: 15000 });
