@@ -124,13 +124,14 @@ mod tests {
         sol_types::SolValue,
     };
     use std::str::FromStr;
+    use crate::erc4337::account::modular_smart_account::session::contract::SessionLib;
 
     fn generate_session_proof(
         session_spec: &SessionSpec,
         account_address: Address,
         signer_private_key: &str,
     ) -> eyre::Result<Bytes> {
-        let session_lib_spec: crate::erc4337::account::modular_smart_account::session::contract::SessionLib::SessionSpec =
+        let session_lib_spec: SessionLib::SessionSpec =
             session_spec.clone().into();
         let session_hash = keccak256(session_lib_spec.abi_encode());
         let digest = keccak256((session_hash, account_address).abi_encode());
