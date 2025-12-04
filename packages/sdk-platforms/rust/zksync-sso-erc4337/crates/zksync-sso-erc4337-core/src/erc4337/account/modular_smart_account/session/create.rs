@@ -100,9 +100,12 @@ mod tests {
                         deploy_account,
                     },
                     passkey::add::PasskeyPayload,
-                    session::session_lib::session_spec::{
-                        limit_type::LimitType, transfer_spec::TransferSpec,
-                        usage_limit::UsageLimit,
+                    session::{
+                        contract::SessionLib,
+                        session_lib::session_spec::{
+                            limit_type::LimitType, transfer_spec::TransferSpec,
+                            usage_limit::UsageLimit,
+                        },
                     },
                     test_utilities::fund_account_with_default_amount,
                 },
@@ -124,7 +127,6 @@ mod tests {
         sol_types::SolValue,
     };
     use std::str::FromStr;
-    use crate::erc4337::account::modular_smart_account::session::contract::SessionLib;
 
     fn generate_session_proof(
         session_spec: &SessionSpec,
