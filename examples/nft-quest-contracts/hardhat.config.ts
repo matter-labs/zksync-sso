@@ -32,7 +32,8 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       url: "http://127.0.0.1:8545",
-      // anvil standard chain; no zksync features, used for minimal ERC721 deploy
+      // This network uses a standard local Ethereum node (e.g., Anvil or Hardhat Network) that does not support zkSync-specific features.
+      // zkSync is disabled here to allow minimal ERC721 deployment and testing without zkSync extensions.
       zksync: false,
     },
   },

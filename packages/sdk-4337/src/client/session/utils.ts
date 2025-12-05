@@ -146,10 +146,24 @@ export function getSessionHash(spec: SessionSpec): Hex {
   const createSessionFunction = SessionKeyValidatorAbi.find(
     (x) => x.type === "function" && x.name === "createSession",
   );
-  if (!createSessionFunction) throw new Error("createSession function not found in SessionKeyValidator ABI");
+  if (!createSessionFunction) {
+    const availableFunctions = SessionKeyValidatorAbi
+      .filter((x) => x.type === "function" && typeof x.name === "string")
+      .map((x) => x.name)
+      .join(", ");
+    throw new Error(
+      `createSession function not found in SessionKeyValidator ABI. `
+      + `Available functions: [${availableFunctions}]. `
+      + `Check that the ABI includes a 'createSession' function with the correct signature.`,
+    );
+  }
 
   const sessionSpecParam = createSessionFunction.inputs.find((x) => x.name === "sessionSpec");
-  if (!sessionSpecParam) throw new Error("sessionSpec parameter not found in createSession function inputs");
+  if (!sessionSpecParam) throw new Error(
+    "sessionSpec parameter not found in createSession function inputs. "
+    + "This means session hashes cannot be computed and session validation will fail. "
+    + "Please check that your SessionKeyValidator ABI is correct and that the createSession function includes a sessionSpec parameter.",
+  );
 
   const encoded = encodeAbiParameters(
     [sessionSpecParam],

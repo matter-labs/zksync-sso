@@ -4,9 +4,9 @@ import { defineChain } from "viem/utils";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
 
-// Anvil chain configuration (chain ID 31337)
+// Anvil chain configuration (chain ID 1337 to match erc4337-contracts setup)
 const anvilChain: Chain = {
-  id: 31337,
+  id: 1337,
   name: "Anvil",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {

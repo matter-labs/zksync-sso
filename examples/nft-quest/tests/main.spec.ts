@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-async function waitForAppToLoad(page: Page): Promise<void> {
+async function waitForNftQuestAppToLoad(page: Page): Promise<void> {
   const maxRetryAttempts = 30;
   let retryCount = 0;
 
@@ -44,7 +44,7 @@ test.beforeEach(async ({ page }) => {
     console.log(`Main page uncaught exception: "${exception}"`);
   });
 
-  await waitForAppToLoad(page);
+  await waitForNftQuestAppToLoad(page);
   await page.goto("/");
   await expect(page.getByText("Let's Go")).toBeVisible();
 });

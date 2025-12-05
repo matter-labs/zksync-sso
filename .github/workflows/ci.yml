@@ -188,8 +188,8 @@ jobs:
           pnpm run bundler:with-proxy &
           BUNDLER_PID=$!
           echo "BUNDLER_PID=$BUNDLER_PID" >> $GITHUB_ENV
-          echo "Waiting for bundler to be ready on port 4337..."
-          timeout 60 bash -c 'until curl -s http://localhost:4337 > /dev/null 2>&1; do sleep 1; done'
+          echo "Waiting for bundler to be ready on port 4337 (eth_chainId)..."
+          timeout 60 bash -c 'until curl -s -X POST -H "Content-Type: application/json" --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_chainId\",\"params\":[],\"id\":1}" http://localhost:4337 | grep -q "\"result\":"; do sleep 1; done'
           echo "Bundler is ready!"
         working-directory: packages/erc4337-contracts
 
