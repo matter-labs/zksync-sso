@@ -1,5 +1,6 @@
 import { defineNuxtConfig } from "nuxt/config";
 import type { Chain } from "viem/chains";
+import { defineChain } from "viem/utils";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
 
@@ -12,6 +13,27 @@ const anvilChain: Chain = {
     default: { http: ["http://127.0.0.1:8545"] },
   },
 };
+
+const zksyncOsTestnet = defineChain({
+  id: 8022833,
+  name: "ZKsyncOS Testnet",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "ZKsyncOS Testnet Explorer",
+      url: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
+    },
+  },
+});
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -31,7 +53,7 @@ export default defineNuxtConfig({
   $production: {
     runtimeConfig: {
       public: {
-        chain: anvilChain, // Update to use testnet when deploying
+        chain: zksyncOsTestnet, // Update to use atlas testnet when deploying
         contracts: {
           nft: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
           paymaster: "0x60eef092977DF2738480a6986e2aCD10236b1FA7",
@@ -40,7 +62,7 @@ export default defineNuxtConfig({
         bundlerUrl: "http://localhost:4337",
         baseUrl: "https://nft.zksync.dev",
         authServerUrl: "https://auth-test.zksync.dev/confirm",
-        explorerUrl: "https://sepolia.explorer.zksync.io",
+        explorerUrl: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
       },
     },
   },
