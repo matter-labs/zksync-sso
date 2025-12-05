@@ -2,12 +2,13 @@ import type { Address, Hex } from "viem";
 import { createPublicClient, http } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import type { Chain } from "viem/chains";
-import { getGeneralPaymasterInput } from "viem/zksync";
 import { createPasskeyClient } from "zksync-sso-4337/client";
 
-// Anvil chain configuration (chain ID 31337)
+import contractsConfig from "../contracts-anvil.json";
+
+// Anvil chain configuration (chain ID 1337 to match erc4337-contracts setup)
 const anvilChain: Chain = {
-  id: 31337,
+  id: 1337,
   name: "Anvil",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
@@ -29,26 +30,13 @@ export const useClientStore = defineStore("client", () => {
 
   const getBundlerClient = () => {
     const publicClient = getPublicClient();
-    const runtimeConfig = useRuntimeConfig();
-    const paymasterAddress = runtimeConfig.public.contracts.paymaster as Address;
-    const bundlerUrl = runtimeConfig.public.bundlerUrl as string;
+    const bundlerUrl = contractsConfig.bundlerUrl;
 
     return createBundlerClient({
       client: publicClient,
       chain,
       transport: http(bundlerUrl),
-      paymaster: {
-        async getPaymasterData() {
-          return {
-            paymasterAndData: `${paymasterAddress}${getGeneralPaymasterInput({ innerInput: "0x" }).substring(2)}` as Hex,
-          };
-        },
-        async getPaymasterStubData() {
-          return {
-            paymasterAndData: `${paymasterAddress}${getGeneralPaymasterInput({ innerInput: "0x" }).substring(2)}` as Hex,
-          };
-        },
-      },
+      // EntryPoint 0.8 - no paymaster for now to simplify testing
       userOperation: {
         async estimateFeesPerGas() {
           const feesPerGas = await publicClient.estimateFeesPerGas();
@@ -67,13 +55,12 @@ export const useClientStore = defineStore("client", () => {
     if (!address.value) throw new Error("Address is not set");
     if (!credentialId.value) throw new Error("Credential ID is not set");
 
-    const runtimeConfig = useRuntimeConfig();
     const bundlerClient = getBundlerClient();
 
     const client = createPasskeyClient({
       account: {
         address: address.value,
-        validatorAddress: runtimeConfig.public.contracts.webauthnValidator as Address,
+        validatorAddress: contractsConfig.webauthnValidator as Address,
         credentialId: credentialId.value,
         rpId: window.location.hostname,
         origin: window.location.origin,
@@ -93,13 +80,12 @@ export const useClientStore = defineStore("client", () => {
     address: Address;
     credentialId: Hex;
   }) => {
-    const runtimeConfig = useRuntimeConfig();
     const bundlerClient = getBundlerClient();
 
     return createPasskeyClient({
       account: {
         address: addr,
-        validatorAddress: runtimeConfig.public.contracts.webauthnValidator as Address,
+        validatorAddress: contractsConfig.webauthnValidator as Address,
         credentialId: credId,
         rpId: window.location.hostname,
         origin: window.location.origin,

@@ -1,12 +1,26 @@
 import { startRegistration } from "@simplewebauthn/browser";
 import type { Address, Hex } from "viem";
-import { concat, decodeErrorResult, encodeFunctionData } from "viem";
-import { entryPoint07Address } from "viem/account-abstraction";
-import { prepareDeploySmartAccount } from "zksync-sso-4337/client";
+import { createWalletClient, http, parseEther } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import type { Chain } from "viem/chains";
+import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
 import contractsConfig from "../contracts-anvil.json";
 import { useAccountStore } from "./account";
 import { useClientStore } from "./client";
+
+// Anvil's default funded account (first account)
+const DEPLOYER_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" as Hex;
+
+// Anvil chain configuration (chain ID 1337 to match erc4337-contracts setup)
+const anvilChain: Chain = {
+  id: 1337,
+  name: "Anvil",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["http://127.0.0.1:8545"] },
+  },
+};
 
 export const useConnectorStore = defineStore("connector", () => {
   const accountStore = useAccountStore();
@@ -135,41 +149,49 @@ export const useConnectorStore = defineStore("connector", () => {
         }],
       });
 
-      const initCode = concat([transaction.to, transaction.data]);
-      const entryPoint = entryPoint07Address;
+      // eslint-disable-next-line no-console
+      console.log("Prepared deployment transaction to factory:", transaction.to);
 
-      let senderAddress: Address;
-      try {
-        await publicClient.call({
-          to: entryPoint,
-          data: encodeFunctionData({
-            abi: [{
-              name: "getSenderAddress",
-              type: "function",
-              stateMutability: "view",
-              inputs: [{ name: "initCode", type: "bytes" }],
-              outputs: [],
-            }],
-            functionName: "getSenderAddress",
-            args: [initCode],
-          }),
-        });
-        throw new Error("getSenderAddress did not revert");
-      } catch (e) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data = (e as any).data || (e as any).cause?.data || (e as any).cause?.cause?.data;
-        if (!data) throw e;
+      // Deploy the account using a funded deployer wallet
+      const deployerAccount = privateKeyToAccount(DEPLOYER_PRIVATE_KEY);
+      const walletClient = createWalletClient({
+        account: deployerAccount,
+        chain: anvilChain,
+        transport: http(),
+      });
 
-        const error = decodeErrorResult({
-          abi: [{
-            name: "SenderAddressResult",
-            type: "error",
-            inputs: [{ name: "sender", type: "address" }],
-          }],
-          data,
-        });
-        senderAddress = error.args[0];
-      }
+      // Send the deployment transaction
+      // eslint-disable-next-line no-console
+      console.log("Deploying account...");
+      const deployTxHash = await walletClient.sendTransaction({
+        to: transaction.to,
+        data: transaction.data,
+      });
+
+      // eslint-disable-next-line no-console
+      console.log("Deploy tx hash:", deployTxHash);
+
+      // Wait for deployment to complete and get the receipt with logs
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: deployTxHash });
+
+      // eslint-disable-next-line no-console
+      console.log("Deployment receipt received, logs count:", receipt.logs.length);
+
+      // Get the deployed account address from the AccountCreated event
+      const senderAddress = getAccountAddressFromLogs(receipt.logs);
+
+      // eslint-disable-next-line no-console
+      console.log("Account deployed at:", senderAddress);
+
+      // Fund the smart account with some ETH for gas
+      const fundTxHash = await walletClient.sendTransaction({
+        to: senderAddress,
+        value: parseEther("1"),
+      });
+      await publicClient.waitForTransactionReceipt({ hash: fundTxHash });
+
+      // eslint-disable-next-line no-console
+      console.log("Account funded!");
 
       accountStore.setAccount(senderAddress, credIdHex);
       return { address: senderAddress, credentialId: credIdHex };

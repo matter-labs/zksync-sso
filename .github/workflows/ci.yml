@@ -144,10 +144,10 @@ jobs:
       - name: Install foundry
         uses: foundry-rs/foundry-toolchain@v1.5.0
 
-      # Start Anvil on port 8545 (chain-id 31337)
+      # Start Anvil on port 8545 (chain-id 1337 to match erc4337-contracts)
       - name: Start Anvil
         run: |
-          anvil --host 0.0.0.0 &
+          anvil --host 0.0.0.0 --chain-id 1337 &
           echo "Waiting for Anvil to be ready..."
           timeout 30 bash -c 'until cast client --rpc-url http://localhost:8545 > /dev/null 2>&1; do sleep 1; done'
           echo "Anvil is ready!"
@@ -173,9 +173,25 @@ jobs:
       - name: Build sdk-4337
         run: pnpm nx build sdk-4337
 
+      # Deploy ERC-4337 contracts (MSAFactory, validators, etc.) to Anvil
+      # This also generates contracts-anvil.json with the deployed addresses
+      - name: Deploy ERC-4337 contracts
+        run: pnpm nx deploy-msa-factory nft-quest
+
       # Deploy NFT contract to Anvil
       - name: Deploy NFT contract
         run: pnpm nx deploy:anvil nft-quest-contracts
+
+      # Start Alto bundler with CORS proxy for account abstraction
+      - name: Start Alto bundler with CORS proxy
+        run: |
+          pnpm run bundler:with-proxy &
+          BUNDLER_PID=$!
+          echo "BUNDLER_PID=$BUNDLER_PID" >> $GITHUB_ENV
+          echo "Waiting for bundler to be ready on port 4337..."
+          timeout 60 bash -c 'until curl -s http://localhost:4337 > /dev/null 2>&1; do sleep 1; done'
+          echo "Bundler is ready!"
+        working-directory: packages/erc4337-contracts
 
       # Run E2E tests
       - name: Install Playwright Chromium Browser

@@ -88,6 +88,21 @@
         "command": "pnpm exec playwright install chromium"
       }
     },
+    "deploy-msa-factory": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/nft-quest",
+        "command": "./scripts/deploy-msa-anvil.sh"
+      },
+      "dependsOn": ["build-erc4337-contracts"]
+    },
+    "build-erc4337-contracts": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/erc4337-contracts",
+        "command": "forge build"
+      }
+    },
     "e2e": {
       "executor": "nx:run-commands",
       "options": {
