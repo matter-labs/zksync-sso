@@ -147,7 +147,7 @@ jobs:
       # Start Anvil on port 8545 (chain-id 1337 to match erc4337-contracts)
       - name: Start Anvil
         run: |
-          anvil --host 0.0.0.0 --chain-id 1337 &
+          pnpm run anvil &
           echo "Waiting for Anvil to be ready..."
           timeout 30 bash -c 'until cast client --rpc-url http://localhost:8545 > /dev/null 2>&1; do sleep 1; done'
           echo "Anvil is ready!"
