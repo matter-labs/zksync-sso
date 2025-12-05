@@ -151,6 +151,7 @@ jobs:
           echo "Waiting for Anvil to be ready..."
           timeout 30 bash -c 'until cast client --rpc-url http://localhost:8545 > /dev/null 2>&1; do sleep 1; done'
           echo "Anvil is ready!"
+        working-directory: packages/erc4337-contracts
 
       # Install dependencies
       - name: Install dependencies
