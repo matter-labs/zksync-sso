@@ -116,7 +116,7 @@ describe("Session Utils", () => {
       const parsed = JSON.parse(json);
       expect(parsed.signer).toBe(signer);
       expect(typeof parsed.expiresAt).toBe("string"); // bigints as strings
-      expect(parsed.feeLimit.limitType).toBe(0); // LimitType.Unlimited = 0
+      expect(parsed.feeLimit.limitType).toBe("Unlimited"); // LimitType.Unlimited
     });
 
     it("should handle complex session spec with policies", () => {
@@ -148,7 +148,7 @@ describe("Session Utils", () => {
 
       expect(parsed.callPolicies).toHaveLength(1);
       expect(parsed.transferPolicies).toHaveLength(1);
-      expect(parsed.feeLimit.limitType).toBe(1); // LimitType.Lifetime = 1
+      expect(parsed.feeLimit.limitType).toBe("Lifetime"); // LimitType.Lifetime
       expect(parsed.feeLimit.limit).toBe("1000000000000000000");
     });
   });

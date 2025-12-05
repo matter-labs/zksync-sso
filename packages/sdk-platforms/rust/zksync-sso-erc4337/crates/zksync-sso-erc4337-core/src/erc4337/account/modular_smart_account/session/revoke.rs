@@ -115,7 +115,12 @@ mod tests {
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::primitives::{U256, Uint, address, bytes, fixed_bytes};
+    use alloy::{
+        primitives::{U256, Uint, address, bytes, fixed_bytes, keccak256},
+        signers::{SignerSync, local::PrivateKeySigner},
+        sol_types::SolValue,
+    };
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn test_revoke_session() -> eyre::Result<()> {
@@ -242,6 +247,13 @@ mod tests {
                 }],
             };
 
+            let session_hash = hash_session(session_spec.clone());
+            let hash_to_sign = keccak256((session_hash, address).abi_encode());
+            let signer_key =
+                PrivateKeySigner::from_str(&signer_private_key).unwrap();
+            let signature = signer_key.sign_hash_sync(&hash_to_sign).unwrap();
+            let proof = signature.as_bytes();
+
             create_session(CreateSessionParams {
                 account_address: address,
                 spec: session_spec.clone(),
@@ -251,6 +263,7 @@ mod tests {
                 bundler_client: bundler_client.clone(),
                 provider: provider.clone(),
                 signer: signer.clone(),
+                proof: proof.into(),
             })
             .await?;
 
@@ -295,6 +308,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_session_with_webauthn() -> eyre::Result<()> {
+        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
         let (
             _,
             anvil_instance,
@@ -304,7 +318,6 @@ mod tests {
             bundler,
             bundler_client,
         ) = {
-            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
             let config = TestInfraConfig {
                 signer_private_key: signer_private_key.clone(),
             };
@@ -418,6 +431,13 @@ mod tests {
             }],
         };
 
+        let session_hash = hash_session(session_spec.clone());
+        let hash_to_sign = keccak256((session_hash, address).abi_encode());
+        let signer_key =
+            PrivateKeySigner::from_str(&signer_private_key).unwrap();
+        let signature = signer_key.sign_hash_sync(&hash_to_sign).unwrap();
+        let proof = signature.as_bytes();
+
         create_session(CreateSessionParams {
             account_address: address,
             spec: session_spec.clone(),
@@ -427,6 +447,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: signer.clone(),
+            proof: proof.into(),
         })
         .await?;
 

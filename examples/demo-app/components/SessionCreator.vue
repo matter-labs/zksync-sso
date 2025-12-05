@@ -71,9 +71,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { createPublicClient, http, parseEther, type Chain, type Address } from "viem";
+import { createPublicClient, http, parseEther, type Address, type Chain, encodePacked, keccak256, pad } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-import { createSession, toEcdsaSmartAccount, LimitType } from "zksync-sso-4337/client";
+import { privateKeyToAccount } from "viem/accounts";
+import { createSession, toEcdsaSmartAccount, LimitType, getSessionHash } from "zksync-sso-4337/client";
 
 interface SessionConfig {
   enabled: boolean;
@@ -234,11 +235,28 @@ async function createSessionOnChain() {
 
     // eslint-disable-next-line no-console
     console.log("Session spec created:", sessionSpec);
+
+    // Generate proof
+    const sessionHash = getSessionHash(sessionSpec);
+
+    // Sign over (sessionHash, account) to bind session to account
+    // Matches Rust: keccak256([session_hash, account.address().into_word()].concat())
+    const digest = keccak256(encodePacked(
+      ["bytes32", "bytes32"],
+      [sessionHash, pad(props.accountAddress as Address)],
+    ));
+
+    const sessionSignerAccount = privateKeyToAccount(props.sessionConfig.sessionPrivateKey as `0x${string}`);
+    const proof = await sessionSignerAccount.sign({
+      hash: digest,
+    });
+
     // eslint-disable-next-line no-console
     console.log("Calling createSession with:", {
       bundlerClient: !!bundlerClient,
       sessionSpec: !!sessionSpec,
       sessionValidator: props.sessionConfig.validatorAddress,
+      proof,
     });
 
     // Create the session on-chain
@@ -246,6 +264,7 @@ async function createSessionOnChain() {
     try {
       sessionResult = await createSession(bundlerClient, {
         sessionSpec,
+        proof,
         contracts: {
           sessionValidator: props.sessionConfig.validatorAddress as Address,
         },
@@ -267,6 +286,13 @@ async function createSessionOnChain() {
 
     // eslint-disable-next-line no-console
     console.log("Session created successfully! UserOp hash:", userOpHash);
+
+    // Wait for the UserOp to be mined
+    // eslint-disable-next-line no-console
+    console.log("Waiting for session creation UserOp to be mined...");
+    await bundlerClient.waitForUserOperationReceipt({ hash: userOpHash });
+    // eslint-disable-next-line no-console
+    console.log("Session creation UserOp mined!");
 
     result.value = { userOpHash };
     sessionCreated.value = true;

@@ -1,6 +1,7 @@
-import type { Address, Hex } from "viem";
+import { type Address, encodeAbiParameters, type Hex, keccak256 } from "viem";
 
-import type { SessionSpec, UsageLimit } from "./types.js";
+import { SessionKeyValidatorAbi } from "../../abi/SessionKeyValidator.js";
+import { LimitType, type SessionSpec, type UsageLimit } from "./types.js";
 
 /**
  * Utility type that converts all bigint values to strings recursively
@@ -23,11 +24,17 @@ export type SessionSpecJSON = ConvertBigIntToString<SessionSpec>;
  * All bigint values are converted to strings for safe serialization.
  */
 export function sessionSpecToJSON(spec: SessionSpec): string {
-  const usageLimitToJSON = (limit: UsageLimit) => ({
-    limitType: limit.limitType,
-    limit: limit.limit.toString(),
-    period: limit.period.toString(),
-  });
+  const usageLimitToJSON = (limit: UsageLimit) => {
+    let limitType = "Unlimited";
+    if (limit.limitType === LimitType.Lifetime) limitType = "Lifetime";
+    else if (limit.limitType === LimitType.Allowance) limitType = "Allowance";
+
+    return {
+      limitType,
+      limit: limit.limit.toString(),
+      period: limit.period.toString(),
+    };
+  };
 
   return JSON.stringify({
     signer: spec.signer,
@@ -129,4 +136,25 @@ export function isSessionExpired(
  */
 export function getSessionExpiryDate(spec: SessionSpec): Date {
   return new Date(Number(spec.expiresAt) * 1000);
+}
+
+/**
+ * Computes the hash of a session specification.
+ * This hash is signed by the session key to prove ownership.
+ */
+export function getSessionHash(spec: SessionSpec): Hex {
+  const createSessionFunction = SessionKeyValidatorAbi.find(
+    (x) => x.type === "function" && x.name === "createSession",
+  );
+  if (!createSessionFunction) throw new Error("createSession function not found in SessionKeyValidator ABI");
+
+  const sessionSpecParam = createSessionFunction.inputs.find((x) => x.name === "sessionSpec");
+  if (!sessionSpecParam) throw new Error("sessionSpec parameter not found in createSession function inputs");
+
+  const encoded = encodeAbiParameters(
+    [sessionSpecParam],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [spec as any],
+  );
+  return keccak256(encoded);
 }

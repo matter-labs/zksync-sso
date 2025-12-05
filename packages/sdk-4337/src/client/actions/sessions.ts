@@ -24,6 +24,11 @@ export type CreateSessionParams = {
   sessionSpec: SessionSpec;
 
   /**
+   * Proof of session key ownership (signature of session hash by session key)
+   */
+  proof: Hex;
+
+  /**
    * Contract addresses
    */
   contracts: {
@@ -82,6 +87,7 @@ export type CreateSessionReturnType = {
  *     ],
  *     transferPolicies: [],
  *   },
+ *   proof: "0x...", // Signature of session hash by session key
  *   contracts: {
  *     sessionValidator: "0x...", // SessionKeyValidator module address
  *   },
@@ -96,7 +102,7 @@ export async function createSession<
   client: Client<TTransport, TChain, TAccount>,
   params: CreateSessionParams,
 ): Promise<CreateSessionReturnType> {
-  const { sessionSpec, contracts } = params;
+  const { sessionSpec, proof, contracts } = params;
 
   if (!client.account) {
     throw new Error("Client must have an account");
@@ -104,7 +110,7 @@ export async function createSession<
 
   // Convert SessionSpec into JSON string expected by wasm helper
   const sessionSpecJSON = sessionSpecToJSON(sessionSpec);
-  const callData = encode_create_session_call_data(sessionSpecJSON) as Hex;
+  const callData = encode_create_session_call_data(sessionSpecJSON, proof) as Hex;
   // Send the UserOperation to create the session using the bundler client method.
   // Note: We explicitly pass the account for broader viem compatibility.
   const bundler = client as unknown as {
