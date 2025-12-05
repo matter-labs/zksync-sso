@@ -106,64 +106,103 @@ jobs:
           name: demo-app-4337-playwright-report
           path: examples/demo-app/playwright-report/
           retention-days: 3
-  
-  # e2e-nft-quest:
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: ./
-  #   steps:
-  #     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-  #       with:
-  #         submodules: recursive
 
-  #     # Start node
-  #     - name: Era Test Node Action
-  #       uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
+  e2e-nft-quest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: ./
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          submodules: recursive
 
-  #     - name: Setup pnpm
-  #       uses: pnpm/action-setup@v4
-  #       with:
-  #         version: 9.11.0
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.11.0
 
-  #     - name: Use Node.js
-  #       uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
-  #       with:
-  #         node-version: lts/Iron
-  #         cache: pnpm
+      - name: Use Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: lts/Iron
+          cache: pnpm
 
-  #     # Install dependencies for repo
-  #     - name: Install dependencies
-  #       run: pnpm install -r --frozen-lockfile
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
 
-  #     # Install dependencies for the submodule
-  #     - name: Install contract dependencies
-  #       run: pnpm install -r --frozen-lockfile
-  #       working-directory: packages/contracts
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-  #     - name: Build contracts
-  #       run: pnpm build
-  #       working-directory: packages/contracts
+      # Install foundry for Anvil
+      - name: Install foundry
+        uses: foundry-rs/foundry-toolchain@v1.5.0
 
-  #     - name: Deploy contracts
-  #       run: pnpm run deploy --file ../auth-server/stores/local-node.json
-  #       working-directory: packages/contracts
+      # Start Anvil on port 8545 (chain-id 1337 to match erc4337-contracts)
+      - name: Start Anvil
+        run: |
+          pnpm run anvil &
+          echo "Waiting for Anvil to be ready..."
+          timeout 30 bash -c 'until cast client --rpc-url http://localhost:8545 > /dev/null 2>&1; do sleep 1; done'
+          echo "Anvil is ready!"
+        working-directory: packages/erc4337-contracts
 
-  #     - name: Build SDK
-  #       run: pnpm nx build sdk
+      # Install dependencies
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
 
-  #     - name: Deploy NFT contracts
-  #       run: pnpm nx deploy:local nft-quest-contracts
+      # Web SDK depends on ERC-4337 contracts for WASM build
+      - name: Install ERC-4337 contract dependencies
+        run: forge soldeer install
+        working-directory: packages/erc4337-contracts
 
-  #     # Run E2E tests
-  #     - name: Install Playwright Chromium Browser
-  #       run: pnpm exec playwright install chromium
-  #       working-directory: examples/nft-quest
-  #     - name: Run e2e tests
-  #       run: pnpm nx e2e nft-quest
-  #     - uses: actions/upload-artifact@v4
-  #       if: ${{ !cancelled() }}
-  #       with:
-  #         name: nft-quest-playwright-report
-  #         path: examples/nft-quest/playwright-report/
-  #         retention-days: 3
+      - name: Build ERC-4337 contracts
+        run: forge build
+        working-directory: packages/erc4337-contracts
+
+      # Build web SDK (includes WASM)
+      - name: Build web SDK
+        run: pnpm nx build web-sdk
+
+      # Build sdk-4337
+      - name: Build sdk-4337
+        run: pnpm nx build sdk-4337
+
+      # Deploy ERC-4337 contracts (MSAFactory, validators, etc.) to Anvil
+      # This also generates contracts-anvil.json with the deployed addresses
+      - name: Deploy ERC-4337 contracts
+        run: pnpm nx deploy-msa-factory nft-quest
+
+      # Deploy NFT contract to Anvil
+      - name: Deploy NFT contract
+        run: pnpm nx deploy:anvil nft-quest-contracts
+
+      # Start Alto bundler with CORS proxy for account abstraction
+      - name: Start Alto bundler with CORS proxy
+        run: |
+          pnpm run bundler:with-proxy &
+          BUNDLER_PID=$!
+          echo "BUNDLER_PID=$BUNDLER_PID" >> $GITHUB_ENV
+          echo "Waiting for bundler to be ready on port 4337 (eth_chainId)..."
+          timeout 60 bash -c 'until curl -s -X POST -H "Content-Type: application/json" --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_chainId\",\"params\":[],\"id\":1}" http://localhost:4337 | grep -q "\"result\":"; do sleep 1; done'
+          echo "Bundler is ready!"
+        working-directory: packages/erc4337-contracts
+
+      # Run E2E tests
+      - name: Install Playwright Chromium Browser
+        run: pnpm exec playwright install chromium
+        working-directory: examples/nft-quest
+      - name: Run e2e tests
+        run: pnpm nx e2e nft-quest
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: nft-quest-playwright-report
+          path: examples/nft-quest/playwright-report/
+          retention-days: 3
