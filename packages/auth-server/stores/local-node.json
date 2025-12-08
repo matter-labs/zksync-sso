@@ -4,5 +4,7 @@
   "sessionValidator": "0xEc5AB17Cc35221cdF54EaEb0868eA82d4D75D9Bf",
   "webauthnValidator": "0xd512108c249cC5ec5370491AD916Be31bb88Dad2",
   "factory": "0xbe38809914b552f295cD3e8dF2e77b3DA69cBC8b",
-  "bundlerUrl": "http://localhost:4337"
+  "bundlerUrl": "http://localhost:4337",
+  "guardianExecutor": "0x0000000000000000000000000000000000000000",
+  "accountPaymaster": "0x0000000000000000000000000000000000000000"
 }
