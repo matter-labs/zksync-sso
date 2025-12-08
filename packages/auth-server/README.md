@@ -23,6 +23,71 @@ testing guide for the guardian recovery feature, including:
 - Managing multiple guardians
 - Edge cases and troubleshooting
 
+## Local Development Setup for Guardian Recovery
+
+Guardian recovery uses the `GuardianExecutor` module from
+`packages/erc4337-contracts`. To enable guardian recovery locally:
+
+### 1. Start Local Anvil Node
+
+```sh
+cd packages/erc4337-contracts
+pnpm anvil  # or anvil if installed globally
+```
+
+### 2. Deploy ERC-4337 Contracts
+
+In a new terminal:
+
+```sh
+cd packages/erc4337-contracts
+forge script script/Deploy.s.sol --broadcast \
+  --rpc-url http://localhost:8545 \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+```
+
+After deployment, update `packages/auth-server/stores/local-node.json` with the
+deployed contract addresses from the console output. Key addresses to update:
+
+- `guardianExecutor`: The GuardianExecutor module address (4th module)
+- `eoaValidator`: EOA validator address (1st module)
+- `webauthnValidator`: WebAuthn validator address (3rd module)
+- `sessionValidator`: Session validator address (2nd module)
+- `factory`: Account factory address
+
+### 3. Start the Bundler
+
+```sh
+cd packages/bundler
+pnpm start  # Starts bundler at http://localhost:4337
+```
+
+### 4. Start the Auth Server API
+
+```sh
+pnpm nx dev auth-server-api
+```
+
+### 5. Start the Auth Server
+
+```sh
+pnpm nx dev auth-server
+```
+
+### Testnet Deployment (zksyncOsTestnet)
+
+For deploying to zksyncOsTestnet:
+
+```sh
+cd packages/erc4337-contracts
+forge script script/Deploy.s.sol --broadcast \
+  --rpc-url https://zksync-os-testnet-alpha.zksync.dev \
+  --private-key <YOUR_PRIVATE_KEY>
+```
+
+Then update `packages/auth-server/stores/client.ts`
+`contractsByChain[zksyncOsTestnet.id]` with the deployed addresses.
+
 ## How to deploy to a new chain
 
 If you are a ZKsync chain operator, there are a few more updates to make to

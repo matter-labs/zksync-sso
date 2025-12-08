@@ -2,8 +2,7 @@ import { useAppKitProvider } from "@reown/appkit/vue";
 import { type Address, createPublicClient, createWalletClient, custom, defineChain, type Hex, http, publicActions, walletActions } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { /* generatePrivateKey, */ privateKeyToAccount } from "viem/accounts";
-import { localhost, sepolia } from "viem/chains";
-import { createZksyncRecoveryGuardianClient } from "zksync-sso/client";
+import { localhost } from "viem/chains";
 import { createPasskeyClient } from "zksync-sso-4337/client";
 
 import localChainData from "./local-node.json";
@@ -50,6 +49,7 @@ type ChainContracts = {
   testPaymaster?: Address; // Optional, for paymaster sponsorship
   guardianExecutor?: Address; // Guardian executor module
   recovery?: Address; // Recovery module (legacy SDK)
+  guardianExecutor?: Address; // Guardian executor module (ERC-4337)
   accountPaymaster?: Address; // Paymaster for account operations
 };
 
@@ -160,26 +160,6 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
-  const getRecoveryClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }) => {
-    const chain = supportedChains.find((chain) => chain.id === chainId);
-    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
-    const contracts = contractsByChain[chainId];
-    if (!contracts.recovery) throw new Error("Recovery contract address not configured");
-    if (!contracts.webauthnValidator) throw new Error("Webauthn validator address not configured");
-
-    const client = createZksyncRecoveryGuardianClient({
-      address,
-      contracts: {
-        recovery: contracts.recovery,
-        passkey: contracts.webauthnValidator,
-      },
-      chain: chain,
-      transport: createTransport(),
-    });
-
-    return client;
-  };
-
   // TODO: OIDC client not yet available in sdk-4337
   // const getOidcClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }): ZkSyncSsoClient => {
   //   const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -275,7 +255,6 @@ export const useClientStore = defineStore("client", () => {
     getClient,
     getThrowAwayClient,
     getWalletClient,
-    getRecoveryClient,
     getConfigurableClient,
     contractsByChain,
     // getOidcClient, // TODO: Not available in sdk-4337
