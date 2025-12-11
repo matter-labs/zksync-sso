@@ -13,7 +13,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./tests",
-  testMatch: "**/create-account.spec.ts",
+  testMatch: "**/auth-server.spec.ts",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -53,6 +53,12 @@ export default defineConfig({
       command: "pnpm nx preview auth-server",
       url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+    },
+    {
+      command: "pnpm nx dev auth-server-api",
+      url: "http://localhost:3005/api/health",
+      reuseExistingServer: false, // Always restart to load fresh contract addresses
       timeout: 180_000,
     },
   ],

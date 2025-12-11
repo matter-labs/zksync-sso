@@ -1,4 +1,30 @@
 import { expect, type Page, test } from "@playwright/test";
+import { validateContractConfig, logValidationResult } from "../utils/validate-config.js";
+import contractsConfig from "../contracts-anvil.json" with { type: "json" };
+
+// Validate configuration before running tests
+test.beforeAll(async () => {
+  // eslint-disable-next-line no-console
+  console.log("\n🔍 Validating contract configuration...");
+  const result = await validateContractConfig("http://localhost:3005", {
+    factory: contractsConfig.factory,
+    webauthnValidator: contractsConfig.webauthnValidator,
+    eoaValidator: contractsConfig.eoaValidator,
+    sessionValidator: contractsConfig.sessionValidator,
+    entryPoint: contractsConfig.entryPoint,
+    chainId: contractsConfig.chainId,
+  });
+  logValidationResult(result);
+
+  if (!result.valid) {
+    throw new Error(
+      "Contract configuration mismatch! Auth-server-API is using different addresses than the local deployment. "
+      + "Please restart the dev server: pnpm nx dev:erc4337 demo-app",
+    );
+  }
+  // eslint-disable-next-line no-console
+  console.log("");
+});
 
 async function waitForServicesToLoad(page: Page): Promise<void> {
   const maxRetryAttempts = 10;

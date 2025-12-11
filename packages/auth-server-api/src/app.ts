@@ -1,7 +1,7 @@
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 
-import { env } from "./config.js";
+import { CHAIN_ID, ENTRYPOINT_ADDRESS, env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "./config.js";
 import { deployAccountHandler } from "./handlers/deploy-account.js";
 
 // Initialize Express app
@@ -23,6 +23,23 @@ app.use(
 // Health check endpoint
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Validation endpoint - returns current contract addresses
+app.get("/api/config", (_req: Request, res: Response) => {
+  res.json({
+    chainId: CHAIN_ID,
+    rpcUrl: env.RPC_URL,
+    bundlerUrl: env.BUNDLER_URL,
+    contracts: {
+      factory: FACTORY_ADDRESS,
+      webauthnValidator: WEBAUTHN_VALIDATOR_ADDRESS,
+      eoaValidator: EOA_VALIDATOR_ADDRESS,
+      sessionValidator: SESSION_VALIDATOR_ADDRESS,
+      entryPoint: ENTRYPOINT_ADDRESS,
+    },
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Deploy account endpoint

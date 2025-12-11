@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { type Address, createPublicClient, createWalletClient, type Hex, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { waitForTransactionReceipt } from "viem/actions";
+import { getTransactionCount, waitForTransactionReceipt } from "viem/actions";
 import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
 import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
@@ -15,6 +15,36 @@ type DeployAccountRequest = {
   userId?: string;
   eoaSigners?: Address[];
 };
+
+// Simple in-memory nonce manager for concurrent request handling
+let noncePromise: Promise<number> | null = null;
+let cachedNonce: number | null = null;
+
+async function getNextNonce(client: ReturnType<typeof createPublicClient>, address: Address): Promise<number> {
+  // If there's an ongoing nonce fetch, wait for it
+  if (noncePromise) {
+    await noncePromise;
+  }
+
+  // Create a new promise for this nonce operation
+  noncePromise = (async () => {
+    if (cachedNonce === null) {
+      // First time or after reset - fetch from chain
+      cachedNonce = await getTransactionCount(client, { address });
+    } else {
+      // Increment the cached nonce
+      cachedNonce++;
+    }
+    return cachedNonce;
+  })();
+
+  try {
+    const nonce = await noncePromise;
+    return nonce;
+  } finally {
+    noncePromise = null;
+  }
+}
 
 // Deploy account endpoint
 export const deployAccountHandler = async (req: Request, res: Response): Promise<void> => {
@@ -76,7 +106,18 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       installSessionValidator: true,
     });
 
-    console.log("Deploying account with ID:", accountId);
+    console.log("🚀 Deployment configuration:");
+    console.log("  - Account ID:", accountId);
+    console.log("  - Factory:", FACTORY_ADDRESS);
+    console.log("  - WebAuthn Validator:", WEBAUTHN_VALIDATOR_ADDRESS);
+    console.log("  - Origin Domain:", body.originDomain);
+    console.log("  - Credential ID:", body.credentialId.slice(0, 20) + "...");
+    console.log("  - Public Key X:", body.credentialPublicKey.x.slice(0, 20) + "...");
+    console.log("  - Public Key Y:", body.credentialPublicKey.y.slice(0, 20) + "...");
+
+    // Get next nonce for this deployer
+    const nonce = await getNextNonce(publicClient, deployerAccount.address);
+    console.log("  - Nonce:", nonce);
 
     // Send transaction
     let txHash: Hex;
@@ -84,9 +125,11 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       txHash = await walletClient.sendTransaction({
         to: transaction.to,
         data: transaction.data,
+        nonce,
       });
+      console.log("✅ Transaction sent:", txHash);
     } catch (error) {
-      console.error("Transaction send failed:", error);
+      console.error("❌ Transaction send failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("insufficient funds")) {
         res.status(500).json({
@@ -100,16 +143,15 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       return;
     }
 
-    console.log("Transaction sent:", txHash);
-
     // Wait for transaction receipt
     let receipt;
     try {
       receipt = await waitForTransactionReceipt(publicClient, {
         hash: txHash,
       });
+      console.log("📋 Receipt received, status:", receipt.status);
     } catch (error) {
-      console.error("Transaction receipt failed:", error);
+      console.error("❌ Transaction receipt failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({
         error: `Transaction failed to be mined: ${errorMessage}`,
@@ -119,6 +161,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
 
     // Check if transaction was successful
     if (receipt.status === "reverted") {
+      console.error("❌ Deployment reverted");
       res.status(500).json({
         error: "Deployment reverted: Transaction execution failed",
       });
@@ -129,6 +172,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     let deployedAddress: Address;
     try {
       deployedAddress = getAccountAddressFromLogs(receipt.logs);
+      console.log("✅ Account deployed at:", deployedAddress);
     } catch (error) {
       console.error("Failed to extract address from logs:", error);
       const errorMessage = error instanceof Error ? error.message : "";

@@ -68,7 +68,7 @@
         "cwd": "examples/demo-app",
         "command": "pnpm nuxt generate --envName local"
       },
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "deploy-contracts-erc4337"]
     },
     "preview": {
       "executor": "nx:run-commands",
@@ -99,9 +99,13 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
-        "command": "pnpm exec playwright install chromium"
+        "commands": [
+          "pnpm exec playwright install chromium",
+          "echo '🔄 Rebuilding demo-app with fresh contract addresses...'",
+          "pnpm nuxt generate --envName local"
+        ]
       },
-      "dependsOn": ["deploy-contracts-erc4337"]
+      "dependsOn": ["deploy-contracts-erc4337", "auth-server:build:local"]
     },
     "e2e": {
       "executor": "nx:run-commands",

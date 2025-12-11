@@ -13,19 +13,46 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Load contracts from JSON file as fallback
 let contractsFromFile: {
+  chainId?: number;
   factory?: string;
   eoaValidator?: string;
   webauthnValidator?: string;
   sessionValidator?: string;
+  entryPoint?: string;
 } = {};
 
 try {
-  const contractsPath = join(__dirname, "contracts.json");
-  const contractsJson = readFileSync(contractsPath, "utf-8");
-  contractsFromFile = JSON.parse(contractsJson);
-} catch {
+  // Try multiple possible locations for contracts.json
+  // When running from dist/, look in src/ directory
+  const possiblePaths = [
+    join(__dirname, "contracts.json"), // dist/contracts.json (after copy)
+    join(__dirname, "..", "src", "contracts.json"), // When running from dist/, go to src/
+    join(__dirname, "src", "contracts.json"), // When running from package root
+  ];
+
+  let contractsPath: string | undefined;
+  for (const path of possiblePaths) {
+    try {
+      if (readFileSync(path, "utf-8")) {
+        contractsPath = path;
+        break;
+      }
+    } catch {
+      // Try next path
+      continue;
+    }
+  }
+
+  if (contractsPath) {
+    const contractsJson = readFileSync(contractsPath, "utf-8");
+    contractsFromFile = JSON.parse(contractsJson);
+    console.log(`✅ Loaded contracts from: ${contractsPath}`);
+  } else {
+    console.log("Note: contracts.json not found in any expected location");
+  }
+} catch (error) {
   // contracts.json is optional if all addresses are in env
-  console.log("Note: contracts.json not found, will use environment variables only");
+  console.log("Note: contracts.json not found, will use environment variables only", error);
 }
 
 // Environment schema with optional contract addresses (can fall back to contracts.json)
@@ -55,6 +82,8 @@ const FACTORY_ADDRESS = env.FACTORY_ADDRESS || contractsFromFile.factory;
 const EOA_VALIDATOR_ADDRESS = env.EOA_VALIDATOR_ADDRESS || contractsFromFile.eoaValidator;
 const WEBAUTHN_VALIDATOR_ADDRESS = env.WEBAUTHN_VALIDATOR_ADDRESS || contractsFromFile.webauthnValidator;
 const SESSION_VALIDATOR_ADDRESS = env.SESSION_VALIDATOR_ADDRESS || contractsFromFile.sessionValidator;
+const ENTRYPOINT_ADDRESS = contractsFromFile.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
+const CHAIN_ID = contractsFromFile.chainId || 1337;
 
 // Validate that we have all required contract addresses
 if (!FACTORY_ADDRESS || !EOA_VALIDATOR_ADDRESS || !WEBAUTHN_VALIDATOR_ADDRESS || !SESSION_VALIDATOR_ADDRESS) {
@@ -99,4 +128,14 @@ function getChain(chainId: number): Chain {
   return chain;
 }
 
-export { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, SESSION_VALIDATOR_ADDRESS, SUPPORTED_CHAINS, WEBAUTHN_VALIDATOR_ADDRESS };
+export {
+  CHAIN_ID,
+  ENTRYPOINT_ADDRESS,
+  env,
+  EOA_VALIDATOR_ADDRESS,
+  FACTORY_ADDRESS,
+  getChain,
+  SESSION_VALIDATOR_ADDRESS,
+  SUPPORTED_CHAINS,
+  WEBAUTHN_VALIDATOR_ADDRESS,
+};

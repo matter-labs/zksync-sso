@@ -128,7 +128,7 @@ const zksyncConnector = zksyncSsoConnector({
 });
 const wagmiConfig = createConfig({
   chains: [chain],
-  connectors: [zksyncConnector],
+  connectors: [zksyncConnector, zksyncConnectorWithSession],
   transports: {
     [chain.id]: http(),
   },

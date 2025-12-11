@@ -90,6 +90,26 @@ echo "✅ Updated contracts.json to use Anvil addresses"
 cp contracts-anvil.json public/contracts.json
 echo "✅ Copied to public/contracts.json"
 
+# Update auth-server-API contracts.json
+echo "📝 Updating auth-server-API contracts.json..."
+cat > "$WORKSPACE_ROOT/packages/auth-server-api/src/contracts.json" << EOF
+{
+  "rpcUrl": "$RPC_URL",
+  "chainId": $CHAIN_ID,
+  "deployer": "$DEPLOYER_ADDRESS",
+  "eoaValidator": "$EOA_VALIDATOR",
+  "sessionValidator": "$SESSION_VALIDATOR",
+  "webauthnValidator": "$WEBAUTHN_VALIDATOR",
+  "guardianExecutor": "$GUARDIAN_EXECUTOR",
+  "accountImplementation": "$ACCOUNT_IMPL",
+  "beacon": "$BEACON",
+  "factory": "$FACTORY",
+  "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
+  "bundlerUrl": "http://localhost:4337"
+}
+EOF
+echo "✅ Updated auth-server-API contracts.json"
+
 echo ""
 echo "🎉 Deployment complete!"
 echo ""
