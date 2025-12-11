@@ -1,8 +1,14 @@
 {
-  "beacon": "0x0efdDbB35e9BBc8c762E5B4a0f627210b6c9A721",
-  "eoaValidator": "0xd2571E989390F4F654572BE25Da2f4Ec41CB2cc8",
-  "sessionValidator": "0xEc5AB17Cc35221cdF54EaEb0868eA82d4D75D9Bf",
-  "webauthnValidator": "0xd512108c249cC5ec5370491AD916Be31bb88Dad2",
-  "factory": "0xbe38809914b552f295cD3e8dF2e77b3DA69cBC8b",
+  "rpcUrl": "http://localhost:8545",
+  "chainId": 1337,
+  "deployer": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+  "eoaValidator": "0xF7ee83801f5937E357412dE4d4408bb88408b272",
+  "sessionValidator": "0xA8B1d13371e2310D39EfE63b4a75ce9A1e53cbdd",
+  "webauthnValidator": "0xe9FA206c44875E467d9F6af8418F24265D371AF2",
+  "guardianExecutor": "0x6cF35161bB444D217a4C7dA18457C2441EeD89Ce",
+  "accountImplementation": "0xB7d324b68e02E89290D6494C0841C936F9841378",
+  "beacon": "0x65C2156f95c3ea7D3B4e4E95E70F70248537177E",
+  "factory": "0xAc1d3F56971AE1F35A9929B433D3b4F05500bD06",
+  "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
   "bundlerUrl": "http://localhost:4337"
 }

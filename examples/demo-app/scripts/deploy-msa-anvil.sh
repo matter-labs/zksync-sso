@@ -90,6 +90,14 @@ echo "✅ Updated contracts.json to use Anvil addresses"
 cp contracts-anvil.json public/contracts.json
 echo "✅ Copied to public/contracts.json"
 
+# Copy to auth-server stores
+cp contracts-anvil.json "$WORKSPACE_ROOT/packages/auth-server/stores/local-node.json"
+echo "✅ Copied to packages/auth-server/stores/local-node.json"
+
+# Copy to auth-server-api src
+cp contracts-anvil.json "$WORKSPACE_ROOT/packages/auth-server-api/src/contracts.json"
+echo "✅ Copied to packages/auth-server-api/src/contracts.json"
+
 echo ""
 echo "🎉 Deployment complete!"
 echo ""
