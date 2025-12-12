@@ -54,8 +54,8 @@
 </template>
 
 <script setup lang="ts">
-const { account } = storeToRefs(useConnectorStore());
-const { error: mintNFTError, execute: mintNFT, status, data } = await useMintNft(computed(() => account.value.address!));
+const { address } = storeToRefs(useConnectorStore());
+const { error: mintNFTError, execute: mintNFT, status, data } = await useMintNft(computed(() => address.value!));
 
 watch(status, (status) => {
   if (status === "success") {
