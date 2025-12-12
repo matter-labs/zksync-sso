@@ -128,9 +128,9 @@
 
 <script lang="ts" setup>
 import { useNow } from "@vueuse/core";
-import { parseEther } from "viem";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { formatSessionPreferences, type SessionPreferences } from "zksync-sso-4337/client";
+import { encodePacked, keccak256, pad, parseEther } from "viem";
+import { generatePrivateKey, privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
+import { formatSessionPreferences, getSessionHash, type SessionPreferences } from "zksync-sso-4337/client";
 import { LimitType } from "zksync-sso-4337/client";
 import type { ExtractReturnType, Method, RPCResponseMessage } from "zksync-sso-4337/client-auth-server";
 
@@ -307,8 +307,21 @@ const confirmConnection = async () => {
         },
       };
 
+      // Proof: sign keccak256(abi.encode(sessionSpec, account)) with the session key
+      const sessionHash = getSessionHash(session.sessionConfig);
+      const digest = keccak256(encodePacked([
+        "bytes32",
+        "bytes32",
+      ], [
+        sessionHash,
+        pad(client.account.address),
+      ]));
+      const sessionSigner = privateKeyToAccount(sessionKey);
+      const proof = await sessionSigner.sign({ hash: digest });
+
       await client.createSession({
         sessionSpec: session.sessionConfig,
+        proof,
         contracts: {
           sessionValidator: contractsByChain[requestChainId.value].sessionValidator,
         },
