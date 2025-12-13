@@ -15,6 +15,7 @@ import {
   type WalletRpcSchema,
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
+import type { CustomPaymasterHandler } from "zksync-sso/paymaster";
 
 import type { SessionRequiredContracts, ToSessionSmartAccountParams } from "./account.js";
 import { type SessionClientActions, sessionClientActions } from "./client-actions.js";
@@ -39,6 +40,8 @@ export type CreateSessionClientParams<
   chain: TChain;
   /** Transport for public RPC */
   transport: TTransport;
+  /** Optional paymaster handler for sponsored transactions */
+  paymasterHandler?: CustomPaymasterHandler;
   /** Optional timestamp override for signature generation */
   currentTimestamp?: bigint;
   /** Optional client metadata */
@@ -98,6 +101,7 @@ export function createSessionClient<
     sessionKeyPrivateKey,
     sessionSpec,
     currentTimestamp,
+    paymasterHandler: params.paymasterHandler,
   };
 
   const client = createClient({

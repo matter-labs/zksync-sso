@@ -5,16 +5,32 @@
     </h1>
     <button
       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4"
-      @click="address ? disconnectWallet() : connectWallet(false)"
+      @click="address ? disconnectWallet() : connectWallet('regular')"
     >
       {{ address ? "Disconnect" : "Connect" }}
     </button>
     <button
       v-if="!address"
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      @click="address ? disconnectWallet() : connectWallet(true)"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4"
+      @click="connectWallet('session')"
     >
       Connect with Session
+    </button>
+    <button
+      v-if="!address && testPaymasterAddress"
+      title="Connect with paymaster sponsorship"
+      class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-4"
+      @click="connectWallet('paymaster')"
+    >
+      Connect (Paymaster)
+    </button>
+    <button
+      v-if="!address && testPaymasterAddress"
+      title="Connect with session and paymaster sponsorship"
+      class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+      @click="connectWallet('session-paymaster')"
+    >
+      Connect Session (Paymaster)
     </button>
     <div
       v-if="address"
@@ -102,10 +118,14 @@ import { zksyncSsoConnector } from "zksync-sso-4337/connector";
 import { privateKeyToAccount } from "viem/accounts";
 import { localhost } from "viem/chains";
 import ERC1271CallerContract from "../forge-output-erc1271.json";
+import contractsAnvil from "../contracts-anvil.json";
 
 const chain = localhost;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
+
+// Get paymaster address from contracts-anvil.json (will be undefined if not deployed yet)
+const testPaymasterAddress = (contractsAnvil as { testPaymaster?: Address }).testPaymaster;
 
 const publicClient = createPublicClient({
   chain: chain,
@@ -123,8 +143,25 @@ const zksyncConnectorWithSession = zksyncSsoConnector({
     ],
   },
 });
+const zksyncConnectorWithSessionAndPaymaster = zksyncSsoConnector({
+  authServerUrl: "http://localhost:3002/confirm",
+  session: {
+    feeLimit: parseEther("0.1"),
+    transfers: [
+      {
+        to: testTransferTarget,
+        valueLimit: parseEther("0.1"),
+      },
+    ],
+  },
+  paymaster: testPaymasterAddress,
+});
 const zksyncConnector = zksyncSsoConnector({
   authServerUrl: "http://localhost:3002/confirm",
+});
+const zksyncConnectorWithPaymaster = zksyncSsoConnector({
+  authServerUrl: "http://localhost:3002/confirm",
+  paymaster: testPaymasterAddress,
 });
 const wagmiConfig = createConfig({
   chains: [chain],
@@ -179,7 +216,12 @@ watch(address, async () => {
   let currentBalance = await getBalance(wagmiConfig, {
     address: address.value,
   });
-  if (currentBalance && currentBalance.value < parseEther("0.2")) {
+
+  // Skip auto-funding if using paymaster (check query param)
+  const urlParams = new URLSearchParams(window.location.search);
+  const skipFunding = urlParams.get("skipFunding") === "true";
+
+  if (!skipFunding && currentBalance && currentBalance.value < parseEther("0.2")) {
     await fundAccount().catch((error) => {
       // eslint-disable-next-line no-console
       console.error("Funding failed:", error);
@@ -192,11 +234,27 @@ watch(address, async () => {
   balance.value = currentBalance;
 }, { immediate: true });
 
-const connectWallet = async (useSession: boolean) => {
+const connectWallet = async (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
   try {
     errorMessage.value = "";
+    let connector;
+
+    switch (mode) {
+      case "session":
+        connector = zksyncConnectorWithSession;
+        break;
+      case "paymaster":
+        connector = zksyncConnectorWithPaymaster;
+        break;
+      case "session-paymaster":
+        connector = zksyncConnectorWithSessionAndPaymaster;
+        break;
+      default:
+        connector = zksyncConnector;
+    }
+
     connect(wagmiConfig, {
-      connector: useSession ? zksyncConnectorWithSession : zksyncConnector,
+      connector,
       chainId: chain.id,
     });
   } catch (error) {

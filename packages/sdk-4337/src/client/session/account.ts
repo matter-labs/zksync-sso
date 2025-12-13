@@ -12,6 +12,7 @@ import {
   toSmartAccount,
   type ToSmartAccountReturnType,
 } from "viem/account-abstraction";
+import type { CustomPaymasterHandler } from "zksync-sso/paymaster";
 import {
   decode_nonce_result,
   encode_get_nonce_call_data,
@@ -47,6 +48,8 @@ export type ToSessionSmartAccountParams<
   currentTimestamp?: bigint;
   /** Session required contracts. */
   contracts: SessionRequiredContracts;
+  /** Optional paymaster handler for sponsored transactions. */
+  paymasterHandler?: CustomPaymasterHandler;
 };
 
 /**
@@ -117,8 +120,8 @@ export async function toSessionSmartAccount<
 
       return encoded;
     },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async decodeCalls(data) {
+
+    async decodeCalls() {
       throw new Error("decodeCalls is not supported yet for session accounts.");
     },
 
@@ -149,8 +152,8 @@ export async function toSessionSmartAccount<
         `signMessage is not supported for session accounts. Message: ${String(message)}`,
       );
     },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async signTypedData({ domain, types, primaryType, message }) {
+
+    async signTypedData() {
       throw new Error("signTypedData is not supported for session accounts");
     },
     async signUserOperation(params) {

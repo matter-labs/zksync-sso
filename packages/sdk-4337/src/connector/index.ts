@@ -8,6 +8,7 @@ import {
 } from "@wagmi/core";
 import type { Compute } from "@wagmi/core/internal";
 import {
+  type Address,
   type Client,
   getAddress,
   SwitchChainError,
@@ -15,6 +16,8 @@ import {
   UserRejectedRequestError,
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
+import type { CustomPaymasterHandler } from "zksync-sso/paymaster";
+import { createGeneralPaymaster } from "zksync-sso/paymaster";
 
 import type { SessionClient, SessionPreferences } from "../client/index.js";
 import type { ProviderInterface } from "../client-auth-server/index.js";
@@ -37,6 +40,7 @@ export type ZksyncSsoConnectorOptions = {
   communicator?: Communicator;
   provider?: ProviderInterface;
   connectorMetadata?: ConnectorMetadata;
+  paymaster?: Address | CustomPaymasterHandler;
 };
 
 export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
@@ -141,6 +145,16 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
     },
     async getProvider() {
       if (!walletProvider) {
+        // Convert paymaster address to handler if needed
+        let paymasterHandler: CustomPaymasterHandler | undefined;
+        if (parameters.paymaster) {
+          if (typeof parameters.paymaster === "string") {
+            paymasterHandler = createGeneralPaymaster(parameters.paymaster as Address);
+          } else {
+            paymasterHandler = parameters.paymaster;
+          }
+        }
+
         walletProvider = parameters.provider ?? new WalletProvider({
           metadata: {
             name: parameters.metadata?.name,
@@ -153,6 +167,7 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
           bundlerClients: parameters.bundlerClients,
           chains: config.chains,
           customCommunicator: parameters.communicator,
+          paymasterHandler,
         });
       }
       return walletProvider;
