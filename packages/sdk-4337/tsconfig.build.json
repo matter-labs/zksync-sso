@@ -8,7 +8,9 @@
     "baseUrl": ".",
     "paths": {
       "zksync-sso-web-sdk/bundler": ["../sdk-platforms/web/dist/bundler.d.ts"],
-      "zksync-sso-web-sdk/node": ["../sdk-platforms/web/dist/node.d.ts"]
+      "zksync-sso-web-sdk/node": ["../sdk-platforms/web/dist/node.d.ts"],
+      "zksync-sso/paymaster": ["../../node_modules/zksync-sso/dist/_types/paymaster/index.d.ts"],
+      "zksync-sso/paymaster/*": ["../../node_modules/zksync-sso/dist/_types/paymaster/*"]
     },
     "sourceMap": true,
     "rootDir": "./src"
