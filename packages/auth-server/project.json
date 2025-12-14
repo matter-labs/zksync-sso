@@ -14,6 +14,17 @@
       },
       "dependsOn": ["^build", "demo-app:deploy-contracts-erc4337"]
     },
+    "dev:no-deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "commands": [
+          "pnpm run copy:snarkjs && NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3005 PORT=3002 nuxt dev"
+        ],
+        "parallel": true
+      },
+      "dependsOn": ["^build"]
+    },
     "dev:all": {
       "executor": "nx:run-commands",
       "options": {
