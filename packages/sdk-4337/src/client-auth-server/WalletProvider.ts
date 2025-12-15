@@ -31,13 +31,14 @@ export type WalletProviderConstructorOptions = {
   customCommunicator?: Communicator;
   storage?: StorageLike;
   paymasterHandler?: CustomPaymasterHandler;
+  paymasterAddress?: Address;
 };
 
 export class WalletProvider extends EventEmitter implements ProviderInterface {
   readonly isZksyncSso = true;
   private signer: Signer;
 
-  constructor({ metadata, chains, transports, bundlerClients, session, authServerUrl, /* onSessionStateChange, skipPreTransactionStateValidation, */ customCommunicator, storage, paymasterHandler }: WalletProviderConstructorOptions) {
+  constructor({ metadata, chains, transports, bundlerClients, session, authServerUrl, /* onSessionStateChange, skipPreTransactionStateValidation, */ customCommunicator, storage, paymasterHandler, paymasterAddress }: WalletProviderConstructorOptions) {
     super();
     const communicator = customCommunicator ?? new PopupCommunicator(authServerUrl || DEFAULT_AUTH_SERVER_URL);
     this.signer = new Signer({
@@ -56,6 +57,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       // skipPreTransactionStateValidation,
       storage,
       paymasterHandler,
+      paymasterAddress,
     });
   }
 

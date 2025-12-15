@@ -39,10 +39,11 @@ GUARDIAN_EXECUTOR=$(echo "$DEPLOY_OUTPUT" | grep "GuardianExecutor:" | awk '{pri
 ACCOUNT_IMPL=$(echo "$DEPLOY_OUTPUT" | grep "ModularSmartAccount implementation:" | awk '{print $3}')
 BEACON=$(echo "$DEPLOY_OUTPUT" | grep "UpgradeableBeacon:" | awk '{print $2}')
 FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MSAFactory:" | awk '{print $2}')
+PAYMASTER=$(echo "$DEPLOY_OUTPUT" | grep "TestPaymaster:" | awk '{print $2}')
 
 # Verify all addresses were extracted
 if [ -z "$EOA_VALIDATOR" ] || [ -z "$SESSION_VALIDATOR" ] || [ -z "$WEBAUTHN_VALIDATOR" ] || \
-   [ -z "$GUARDIAN_EXECUTOR" ] || [ -z "$ACCOUNT_IMPL" ] || [ -z "$BEACON" ] || [ -z "$FACTORY" ]; then
+  [ -z "$GUARDIAN_EXECUTOR" ] || [ -z "$ACCOUNT_IMPL" ] || [ -z "$BEACON" ] || [ -z "$FACTORY" ] || [ -z "$PAYMASTER" ]; then
   echo "❌ Failed to extract all contract addresses from deployment output"
   echo "Please check the deployment logs above"
   exit 1
@@ -57,6 +58,7 @@ echo "  GuardianExecutor: $GUARDIAN_EXECUTOR"
 echo "  ModularSmartAccount impl: $ACCOUNT_IMPL"
 echo "  UpgradeableBeacon: $BEACON"
 echo "  MSAFactory: $FACTORY"
+echo "  TestPaymaster: $PAYMASTER"
 
 # Create contracts-anvil.json
 echo ""
@@ -75,6 +77,7 @@ cat > contracts-anvil.json << EOF
   "accountImplementation": "$ACCOUNT_IMPL",
   "beacon": "$BEACON",
   "factory": "$FACTORY",
+  "testPaymaster": "$PAYMASTER",
   "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
   "bundlerUrl": "http://localhost:4337"
 }

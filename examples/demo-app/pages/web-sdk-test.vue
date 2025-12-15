@@ -653,6 +653,8 @@ function handleSessionCreated() {
 
 // Deploy a new smart account
 async function deployAccount() {
+  // eslint-disable-next-line no-console
+  console.log("🚀 deployAccount() called");
   loading.value = true;
   error.value = "";
   deploymentResult.value = null;
@@ -800,6 +802,14 @@ async function deployAccount() {
     console.log("Account deployed at:", deployedAddress);
 
     // Display the deployment result
+    // eslint-disable-next-line no-console
+    console.log("🎯 Setting deploymentResult.value...", {
+      userId,
+      accountId,
+      address: deployedAddress,
+      eoaSigner: eoaSignerAddress,
+      passkeyEnabled: passkeyConfig.value.enabled,
+    });
     deploymentResult.value = {
       userId,
       accountId,
@@ -807,6 +817,8 @@ async function deployAccount() {
       eoaSigner: eoaSignerAddress,
       passkeyEnabled: passkeyConfig.value.enabled,
     };
+    // eslint-disable-next-line no-console
+    console.log("✅ deploymentResult.value set:", deploymentResult.value);
 
     // If passkey was provided during deployment, it's automatically registered
     if (passkeyConfig.value.enabled) {
@@ -839,8 +851,10 @@ async function deployAccount() {
     console.log("Account deployment result:", deploymentResult.value);
   } catch (err: unknown) {
     // eslint-disable-next-line no-console
-    console.error("Account deployment failed:", err);
+    console.error("❌ Account deployment failed:", err);
     error.value = `Failed to deploy account: ${err instanceof Error ? err.message : String(err)}`;
+    // eslint-disable-next-line no-console
+    console.log("💥 error.value set to:", error.value);
   } finally {
     loading.value = false;
   }

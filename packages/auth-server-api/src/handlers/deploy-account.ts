@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { type Address, createPublicClient, createWalletClient, type Hex, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
+import { getGeneralPaymasterInput } from "viem/zksync";
 import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
 import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
@@ -14,14 +15,18 @@ type DeployAccountRequest = {
   originDomain: string;
   userId?: string;
   eoaSigners?: Address[];
+  paymaster?: Address;
 };
 
 // Deploy account endpoint
 export const deployAccountHandler = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log("[DEBUG] deploy-account handler - Raw request body:", JSON.stringify(req.body, null, 2));
+
     // Validate request body
     const validationResult = deployAccountSchema.safeParse(req.body);
     if (!validationResult.success) {
+      console.log("[DEBUG] Validation failed:", validationResult.error.errors);
       res.status(400).json({
         error: `Invalid parameters: ${validationResult.error.errors.map((e) => e.message).join(", ")}`,
       });
@@ -81,10 +86,18 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Send transaction
     let txHash: Hex;
     try {
-      txHash = await walletClient.sendTransaction({
+      const txParams: any = {
         to: transaction.to,
         data: transaction.data,
-      });
+      };
+
+      // Add paymaster if provided
+      if (body.paymaster) {
+        txParams.paymaster = body.paymaster;
+        txParams.paymasterInput = getGeneralPaymasterInput({ innerInput: "0x" });
+      }
+
+      txHash = await walletClient.sendTransaction(txParams);
     } catch (error) {
       console.error("Transaction send failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";

@@ -1,4 +1,15 @@
 /* eslint-disable no-console */
+/**
+ * Web SDK Test Suite
+ *
+ * NOTE: To run these tests, use the e2e:erc4337:demo-only target:
+ *   pnpm nx e2e:erc4337:demo-only demo-app
+ *
+ * To run a specific test:
+ *   pnpm nx e2e:erc4337:demo-only demo-app -t "test name"
+ *
+ * This target uses nuxt preview (production build) and the ERC-4337 test configuration.
+ */
 import { expect, type Page, test } from "@playwright/test";
 
 async function waitForServicesToLoad(page: Page): Promise<void> {
@@ -108,6 +119,50 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
   console.log("✅ All steps completed successfully!");
 });
 
+test("Deploy smart account with paymaster and send transaction", async ({ page }) => {
+  // Use Anvil account #5 for this test to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=5");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  // Step 1: Deploy Account (paymaster is configured in the SDK deployment by default)
+  console.log("Step 1: Deploying smart account with paymaster...");
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+
+  // Wait for deployment to complete
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Account Address:")).toBeVisible();
+  await expect(page.getByText("EOA Signer:")).toBeVisible();
+
+  console.log("✓ Smart account deployed successfully with paymaster");
+
+  // Step 2: Fund Smart Account
+  console.log("Step 2: Funding smart account...");
+  const amountInput = page.locator("input[placeholder=\"0.1\"]");
+  await expect(amountInput).toBeVisible();
+  await amountInput.fill("0.1");
+  await page.getByRole("button", { name: "Fund Smart Account" }).click();
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+
+  console.log("✓ Smart account funded successfully");
+
+  // Step 3: Send Transaction from Smart Account
+  console.log("Step 3: Sending transaction from smart account...");
+  await expect(page.getByText("Step 2: Send Transaction from Smart Account")).toBeVisible();
+  const recipientInput = page.getByText("Recipient Address:").locator("..").locator("input");
+  await recipientInput.fill("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+  const transferAmountInput = page.getByText("Amount (ETH):").locator("..").locator("input");
+  await transferAmountInput.fill("0.001");
+  await page.getByRole("button", { name: "Send with EOA" }).click();
+  await expect(page.locator("strong:has-text(\"Transaction Hash:\")").nth(1)).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction failed: Failed to submit UserOperation:")).not.toBeVisible();
+
+  console.log("✓ Transaction sent from smart account successfully");
+  console.log("✅ All steps completed successfully with paymaster!");
+});
 test("Deploy with passkey and send transaction using passkey", async ({ page }) => {
   // Use Anvil account #3 for this test to avoid nonce conflicts with the first test
   await page.goto("/web-sdk-test?fundingAccount=3");

@@ -1,4 +1,12 @@
+/* eslint-disable no-console */
 import { expect, type Page, test } from "@playwright/test";
+
+type WebAuthnCredential = {
+  credentialId: string;
+  isResidentCredential: boolean;
+  privateKey: string;
+  signCount: number;
+};
 
 async function waitForServicesToLoad(page: Page): Promise<void> {
   const maxRetryAttempts = 10;
@@ -61,7 +69,7 @@ test("Create account with session and send ETH", async ({ page }) => {
   // Prepare WebAuthn for passkey creation and capture the credential for later reuse
   const client = await popup.context().newCDPSession(popup);
   await client.send("WebAuthn.enable");
-  let newCredential: unknown = null;
+  let newCredential: WebAuthnCredential | null = null;
   client.on("WebAuthn.credentialAdded", (credentialAdded) => {
     console.log("New Passkey credential added");
     newCredential = credentialAdded.credential;
@@ -161,7 +169,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
       automaticPresenceSimulation: true,
     },
   });
-  let newCredential = null;
+  let newCredential: WebAuthnCredential | null = null;
   client.on("WebAuthn.credentialAdded", (credentialAdded) => {
     console.log("New Passkey credential added");
     console.log(`Authenticator ID: ${credentialAdded.authenticatorId}`);
@@ -231,4 +239,68 @@ test("Create passkey account and send ETH", async ({ page }) => {
     .replace(" ETH", "");
   await expect(startBalance, "Balance after transfer should be ~0.1 ETH less")
     .toBeGreaterThan(endBalance + 0.1);
+});
+
+test("Create session account with Paymaster and send ETH", async ({ page }) => {
+  // Trigger session connection with paymaster sponsorship
+  await page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true }).click();
+
+  // Ensure popup is displayed and prepare logging
+  await page.waitForTimeout(2000);
+  const popup = page.context().pages()[1];
+  await expect(popup.getByText(/Connect to|Act on your behalf/)).toBeVisible();
+  popup.on("console", (msg) => {
+    if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
+  });
+  popup.on("pageerror", (exception) => {
+    console.log(`Auth server uncaught exception: "${exception}"`);
+  });
+
+  // Setup WebAuthn virtual authenticator for passkey creation (first-time session)
+  const client = await popup.context().newCDPSession(popup);
+  await client.send("WebAuthn.enable");
+  let newCredential: WebAuthnCredential | null = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    console.log("New Passkey credential added");
+    newCredential = credentialAdded.credential;
+  });
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+
+  // If signup is shown, complete signup before connect; otherwise proceed to authorize/connect
+  const signupBtn = popup.getByTestId("signup");
+  if (await signupBtn.isVisible()) {
+    await signupBtn.click();
+    await expect(popup.getByText(/Connect to ZKsync SSO Demo|Authorize ZKsync SSO Demo/)).toBeVisible();
+  } else {
+    await expect(popup.getByText(/Authorize ZKsync SSO Demo/)).toBeVisible();
+  }
+  await popup.getByTestId("connect").click();
+
+  await expect(newCredential).not.toBeNull();
+
+  // Connected via session + paymaster
+  await page.waitForTimeout(2000);
+  await expect(page.getByText("Disconnect")).toBeVisible();
+
+  // Capture starting balance
+  const startBalanceText = await page.getByText("Balance:").innerText();
+  const startBalance = +startBalanceText.replace("Balance: ", "").replace(" ETH", "");
+
+  // Send under session (paymaster should sponsor fees)
+  await page.getByRole("button", { name: "Send 0.1 ETH", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeEnabled();
+
+  // Validate balance decreased by ~0.1 ETH
+  const endBalanceText = await page.getByText("Balance:").innerText();
+  const endBalance = +endBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  await expect(startBalance, "Balance after transfer should be ~0.1 ETH less").toBeGreaterThan(endBalance + 0.09);
 });

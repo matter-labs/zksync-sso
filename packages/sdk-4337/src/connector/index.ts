@@ -147,9 +147,11 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
       if (!walletProvider) {
         // Convert paymaster address to handler if needed
         let paymasterHandler: CustomPaymasterHandler | undefined;
+        let paymasterAddress: Address | undefined;
         if (parameters.paymaster) {
           if (typeof parameters.paymaster === "string") {
-            paymasterHandler = createGeneralPaymaster(parameters.paymaster as Address);
+            paymasterAddress = parameters.paymaster as Address;
+            paymasterHandler = createGeneralPaymaster(paymasterAddress);
           } else {
             paymasterHandler = parameters.paymaster;
           }
@@ -168,6 +170,7 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
           chains: config.chains,
           customCommunicator: parameters.communicator,
           paymasterHandler,
+          paymasterAddress,
         });
       }
       return walletProvider;

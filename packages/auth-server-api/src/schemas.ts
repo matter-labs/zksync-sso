@@ -51,4 +51,5 @@ export const deployAccountSchema = z.object({
   session: sessionSpecJSONSchema.optional(),
   userId: z.string().startsWith("0x").optional(),
   eoaSigners: z.array(z.string().startsWith("0x")).optional(),
+  paymaster: z.string().startsWith("0x").optional(),
 });

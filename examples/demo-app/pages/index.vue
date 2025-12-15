@@ -17,7 +17,7 @@
       Connect with Session
     </button>
     <button
-      v-if="!address && testPaymasterAddress"
+      v-if="!address"
       title="Connect with paymaster sponsorship"
       class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-4"
       @click="connectWallet('paymaster')"
@@ -25,7 +25,7 @@
       Connect (Paymaster)
     </button>
     <button
-      v-if="!address && testPaymasterAddress"
+      v-if="!address"
       title="Connect with session and paymaster sponsorship"
       class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
       @click="connectWallet('session-paymaster')"
@@ -112,20 +112,35 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract } from "@wagmi/core";
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract } from "@wagmi/core";
 import { createWalletClient, createPublicClient, http, parseEther, type Address, type Hash } from "viem";
 import { zksyncSsoConnector } from "zksync-sso-4337/connector";
 import { privateKeyToAccount } from "viem/accounts";
 import { localhost } from "viem/chains";
+import { onMounted } from "vue";
 import ERC1271CallerContract from "../forge-output-erc1271.json";
-import contractsAnvil from "../contracts-anvil.json";
+// Load contracts from public JSON at runtime to avoid ESM JSON import issues
+const contractsUrl = "/contracts.json";
+let contractsAnvil: Record<string, unknown> = {};
+if (typeof window !== "undefined") {
+  fetch(contractsUrl)
+    .then((r) => r.json())
+    .then((json) => (contractsAnvil = json))
+    .catch(() => (contractsAnvil = {}));
+}
 
 const chain = localhost;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 
-// Get paymaster address from contracts-anvil.json (will be undefined if not deployed yet)
-const testPaymasterAddress = (contractsAnvil as { testPaymaster?: Address }).testPaymaster;
+// Get paymaster address from contracts-anvil.json or runtime config (public env)
+const runtimeConfig = useRuntimeConfig();
+const testPaymasterAddress: Address | undefined
+  = (contractsAnvil as { testPaymaster?: Address; TestPaymaster?: Address }).testPaymaster
+  ?? (contractsAnvil as { TestPaymaster?: Address }).TestPaymaster
+  // Nuxt runtime config – set NUXT_PUBLIC_TEST_PAYMASTER or testPaymasterAddress
+  ?? (runtimeConfig.public?.testPaymasterAddress as Address | undefined)
+  ?? (runtimeConfig.public?.NUXT_PUBLIC_TEST_PAYMASTER as Address | undefined);
 
 const publicClient = createPublicClient({
   chain: chain,
@@ -170,11 +185,19 @@ const wagmiConfig = createConfig({
     [chain.id]: http(),
   },
 });
-reconnect(wagmiConfig);
 
 const address = ref<Address | null>(null);
 const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
+const isInitializing = ref(true);
+
+// Ensure fresh, unauthenticated state on page load so the connect buttons render
+onMounted(async () => {
+  await disconnect(wagmiConfig).catch(() => undefined);
+  address.value = null;
+  balance.value = null;
+  isInitializing.value = false;
+});
 
 const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
@@ -203,7 +226,10 @@ const fundAccount = async () => {
 
 watchAccount(wagmiConfig, {
   async onChange(data) {
-    address.value = data.address || null;
+    // Don't update address during initialization to avoid race with disconnect
+    if (!isInitializing.value) {
+      address.value = data.address || null;
+    }
   },
 });
 
