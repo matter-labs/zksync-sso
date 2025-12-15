@@ -122,65 +122,64 @@ import ERC1271CallerContract from "../forge-output-erc1271.json";
 // Load contracts from public JSON at runtime to avoid ESM JSON import issues
 const contractsUrl = "/contracts.json";
 let contractsAnvil: Record<string, unknown> = {};
+let testPaymasterAddress: Address | undefined;
+
+const runtimeConfig = useRuntimeConfig();
+
+// Prime with runtime config so server-side renders can still set it
+testPaymasterAddress = (runtimeConfig.public?.testPaymasterAddress as Address | undefined)
+?? (runtimeConfig.public?.NUXT_PUBLIC_TEST_PAYMASTER as Address | undefined);
+
 if (typeof window !== "undefined") {
   fetch(contractsUrl)
     .then((r) => r.json())
-    .then((json) => (contractsAnvil = json))
-    .catch(() => (contractsAnvil = {}));
+    .then((json) => {
+      contractsAnvil = json;
+      // Prefer contract JSON values when available
+      testPaymasterAddress = (contractsAnvil as { testPaymaster?: Address; TestPaymaster?: Address }).testPaymaster
+      ?? (contractsAnvil as { TestPaymaster?: Address }).TestPaymaster
+      ?? testPaymasterAddress;
+    })
+    .catch(() => undefined);
 }
 
 const chain = localhost;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 
-// Get paymaster address from contracts-anvil.json or runtime config (public env)
-const runtimeConfig = useRuntimeConfig();
-const testPaymasterAddress: Address | undefined
-  = (contractsAnvil as { testPaymaster?: Address; TestPaymaster?: Address }).testPaymaster
-  ?? (contractsAnvil as { TestPaymaster?: Address }).TestPaymaster
-  // Nuxt runtime config – set NUXT_PUBLIC_TEST_PAYMASTER or testPaymasterAddress
-  ?? (runtimeConfig.public?.testPaymasterAddress as Address | undefined)
-  ?? (runtimeConfig.public?.NUXT_PUBLIC_TEST_PAYMASTER as Address | undefined);
+const sessionConfig = {
+  feeLimit: parseEther("0.1"),
+  transfers: [
+    {
+      to: testTransferTarget,
+      valueLimit: parseEther("0.1"),
+    },
+  ],
+};
+
+const buildConnector = (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
+  const baseConfig: Parameters<typeof zksyncSsoConnector>[0] = {
+    authServerUrl: "http://localhost:3002/confirm",
+  };
+
+  if (mode === "session" || mode === "session-paymaster") {
+    baseConfig.session = sessionConfig;
+  }
+
+  if (mode === "paymaster" || mode === "session-paymaster") {
+    baseConfig.paymaster = testPaymasterAddress;
+  }
+
+  return zksyncSsoConnector(baseConfig);
+};
 
 const publicClient = createPublicClient({
   chain: chain,
   transport: http(),
 });
-const zksyncConnectorWithSession = zksyncSsoConnector({
-  authServerUrl: "http://localhost:3002/confirm",
-  session: {
-    feeLimit: parseEther("0.1"),
-    transfers: [
-      {
-        to: testTransferTarget,
-        valueLimit: parseEther("0.1"),
-      },
-    ],
-  },
-});
-const zksyncConnectorWithSessionAndPaymaster = zksyncSsoConnector({
-  authServerUrl: "http://localhost:3002/confirm",
-  session: {
-    feeLimit: parseEther("0.1"),
-    transfers: [
-      {
-        to: testTransferTarget,
-        valueLimit: parseEther("0.1"),
-      },
-    ],
-  },
-  paymaster: testPaymasterAddress,
-});
-const zksyncConnector = zksyncSsoConnector({
-  authServerUrl: "http://localhost:3002/confirm",
-});
-const zksyncConnectorWithPaymaster = zksyncSsoConnector({
-  authServerUrl: "http://localhost:3002/confirm",
-  paymaster: testPaymasterAddress,
-});
 const wagmiConfig = createConfig({
   chains: [chain],
-  connectors: [zksyncConnector],
+  connectors: [buildConnector("regular")],
   transports: {
     [chain.id]: http(),
   },
@@ -263,20 +262,11 @@ watch(address, async () => {
 const connectWallet = async (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
   try {
     errorMessage.value = "";
-    let connector;
+    const connector = buildConnector(mode);
 
-    switch (mode) {
-      case "session":
-        connector = zksyncConnectorWithSession;
-        break;
-      case "paymaster":
-        connector = zksyncConnectorWithPaymaster;
-        break;
-      case "session-paymaster":
-        connector = zksyncConnectorWithSessionAndPaymaster;
-        break;
-      default:
-        connector = zksyncConnector;
+    if ((mode === "paymaster" || mode === "session-paymaster") && !testPaymasterAddress) {
+      errorMessage.value = "Paymaster address is not configured.";
+      return;
     }
 
     connect(wagmiConfig, {

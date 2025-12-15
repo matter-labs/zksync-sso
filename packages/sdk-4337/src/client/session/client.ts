@@ -44,6 +44,8 @@ export type CreateSessionClientParams<
   paymasterHandler?: CustomPaymasterHandler;
   /** Optional timestamp override for signature generation */
   currentTimestamp?: bigint;
+  /** Optional override for EntryPoint address used by the account implementation. */
+  entryPointAddress?: Address;
   /** Optional client metadata */
   key?: string;
   name?: string;
@@ -102,6 +104,7 @@ export function createSessionClient<
     sessionSpec,
     currentTimestamp,
     paymasterHandler: params.paymasterHandler,
+    entryPointAddress: params.entryPointAddress,
   };
 
   const client = createClient({

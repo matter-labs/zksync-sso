@@ -48,7 +48,8 @@ export const deployAccountSchema = z.object({
     y: z.string().startsWith("0x"),
   }),
   originDomain: z.string(),
-  session: sessionSpecJSONSchema.optional(),
+  // Accept session as either a JSON string (from client helper) or an object
+  session: z.union([z.string(), sessionSpecJSONSchema]).optional(),
   userId: z.string().startsWith("0x").optional(),
   eoaSigners: z.array(z.string().startsWith("0x")).optional(),
   paymaster: z.string().startsWith("0x").optional(),

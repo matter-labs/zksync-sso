@@ -49,6 +49,7 @@ type ChainContracts = {
   factory: Address;
   bundlerUrl?: string;
   beacon?: Address; // Optional, for deployment
+  testPaymaster?: Address; // Optional, for paymaster sponsorship
 };
 
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
@@ -150,6 +151,7 @@ export const useClientStore = defineStore("client", () => {
       bundlerClient,
       chain,
       transport: createTransport(),
+      paymaster: contracts.testPaymaster, // Enable sponsored transactions
     });
 
     return client;
@@ -210,6 +212,7 @@ export const useClientStore = defineStore("client", () => {
       bundlerClient,
       chain,
       transport: createTransport(),
+      paymaster: contracts.testPaymaster, // Enable sponsored transactions
     });
   };
 

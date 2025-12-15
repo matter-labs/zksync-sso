@@ -93,6 +93,10 @@
         "cwd": "examples/demo-app",
         "commands": [
           {
+            "command": "pnpm nx run sdk-4337:build --skip-nx-cache",
+            "prefix": "Rebuild-SDK:"
+          },
+          {
             "command": "cd ../../packages/auth-server && pnpm nuxt build"
           },
           {
@@ -137,6 +141,10 @@
       "options": {
         "cwd": "examples/demo-app",
         "commands": [
+          {
+            "command": "pnpm nx run sdk-4337:build --skip-nx-cache",
+            "prefix": "Rebuild-SDK:"
+          },
           {
             "command": "cd ../../packages/auth-server && pnpm nuxt build"
           },
