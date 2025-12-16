@@ -50,7 +50,7 @@ export default defineConfig({
       timeout: 180_000,
     },
     {
-      command: "pnpm nx preview auth-server",
+      command: "pnpm nx preview:standalone auth-server",
       url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,

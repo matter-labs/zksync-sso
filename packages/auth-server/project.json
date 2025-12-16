@@ -7,8 +7,8 @@
       "options": {
         "cwd": "packages/auth-server",
         "commands": [
-          "pnpm run copy:snarkjs && PORT=3002 NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3005 nuxt dev",
-          "PORT=3005 pnpm nx run auth-server-api:dev"
+          "pnpm run copy:snarkjs && PORT=3002 NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 nuxt dev",
+          "PORT=3004 pnpm nx run auth-server-api:dev"
         ],
         "parallel": true
       },
@@ -43,7 +43,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "command": "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3005 pnpm nuxt generate --envName local"
+        "command": "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 pnpm nuxt generate --envName local"
       },
       "dependsOn": ["copy-snarkjs", "^build"]
     },
@@ -53,15 +53,23 @@
         "cwd": "packages/auth-server",
         "commands": [
           {
-            "command": "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3005 PORT=3002 pnpm nuxt preview",
+            "command": "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nuxt preview",
             "prefix": "Auth-Server:"
           },
           {
-            "command": "PORT=3005 pnpm nx run auth-server-api:dev",
+            "command": "PORT=3004 pnpm nx run auth-server-api:dev",
             "prefix": "Auth-API:"
           }
         ],
         "parallel": true
+      },
+      "dependsOn": ["build:local", "^build"]
+    },
+    "preview:standalone": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nuxt preview"
       },
       "dependsOn": ["build:local", "^build"]
     },
