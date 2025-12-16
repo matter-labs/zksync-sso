@@ -239,16 +239,16 @@
       </div>
     </div>
 
-    <!-- Fund Smart Account -->
+    <!-- Fund Smart Account or Paymaster -->
     <div
       v-if="deploymentResult && (!deploymentResult.passkeyEnabled || passkeyRegistered)"
       class="bg-orange-50 p-4 rounded-lg mb-4 border border-orange-200"
     >
       <h2 class="text-lg font-semibold mb-3 text-orange-800">
-        {{ deploymentResult.passkeyEnabled ? 'Step 2: Fund Smart Account' : 'Step 1: Fund Smart Account' }}
+        {{ deploymentResult.passkeyEnabled ? 'Step 2: Fund Smart Account / Paymaster' : 'Step 1: Fund Smart Account / Paymaster' }}
       </h2>
       <p class="text-sm text-gray-600 mb-4">
-        Send ETH from the EOA wallet to fund the smart account.
+        Send ETH from the EOA wallet to fund either the smart account or the paymaster.
       </p>
 
       <div class="space-y-3">
@@ -262,12 +262,27 @@
           >
         </div>
 
+        <div>
+          <label class="block text-sm font-medium mb-1">Fund Target:</label>
+          <select
+            v-model="fundParams.target"
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+          >
+            <option value="account">
+              Smart Account
+            </option>
+            <option value="paymaster">
+              Paymaster
+            </option>
+          </select>
+        </div>
+
         <button
           :disabled="loading || !fundParams.amount"
           class="w-full px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50"
           @click="fundSmartAccount"
         >
-          {{ loading ? 'Funding...' : 'Fund Smart Account' }}
+          {{ loading ? 'Funding...' : `Fund ${fundParams.target === 'account' ? 'Smart Account' : 'Paymaster'}` }}
         </button>
       </div>
 
@@ -283,12 +298,188 @@
       </div>
 
       <div
+        v-if="fundedAccountBalance"
+        class="mt-4 p-3 bg-green-50 rounded border border-green-300"
+      >
+        <strong class="text-sm">{{ fundParams.target === 'account' ? 'Smart Account' : 'Paymaster' }} Balance:</strong>
+        <code class="block mt-1 px-2 py-1 bg-white rounded text-xs font-mono">{{ fundedAccountBalance }} ETH</code>
+      </div>
+
+      <div
         v-if="fundError"
         class="mt-4 p-3 bg-red-50 rounded border border-red-300"
       >
         <strong class="text-sm text-red-800">Error:</strong>
         <p class="text-xs text-red-600 mt-1">
           {{ fundError }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Send with Paymaster (Passkey) -->
+    <div
+      v-if="deploymentResult && (deploymentResult.passkeyEnabled ? passkeyRegistered : true)"
+      class="bg-teal-50 p-4 rounded-lg mb-4 border border-teal-200"
+    >
+      <h2 class="text-lg font-semibold mb-3 text-teal-800">
+        Send Transaction with Paymaster (Passkey)
+      </h2>
+      <p class="text-sm text-gray-600 mb-4">
+        Prepare → WebAuthn sign → Submit a UserOperation sponsored by a Paymaster. Expected balance change equals amount only.
+      </p>
+
+      <!-- Current Smart Account Info -->
+      <div
+        v-if="deploymentResult"
+        class="mb-4 p-3 bg-white rounded border border-teal-300"
+      >
+        <div class="text-sm">
+          <strong>Smart Account Address:</strong>
+          <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">{{ deploymentResult.address }}</code>
+        </div>
+      </div>
+
+      <!-- Paymaster Address Display -->
+      <div
+        v-if="contracts?.testPaymaster"
+        class="mb-4 p-3 bg-purple-50 rounded border border-purple-300"
+      >
+        <div class="text-sm">
+          <strong>Paymaster Address:</strong>
+          <code class="block mt-1 px-2 py-1 bg-white rounded text-xs font-mono break-all">{{ contracts.testPaymaster }}</code>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Smart Account Address (override)</label>
+          <input
+            v-model="paymasterTx.account"
+            :placeholder="deploymentResult?.address || '0x... (auto-uses deployed address if empty)'"
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Recipient</label>
+          <input
+            v-model="paymasterTx.to"
+            placeholder="0x... (defaults to deployer)"
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Amount (ETH)</label>
+          <input
+            v-model="paymasterTx.amount"
+            type="text"
+            placeholder="0.01"
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Paymaster Address</label>
+          <input
+            v-model="paymasterTx.paymaster"
+            placeholder="0x... (defaults to testPaymaster from contracts.json)"
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
+          >
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <button
+            :disabled="loading"
+            class="w-full px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 disabled:opacity-50"
+            @click="sendWithPasskeyPaymaster"
+          >
+            {{ loading ? 'Submitting...' : 'Send with Paymaster (Passkey)' }}
+          </button>
+          <button
+            :disabled="loading"
+            class="w-full px-4 py-2 bg-teal-700 text-white rounded hover:bg-teal-800 disabled:opacity-50"
+            @click="sendWithEoaPaymaster"
+          >
+            {{ loading ? 'Submitting...' : 'Send with Paymaster (EOA)' }}
+          </button>
+        </div>
+
+        <!-- Paymaster Balance Section -->
+        <div class="mt-4 p-3 bg-purple-50 rounded border border-purple-300">
+          <div class="flex items-center justify-between mb-2">
+            <strong class="text-sm">Paymaster Balance:</strong>
+            <code class="px-2 py-1 bg-white rounded text-xs font-mono">{{ paymasterBalance || 'Loading...' }} ETH</code>
+          </div>
+          <div class="flex gap-2">
+            <input
+              v-model="paymasterFundAmount"
+              type="text"
+              placeholder="1.0"
+              class="flex-1 px-3 py-2 border border-purple-300 rounded text-sm"
+            >
+            <button
+              :disabled="loading"
+              class="px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 text-sm"
+              @click="fundPaymaster"
+            >
+              {{ loading ? 'Funding...' : 'Fund' }}
+            </button>
+            <button
+              :disabled="loading"
+              class="px-3 py-2 bg-purple-400 text-white rounded hover:bg-purple-500 disabled:opacity-50 text-sm"
+              @click="fetchPaymasterBalance"
+            >
+              Refresh
+            </button>
+          </div>
+          <div
+            v-if="fundPaymasterError"
+            class="mt-2 p-2 bg-red-50 rounded border border-red-300"
+          >
+            <p class="text-xs text-red-600">
+              {{ fundPaymasterError }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result / Errors -->
+      <div
+        v-if="balanceBeforeTx"
+        class="mt-4 p-3 bg-blue-50 rounded border border-blue-300"
+      >
+        <strong class="text-sm">Smart Account Balance Before:</strong>
+        <code class="block mt-1 px-2 py-1 bg-white rounded text-xs font-mono">{{ balanceBeforeTx }} ETH</code>
+      </div>
+      <div
+        v-if="balanceAfterTx"
+        class="mt-4 p-3 bg-blue-50 rounded border border-blue-300"
+      >
+        <strong class="text-sm">Smart Account Balance After:</strong>
+        <code class="block mt-1 px-2 py-1 bg-white rounded text-xs font-mono">{{ balanceAfterTx }} ETH</code>
+      </div>
+      <div
+        v-if="balanceDifference"
+        class="mt-4 p-3 bg-green-50 rounded border border-green-300"
+      >
+        <strong class="text-sm">Balance Change:</strong>
+        <code class="block mt-1 px-2 py-1 bg-white rounded text-xs font-mono">{{ balanceDifference }}</code>
+      </div>
+      <div
+        v-if="paymasterTxResult"
+        class="mt-4 p-3 bg-white rounded border border-teal-300"
+      >
+        <strong class="text-sm">Result:</strong>
+        <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">{{ paymasterTxResult }}</code>
+      </div>
+      <div
+        v-if="paymasterTxError"
+        class="mt-4 p-3 bg-red-50 rounded border border-red-300"
+      >
+        <strong class="text-sm text-red-800">Error:</strong>
+        <p class="text-xs text-red-600 mt-1">
+          {{ paymasterTxError }}
         </p>
       </div>
     </div>
@@ -433,8 +624,19 @@ import { privateKeyToAccount } from "viem/accounts";
 import { createBundlerClient } from "viem/account-abstraction";
 
 import { createEcdsaClient, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, findAddressesByPasskey, getPasskeyCredential } from "zksync-sso-4337/client";
+// WASM FFI helpers (prepare/sign/submit + paymaster)
+import {
+  SendTransactionConfig,
+  PaymasterParams,
+  prepare_passkey_user_operation,
+  submit_passkey_user_operation,
+  signWithPasskey,
+  compute_account_id,
+  send_transaction_eoa,
+} from "zksync-sso-web-sdk/bundler";
 
 import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
+import type { ContractsConfig } from "~/utils/contracts";
 
 // Types
 interface DeploymentResult {
@@ -451,6 +653,7 @@ const testResult = ref("");
 const error = ref("");
 const loading = ref(false);
 const deploymentResult = ref<DeploymentResult | null>(null);
+const contracts = ref<ContractsConfig | null>(null);
 
 // Address computation parameters
 const addressParams = ref({
@@ -477,12 +680,32 @@ const findPasskeyScanError = ref("");
 const foundAddresses = ref<Address[] | null>(null);
 const findAddressesError = ref("");
 
-// Fund smart account parameters
+// Fund smart account or paymaster parameters
 const fundParams = ref({
   amount: "0.1",
+  target: "account", // 'account' | 'paymaster'
 });
 const fundResult = ref("");
 const fundError = ref("");
+const fundedAccountBalance = ref("");
+
+// Paymaster passkey transaction state
+const paymasterTx = ref({
+  account: "",
+  to: "",
+  amount: "0.01",
+  paymaster: "",
+});
+const paymasterTxResult = ref("");
+const paymasterTxError = ref("");
+
+// Balance tracking
+const balanceBeforeTx = ref("");
+const balanceAfterTx = ref("");
+const balanceDifference = ref("");
+const paymasterBalance = ref("");
+const paymasterFundAmount = ref("1");
+const fundPaymasterError = ref("");
 
 // Passkey configuration state
 const passkeyConfig = ref({
@@ -1039,12 +1262,28 @@ async function fundSmartAccount() {
       throw new Error(`Invalid smart account address: ${address}`);
     }
 
+    // Determine the target address (account or paymaster)
+    let targetAddress = address;
+    let targetLabel = "Smart Account";
+    if (fundParams.value.target === "paymaster") {
+      const contracts = await loadContracts();
+      const pm = paymasterTx.value.paymaster || contracts.testPaymaster;
+      if (!pm) {
+        throw new Error("No paymaster address configured.");
+      }
+      targetAddress = pm;
+      targetLabel = "Paymaster";
+      if (!targetAddress) {
+        throw new Error("No paymaster address configured.");
+      }
+    }
+
     // eslint-disable-next-line no-console
-    console.log("Funding smart account...");
+    console.log(`Funding ${targetLabel}...`);
     // eslint-disable-next-line no-console
     console.log("  Funding Source:", walletConfig.value.source);
     // eslint-disable-next-line no-console
-    console.log("  To (Smart Account):", address);
+    console.log(`  To (${targetLabel}):`, targetAddress);
     // eslint-disable-next-line no-console
     console.log("  Amount:", fundParams.value.amount, "ETH");
 
@@ -1059,9 +1298,9 @@ async function fundSmartAccount() {
     const amountWei = parseEther(fundParams.value.amount);
 
     // Ensure address is properly formatted (checksummed)
-    const toAddress = getAddress(address);
+    const toAddress = getAddress(targetAddress);
 
-    // Send transaction to fund the smart account
+    // Send transaction to fund the target
     const hash = await walletClient.sendTransaction({
       account: signerAddress,
       to: toAddress,
@@ -1082,14 +1321,293 @@ async function fundSmartAccount() {
 
     fundResult.value = hash;
 
-    // Check the balance
+    // Check the balance of the funded target
     const balance = await publicClient.getBalance({ address: toAddress as Address });
     // eslint-disable-next-line no-console
-    console.log("  Smart account balance:", formatEther(balance), "ETH");
+    console.log(`  ${targetLabel} balance:`, formatEther(balance), "ETH");
+
+    // If we funded the account, also show the smart account balance
+    if (fundParams.value.target === "account" && deploymentResult.value?.address) {
+      const contracts = await loadContracts();
+      const smartAccountBalance = await getBalance(deploymentResult.value.address, contracts.rpcUrl);
+      fundedAccountBalance.value = smartAccountBalance;
+    } else {
+      fundedAccountBalance.value = formatEther(balance);
+    }
+
+    // Refresh paymaster balance if we just funded it
+    if (fundParams.value.target === "paymaster") {
+      await fetchPaymasterBalance();
+    }
   } catch (err: unknown) {
     // eslint-disable-next-line no-console
     console.error("Funding failed:", err);
-    fundError.value = `Failed to fund smart account: ${err instanceof Error ? err.message : String(err)}`;
+    const targetLabel = fundParams.value.target === "account" ? "smart account" : "paymaster";
+    fundError.value = `Failed to fund ${targetLabel}: ${err instanceof Error ? err.message : String(err)}`;
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Get balance of an account
+async function getBalance(address: string, _rpcUrl: string): Promise<string> {
+  try {
+    const publicClient = await createPublicClient();
+    const balanceWei = await publicClient.getBalance({ address: getAddress(address) });
+    return formatEther(balanceWei);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to get balance:", err);
+    return "0";
+  }
+}
+
+// Check if a smart account is deployed (has code on-chain)
+async function isAccountDeployed(address: string): Promise<boolean> {
+  try {
+    const publicClient = await createPublicClient();
+    const bytecode = await publicClient.getBytecode({ address: getAddress(address) });
+    return !!bytecode && bytecode !== "0x";
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to check account deployment:", err);
+    return false;
+  }
+}
+
+// Fetch paymaster balance
+async function fetchPaymasterBalance() {
+  try {
+    const contracts = await loadContracts();
+    const rpcUrl = contracts.rpcUrl;
+    const paymasterAddress = paymasterTx.value.paymaster || contracts.testPaymaster;
+    if (!paymasterAddress) {
+      paymasterBalance.value = "N/A";
+      return;
+    }
+    paymasterBalance.value = await getBalance(paymasterAddress, rpcUrl);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to fetch paymaster balance:", err);
+    paymasterBalance.value = "Error";
+  }
+}
+
+// Fund the paymaster account
+async function fundPaymaster() {
+  fundPaymasterError.value = "";
+  loading.value = true;
+  try {
+    const contracts = await loadContracts();
+    const rpcUrl = contracts.rpcUrl;
+    const paymasterAddress = paymasterTx.value.paymaster || contracts.testPaymaster;
+    if (!paymasterAddress) {
+      throw new Error("No paymaster address configured.");
+    }
+
+    // Get deployer account from wallet config
+    const deployerKey = eoaSignerPrivateKey;
+    const deployerAccount = privateKeyToAccount(`0x${deployerKey}`);
+
+    // Create a simple transfer transaction
+    await createWalletClient({
+      account: deployerAccount,
+      chain: getChainConfig(contracts),
+      transport: http(rpcUrl),
+    }).sendTransaction({
+      to: paymasterAddress as Address,
+      value: parseEther(paymasterFundAmount.value),
+      account: deployerAccount,
+    });
+
+    // Wait for confirmation
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await fetchPaymasterBalance();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to fund paymaster:", err);
+    fundPaymasterError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Send a passkey-signed transaction sponsored by a paymaster
+async function sendWithPasskeyPaymaster() {
+  paymasterTxError.value = "";
+  paymasterTxResult.value = "";
+  balanceBeforeTx.value = "";
+  balanceAfterTx.value = "";
+  balanceDifference.value = "";
+  await fetchPaymasterBalance();
+  loading.value = true;
+
+  try {
+    // Ensure we have a deployed account
+    const accountAddress: string | undefined = paymasterTx.value.account || deploymentResult.value?.address;
+    if (!accountAddress) {
+      throw new Error("No smart account address. Deploy first or enter an address.");
+    }
+
+    // Verify the account is actually deployed on-chain
+    const deployed = await isAccountDeployed(accountAddress);
+    if (!deployed) {
+      throw new Error(`Smart account ${accountAddress} is not deployed. Please deploy the account before sending a passkey transaction.`);
+    }
+
+    // Load contracts and defaults
+    const contracts = await loadContracts();
+    const rpcUrl = contracts.rpcUrl;
+    const bundlerUrl = getBundlerUrl(contracts);
+    const entryPoint = contracts.entryPoint ?? "0x0000000000000000000000000000000000000000";
+    const webauthnValidator = passkeyConfig.value.validatorAddress || contracts.webauthnValidator;
+
+    // Resolve recipient and paymaster defaults
+    const toAddress = paymasterTx.value.to || contracts.deployer;
+    const paymasterAddress = paymasterTx.value.paymaster || contracts.testPaymaster;
+    if (!paymasterAddress) {
+      throw new Error("No paymaster address configured. Set testPaymaster in contracts.json or input one.");
+    }
+
+    // Get balance before transaction
+    balanceBeforeTx.value = await getBalance(accountAddress, rpcUrl);
+
+    // Convert amount string (ETH) to wei string
+    const amountWei = parseEther(paymasterTx.value.amount).toString();
+
+    // Build config and paymaster params
+    const config = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
+    const paymaster = new PaymasterParams(paymasterAddress, null, null, null);
+
+    // Prepare user operation (includes paymaster into the prepared payload)
+    const prepared = await prepare_passkey_user_operation(
+      config,
+      webauthnValidator,
+      accountAddress,
+      toAddress,
+      amountWei,
+      null,
+      paymaster,
+    );
+
+    if (typeof prepared !== "string") {
+      throw new Error("Unexpected prepare result type");
+    }
+    if (prepared.startsWith("Failed") || prepared.startsWith("Error")) {
+      throw new Error(prepared);
+    }
+
+    const { hash, userOp } = JSON.parse(prepared) as { hash: string; userOp: unknown };
+
+    // Sign with WebAuthn passkey
+    const rpId = new URL(passkeyConfig.value.originDomain).hostname;
+    const signResult = await signWithPasskey({
+      hash,
+      credentialId: passkeyConfig.value.credentialId,
+      rpId,
+      origin: passkeyConfig.value.originDomain,
+    });
+
+    if (!signResult || !signResult.signature) {
+      throw new Error("Failed to sign with passkey - no signature returned");
+    }
+
+    const { signature } = signResult;
+
+    // Submit signed user operation
+    const userOpJson = JSON.stringify(userOp);
+
+    // Create a fresh config for submit (the prepare call may have consumed the original)
+    const submitConfig = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
+
+    // Intentionally submitting without verbose console to satisfy lint rules
+    const submitResult = await submit_passkey_user_operation(submitConfig, userOpJson, signature);
+
+    paymasterTxResult.value = submitResult;
+
+    // Wait a moment for the transaction to be mined
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Get balance after transaction
+    balanceAfterTx.value = await getBalance(accountAddress, rpcUrl);
+    await fetchPaymasterBalance();
+    const before = parseFloat(balanceBeforeTx.value);
+    const after = parseFloat(balanceAfterTx.value);
+    const amount = parseFloat(paymasterTx.value.amount);
+    const difference = before - after;
+    balanceDifference.value = `${difference.toFixed(6)} ETH (expected: ${amount.toFixed(6)} ETH)`;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Paymaster passkey send failed:", err);
+    paymasterTxError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Send a transaction from smart account using EOA validator sponsored by a paymaster
+async function sendWithEoaPaymaster() {
+  paymasterTxError.value = "";
+  paymasterTxResult.value = "";
+  balanceBeforeTx.value = "";
+  balanceAfterTx.value = "";
+  balanceDifference.value = "";
+  loading.value = true;
+  await fetchPaymasterBalance();
+
+  try {
+    const contracts = await loadContracts();
+    const rpcUrl = contracts.rpcUrl;
+    const bundlerUrl = getBundlerUrl(contracts);
+    const entryPoint = contracts.entryPoint ?? "0x0000000000000000000000000000000000000000";
+    const eoaValidator = contracts.eoaValidator;
+
+    const accountAddress: string | undefined = paymasterTx.value.account || deploymentResult.value?.address;
+    if (!accountAddress) throw new Error("No smart account address. Deploy first or enter one.");
+
+    const toAddress = paymasterTx.value.to || contracts.deployer;
+    const paymasterAddress = paymasterTx.value.paymaster || contracts.testPaymaster;
+    if (!paymasterAddress) throw new Error("No paymaster address configured. Set testPaymaster in contracts.json or input one.");
+
+    // Get balance before transaction
+    balanceBeforeTx.value = await getBalance(accountAddress, rpcUrl);
+
+    const amountWei = parseEther(paymasterTx.value.amount).toString();
+
+    const config = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
+    const paymaster = new PaymasterParams(paymasterAddress, null, null, null);
+
+    // Use the same Anvil EOA key from the page for demo
+    const eoaKey = eoaSignerPrivateKey;
+
+    const result = await send_transaction_eoa(
+      config,
+      eoaValidator,
+      eoaKey,
+      accountAddress,
+      toAddress,
+      amountWei,
+      "0x",
+      paymaster,
+    );
+
+    paymasterTxResult.value = result as string;
+
+    // Wait a moment for the transaction to be mined
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Get balance after transaction
+    balanceAfterTx.value = await getBalance(accountAddress, rpcUrl);
+    await fetchPaymasterBalance();
+    const before = parseFloat(balanceBeforeTx.value);
+    const after = parseFloat(balanceAfterTx.value);
+    const amount = parseFloat(paymasterTx.value.amount);
+    const difference = before - after;
+    balanceDifference.value = `${difference.toFixed(6)} ETH (expected: ${amount.toFixed(6)} ETH)`;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("EOA paymaster send failed:", err);
+    paymasterTxError.value = err instanceof Error ? err.message : String(err);
   } finally {
     loading.value = false;
   }
@@ -1142,6 +1660,9 @@ onMounted(async () => {
     try {
       // SDK is already imported at the top
       sdkLoaded.value = true;
+
+      // Load contracts configuration
+      contracts.value = await loadContracts();
 
       // Load WebAuthn validator address from contracts.json
       await loadWebAuthnValidatorAddress();
