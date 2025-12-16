@@ -24,9 +24,9 @@ cd "$CONTRACTS_DIR"
 echo "🔨 Building contracts..."
 forge build
 
-# Use pnpm deploy-test to deploy all contracts
+# Use pnpm deploy-test to deploy all contracts (except paymaster)
 echo ""
-echo "📦 Deploying contracts using pnpm deploy-test..."
+echo "📦 Deploying MSA contracts using pnpm deploy-test..."
 DEPLOY_OUTPUT=$(pnpm deploy-test 2>&1)
 
 echo "$DEPLOY_OUTPUT"
@@ -39,7 +39,21 @@ GUARDIAN_EXECUTOR=$(echo "$DEPLOY_OUTPUT" | grep "GuardianExecutor:" | awk '{pri
 ACCOUNT_IMPL=$(echo "$DEPLOY_OUTPUT" | grep "ModularSmartAccount implementation:" | awk '{print $3}')
 BEACON=$(echo "$DEPLOY_OUTPUT" | grep "UpgradeableBeacon:" | awk '{print $2}')
 FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MSAFactory:" | awk '{print $2}')
-PAYMASTER=$(echo "$DEPLOY_OUTPUT" | grep "TestPaymaster:" | awk '{print $2}')
+
+# Deploy paymaster separately (with dependencies from erc4337-contracts)
+echo ""
+echo "📦 Deploying TestPaymaster..."
+PAYMASTER_OUTPUT=$(cd "$CONTRACTS_DIR" && forge script script/DeployPaymaster.s.sol:DeployPaymaster --rpc-url "$RPC_URL" --broadcast --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 2>&1)
+
+echo "$PAYMASTER_OUTPUT"
+
+PAYMASTER=$(echo "$PAYMASTER_OUTPUT" | grep "TestPaymaster:" | awk '{print $2}')
+
+# Fund the paymaster with ETH from Anvil account #0 (has plenty of ETH)
+echo ""
+echo "💰 Funding paymaster with 10 ETH..."
+ANVIL_ACCOUNT_0_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+cast send "$PAYMASTER" --value 10ether --private-key "$ANVIL_ACCOUNT_0_KEY" --rpc-url "$RPC_URL" 2>&1 || echo "Fund transfer initiated"
 
 # Verify all addresses were extracted
 if [ -z "$EOA_VALIDATOR" ] || [ -z "$SESSION_VALIDATOR" ] || [ -z "$WEBAUTHN_VALIDATOR" ] || \
