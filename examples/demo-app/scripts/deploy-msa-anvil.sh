@@ -43,7 +43,7 @@ FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MSAFactory:" | awk '{print $2}')
 # Deploy paymaster separately (with dependencies from erc4337-contracts)
 echo ""
 echo "📦 Deploying TestPaymaster..."
-PAYMASTER_OUTPUT=$(cd "$CONTRACTS_DIR" && forge script script/DeployPaymaster.s.sol:DeployPaymaster --rpc-url "$RPC_URL" --broadcast --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 2>&1)
+PAYMASTER_OUTPUT=$(cd "$WORKSPACE_ROOT/examples/demo-app/smart-contracts" && forge script DeployPaymaster.s.sol:DeployPaymaster --rpc-url "$RPC_URL" --broadcast --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 2>&1)
 
 echo "$PAYMASTER_OUTPUT"
 

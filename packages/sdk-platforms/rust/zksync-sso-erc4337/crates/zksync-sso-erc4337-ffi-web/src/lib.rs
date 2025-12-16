@@ -840,6 +840,7 @@ pub fn add_passkey_to_account(
 ///
 /// # Returns
 /// Promise that resolves when the UserOperation is confirmed
+#[allow(clippy::too_many_arguments)]
 #[wasm_bindgen]
 pub fn send_transaction_eoa(
     config: SendTransactionConfig,

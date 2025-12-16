@@ -383,6 +383,7 @@ mod tests {
         .await?;
 
         let sender_balance_after = provider.get_balance(address).await?;
+        let recipient_balance_after = provider.get_balance(recipient).await?;
 
         // Log detailed balance deltas to make mismatches easier to diagnose
         let sender_delta =
@@ -391,10 +392,21 @@ mod tests {
             "Sender balance delta: {sender_delta} (before: {sender_balance_before}, after: {sender_balance_after})"
         );
 
+        let recipient_delta =
+            recipient_balance_after.saturating_sub(recipient_balance_before);
+        println!(
+            "Recipient balance delta: {recipient_delta} (before: {recipient_balance_before}, after: {recipient_balance_after})"
+        );
+
         // Assert only the transfer amount changed, no extra fees from sender
         eyre::ensure!(
             sender_delta == amount,
             "Sender paid more than the transfer amount (fees leaked)"
+        );
+
+        eyre::ensure!(
+            recipient_delta == amount,
+            "Recipient did not receive the expected amount"
         );
 
         println!("Paymaster covered fees; only value transferred");
