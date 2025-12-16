@@ -21,10 +21,10 @@ pub fn get_signature_from_js(hash: String) -> eyre::Result<Bytes> {
 
     let stdout = String::from_utf8(output.stdout)?;
 
-    let last_line = stdout
-        .lines()
-        .rfind(|line| !line.is_empty())
-        .ok_or_else(|| eyre::eyre!("No output from sign_hash_with_passkey command"))?;
+    let last_line =
+        stdout.lines().rfind(|line| !line.is_empty()).ok_or_else(|| {
+            eyre::eyre!("No output from sign_hash_with_passkey command")
+        })?;
 
     let hex_sig = last_line.trim();
     let bytes = Bytes::from_str(hex_sig)?;
