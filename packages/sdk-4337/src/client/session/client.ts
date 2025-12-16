@@ -100,7 +100,6 @@ export function createSessionClient<
     sessionKeyPrivateKey,
     sessionSpec,
     currentTimestamp,
-    paymasterHandler: params.paymasterHandler,
     entryPointAddress: params.entryPointAddress,
   };
 

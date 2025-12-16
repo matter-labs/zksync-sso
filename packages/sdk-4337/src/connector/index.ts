@@ -162,7 +162,6 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
           bundlerClients: parameters.bundlerClients,
           chains: config.chains,
           customCommunicator: parameters.communicator,
-          paymasterHandler,
           paymasterAddress,
         });
       }
