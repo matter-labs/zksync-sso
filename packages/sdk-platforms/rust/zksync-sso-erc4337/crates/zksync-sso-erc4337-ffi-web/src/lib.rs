@@ -1323,8 +1323,13 @@ pub fn prepare_passkey_user_operation(
         console_log!("  Created stub signature: {} bytes", stub_sig.len());
 
         // Use fixed high gas values (matching the Rust test approach when bundler is unavailable)
+        // Increase verification gas for paymaster transactions since they require additional validation
         let call_gas_limit = U256::from(2_000_000u64);
-        let verification_gas_limit = U256::from(2_000_000u64);
+        let verification_gas_limit = if paymaster_params.is_some() {
+            U256::from(3_000_000u64) // Higher for paymaster validation
+        } else {
+            U256::from(2_000_000u64)
+        };
         let pre_verification_gas = U256::from(1_000_000u64);
         let max_priority_fee_per_gas = U256::from(0x77359400u64);
         let max_fee_per_gas = U256::from(0x82e08afeu64);

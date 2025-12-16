@@ -95,9 +95,8 @@ import { ref } from "vue";
 import { formatEther, parseEther } from "viem";
 import type { Address } from "viem";
 
-import { signWithPasskey } from "zksync-sso-4337/client/passkey";
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
-import { PaymasterParams, prepare_passkey_user_operation, submit_passkey_user_operation, SendTransactionConfig, send_transaction_eoa } from "zksync-sso-web-sdk/bundler";
+import { prepare_passkey_user_operation, submit_passkey_user_operation, SendTransactionConfig, send_transaction_eoa, signWithPasskey } from "zksync-sso-web-sdk/bundler";
 
 import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
 
@@ -295,21 +294,18 @@ async function sendFromSmartAccountWithPasskey() {
   console.log("  ✓ Public key verification passed!");
 
   const rpId = getRpId(props.passkeyConfig.originDomain);
-  // Send transaction using Rust passkey flow with paymaster support
+  // Send transaction using Rust passkey flow (without paymaster for normal transactions)
   const rpcUrl = chain.rpcUrls.default.http[0];
   const bundlerUrl = getBundlerUrl(contracts);
   const entryPoint = contracts.entryPoint as Address;
   const config = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
 
   const valueWei = parseEther(amount.value).toString();
-  const paymasterParams = new PaymasterParams(
-    contracts.testPaymaster as Address,
-    "0x",
-    undefined,
-    undefined,
-  );
 
-  // Step 1: prepare userOp and hash (hash includes paymaster)
+  // Don't use paymaster for normal passkey transactions
+  // (paymaster is tested separately in web-sdk-test.vue)
+
+  // Step 1: prepare userOp and hash (no paymaster)
   const preparedJson = await prepare_passkey_user_operation(
     config,
     webauthnValidatorAddress,
@@ -317,23 +313,37 @@ async function sendFromSmartAccountWithPasskey() {
     to.value,
     valueWei,
     "0x",
-    paymasterParams,
+    undefined, // No paymaster
   );
 
-  const prepared = JSON.parse(preparedJson as string) as { hash: string; userOp: unknown };
+  // Debug + guards to ensure prepare returned a valid payload
+  // eslint-disable-next-line no-console
+  console.log("prepare_passkey_user_operation result:", preparedJson);
+  if (typeof preparedJson !== "string") {
+    throw new Error("Unexpected prepare result type");
+  }
+  if (preparedJson.startsWith("Failed") || preparedJson.startsWith("Error")) {
+    throw new Error(preparedJson);
+  }
 
-  // Step 2: sign the hash with WebAuthn passkey (signature includes validator prefix)
-  const signature = await signWithPasskey({
-    hash: prepared.hash as `0x${string}`,
+  const { hash, userOp } = JSON.parse(preparedJson) as { hash: string; userOp: unknown };
+  if (!hash) {
+    throw new Error("Prepare step did not return a hash");
+  }
+
+  // Step 2: sign the hash with WebAuthn passkey (signature already includes validator prefix)
+  const signResult = await signWithPasskey({
+    hash,
     credentialId: props.passkeyConfig.credentialId as `0x${string}`,
-    validatorAddress: webauthnValidatorAddress as Address,
     rpId,
     origin: props.passkeyConfig.originDomain,
   });
 
-  if (!signature) {
+  if (!signResult || !signResult.signature) {
     throw new Error("No passkey signature returned from WebAuthn");
   }
+
+  const { signature } = signResult;
 
   // Step 3: submit signed userOp (paymaster already embedded)
   // Important: create a fresh config for submit. The config used in
@@ -341,7 +351,7 @@ async function sendFromSmartAccountWithPasskey() {
   const submitConfig = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
   const receipt = await submit_passkey_user_operation(
     submitConfig,
-    JSON.stringify(prepared.userOp),
+    JSON.stringify(userOp),
     signature,
   );
 
