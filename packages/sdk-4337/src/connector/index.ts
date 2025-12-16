@@ -16,8 +16,6 @@ import {
   UserRejectedRequestError,
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
-import type { CustomPaymasterHandler } from "zksync-sso/paymaster";
-import { createGeneralPaymaster } from "zksync-sso/paymaster";
 
 import type { SessionClient, SessionPreferences } from "../client/index.js";
 import type { ProviderInterface } from "../client-auth-server/index.js";
@@ -40,7 +38,7 @@ export type ZksyncSsoConnectorOptions = {
   communicator?: Communicator;
   provider?: ProviderInterface;
   connectorMetadata?: ConnectorMetadata;
-  paymaster?: Address | CustomPaymasterHandler;
+  paymaster?: Address;
 };
 
 export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
@@ -145,15 +143,10 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
     },
     async getProvider() {
       if (!walletProvider) {
-        // Convert paymaster address to handler if needed
-        let paymasterHandler: CustomPaymasterHandler | undefined;
         let paymasterAddress: Address | undefined;
         if (parameters.paymaster) {
           if (typeof parameters.paymaster === "string") {
             paymasterAddress = parameters.paymaster as Address;
-            paymasterHandler = createGeneralPaymaster(paymasterAddress);
-          } else {
-            paymasterHandler = parameters.paymaster;
           }
         }
 

@@ -2,7 +2,6 @@ import { EventEmitter } from "eventemitter3";
 import type { Address, Chain, Transport } from "viem";
 import { toHex } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
-import type { CustomPaymasterHandler } from "zksync-sso/paymaster";
 
 import type { Communicator } from "../communicator/index.js";
 import { PopupCommunicator } from "../communicator/PopupCommunicator.js";
@@ -30,7 +29,6 @@ export type WalletProviderConstructorOptions = {
   // skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
   customCommunicator?: Communicator;
   storage?: StorageLike;
-  paymasterHandler?: CustomPaymasterHandler;
   paymasterAddress?: Address;
 };
 
