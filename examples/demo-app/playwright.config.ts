@@ -44,7 +44,7 @@ export default defineConfig({
   /* Run your local server before starting the tests */
   webServer: [
     {
-      command: "pnpm nx preview demo-app",
+      command: "pnpm nx standalone demo-app",
       url: "http://localhost:3006",
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,

@@ -70,6 +70,18 @@
       },
       "dependsOn": ["^build", "deploy-contracts-erc4337"]
     },
+    "standalone": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "PORT=3006 pnpm nuxt preview",
+            "prefix": "Demo-App:"
+          }
+        ]
+      }
+    },
     "preview": {
       "executor": "nx:run-commands",
       "options": {
@@ -114,6 +126,13 @@
         "command": "playwright test --config=playwright.config.ts"
       },
       "dependsOn": ["e2e:setup"]
+    },
+    "e2e:no-deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": ["pnpm exec playwright install chromium", "playwright test --config=playwright.config.ts"]
+      }
     },
     "e2e:erc4337": {
       "executor": "nx:run-commands",
