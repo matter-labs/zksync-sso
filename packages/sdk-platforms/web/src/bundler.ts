@@ -51,6 +51,11 @@ export const {
   // ===== PASSKEY MANAGEMENT HELPER FUNCTIONS =====
   // Functions for encoding passkey management transactions (client-new/actions/addPasskey.ts)
   encode_add_passkey_call_data, // Encode MSA.execute() call data for adding passkey
+
+  // ===== PAYMASTER & USER OPERATION =====
+  // Core functions for sending user operations with paymaster support
+  PaymasterParams, // Paymaster configuration (address, data, gas limits)
+  send_user_operation, // Send UserOperation with optional paymaster sponsorship
 } = wasm;
 
 // Initialize WASM module

@@ -61,3 +61,39 @@ export interface InitOptions {
   /** Enable debug logging (optional) */
   debug?: boolean;
 }
+
+/**
+ * Paymaster parameters for sponsoring user operations
+ */
+export interface PaymasterConfig {
+  /** Paymaster contract address (0x-prefixed hex string) */
+  address: string;
+  /** Additional paymaster data (0x-prefixed hex string, optional) */
+  data?: string;
+  /** Verification gas limit for paymaster (decimal string, optional) */
+  verificationGasLimit?: string;
+  /** Post-operation gas limit for paymaster (decimal string, optional) */
+  postOpGasLimit?: string;
+}
+
+/**
+ * Configuration for sending user operations
+ */
+export interface SendUserOperationParams {
+  /** RPC URL for provider */
+  rpcUrl: string;
+  /** Bundler URL */
+  bundlerUrl: string;
+  /** EntryPoint contract address */
+  entryPointAddress: string;
+  /** Smart account address */
+  accountAddress: string;
+  /** Encoded call data (0x-prefixed hex string) */
+  callData: string;
+  /** Private key for signing (0x-prefixed hex string) */
+  privateKeyHex: string;
+  /** Validator module address */
+  validatorAddress: string;
+  /** Optional paymaster configuration */
+  paymaster?: PaymasterConfig;
+}
