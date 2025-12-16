@@ -13,7 +13,7 @@
           },
 
           {
-            "command": "PORT=3004 nuxt dev",
+            "command": "PORT=3006 nuxt dev",
             "prefix": "Demo-App:"
           }
         ]
@@ -80,7 +80,7 @@
             "prefix": "Auth-Server:"
           },
           {
-            "command": "PORT=3004 pnpm nuxt preview",
+            "command": "PORT=3006 pnpm nuxt preview",
             "prefix": "Demo-App:"
           }
         ]

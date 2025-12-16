@@ -6,7 +6,7 @@ import contractsConfig from "../contracts-anvil.json" with { type: "json" };
 test.beforeAll(async () => {
   // eslint-disable-next-line no-console
   console.log("\n🔍 Validating contract configuration...");
-  const result = await validateContractConfig("http://localhost:3005", {
+  const result = await validateContractConfig("http://localhost:3004", {
     factory: contractsConfig.factory,
     webauthnValidator: contractsConfig.webauthnValidator,
     eoaValidator: contractsConfig.eoaValidator,
@@ -235,7 +235,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
 
   // Confirm access to your account
   await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
-  await expect(popup.getByText("localhost:3004")).toBeVisible();
+  await expect(popup.getByText("localhost:3006")).toBeVisible();
   await expect(popup.getByText("Let it see your address, balance and activity")).toBeVisible();
   await popup.getByTestId("connect").click();
 
@@ -337,7 +337,7 @@ test.fail("Create passkey account and send ETH with paymaster", async ({ page })
 
   // Confirm access to your account
   await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
-  await expect(popup.getByText("localhost:3004")).toBeVisible();
+  await expect(popup.getByText("localhost:3006")).toBeVisible();
   await expect(popup.getByText("Let it see your address, balance and activity")).toBeVisible();
   await popup.getByTestId("connect").click();
 
@@ -439,7 +439,7 @@ test.fail("Create passkey account and sign typed data", async ({ page }) => {
 
   // Confirm access to your account
   await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
-  await expect(popup.getByText("localhost:3004")).toBeVisible();
+  await expect(popup.getByText("localhost:3006")).toBeVisible();
   await expect(popup.getByText("Let it see your address, balance and activity")).toBeVisible();
   await popup.getByTestId("connect").click();
 

@@ -27,7 +27,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:3004",
+    baseURL: "http://localhost:3006",
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on",
@@ -45,7 +45,7 @@ export default defineConfig({
   webServer: [
     {
       command: "pnpm nx preview demo-app",
-      url: "http://localhost:3004",
+      url: "http://localhost:3006",
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
     },
@@ -57,7 +57,7 @@ export default defineConfig({
     },
     {
       command: "pnpm nx dev auth-server-api",
-      url: "http://localhost:3005/api/health",
+      url: "http://localhost:3004/api/health",
       reuseExistingServer: false, // Always restart to load fresh contract addresses
       timeout: 180_000,
     },
