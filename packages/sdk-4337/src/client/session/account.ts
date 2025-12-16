@@ -13,7 +13,6 @@ import {
   toSmartAccount,
   type ToSmartAccountReturnType,
 } from "viem/account-abstraction";
-import type { CustomPaymasterHandler } from "zksync-sso/paymaster";
 import {
   decode_nonce_result,
   encode_get_nonce_call_data,
@@ -47,8 +46,6 @@ export type ToSessionSmartAccountParams<
   currentTimestamp?: bigint;
   /** Session required contracts. */
   contracts: SessionRequiredContracts;
-  /** Optional paymaster handler for sponsored transactions. */
-  paymasterHandler?: CustomPaymasterHandler;
   /** Optional override for EntryPoint address (defaults to viem's entryPoint08Address). */
   entryPointAddress?: Address;
 };

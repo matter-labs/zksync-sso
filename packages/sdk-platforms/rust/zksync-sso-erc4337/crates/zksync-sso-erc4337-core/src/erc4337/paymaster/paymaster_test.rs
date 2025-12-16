@@ -16,7 +16,19 @@ mod tests {
                             DeployAccountWithUserOpParams,
                             deploy_account_with_user_op,
                         },
-                    }, session::{create::{CreateSessionParams, create_session}, session_lib::session_spec::{SessionSpec, limit_type::LimitType, transfer_spec::TransferSpec, usage_limit::UsageLimit}}, test_utilities::fund_account_with_default_amount
+                    },
+                    session::{
+                        create::{
+                            CreateSessionParams, create_session,
+                            tests::generate_session_proof,
+                        },
+                        session_lib::session_spec::{
+                            SessionSpec, limit_type::LimitType,
+                            transfer_spec::TransferSpec,
+                            usage_limit::UsageLimit,
+                        },
+                    },
+                    test_utilities::fund_account_with_default_amount,
                 },
             },
             paymaster::{
@@ -32,7 +44,6 @@ mod tests {
     };
     use alloy::primitives::{U256, Uint, address};
     use alloy_provider::ProviderBuilder;
-    use crate::erc4337::account::modular_smart_account::session::create::tests::generate_session_proof;
 
     #[tokio::test]
     async fn test_deploy_account_create_session_with_paymaster()

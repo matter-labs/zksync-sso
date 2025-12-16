@@ -34,7 +34,10 @@ use zksync_sso_erc4337_core::{
                     },
                     list::get_account_list_call_data as get_account_list_call_data_core,
                 },
-                send::eoa::EOASendParams,
+                send::{
+                    SendUserOpParams, eoa::EOASendParams,
+                    send_user_op as send_user_op_core,
+                },
                 session::{
                     create::create_session_call_data as create_session_call_data_core,
                     session_lib::session_spec::SessionSpec,
@@ -48,7 +51,6 @@ use zksync_sso_erc4337_core::{
                     },
                     passkey::stub_signature_passkey as stub_signature_passkey_core,
                 },
-                send::{SendUserOpParams, send_user_op as send_user_op_core},
             },
         },
         bundler::{
@@ -64,7 +66,7 @@ use zksync_sso_erc4337_core::{
             user_op_hash::get_user_op_hash_call_data,
             version::EntryPointVersion,
         },
-        paymaster::params::{PaymasterParams as PaymasterParamsCore},
+        paymaster::params::PaymasterParams as PaymasterParamsCore,
         signer::create_eoa_signer,
         user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point as get_user_operation_hash_entry_point_core,
     },
@@ -335,6 +337,59 @@ impl PaymasterParams {
     #[wasm_bindgen(getter)]
     pub fn post_op_gas_limit(&self) -> Option<String> {
         self.post_op_gas_limit.clone()
+    }
+}
+
+// Normalize/convert PaymasterParams into core params, or None if effectively unset
+fn normalize_paymaster_params(
+    pm: Option<PaymasterParams>,
+) -> Option<PaymasterParamsCore> {
+    match pm {
+        None => None,
+        Some(pm) => {
+            // Treat empty address or zero address with no gas hints as "not provided"
+            let addr_parsed =
+                pm.address().parse::<Address>().unwrap_or(Address::ZERO);
+
+            let has_gas_hints = pm
+                .verification_gas_limit()
+                .as_ref()
+                .map(|s| !s.is_empty())
+                .unwrap_or(false)
+                || pm
+                    .post_op_gas_limit()
+                    .as_ref()
+                    .map(|s| !s.is_empty())
+                    .unwrap_or(false);
+
+            // Empty/zero address and no explicit gas hints => ignore paymaster
+            if addr_parsed == Address::ZERO && !has_gas_hints {
+                return None;
+            }
+
+            let data_bytes = if pm.data().is_empty() {
+                Bytes::default()
+            } else {
+                match hex::decode(pm.data().trim_start_matches("0x")) {
+                    Ok(bytes) => Bytes::from(bytes),
+                    Err(_) => Bytes::default(),
+                }
+            };
+
+            let verification_gas = pm
+                .verification_gas_limit()
+                .and_then(|s| s.parse::<U256>().ok());
+
+            let post_op_gas =
+                pm.post_op_gas_limit().and_then(|s| s.parse::<U256>().ok());
+
+            Some(PaymasterParamsCore {
+                address: addr_parsed,
+                data: data_bytes,
+                verification_gas_limit: verification_gas,
+                post_op_gas_limit: post_op_gas,
+            })
+        }
     }
 }
 
@@ -917,37 +972,8 @@ pub fn send_transaction_eoa(
         let encoded_calls: Bytes =
             encoded_call_data_core(to, Some(data_bytes), Some(value_u256));
 
-        // Convert optional paymaster params
-        let paymaster_params = paymaster.map(|pm| {
-            let data_bytes = if pm.data().is_empty() {
-                Bytes::default()
-            } else {
-                match hex::decode(pm.data().trim_start_matches("0x")) {
-                    Ok(bytes) => Bytes::from(bytes),
-                    Err(_) => Bytes::default(),
-                }
-            };
-
-            let paymaster_addr: Address = pm
-                .address()
-                .parse()
-                .unwrap_or(Address::ZERO);
-
-            let verification_gas = pm
-                .verification_gas_limit()
-                .and_then(|s| s.parse::<U256>().ok());
-
-            let post_op_gas = pm
-                .post_op_gas_limit()
-                .and_then(|s| s.parse::<U256>().ok());
-
-            PaymasterParamsCore {
-                address: paymaster_addr,
-                data: data_bytes,
-                verification_gas_limit: verification_gas,
-                post_op_gas_limit: post_op_gas,
-            }
-        });
+        // Convert optional paymaster params, ignoring effectively empty values
+        let paymaster_params = normalize_paymaster_params(paymaster);
 
         console_log!(
             "  Encoded call data, calling core send_transaction_eoa..."
@@ -979,7 +1005,7 @@ pub fn send_transaction_eoa(
 }
 
 /// Send a UserOperation with paymaster support
-/// 
+///
 /// This is the core function that handles bundler communication with optional paymaster sponsorship.
 /// It constructs the complete UserOperation, estimates gas, and submits to the bundler.
 ///
@@ -1042,7 +1068,10 @@ pub fn send_user_operation(
         };
 
         // Parse call data
-        let call_data_bytes = match call_data.trim_start_matches("0x").is_empty() {
+        let call_data_bytes = match call_data
+            .trim_start_matches("0x")
+            .is_empty()
+        {
             true => Bytes::default(),
             false => match hex::decode(call_data.trim_start_matches("0x")) {
                 Ok(bytes) => Bytes::from(bytes),
@@ -1079,7 +1108,8 @@ pub fn send_user_operation(
 
         // Create bundler client
         let bundler_client = {
-            let bundler_config = BundlerConfigCore::new(config.bundler_url.clone());
+            let bundler_config =
+                BundlerConfigCore::new(config.bundler_url.clone());
             BundlerClientCore::new(bundler_config)
         };
 
@@ -1094,37 +1124,8 @@ pub fn send_user_operation(
             }
         };
 
-        // Convert PaymasterParams if provided
-        let paymaster_params = paymaster.map(|pm| {
-            let data_bytes = if pm.data().is_empty() {
-                Bytes::default()
-            } else {
-                match hex::decode(pm.data().trim_start_matches("0x")) {
-                    Ok(bytes) => Bytes::from(bytes),
-                    Err(_) => Bytes::default(),
-                }
-            };
-
-            let paymaster_addr: Address = match pm.address().parse() {
-                Ok(addr) => addr,
-                Err(_) => Address::ZERO,
-            };
-
-            let verification_gas = pm
-                .verification_gas_limit()
-                .and_then(|s| s.parse::<U256>().ok());
-
-            let post_op_gas = pm
-                .post_op_gas_limit()
-                .and_then(|s| s.parse::<U256>().ok());
-
-            PaymasterParamsCore {
-                address: paymaster_addr,
-                data: data_bytes,
-                verification_gas_limit: verification_gas,
-                post_op_gas_limit: post_op_gas,
-            }
-        });
+        // Convert PaymasterParams if provided, ignoring effectively empty values
+        let paymaster_params = normalize_paymaster_params(paymaster);
 
         console_log!("  Calling send_user_op with bundler...");
 
@@ -1145,9 +1146,10 @@ pub fn send_user_operation(
             Ok(receipt) => {
                 console_log!("  UserOperation sent successfully!");
                 console_log!("  Receipt: {:?}", receipt);
-                Ok(JsValue::from_str(&serde_json::to_string(&receipt).unwrap_or_else(
-                    |_| "Success".to_string(),
-                )))
+                Ok(JsValue::from_str(
+                    &serde_json::to_string(&receipt)
+                        .unwrap_or_else(|_| "Success".to_string()),
+                ))
             }
             Err(e) => {
                 console_log!("  Error sending user operation: {}", e);
@@ -1263,37 +1265,8 @@ pub fn prepare_passkey_user_operation(
         let client = RpcClient::new(transport.clone(), false);
         let provider = ProviderBuilder::new().connect_client(client);
 
-        // Convert optional paymaster params
-        let paymaster_params = paymaster.map(|pm| {
-            let data_bytes = if pm.data().is_empty() {
-                Bytes::default()
-            } else {
-                match hex::decode(pm.data().trim_start_matches("0x")) {
-                    Ok(bytes) => Bytes::from(bytes),
-                    Err(_) => Bytes::default(),
-                }
-            };
-
-            let paymaster_addr: Address = pm
-                .address()
-                .parse()
-                .unwrap_or(Address::ZERO);
-
-            let verification_gas = pm
-                .verification_gas_limit()
-                .and_then(|s| s.parse::<U256>().ok());
-
-            let post_op_gas = pm
-                .post_op_gas_limit()
-                .and_then(|s| s.parse::<U256>().ok());
-
-            PaymasterParamsCore {
-                address: paymaster_addr,
-                data: data_bytes,
-                verification_gas_limit: verification_gas,
-                post_op_gas_limit: post_op_gas,
-            }
-        });
+        // Convert optional paymaster params, ignoring effectively empty values
+        let paymaster_params = normalize_paymaster_params(paymaster);
 
         console_log!("  Created provider and transport");
 
@@ -1356,16 +1329,20 @@ pub fn prepare_passkey_user_operation(
         let max_fee_per_gas = U256::from(0x82e08afeu64);
 
         // Paymaster fields (optional)
-        let (paymaster_addr_opt, paymaster_data_opt, paymaster_ver_gas_opt, paymaster_post_gas_opt) =
-            match paymaster_params {
-                Some(ref pm) => (
-                    Some(pm.address),
-                    Some(pm.data.clone()),
-                    pm.verification_gas_limit,
-                    pm.post_op_gas_limit,
-                ),
-                None => (None, None, None, None),
-            };
+        let (
+            paymaster_addr_opt,
+            paymaster_data_opt,
+            paymaster_ver_gas_opt,
+            paymaster_post_gas_opt,
+        ) = match paymaster_params {
+            Some(ref pm) => (
+                Some(pm.address),
+                Some(pm.data.clone()),
+                pm.verification_gas_limit,
+                pm.post_op_gas_limit,
+            ),
+            None => (None, None, None, None),
+        };
 
         console_log!(
             "  Using fixed gas limits: call={}, verification={}, preVerification={}",
@@ -1400,26 +1377,28 @@ pub fn prepare_passkey_user_operation(
             (user_op.max_priority_fee_per_gas << 128) | user_op.max_fee_per_gas;
 
         // Create PackedUserOperation for hashing (EntryPoint format with packed fields)
-        let paymaster_and_data = match (paymaster_addr_opt, paymaster_data_opt.clone()) {
-            (Some(addr), Some(data)) => {
-                let mut buf = Vec::with_capacity(20 + 16 + 16 + data.len());
-                buf.extend_from_slice(addr.as_slice());
+        let paymaster_and_data =
+            match (paymaster_addr_opt, paymaster_data_opt.clone()) {
+                (Some(addr), Some(data)) => {
+                    let mut buf = Vec::with_capacity(20 + 16 + 16 + data.len());
+                    buf.extend_from_slice(addr.as_slice());
 
-                if let Some(verification_gas) = paymaster_ver_gas_opt {
-                    let verification_bytes = verification_gas.to_be_bytes_vec();
-                    buf.extend_from_slice(&verification_bytes[16..32]);
+                    if let Some(verification_gas) = paymaster_ver_gas_opt {
+                        let verification_bytes =
+                            verification_gas.to_be_bytes_vec();
+                        buf.extend_from_slice(&verification_bytes[16..32]);
+                    }
+
+                    if let Some(post_op_gas) = paymaster_post_gas_opt {
+                        let post_bytes = post_op_gas.to_be_bytes_vec();
+                        buf.extend_from_slice(&post_bytes[16..32]);
+                    }
+
+                    buf.extend_from_slice(data.as_ref());
+                    Bytes::from(buf)
                 }
-
-                if let Some(post_op_gas) = paymaster_post_gas_opt {
-                    let post_bytes = post_op_gas.to_be_bytes_vec();
-                    buf.extend_from_slice(&post_bytes[16..32]);
-                }
-
-                buf.extend_from_slice(data.as_ref());
-                Bytes::from(buf)
-            }
-            _ => Bytes::default(),
-        };
+                _ => Bytes::default(),
+            };
 
         let packed_user_op = PackedUserOperation {
             sender: user_op.sender,
@@ -1520,8 +1499,8 @@ pub fn submit_passkey_user_operation(
         console_log!("Submitting passkey-signed UserOperation...");
 
         // Parse the PreparedUserOperation from JSON
-        let prepared: PreparedUserOperation = serde_json::from_str(&prepared_user_op_json)
-            .map_err(|e| {
+        let prepared: PreparedUserOperation =
+            serde_json::from_str(&prepared_user_op_json).map_err(|e| {
                 JsValue::from_str(&format!(
                     "Failed to parse prepared_user_op_json: {}",
                     e
@@ -1583,10 +1562,14 @@ pub fn submit_passkey_user_operation(
             None => None,
         };
 
-        let paymaster_verification_gas_limit =
-            prepared.paymaster_verification_gas_limit.as_ref().and_then(|v| v.parse::<U256>().ok());
-        let paymaster_post_op_gas_limit =
-            prepared.paymaster_post_op_gas_limit.as_ref().and_then(|v| v.parse::<U256>().ok());
+        let paymaster_verification_gas_limit = prepared
+            .paymaster_verification_gas_limit
+            .as_ref()
+            .and_then(|v| v.parse::<U256>().ok());
+        let paymaster_post_op_gas_limit = prepared
+            .paymaster_post_op_gas_limit
+            .as_ref()
+            .and_then(|v| v.parse::<U256>().ok());
 
         // Parse numeric fields
         let nonce = match prepared.nonce.parse::<U256>() {
