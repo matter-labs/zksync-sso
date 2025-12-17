@@ -16,7 +16,6 @@ import {
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
 
-import { createPaymasterBundlerClient } from "../common/paymaster-middleware.js";
 import type { ToEcdsaSmartAccountParams } from "./account.js";
 import {
   type EcdsaClientActions,
@@ -145,12 +144,10 @@ export function createEcdsaClient<
 >(
   params: CreateEcdsaClientParams<TTransport, TChain>,
 ): EcdsaClient<TTransport, TChain, TRpcSchema> {
-  const { account: accountConfig, bundlerClient, chain, transport, paymaster } = params;
+  const { account: accountConfig, bundlerClient, chain, transport } = params;
 
   // Wrap bundler client to inject paymaster if provided
-  const wrappedBundlerClient = paymaster
-    ? createPaymasterBundlerClient(bundlerClient, paymaster)
-    : bundlerClient;
+  const wrappedBundlerClient = bundlerClient;
 
   // Create public client for RPC calls
   const publicClient = createPublicClient({

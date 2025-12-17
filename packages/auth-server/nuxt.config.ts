@@ -85,7 +85,7 @@ export default defineNuxtConfig({
       chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || localhost.id,
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
-      authServerApiUrl: process.env.NUXT_PUBLIC_AUTH_SERVER_API_URL || "http://localhost:3005",
+      authServerApiUrl: process.env.NUXT_PUBLIC_AUTH_SERVER_API_URL || "http://localhost:3004",
       prividiumMode: process.env.PRIVIDIUM_MODE === "true",
       prividium: {
         clientId: process.env.PRIVIDIUM_CLIENT_ID || "",

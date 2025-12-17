@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import { type Address, createPublicClient, createWalletClient, type Hex, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
-import { getGeneralPaymasterInput } from "viem/zksync";
 import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
 import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
@@ -94,7 +93,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       // Add paymaster if provided
       if (body.paymaster) {
         txParams.paymaster = body.paymaster;
-        txParams.paymasterInput = getGeneralPaymasterInput({ innerInput: "0x" });
+        txParams.paymasterInput = "0x";
       }
 
       txHash = await walletClient.sendTransaction(txParams);

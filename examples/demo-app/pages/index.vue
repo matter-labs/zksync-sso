@@ -119,6 +119,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { localhost } from "viem/chains";
 import { onMounted } from "vue";
 import ERC1271CallerContract from "../forge-output-erc1271.json";
+
 // Load contracts from public JSON at runtime to avoid ESM JSON import issues
 const contractsUrl = "/contracts.json";
 let contractsAnvil: Record<string, unknown> = {};
