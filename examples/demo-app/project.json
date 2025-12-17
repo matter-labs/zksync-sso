@@ -91,24 +91,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
-        "commands": [
-          {
-            "command": "pnpm nx run sdk-4337:build --skip-nx-cache",
-            "prefix": "Rebuild-SDK:"
-          },
-          {
-            "command": "cd ../../packages/auth-server && pnpm nuxt build"
-          },
-          {
-            "command": "pnpm nuxt build"
-          },
-          {
-            "command": "pnpm exec playwright install chromium"
-          },
-          {
-            "command": "cd ../.. && ( cd packages/auth-server && PORT=3002 NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3005 pnpm nuxt preview > /tmp/auth-server.log 2>&1 & echo $! > /tmp/auth-server.pid ) && ( cd examples/demo-app && PORT=3004 pnpm nuxt preview > /tmp/demo-app.log 2>&1 & echo $! > /tmp/demo-app.pid ) && sleep 10"
-          }
-        ]
+        "command": "pnpm exec playwright install chromium"
       },
       "dependsOn": ["deploy-contracts-erc4337"]
     },
@@ -116,16 +99,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
-        "commands": [
-          {
-            "command": "cd ../.. && ( cd packages/auth-server && PORT=3002 NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3005 pnpm nuxt preview > /tmp/auth-server.log 2>&1 & echo $! > /tmp/auth-server.pid ) && ( cd examples/demo-app && PORT=3004 pnpm nuxt preview > /tmp/demo-app.log 2>&1 & echo $! > /tmp/demo-app.pid ) && sleep 10",
-            "prefix": "Start-Servers:"
-          },
-          {
-            "command": "playwright test --config=playwright.config.ts",
-            "prefix": "Tests:"
-          }
-        ]
+        "command": "playwright test --config=playwright.config.ts"
       },
       "dependsOn": ["e2e:setup"]
     },

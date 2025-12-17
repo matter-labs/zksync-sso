@@ -40,14 +40,12 @@ ACCOUNT_IMPL=$(echo "$DEPLOY_OUTPUT" | grep "ModularSmartAccount implementation:
 BEACON=$(echo "$DEPLOY_OUTPUT" | grep "UpgradeableBeacon:" | awk '{print $2}')
 FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MSAFactory:" | awk '{print $2}')
 
-# Deploy paymaster separately (with dependencies from erc4337-contracts)
+# Deploy MockPaymaster directly from erc4337-contracts (simpler, no dependencies)
 echo ""
-echo "📦 Deploying TestPaymaster..."
-PAYMASTER_OUTPUT=$(cd "$WORKSPACE_ROOT/examples/demo-app/smart-contracts" && forge script DeployPaymaster.s.sol:DeployPaymaster --rpc-url "$RPC_URL" --broadcast --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 2>&1)
+echo "📦 Deploying MockPaymaster..."
+PAYMASTER=$(cd "$CONTRACTS_DIR" && forge create test/mocks/MockPaymaster.sol:MockPaymaster --rpc-url "$RPC_URL" --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 2>&1 | grep "Deployed to:" | awk '{print $3}')
 
-echo "$PAYMASTER_OUTPUT"
-
-PAYMASTER=$(echo "$PAYMASTER_OUTPUT" | grep "TestPaymaster:" | awk '{print $2}')
+echo "MockPaymaster deployed to: $PAYMASTER"
 
 # Fund the paymaster with ETH from Anvil account #0 (has plenty of ETH)
 echo ""
@@ -76,7 +74,7 @@ echo "  GuardianExecutor: $GUARDIAN_EXECUTOR"
 echo "  ModularSmartAccount impl: $ACCOUNT_IMPL"
 echo "  UpgradeableBeacon: $BEACON"
 echo "  MSAFactory: $FACTORY"
-echo "  TestPaymaster: $PAYMASTER"
+echo "  MockPaymaster: $PAYMASTER"
 
 # Create contracts-anvil.json
 echo ""
@@ -96,6 +94,7 @@ cat > contracts-anvil.json << EOF
   "beacon": "$BEACON",
   "factory": "$FACTORY",
   "testPaymaster": "$PAYMASTER",
+  "mockPaymaster": "$PAYMASTER",
   "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
   "bundlerUrl": "http://localhost:4337"
 }
