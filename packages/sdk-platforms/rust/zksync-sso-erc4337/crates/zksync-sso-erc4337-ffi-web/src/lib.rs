@@ -1343,14 +1343,16 @@ pub fn prepare_passkey_user_operation(
         ) = match paymaster_params {
             Some(ref pm) => {
                 // Auto-set paymaster_post_op_gas_limit if not provided (default: 1M gas)
-                let post_op_gas = pm.post_op_gas_limit.or_else(|| Some(U256::from(1_000_000u64)));
+                let post_op_gas = pm
+                    .post_op_gas_limit
+                    .or_else(|| Some(U256::from(1_000_000u64)));
                 (
                     Some(pm.address),
                     Some(pm.data.clone()),
                     pm.verification_gas_limit,
                     post_op_gas,
                 )
-            },
+            }
             None => (None, None, None, None),
         };
 
@@ -1361,7 +1363,8 @@ pub fn prepare_passkey_user_operation(
             pre_verification_gas
         );
         if paymaster_addr_opt.is_some() {
-            console_log!("  Paymaster gas limits: verification={}, postOp={}",
+            console_log!(
+                "  Paymaster gas limits: verification={}, postOp={}",
                 paymaster_ver_gas_opt.unwrap_or(U256::ZERO),
                 paymaster_post_gas_opt.unwrap_or(U256::ZERO)
             );
