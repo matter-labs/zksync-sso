@@ -44,7 +44,7 @@ FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MSAFactory:" | awk '{print $2}')
 echo ""
 echo "📦 Deploying MockPaymaster..."
 cd "$CONTRACTS_DIR"
-PAYMASTER_OUTPUT=$(forge create test/mocks/MockPaymaster.sol:MockPaymaster --rpc-url "$RPC_URL" --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 2>&1)
+PAYMASTER_OUTPUT=$(forge create test/mocks/MockPaymaster.sol:MockPaymaster --rpc-url "$RPC_URL" --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 --broadcast 2>&1)
 echo "$PAYMASTER_OUTPUT"
 PAYMASTER=$(echo "$PAYMASTER_OUTPUT" | grep "Deployed to:" | awk '{print $3}')
 
