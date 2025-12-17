@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Passkey Wallet - Ethereum Sepolia</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .step-number {
+      background: #667eea;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 12px;
+    }
+
+    .step-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover:not(:disabled) {
+      background: #5568d3;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .success-box {
+      background: #d4edda;
+      border: 2px solid #c3e6cb;
+      color: #155724;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .success-box strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .error-box {
+      background: #f8d7da;
+      border: 2px solid #f5c6cb;
+      color: #721c24;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    .info-box {
+      background: #d1ecf1;
+      border: 2px solid #bee5eb;
+      color: #0c5460;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      word-break: break-all;
+      display: inline-block;
+      margin-top: 4px;
+    }
+
+    .balance {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .footer {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Passkey Wallet</h1>
+
+    <!-- Step 1: Create Passkey -->
+    <div class="card">
+      <div class="step-header">
+        <div class="step-number">1</div>
+        <div class="step-title">Create Passkey</div>
+      </div>
+
+      <div id="passkey-input">
+        <div class="form-group">
+          <label for="userName">Your Name</label>
+          <input type="text" id="userName" placeholder="Enter your name">
+        </div>
+        <button id="createPasskeyBtn">Create Passkey</button>
+      </div>
+
+      <div id="passkey-success" class="hidden success-box">
+        <strong>✓ Passkey Created!</strong>
+        <div>Credential ID: <code id="credentialIdDisplay"></code></div>
+        <button id="resetPasskeyBtn" style="margin-top: 12px; background: #dc3545; font-size: 0.9rem;">Reset Passkey</button>
+      </div>
+
+      <div id="passkey-error" class="hidden error-box"></div>
+    </div>
+
+    <!-- Step 2: Deploy Account -->
+    <div class="card">
+      <div class="step-header">
+        <div class="step-number">2</div>
+        <div class="step-title">Deploy Smart Account</div>
+      </div>
+
+      <div id="deploy-button-container">
+        <p style="margin-bottom: 16px; color: #666;">
+          Deploy a smart account contract that can be controlled with your passkey.
+        </p>
+        <button id="deployAccountBtn" disabled>Deploy Account</button>
+      </div>
+
+      <div id="deploy-success" class="hidden success-box">
+        <strong>✓ Account Deployed!</strong>
+        <div>Address: <code id="accountAddressDisplay"></code></div>
+        <div style="margin-top: 8px;">Balance: <span class="balance" id="balanceDisplay">0 ETH</span></div>
+        <button id="refreshBalanceBtn" style="margin-top: 12px; background: #28a745;">Refresh Balance</button>
+      </div>
+
+      <div id="deploy-error" class="hidden error-box"></div>
+    </div>
+
+    <!-- Step 3: Transfer ETH -->
+    <div class="card">
+      <div class="step-header">
+        <div class="step-number">3</div>
+        <div class="step-title">Transfer ETH</div>
+      </div>
+
+      <div id="transfer-form">
+        <div class="form-group">
+          <label for="recipientAddress">Recipient Address</label>
+          <input type="text" id="recipientAddress" placeholder="0x...">
+        </div>
+
+        <div class="form-group">
+          <label for="transferAmount">Amount (ETH)</label>
+          <input type="number" id="transferAmount" step="0.001" placeholder="0.01">
+        </div>
+
+        <button id="transferBtn" disabled>Send ETH</button>
+      </div>
+
+      <div id="transfer-success" class="hidden success-box">
+        <strong>✓ Transaction Sent!</strong>
+        <div>TX Hash: <code id="txHashDisplay"></code></div>
+      </div>
+
+      <div id="transfer-error" class="hidden error-box"></div>
+    </div>
+
+    <!-- Network Info -->
+    <div class="footer">
+      <strong>Network:</strong> Ethereum Sepolia Testnet<br>
+      <strong>RPC:</strong> Alchemy API
+    </div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

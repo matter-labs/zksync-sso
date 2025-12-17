@@ -1,0 +1,22 @@
+{
+  "name": "passkey-wallet-app",
+  "version": "1.0.0",
+  "description": "Simple passkey wallet app for Ethereum Sepolia",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@simplewebauthn/browser": "^13.2.2",
+    "@simplewebauthn/server": "^13.2.2",
+    "@wagmi/core": "^2.22.1",
+    "dotenv": "^16.4.5",
+    "viem": "^2.30.0",
+    "zksync-sso": "^0.4.3"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
