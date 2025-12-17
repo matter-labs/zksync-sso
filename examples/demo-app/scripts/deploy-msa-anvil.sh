@@ -55,6 +55,10 @@ echo "💰 Funding paymaster with 10 ETH..."
 ANVIL_ACCOUNT_0_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 cast send "$PAYMASTER" --value 10ether --private-key "$ANVIL_ACCOUNT_0_KEY" --rpc-url "$RPC_URL" 2>&1 || echo "Fund transfer initiated"
 
+# Deposit the paymaster's ETH into the EntryPoint
+echo "💳 Depositing 10 ETH into EntryPoint for paymaster..."
+cast send "$PAYMASTER" "deposit()" --value 10ether --private-key "$ANVIL_ACCOUNT_0_KEY" --rpc-url "$RPC_URL" 2>&1 || echo "Deposit initiated"
+
 # Verify all addresses were extracted
 if [ -z "$EOA_VALIDATOR" ] || [ -z "$SESSION_VALIDATOR" ] || [ -z "$WEBAUTHN_VALIDATOR" ] || \
   [ -z "$GUARDIAN_EXECUTOR" ] || [ -z "$ACCOUNT_IMPL" ] || [ -z "$BEACON" ] || [ -z "$FACTORY" ] || [ -z "$PAYMASTER" ]; then

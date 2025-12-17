@@ -2,11 +2,11 @@
 
 ## Problem Statement
 
-The **"Send with Paymaster (Passkey)"** button fails with AA23 error
-(signature validation failure) during gas estimation, while:
+The **"Send with Paymaster (Passkey)"** button fails with AA23 error (signature
+validation failure) during gas estimation, while:
 
-- ✅ **EOA + Paymaster** works correctly (confirmed: balance changed
-  0.1 → 0.09 ETH)
+- ✅ **EOA + Paymaster** works correctly (confirmed: balance changed 0.1 → 0.09
+  ETH)
 - ✅ **Passkey without Paymaster** works correctly
 - ✅ **Rust integration test** with passkey + paymaster passes all assertions
 - ❌ **Vue button** with passkey + paymaster consistently fails with AA23
@@ -29,8 +29,8 @@ The **"Send with Paymaster (Passkey)"** button fails with AA23 error
   - This sets `data: Bytes::default()` (**empty bytes**, not a flow type)
 - Calls `passkey_send_transaction()` which internally uses `send_user_op()`
 - Validates: sender only loses transfer amount (no gas fees paid by sender)
-- **Test assertion:** `sender_delta == amount` (only 1000 wei transferred,
-  no gas)
+- **Test assertion:** `sender_delta == amount` (only 1000 wei transferred, no
+  gas)
 
 ## Failing Implementation: Vue Button
 
@@ -69,8 +69,7 @@ AA23 reverted
 
 ### Error Code Meaning
 
-- **AA23** = Account's `validateAccountSignature()` reverted during
-  validation
+- **AA23** = Account's `validateAccountSignature()` reverted during validation
 - This is **NOT** a paymaster error (which would be AA33)
 - Occurs during gas estimation (`eth_call`) with state overrides
 - Not during actual transaction submission
@@ -81,8 +80,8 @@ The AA23 error during gas estimation suggests one of these:
 
 1. **Account state issue**: The passkey hasn't been registered properly or
    WebAuthn validator isn't installed as a module
-2. **Stub signature mismatch**: The stub signature used during gas
-   estimation doesn't match what the validator expects
+2. **Stub signature mismatch**: The stub signature used during gas estimation
+   doesn't match what the validator expects
 3. **Nonce state issue**: If account already used the passkey for other
    transactions, nonce validation might fail
 4. **State override problem**: The state override in the bundler's gas
@@ -178,8 +177,7 @@ in PaymasterParams constructor
 - [ ] Deploy Account
 - [ ] Fund Account (0.1 ETH)
 - [ ] Load WebAuthn Validator Address
-- [ ] Register Passkey (critical - installs WebAuthn validator
-  module)
+- [ ] Register Passkey (critical - installs WebAuthn validator module)
 - [ ] Fund Paymaster (1 ETH)
 - [ ] Verify Paymaster Balance shows > 0
 
@@ -188,8 +186,7 @@ in PaymasterParams constructor
 - ✅ Steps 1-5 complete successfully
 - ✅ Console logs show addresses are loaded
 - ❌ "Send with Paymaster (Passkey)" fails with AA23
-- Error occurs during bundler's gas estimation (eth_call
-  simulateValidation)
+- Error occurs during bundler's gas estimation (eth_call simulateValidation)
 
 ## Areas to Investigate
 
@@ -246,14 +243,12 @@ The WebAuthnValidator might have specific requirements:
 - Expected signature format (from `stub_signature_passkey_core`)
 - Validation might fail if account state isn't properly simulated
 - Validator code location:
-  `packages/erc4337-contracts/contracts/validators/
-  WebAuthnValidator.sol`
+  `packages/erc4337-contracts/contracts/validators/ WebAuthnValidator.sol`
 
 ## WASM FFI Flow Details
 
 **File:**
-`packages/sdk-platforms/rust/zksync-sso-erc4337/crates/
-zksync-sso-erc4337-ffi-web/src/lib.rs`
+`packages/sdk-platforms/rust/zksync-sso-erc4337/crates/ zksync-sso-erc4337-ffi-web/src/lib.rs`
 
 ### Paymaster Normalization (lines 340-379)
 
@@ -272,9 +267,8 @@ fn normalize_paymaster_params(pm: Option<PaymasterParams>) -> Option<PaymasterPa
 }
 ```
 
-**Note:** Hex decoding failures silently fall back to empty bytes.
-This is why "0x05" vs null shouldn't matter, but might indicate other
-issues.
+**Note:** Hex decoding failures silently fall back to empty bytes. This is why
+"0x05" vs null shouldn't matter, but might indicate other issues.
 
 ### UserOperation Preparation (lines 1186-1500)
 
@@ -327,8 +321,7 @@ const balance = await publicClient.getBalance({
 
 ### Anvil Logs
 
-Watch the Anvil terminal (Terminal "a") during "Send with Paymaster
-(Passkey)":
+Watch the Anvil terminal (Terminal "a") during "Send with Paymaster (Passkey)":
 
 - Should show `eth_call` with state overrides
 - Look for the account address in the calls
@@ -349,8 +342,7 @@ Check the bundler RPC calls in browser DevTools:
 
 ### Hypothesis 1: Module Not Installed
 
-After clicking "Register Passkey", the WebAuthn validator should be
-installed.
+After clicking "Register Passkey", the WebAuthn validator should be installed.
 
 **Test:**
 
@@ -370,8 +362,7 @@ console.log("WebAuthn validator installed:", isInstalled)
 
 The passkey credentials might not be stored properly.
 
-**Test:** Check the account's storage for passkey after "Register
-Passkey":
+**Test:** Check the account's storage for passkey after "Register Passkey":
 
 ```typescript
 // Get account's passkey registry state
@@ -423,11 +414,11 @@ const paymaster = new PaymasterParams(paymasterAddress, null, null, null);
 ### Core Logic
 
 - [lib.rs](packages/sdk-platforms/rust/zksync-sso-erc4337/crates/
-  zksync-sso-erc4337-ffi-web/src/lib.rs) -
-  `prepare_passkey_user_operation()`, `normalize_paymaster_params()`
+  zksync-sso-erc4337-ffi-web/src/lib.rs) - `prepare_passkey_user_operation()`,
+  `normalize_paymaster_params()`
 - [send.rs](packages/sdk-platforms/rust/zksync-sso-erc4337/crates/
-  zksync-sso-erc4337-core/src/erc4337/account/modular_smart_account/
-  send.rs) - `send_user_op()`
+  zksync-sso-erc4337-core/src/erc4337/account/modular_smart_account/ send.rs) -
+  `send_user_op()`
 - [passkey.rs](packages/sdk-platforms/rust/zksync-sso-erc4337/crates/
   zksync-sso-erc4337-core/src/erc4337/account/modular_smart_account/
   send/passkey.rs) - `passkey_send_transaction()`
@@ -443,28 +434,32 @@ const paymaster = new PaymasterParams(paymasterAddress, null, null, null);
 
 - [web-sdk-test.vue](examples/demo-app/pages/web-sdk-test.vue) -
   `sendWithPasskeyPaymaster()` (line 1449)
-- [TransactionSender.vue](examples/demo-app/components/
-  TransactionSender.vue) - Paymaster checkbox and submission
+- [TransactionSender.vue](examples/demo-app/components/ TransactionSender.vue) -
+  Paymaster checkbox and submission
 
 ## Next Steps for Debugging
 
 1. **Enable verbose logging:**
-   - Add `console.log()` statements in `prepare_passkey_user_operation()`
-     (Rust WASM)
+
+   - Add `console.log()` statements in `prepare_passkey_user_operation()` (Rust
+     WASM)
    - Log the prepared UserOperation before signing
    - Log the final paymaster field values
 
 2. **Test with reduced scope:**
+
    - Try sending without paymaster to confirm passkey works
    - Try EOA with paymaster to confirm paymaster works
    - Combine both to identify interaction issue
 
 3. **Compare UserOperations:**
+
    - Print full UserOp from working EOA + paymaster
    - Print full UserOp from failing Passkey + paymaster
    - Diff the two to find structural differences
 
 4. **Check state machine:**
+
    - Ensure "Register Passkey" actually installed the module
    - Verify account state includes registered passkey
    - Confirm nonce is correct before sending

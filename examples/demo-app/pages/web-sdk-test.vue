@@ -1420,16 +1420,38 @@ async function fundPaymaster() {
     const deployerKey = eoaSignerPrivateKey;
     const deployerAccount = privateKeyToAccount(`0x${deployerKey}`);
 
-    // Create a simple transfer transaction
-    await createWalletClient({
+    const walletClient = createWalletClient({
       account: deployerAccount,
       chain: getChainConfig(contracts),
       transport: http(rpcUrl),
-    }).sendTransaction({
+    });
+
+    // Create a simple transfer transaction to fund the paymaster
+    await walletClient.sendTransaction({
       to: paymasterAddress as Address,
       value: parseEther(paymasterFundAmount.value),
       account: deployerAccount,
     });
+
+    // eslint-disable-next-line no-console
+    console.log("💰 Funded paymaster with", paymasterFundAmount.value, "ETH");
+
+    // Wait for confirmation
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Now deposit the funds into the EntryPoint by calling deposit()
+    // eslint-disable-next-line no-console
+    console.log("💳 Depositing funds into EntryPoint...");
+
+    await walletClient.sendTransaction({
+      to: paymasterAddress as Address,
+      data: "0xd0e30db0" as `0x${string}`, // deposit() function selector
+      value: parseEther(paymasterFundAmount.value),
+      account: deployerAccount,
+    });
+
+    // eslint-disable-next-line no-console
+    console.log("✅ Deposit complete");
 
     // Wait for confirmation
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -1488,8 +1510,26 @@ async function sendWithPasskeyPaymaster() {
 
     // Build config and paymaster params
     const config = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
-    // Use empty data for paymaster (matching Rust test's default_paymaster)
-    const paymaster = new PaymasterParams(paymasterAddress, null, null, null);
+    // Passkey signatures are large and need more gas than ECDSA
+    // verificationGasLimit: 500k (passkey validation is expensive)
+    // postOpGasLimit: 1M (default)
+    const paymaster = new PaymasterParams(
+      paymasterAddress,
+      null,
+      "500000", // verification gas limit
+      null, // postOp will default to 1M
+    );
+
+    // eslint-disable-next-line no-console
+    console.log("🔧 Preparing passkey transaction with paymaster:", paymasterAddress);
+    // eslint-disable-next-line no-console
+    console.log("   EntryPoint:", entryPoint);
+    // eslint-disable-next-line no-console
+    console.log("   Account:", accountAddress);
+    // eslint-disable-next-line no-console
+    console.log("   To:", toAddress);
+    // eslint-disable-next-line no-console
+    console.log("   Amount:", amountWei, "wei");
 
     // Prepare user operation (includes paymaster into the prepared payload)
     const prepared = await prepare_passkey_user_operation(
