@@ -618,7 +618,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { createWalletClient, http, type Hash, type Hex, type Address, parseEther, formatEther, getAddress, custom } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { createBundlerClient } from "viem/account-abstraction";
@@ -715,6 +715,7 @@ const passkeyConfig = ref({
   passkeyY: "0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501",
   originDomain: window.location.origin,
   validatorAddress: "",
+  paymasterAddress: "",
 });
 
 // Wallet configuration state
@@ -758,6 +759,13 @@ const anvilPrivateKeys = [
   "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97", // Account #8
   "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6", // Account #9
 ];
+
+// Watch for contracts to be loaded and update paymaster config
+watch(contracts, (newContracts) => {
+  if (newContracts && newContracts.testPaymaster) {
+    passkeyConfig.value.paymasterAddress = newContracts.testPaymaster;
+  }
+});
 
 /**
  * Get the private key for funding based on wallet configuration
@@ -857,8 +865,11 @@ async function loadWebAuthnValidatorAddress() {
   try {
     const contracts = await loadContracts();
     passkeyConfig.value.validatorAddress = contracts.webauthnValidator;
+    passkeyConfig.value.paymasterAddress = contracts.testPaymaster;
     // eslint-disable-next-line no-console
     console.log("Loaded WebAuthn validator address:", contracts.webauthnValidator);
+    // eslint-disable-next-line no-console
+    console.log("Loaded TestPaymaster address:", contracts.testPaymaster);
   } catch (err: unknown) {
     // eslint-disable-next-line no-console
     console.warn("Failed to load contracts.json:", err);
@@ -1459,7 +1470,7 @@ async function sendWithPasskeyPaymaster() {
     const contracts = await loadContracts();
     const rpcUrl = contracts.rpcUrl;
     const bundlerUrl = getBundlerUrl(contracts);
-    const entryPoint = contracts.entryPoint ?? "0x0000000000000000000000000000000000000000";
+    const entryPoint = contracts.entryPoint;
     const webauthnValidator = passkeyConfig.value.validatorAddress || contracts.webauthnValidator;
 
     // Resolve recipient and paymaster defaults
@@ -1477,6 +1488,7 @@ async function sendWithPasskeyPaymaster() {
 
     // Build config and paymaster params
     const config = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
+    // Use empty data for paymaster (matching Rust test's default_paymaster)
     const paymaster = new PaymasterParams(paymasterAddress, null, null, null);
 
     // Prepare user operation (includes paymaster into the prepared payload)
@@ -1575,7 +1587,8 @@ async function sendWithEoaPaymaster() {
     const amountWei = parseEther(paymasterTx.value.amount).toString();
 
     const config = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
-    const paymaster = new PaymasterParams(paymasterAddress, null, null, null);
+    // Use "0x05" for General paymaster flow (same as passkey flow for consistency)
+    const paymaster = new PaymasterParams(paymasterAddress, "0x05", null, null);
 
     // Use the same Anvil EOA key from the page for demo
     const eoaKey = eoaSignerPrivateKey;
