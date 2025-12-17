@@ -1324,13 +1324,13 @@ pub fn prepare_passkey_user_operation(
 
         // Use fixed high gas values (matching the Rust test approach when bundler is unavailable)
         // Increase verification gas for paymaster transactions since they require additional validation
-        let call_gas_limit = U256::from(2_000_000u64);
+        let call_gas_limit = U256::from(3_000_000u64); // Increased from 2M
         let verification_gas_limit = if paymaster_params.is_some() {
-            U256::from(3_000_000u64) // Higher for paymaster validation
+            U256::from(5_000_000u64) // Increased from 3M for paymaster + passkey validation
         } else {
-            U256::from(2_000_000u64)
+            U256::from(3_000_000u64) // Increased from 2M
         };
-        let pre_verification_gas = U256::from(1_000_000u64);
+        let pre_verification_gas = U256::from(1_500_000u64); // Increased from 1M
         let max_priority_fee_per_gas = U256::from(0x77359400u64);
         let max_fee_per_gas = U256::from(0x82e08afeu64);
 
@@ -1341,12 +1341,16 @@ pub fn prepare_passkey_user_operation(
             paymaster_ver_gas_opt,
             paymaster_post_gas_opt,
         ) = match paymaster_params {
-            Some(ref pm) => (
-                Some(pm.address),
-                Some(pm.data.clone()),
-                pm.verification_gas_limit,
-                pm.post_op_gas_limit,
-            ),
+            Some(ref pm) => {
+                // Auto-set paymaster_post_op_gas_limit if not provided (default: 1M gas)
+                let post_op_gas = pm.post_op_gas_limit.or_else(|| Some(U256::from(1_000_000u64)));
+                (
+                    Some(pm.address),
+                    Some(pm.data.clone()),
+                    pm.verification_gas_limit,
+                    post_op_gas,
+                )
+            },
             None => (None, None, None, None),
         };
 
@@ -1356,6 +1360,12 @@ pub fn prepare_passkey_user_operation(
             verification_gas_limit,
             pre_verification_gas
         );
+        if paymaster_addr_opt.is_some() {
+            console_log!("  Paymaster gas limits: verification={}, postOp={}",
+                paymaster_ver_gas_opt.unwrap_or(U256::ZERO),
+                paymaster_post_gas_opt.unwrap_or(U256::ZERO)
+            );
+        }
 
         // Create AlloyPackedUserOperation
         let user_op = AlloyPackedUserOperation {
@@ -1383,28 +1393,13 @@ pub fn prepare_passkey_user_operation(
             (user_op.max_priority_fee_per_gas << 128) | user_op.max_fee_per_gas;
 
         // Create PackedUserOperation for hashing (EntryPoint format with packed fields)
-        let paymaster_and_data =
-            match (paymaster_addr_opt, paymaster_data_opt.clone()) {
-                (Some(addr), Some(data)) => {
-                    let mut buf = Vec::with_capacity(20 + 16 + 16 + data.len());
-                    buf.extend_from_slice(addr.as_slice());
-
-                    if let Some(verification_gas) = paymaster_ver_gas_opt {
-                        let verification_bytes =
-                            verification_gas.to_be_bytes_vec();
-                        buf.extend_from_slice(&verification_bytes[16..32]);
-                    }
-
-                    if let Some(post_op_gas) = paymaster_post_gas_opt {
-                        let post_bytes = post_op_gas.to_be_bytes_vec();
-                        buf.extend_from_slice(&post_bytes[16..32]);
-                    }
-
-                    buf.extend_from_slice(data.as_ref());
-                    Bytes::from(buf)
-                }
-                _ => Bytes::default(),
-            };
+        // Use the same build_paymaster_and_data function as the core send module
+        let paymaster_and_data = zksync_sso_erc4337_core::erc4337::paymaster::params::build_paymaster_and_data(
+            paymaster_addr_opt,
+            paymaster_ver_gas_opt,
+            paymaster_post_gas_opt,
+            paymaster_data_opt.as_ref(),
+        );
 
         let packed_user_op = PackedUserOperation {
             sender: user_op.sender,

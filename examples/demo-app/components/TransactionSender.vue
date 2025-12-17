@@ -57,6 +57,21 @@
         >
       </div>
 
+      <!-- Optional Paymaster -->
+      <div class="p-3 bg-white rounded border border-indigo-300">
+        <label class="flex items-center">
+          <input
+            v-model="usePaymaster"
+            type="checkbox"
+            class="mr-2"
+          >
+          <span class="text-sm">Use Demo Paymaster (sponsor gas)</span>
+        </label>
+        <p class="text-xs text-gray-600 mt-2">
+          When enabled, the user operation will include `paymaster` parameters and higher verification gas.
+        </p>
+      </div>
+
       <!-- Send Button -->
       <button
         :disabled="loading || !deploymentResult"
@@ -96,7 +111,7 @@ import { formatEther, parseEther } from "viem";
 import type { Address } from "viem";
 
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
-import { prepare_passkey_user_operation, submit_passkey_user_operation, SendTransactionConfig, send_transaction_eoa, signWithPasskey } from "zksync-sso-web-sdk/bundler";
+import { PaymasterParams, prepare_passkey_user_operation, submit_passkey_user_operation, SendTransactionConfig, send_transaction_eoa, signWithPasskey } from "zksync-sso-web-sdk/bundler";
 
 import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
 
@@ -125,6 +140,7 @@ const props = defineProps({
 const signingMethod = ref("eoa");
 const to = ref("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // Anvil account #2
 const amount = ref("0.001");
+const usePaymaster = ref(false);
 const loading = ref(false);
 const txResult = ref("");
 const txError = ref("");
@@ -157,7 +173,7 @@ async function sendTransaction() {
     const balance = await publicClient.getBalance({
       address: props.deploymentResult.address as Address,
     });
-    const balanceEth = formatEther(balance);
+    const balanceEth = Number(formatEther(balance)).toFixed(6);
 
     // eslint-disable-next-line no-console
     console.log("  Smart account balance:", balanceEth, "ETH");
@@ -209,6 +225,21 @@ async function sendFromSmartAccountWithEOA() {
 
   const privateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as `0x${string}`;
 
+  // Use paymaster if checkbox is enabled
+  let paymasterParams = null;
+  if (usePaymaster.value) {
+    if (!props.passkeyConfig.paymasterAddress) {
+      throw new Error("Paymaster address is not configured. Please configure paymaster in the Passkey Config section.");
+    }
+    if (!props.passkeyConfig.paymasterFlow) {
+      throw new Error("Paymaster flow is not configured. Please configure paymaster in the Passkey Config section.");
+    }
+    paymasterParams = new PaymasterParams(
+      props.passkeyConfig.paymasterAddress,
+      props.passkeyConfig.paymasterFlow,
+    );
+  }
+
   const config = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
   const userOpHashOrReceipt = await send_transaction_eoa(
     config,
@@ -218,7 +249,7 @@ async function sendFromSmartAccountWithEOA() {
     to.value,
     valueWei,
     "0x",
-    null,
+    paymasterParams,
   );
 
   // eslint-disable-next-line no-console
@@ -248,6 +279,8 @@ async function sendFromSmartAccountWithPasskey() {
   console.log("  Amount:", amount.value, "ETH");
   // eslint-disable-next-line no-console
   console.log("  WebAuthn Validator:", webauthnValidatorAddress);
+  // eslint-disable-next-line no-console
+  console.log("  Use Paymaster:", usePaymaster.value);
 
   // Verify the public key is registered on-chain
   // eslint-disable-next-line no-console
@@ -305,7 +338,11 @@ async function sendFromSmartAccountWithPasskey() {
   // Don't use paymaster for normal passkey transactions
   // (paymaster is tested separately in web-sdk-test.vue)
 
-  // Step 1: prepare userOp and hash (no paymaster)
+  // Step 1: prepare userOp and hash (optionally with paymaster)
+  const paymasterParams = usePaymaster.value
+    ? new PaymasterParams(props.passkeyConfig.paymasterAddress, null, null, null)
+    : undefined;
+
   const preparedJson = await prepare_passkey_user_operation(
     config,
     webauthnValidatorAddress,
@@ -313,7 +350,7 @@ async function sendFromSmartAccountWithPasskey() {
     to.value,
     valueWei,
     "0x",
-    undefined, // No paymaster
+    paymasterParams,
   );
 
   // Debug + guards to ensure prepare returned a valid payload
@@ -345,7 +382,7 @@ async function sendFromSmartAccountWithPasskey() {
 
   const { signature } = signResult;
 
-  // Step 3: submit signed userOp (paymaster already embedded)
+  // Step 3: submit signed userOp (paymaster already embedded if used)
   // Important: create a fresh config for submit. The config used in
   // prepare may be consumed by WASM and invalid for reuse.
   const submitConfig = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
