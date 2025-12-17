@@ -18,6 +18,7 @@ export default [
       "**/cache-zk/",
       "**/typechain-types/",
       "**/react-native-zksync-sso/",
+      "**/zksync-sso-contracts/dependencies/**",
     ],
   },
   { files: ["**/*.{js,mjs,cjs,ts}"] },
