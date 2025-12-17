@@ -1,6 +1,5 @@
 import { type Address, type Chain, createPublicClient, createWalletClient, custom, type Hash, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport, type WalletClient } from "viem";
 import { type BundlerClient, createBundlerClient } from "viem/account-abstraction";
-import type { CustomPaymasterHandler } from "zksync-sso/paymaster";
 
 import { createSessionClient, type SessionClient } from "../client/session/client.js";
 import type { Communicator } from "../communicator/index.js";
@@ -44,7 +43,6 @@ type SignerConstructorParams = {
   // onSessionStateChange?: (event: { address: Address; chainId: number; state: SessionStateEvent }) => void;
   skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
   storage?: StorageLike;
-  paymasterHandler?: CustomPaymasterHandler;
   paymasterAddress?: Address;
 };
 
@@ -58,7 +56,6 @@ export class Signer implements SignerInterface {
   private readonly transports: Record<number, Transport> = {};
   private readonly bundlerClients: Record<number, BundlerClient> = {};
   private readonly sessionParameters?: () => (SessionPreferences | Promise<SessionPreferences>);
-  private readonly paymasterHandler?: CustomPaymasterHandler;
   private readonly paymasterAddress?: Address;
   // private readonly onSessionStateChange?: SignerConstructorParams["onSessionStateChange"];
   // private readonly skipPreTransactionStateValidation?: boolean;
@@ -67,7 +64,7 @@ export class Signer implements SignerInterface {
   private _chainsInfo: StorageItem<ChainsInfo>;
   private client: { instance: SessionClient; type: "session" } | { instance: WalletClient; type: "auth-server" } | undefined;
 
-  constructor({ metadata, communicator, updateListener, session, chains, transports, bundlerClients, /* onSessionStateChange, skipPreTransactionStateValidation, */ storage, paymasterHandler, paymasterAddress }: SignerConstructorParams) {
+  constructor({ metadata, communicator, updateListener, session, chains, transports, bundlerClients, /* onSessionStateChange, skipPreTransactionStateValidation, */ storage, paymasterAddress }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
 
     this.getMetadata = metadata;
@@ -77,7 +74,6 @@ export class Signer implements SignerInterface {
     this.chains = chains;
     this.transports = transports || {};
     this.bundlerClients = bundlerClients || {};
-    this.paymasterHandler = paymasterHandler;
     this.paymasterAddress = paymasterAddress;
     // this.onSessionStateChange = onSessionStateChange;
     // this.skipPreTransactionStateValidation = skipPreTransactionStateValidation;
@@ -206,7 +202,6 @@ export class Signer implements SignerInterface {
           bundlerClient,
           chain,
           transport: this.transports[chain.id] || http(),
-          paymasterHandler: this.paymasterHandler,
           /* onSessionStateChange: (event: SessionStateEvent) => {
             if (!this.onSessionStateChange) return;
             this.onSessionStateChange({

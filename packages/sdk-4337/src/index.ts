@@ -6,3 +6,6 @@ export * from "./communicator/index.js";
 
 // Re-export errors
 export * from "./errors/index.js";
+
+// Re-export actions
+export * from "./actions/sendUserOperation.js";

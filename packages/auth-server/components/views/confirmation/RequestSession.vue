@@ -128,7 +128,6 @@
 
 <script lang="ts" setup>
 import { useNow } from "@vueuse/core";
-import type { Address } from "viem";
 import { encodePacked, keccak256, pad, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
 import { formatSessionPreferences, getSessionHash, type SessionPreferences } from "zksync-sso-4337/client";
@@ -145,7 +144,7 @@ const props = defineProps({
 const { appMeta, appOrigin } = useAppMeta();
 const { login } = useAccountStore();
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const { responseInProgress, requestChainId, requestParams } = storeToRefs(useRequestsStore());
+const { responseInProgress, requestChainId } = storeToRefs(useRequestsStore());
 const { createAccount } = useAccountCreate(requestChainId);
 const { respond, deny } = useRequestsStore();
 const { getClient } = useClientStore();
@@ -279,8 +278,8 @@ const confirmConnection = async () => {
   try {
     if (!isLoggedIn.value) {
       // create a new account with initial session data
-      const paymaster = (requestParams.value as { paymaster?: Address } | undefined)?.paymaster;
-      const accountData = await createAccount(sessionConfig.value, paymaster);
+      // Ignore paymaster provided in params for standard connect to avoid validation failures
+      const accountData = await createAccount(sessionConfig.value, undefined);
       if (!accountData) return;
       login({
         address: accountData.address,

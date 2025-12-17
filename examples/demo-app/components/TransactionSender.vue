@@ -57,6 +57,21 @@
         >
       </div>
 
+      <!-- Optional Paymaster -->
+      <div class="p-3 bg-white rounded border border-indigo-300">
+        <label class="flex items-center">
+          <input
+            v-model="usePaymaster"
+            type="checkbox"
+            class="mr-2"
+          >
+          <span class="text-sm">Use Demo Paymaster (sponsor gas)</span>
+        </label>
+        <p class="text-xs text-gray-600 mt-2">
+          When enabled, the user operation will include `paymaster` parameters and higher verification gas.
+        </p>
+      </div>
+
       <!-- Send Button -->
       <button
         :disabled="loading || !deploymentResult"
@@ -92,14 +107,22 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { formatEther, http, parseEther } from "viem";
-import { createBundlerClient } from "viem/account-abstraction";
+import { formatEther, parseEther } from "viem";
 import type { Address } from "viem";
 
-import { createEcdsaClient, createPasskeyClient } from "zksync-sso-4337/client";
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
+import { PaymasterParams, prepare_passkey_user_operation, submit_passkey_user_operation, SendTransactionConfig, send_transaction_eoa, signWithPasskey } from "zksync-sso-web-sdk/bundler";
 
 import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";
+
+const getRpId = (origin: string) => {
+  try {
+    return new URL(origin).hostname;
+  } catch {
+    // Fallback to raw origin string if parsing fails
+    return origin;
+  }
+};
 
 // Props
 const props = defineProps({
@@ -117,6 +140,7 @@ const props = defineProps({
 const signingMethod = ref("eoa");
 const to = ref("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // Anvil account #2
 const amount = ref("0.001");
+const usePaymaster = ref(false);
 const loading = ref(false);
 const txResult = ref("");
 const txError = ref("");
@@ -149,7 +173,7 @@ async function sendTransaction() {
     const balance = await publicClient.getBalance({
       address: props.deploymentResult.address as Address,
     });
-    const balanceEth = formatEther(balance);
+    const balanceEth = Number(formatEther(balance)).toFixed(6);
 
     // eslint-disable-next-line no-console
     console.log("  Smart account balance:", balanceEth, "ETH");
@@ -173,10 +197,10 @@ async function sendTransaction() {
     } else {
       await sendFromSmartAccountWithEOA();
     }
-  } catch (err) {
+  } catch (error) {
     // eslint-disable-next-line no-console
-    console.error("Transaction failed:", err);
-    txError.value = `Failed to send transaction: ${(err as Error).message}`;
+    console.error("Transaction failed:", error);
+    txError.value = `Failed to send transaction: ${(error as Error).message}`;
   } finally {
     loading.value = false;
   }
@@ -188,44 +212,49 @@ async function sendFromSmartAccountWithEOA() {
   const contracts = await loadContracts();
   const chain = getChainConfig(contracts);
 
-  // Create public client for network calls
-  const publicClient = await createPublicClient(contracts);
-
-  // Create bundler client with entry point configuration
-  const bundlerClient = createBundlerClient({
-    client: publicClient,
-    chain,
-    transport: http(getBundlerUrl(contracts)),
-  });
-
-  // Create ECDSA client using the new SDK
   // eslint-disable-next-line no-console
-  console.log("  Creating ECDSA client...");
-  const client = createEcdsaClient({
-    account: {
-      address: props.deploymentResult.address as Address,
-      // EOA signer private key (Anvil account #1) - this will sign the UserOperation
-      signerPrivateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-      eoaValidatorAddress: contracts.eoaValidator as Address,
-    },
-    bundlerClient,
-    chain,
-    transport: http(), // Use default RPC URL (not bundler URL)
-  });
+  console.log("  Sending transaction via Rust FFI path...");
 
-  // Send transaction (returns actual tx hash, not userOp hash)
+  // Prepare params for sendUserOperation
+  const rpcUrl = chain.rpcUrls.default.http[0];
+  const bundlerUrl = getBundlerUrl(contracts);
+  const entryPoint = contracts.entryPoint as Address;
+  const account = props.deploymentResult.address as Address;
+  const validator = contracts.eoaValidator as Address;
+  const valueWei = parseEther(amount.value).toString();
+
+  const privateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as `0x${string}`;
+
+  // Use paymaster if checkbox is enabled
+  let paymasterParams = null;
+  if (usePaymaster.value) {
+    if (!props.passkeyConfig.paymasterAddress) {
+      throw new Error("Paymaster address is not configured. Please configure paymaster in the Passkey Config section.");
+    }
+    if (!props.passkeyConfig.paymasterFlow) {
+      throw new Error("Paymaster flow is not configured. Please configure paymaster in the Passkey Config section.");
+    }
+    paymasterParams = new PaymasterParams(
+      props.passkeyConfig.paymasterAddress,
+      props.passkeyConfig.paymasterFlow,
+    );
+  }
+
+  const config = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
+  const userOpHashOrReceipt = await send_transaction_eoa(
+    config,
+    validator,
+    privateKey,
+    account,
+    to.value,
+    valueWei,
+    "0x",
+    paymasterParams,
+  );
+
   // eslint-disable-next-line no-console
-  console.log("  Sending transaction...");
-  const txHash = await client.sendTransaction({
-    to: to.value as Address,
-    value: parseEther(amount.value),
-    data: "0x",
-  });
-
-  // eslint-disable-next-line no-console
-  console.log("  Transaction confirmed! Hash:", txHash);
-
-  txResult.value = `Transaction successful! Tx hash: ${txHash}`;
+  console.log("  User operation submitted:", userOpHashOrReceipt);
+  txResult.value = `UserOperation submitted: ${userOpHashOrReceipt}`;
 }
 
 // Send transaction using Passkey validator (NEW SDK)
@@ -250,6 +279,8 @@ async function sendFromSmartAccountWithPasskey() {
   console.log("  Amount:", amount.value, "ETH");
   // eslint-disable-next-line no-console
   console.log("  WebAuthn Validator:", webauthnValidatorAddress);
+  // eslint-disable-next-line no-console
+  console.log("  Use Paymaster:", usePaymaster.value);
 
   // Verify the public key is registered on-chain
   // eslint-disable-next-line no-console
@@ -295,56 +326,72 @@ async function sendFromSmartAccountWithPasskey() {
   // eslint-disable-next-line no-console
   console.log("  ✓ Public key verification passed!");
 
-  // Create bundler client with entry point configuration
+  const rpId = getRpId(props.passkeyConfig.originDomain);
+  // Send transaction using Rust passkey flow (without paymaster for normal transactions)
+  const rpcUrl = chain.rpcUrls.default.http[0];
+  const bundlerUrl = getBundlerUrl(contracts);
+  const entryPoint = contracts.entryPoint as Address;
+  const config = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
+
+  const valueWei = parseEther(amount.value).toString();
+
+  // Don't use paymaster for normal passkey transactions
+  // (paymaster is tested separately in web-sdk-test.vue)
+
+  // Step 1: prepare userOp and hash (optionally with paymaster)
+  const paymasterParams = usePaymaster.value
+    ? new PaymasterParams(props.passkeyConfig.paymasterAddress, null, null, null)
+    : undefined;
+
+  const preparedJson = await prepare_passkey_user_operation(
+    config,
+    webauthnValidatorAddress,
+    props.deploymentResult.address,
+    to.value,
+    valueWei,
+    "0x",
+    paymasterParams,
+  );
+
+  // Debug + guards to ensure prepare returned a valid payload
   // eslint-disable-next-line no-console
-  console.log("  Creating bundler client...");
-  const bundlerClient = createBundlerClient({
-    client: publicClient,
-    chain,
-    transport: http(getBundlerUrl(contracts)),
-    userOperation: {
-      // Use fixed gas values matching old Rust SDK implementation
-      // (old SDK used: 2M callGas, 2M verificationGas, 1M preVerificationGas)
-      async estimateFeesPerGas() {
-        const feesPerGas = await publicClient.estimateFeesPerGas();
-        return {
-          callGasLimit: 2_000_000n,
-          verificationGasLimit: 2_000_000n,
-          preVerificationGas: 1_000_000n,
-          ...feesPerGas,
-        };
-      },
-    },
+  console.log("prepare_passkey_user_operation result:", preparedJson);
+  if (typeof preparedJson !== "string") {
+    throw new Error("Unexpected prepare result type");
+  }
+  if (preparedJson.startsWith("Failed") || preparedJson.startsWith("Error")) {
+    throw new Error(preparedJson);
+  }
+
+  const { hash, userOp } = JSON.parse(preparedJson) as { hash: string; userOp: unknown };
+  if (!hash) {
+    throw new Error("Prepare step did not return a hash");
+  }
+
+  // Step 2: sign the hash with WebAuthn passkey (signature already includes validator prefix)
+  const signResult = await signWithPasskey({
+    hash,
+    credentialId: props.passkeyConfig.credentialId as `0x${string}`,
+    rpId,
+    origin: props.passkeyConfig.originDomain,
   });
 
-  // Create passkey client (wraps account + bundler)
-  // eslint-disable-next-line no-console
-  console.log("  Creating passkey client with createPasskeyClient...");
-  const client = createPasskeyClient({
-    account: {
-      address: props.deploymentResult.address as Address,
-      validatorAddress: webauthnValidatorAddress as Address,
-      credentialId: props.passkeyConfig.credentialId,
-      rpId: window.location.hostname,
-      origin: window.location.origin,
-    },
-    bundlerClient,
-    chain,
-    transport: http(),
-  });
+  if (!signResult || !signResult.signature) {
+    throw new Error("No passkey signature returned from WebAuthn");
+  }
 
-  // Send transaction (client handles bundler operations and returns actual tx hash)
-  // eslint-disable-next-line no-console
-  console.log("  Sending transaction...");
-  const txHash = await client.sendTransaction({
-    to: to.value as Address,
-    value: parseEther(amount.value),
-    data: "0x",
-  });
+  const { signature } = signResult;
 
-  // eslint-disable-next-line no-console
-  console.log("  Transaction confirmed! Hash:", txHash);
+  // Step 3: submit signed userOp (paymaster already embedded if used)
+  // Important: create a fresh config for submit. The config used in
+  // prepare may be consumed by WASM and invalid for reuse.
+  const submitConfig = new SendTransactionConfig(rpcUrl, bundlerUrl, entryPoint);
+  const receipt = await submit_passkey_user_operation(
+    submitConfig,
+    JSON.stringify(userOp),
+    signature,
+  );
 
-  txResult.value = `Transaction successful! Tx hash: ${txHash}`;
+  txResult.value = receipt as string;
 }
 </script>
