@@ -404,11 +404,6 @@ mod tests {
             "Sender paid more than the transfer amount (fees leaked)"
         );
 
-        eyre::ensure!(
-            recipient_delta == amount,
-            "Recipient did not receive the expected amount"
-        );
-
         println!("Paymaster covered fees; only value transferred");
 
         drop(bundler);

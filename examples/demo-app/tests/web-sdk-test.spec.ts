@@ -252,7 +252,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   await page.getByRole("button", { name: "Send with Passkey" }).click();
 
   // Wait for transaction to complete
-  await expect(page.getByText("Transaction successful! Tx hash:")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Transaction confirmed! UserOp hash:")).toBeVisible({ timeout: 60000 });
   await expect(page.getByText("Transaction failed: Failed to submit UserOperation:")).not.toBeVisible();
 
   // Verify we have a transaction hash for the send
@@ -693,4 +693,106 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
   console.log("✓ Transaction sent successfully using pre-installed session validator");
 
   console.log("✅ Deploy with session validator test completed!");
+});
+
+test("Deploy with passkey and send transaction using passkey with paymaster", async ({ page }) => {
+  // Use Anvil account #8 for this test to avoid nonce conflicts
+  await page.goto("/web-sdk-test?fundingAccount=8");
+  await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
+
+  // Wait for SDK to load
+  await expect(page.getByText("SDK Loaded:")).toBeVisible();
+  await expect(page.getByText("Yes")).toBeVisible({ timeout: 10000 });
+
+  console.log("Step 1: Enabling passkey configuration...");
+
+  // Enable passkey deployment
+  const passkeyCheckbox = page.getByLabel("Enable Passkey Deployment");
+  await expect(passkeyCheckbox).toBeVisible();
+  await passkeyCheckbox.check();
+
+  console.log("Step 2: Creating WebAuthn passkey...");
+
+  // Create a virtual authenticator for testing
+  const client = await page.context().newCDPSession(page);
+  await client.send("WebAuthn.enable");
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+    },
+  });
+
+  // Click Create New WebAuthn Passkey button
+  await page.getByRole("button", { name: "Create New WebAuthn Passkey" }).click();
+
+  // Wait for passkey creation to complete
+  await expect(page.getByText("Passkey created successfully!")).toBeVisible({ timeout: 10000 });
+
+  console.log("✓ WebAuthn passkey created successfully");
+
+  // Step 3: Deploy Account with Passkey
+  console.log("Step 3: Deploying smart account with passkey...");
+  await page.getByRole("button", { name: "Deploy Account" }).click();
+
+  // Wait for deployment to complete
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+
+  // Verify passkey is enabled in deployment result
+  await expect(page.getByText("Passkey Enabled: Yes")).toBeVisible();
+
+  console.log("✓ Smart account with passkey deployed successfully");
+
+  // Step 4: Fund Smart Account
+  console.log("Step 4: Funding smart account...");
+
+  const amountInput = page.locator("input[placeholder=\"0.1\"]");
+  await expect(amountInput).toBeVisible();
+  await amountInput.fill("0.1");
+
+  await page.getByRole("button", { name: "Fund Smart Account" }).click();
+
+  // Wait for funding transaction to complete
+  await expect(page.getByText("Transaction Hash:"), "Funding failed").toBeVisible({ timeout: 30000 });
+
+  console.log("✓ Smart account funded successfully");
+
+  // Step 5: Send Transaction using Passkey with Paymaster
+  console.log("Step 5: Sending transaction using passkey with paymaster...");
+
+  // Scroll to the paymaster section
+  await page.evaluate(() => {
+    const headings = Array.from(document.querySelectorAll("h2"));
+    const paymasterHeading = headings.find((h) => h.textContent?.includes("Send Transaction with Paymaster (Passkey)"));
+    if (paymasterHeading) {
+      paymasterHeading.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+
+  await page.waitForTimeout(500); // Wait for scroll to complete
+
+  // Wait for the paymaster section to be visible
+  await expect(page.getByText("Send Transaction with Paymaster (Passkey)")).toBeVisible();
+
+  // Fill in amount for paymaster transaction
+  // Find all inputs with the 0.01 placeholder and use the last one (paymaster section)
+  const paymasterAmountInputs = page.locator("input[placeholder=\"0.01\"]");
+  const paymasterAmountInput = paymasterAmountInputs.last();
+  await expect(paymasterAmountInput).toBeVisible();
+  await paymasterAmountInput.fill("0.001");
+
+  // Click Send with Paymaster (Passkey) button
+  await page.getByRole("button", { name: "Send with Paymaster (Passkey)" }).click();
+
+  // Wait for transaction to complete - look for success message
+  await expect(page.getByText("Transaction confirmed! UserOp hash:"), "Paymaster transaction failed").toBeVisible({ timeout: 60000 });
+
+  // Verify we don't have an error message
+  await expect(page.getByText("Failed to submit UserOperation:")).not.toBeVisible();
+
+  console.log("✓ Transaction sent using passkey with paymaster successfully");
+  console.log("✅ All passkey + paymaster steps completed successfully!");
 });

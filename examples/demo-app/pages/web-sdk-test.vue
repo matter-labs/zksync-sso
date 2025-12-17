@@ -334,7 +334,7 @@
         class="mb-4 p-3 bg-white rounded border border-teal-300"
       >
         <div class="text-sm">
-          <strong>Smart Account Address:</strong>
+          <strong>Address:</strong>
           <code class="block mt-1 px-2 py-1 bg-gray-100 rounded text-xs font-mono break-all">{{ deploymentResult.address }}</code>
         </div>
       </div>
