@@ -59,11 +59,11 @@
         "cwd": "packages/auth-server",
         "commands": [
           {
-            "command": "pnpm nuxt preview",
-            "prefix": "Auth-Server:"
+            "command": "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nuxt preview",
+            "prefix": "Auth-Frontend:"
           },
           {
-            "command": "pnpm nx run auth-server-api:dev",
+            "command": "PORT=3004 pnpm nx run auth-server-api:dev",
             "prefix": "Auth-API:"
           }
         ],

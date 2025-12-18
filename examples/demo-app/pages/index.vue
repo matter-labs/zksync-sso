@@ -17,12 +17,13 @@
       Connect with Session
     </button>
     <button
-      v-if="!address"
-      title="Connect with paymaster sponsorship"
-      class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-4"
-      @click="connectWallet('paymaster')"
+      v-if="address"
+      title="Send ETH with paymaster sponsoring gas"
+      class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-4 disabled:bg-slate-300"
+      :disabled="isSendingEth"
+      @click="sendTokensWithPaymaster()"
     >
-      Connect (Paymaster)
+      Send 0.1 ETH (Paymaster)
     </button>
     <button
       v-if="!address"
@@ -334,6 +335,68 @@ const sendTokens = async () => {
       errorMessage.value = transactionFailureDetails;
     } else {
       errorMessage.value = "Transaction failed, see console for more info.";
+    }
+  } finally {
+    isSendingEth.value = false;
+  }
+};
+
+const sendTokensWithPaymaster = async () => {
+  if (!address.value) return;
+
+  errorMessage.value = "";
+  isSendingEth.value = true;
+  try {
+    if (!testPaymasterAddress) {
+      throw new Error("Paymaster address not configured");
+    }
+
+    // Temporarily reconfigure with paymaster
+    const paymasterConnector = buildConnector("paymaster");
+
+    // Reconnect with paymaster config
+    await disconnect(wagmiConfig);
+    await connect(wagmiConfig, {
+      connector: paymasterConnector,
+      chainId: chain.id,
+    });
+
+    // Wait for reconnection
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    let transactionHash = await sendTransaction(wagmiConfig, {
+      to: testTransferTarget,
+      value: parseEther("0.1"),
+    });
+
+    // FIXME: When not using sessions, sendTransaction returns a map and not a string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((transactionHash as any).value !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transactionHash = (transactionHash as any).value;
+    }
+
+    const receipt = await waitForTransactionReceipt(wagmiConfig, {
+      hash: transactionHash,
+    });
+    balance.value = await getBalance(wagmiConfig, {
+      address: address.value,
+    });
+    if (receipt.status === "reverted") throw new Error("Transaction reverted");
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Paymaster transaction failed:", error);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let transactionFailureDetails = (error as any).cause?.cause?.cause?.data?.originalError?.cause?.details;
+    if (!transactionFailureDetails) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transactionFailureDetails = (error as any).cause?.details;
+    }
+
+    if (transactionFailureDetails) {
+      errorMessage.value = transactionFailureDetails;
+    } else {
+      errorMessage.value = "Paymaster transaction failed, see console for more info.";
     }
   } finally {
     isSendingEth.value = false;
