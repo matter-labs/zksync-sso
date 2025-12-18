@@ -11,7 +11,15 @@ const app = express();
 app.use(express.json());
 
 // CORS configuration
-const corsOrigins = env.CORS_ORIGINS.split(",").map((origin) => origin.trim());
+const corsOrigins = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+  const allowlist = env.CORS_ORIGINS.split(",").map((origin) => origin.trim());
+  if (!origin || allowlist.indexOf(origin) !== -1) {
+    callback(null, true);
+  } else {
+    callback(new Error("Not allowed by CORS"));
+  }
+};
+
 app.use(
   cors({
     origin: corsOrigins,
