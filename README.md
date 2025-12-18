@@ -175,8 +175,11 @@ This monorepo is comprised of the following packages, products, and examples:
    pnpm nx dev demo-app
    ```
 
-Your local Auth Server will be running at `http://localhost:3002/`, and the demo
-app will be running at `http://localhost:3005/`.
+local port list:
+
+- auth server api: 3004
+- auth server: 3002
+- demo app: 3005
 
 ## Running commands
 

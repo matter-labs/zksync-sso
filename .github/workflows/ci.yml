@@ -107,21 +107,6 @@ jobs:
           path: examples/demo-app/playwright-report/
           retention-days: 3
 
-      # Start Auth Server API as a long-lived background service (port 3005)
-      - name: Start Auth Server API
-        run: |
-          nohup pnpm nx dev auth-server-api > /tmp/auth-server-api.log 2>&1 &
-          echo $! > /tmp/auth-server-api.pid
-          echo "Waiting for Auth Server API on 3004..."
-          timeout 60 bash -c 'until nc -z localhost 3004; do echo "Wait-API: Waiting..."; sleep 1; done'
-          echo "Auth Server API ready."
-
-      - name: Show Auth Server API logs on failure
-        if: failure()
-        run: |
-          echo "--- auth-server-api.log (tail) ---"
-          tail -200 /tmp/auth-server-api.log || true
-
       - name: Run demo-only e2e tests (session + passkey)
         run: pnpm nx e2e:demo-only demo-app
       - uses: actions/upload-artifact@v4
