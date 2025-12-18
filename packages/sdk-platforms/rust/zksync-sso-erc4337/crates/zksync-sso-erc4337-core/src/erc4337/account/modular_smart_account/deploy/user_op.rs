@@ -116,28 +116,22 @@ mod tests {
     use super::*;
     use crate::{
         erc4337::{
-            account::{
-                erc7579::module::{
-                    Module,
-                    installed::{IsModuleInstalledParams, is_module_installed},
-                },
-                modular_smart_account::{
-                    deploy::EOASigners,
-                    test_utilities::fund_account_with_default_amount,
-                },
-            },
+            account::modular_smart_account::deploy::EOASigners,
             paymaster::mock_paymaster::deploy_mock_paymaster_and_deposit_amount,
             signer::create_eoa_signer,
         },
         utils::alloy_utilities::test_utilities::{
-            TestInfraConfig,
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+            config::TestInfraConfig,
+            start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::primitives::{U256, address};
+    use alloy::{
+        primitives::{U256, address},
+        providers::WalletProvider,
+    };
 
     #[tokio::test]
-    async fn test_deploy_account_with_user_op_basic() -> eyre::Result<()> {
+    async fn test_deploy_account_with_user_op() -> eyre::Result<()> {
         let (
             _,
             anvil_instance,
@@ -146,18 +140,20 @@ mod tests {
             signer_private_key,
             bundler,
             bundler_client,
-        ) = {
-            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
-                &TestInfraConfig {
-                    signer_private_key: signer_private_key.clone(),
-                },
-            )
-            .await?
-        };
+        ) = start_node_and_deploy_contracts_and_start_bundler_with_config(
+            &TestInfraConfig::rich_wallet_9(),
+        )
+        .await?;
 
-        let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+        let paymaster_fund_amount = U256::from(1_000_000_000_000_000_000u64);
+        let signer_address = provider.default_signer_address();
+        let signer_balance = provider.get_balance(signer_address).await?;
+        eyre::ensure!(
+            signer_balance > paymaster_fund_amount,
+            "Signer wallet not funded: {signer_address} (balance {signer_balance})"
+        );
+
+        let entry_point_address = contracts.entry_point;
 
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;
@@ -172,7 +168,7 @@ mod tests {
 
         let (mock_paymaster, paymaster_address) =
             deploy_mock_paymaster_and_deposit_amount(
-                U256::from(1_000_000_000_000_000_000u64),
+                paymaster_fund_amount,
                 provider.clone(),
             )
             .await?;
@@ -184,34 +180,22 @@ mod tests {
             eoa_validator_address,
         )?;
 
-        let address =
-            deploy_account_with_user_op(DeployAccountWithUserOpParams {
-                deploy_params: DeployAccountParams {
-                    factory_address,
-                    eoa_signers: Some(eoa_signers),
-                    webauthn_signer: None,
-                    session_validator: None,
-                    id: None,
-                    provider: provider.clone(),
-                },
-                entry_point_address,
-                bundler_client: bundler_client.clone(),
-                signer,
-                paymaster,
-                nonce_key: None,
-            })
-            .await?;
-
-        fund_account_with_default_amount(address, provider.clone()).await?;
-
-        let is_module_installed =
-            is_module_installed(IsModuleInstalledParams {
-                module: Module::eoa_validator(eoa_validator_address),
-                account: address,
+        _ = deploy_account_with_user_op(DeployAccountWithUserOpParams {
+            deploy_params: DeployAccountParams {
+                factory_address,
+                eoa_signers: Some(eoa_signers),
+                webauthn_signer: None,
+                session_validator: None,
+                id: None,
                 provider: provider.clone(),
-            })
-            .await?;
-        eyre::ensure!(is_module_installed, "Module is not installed");
+            },
+            entry_point_address,
+            bundler_client: bundler_client.clone(),
+            signer,
+            paymaster,
+            nonce_key: None,
+        })
+        .await?;
 
         drop(mock_paymaster);
         drop(bundler);

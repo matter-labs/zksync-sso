@@ -24,3 +24,46 @@ fix:
 # Run tests
 test:
     cargo nextest run
+
+# Run tests with ZkSyncOS backend
+test-zksyncos:
+    SSO_TEST_NODE_BACKEND=zksyncos cargo nextest run
+
+# Run the deploy account test with ZkSyncOS backend
+test-zksyncos-deploy-account:
+    env SSO_TEST_NODE_BACKEND=zksyncos cargo nextest run -p zksync-sso-erc4337-core test_deploy_account --no-capture
+
+# Run zksync OS node tests
+test-node:
+    cargo test -p zksync-sso-zksyncos-node --test spawn
+
+# Run zksync OS node tests with nextest
+test-node-nextest:
+    cargo nextest run -p zksync-sso-zksyncos-node --test spawn
+
+## ZkSyncOS local flow (order)
+# 1) start-anvil
+# 2) start-node-server
+# 3) deploy-entrypoint
+# 4) fund-zksyncos-wallet
+
+# 1. Run anvil with the zksync-os-server state
+start-anvil:
+    cd zksync-os-server && anvil --load-state zkos-l1-state.json --port 8545 &> anvil.log &
+
+# 2. Prepare environment and start zksync OS server like CI
+start-node-server:
+    cargo build --release --bin zksync-os-server
+    fish -c 'begin; function __cleanup_on_int --on-signal INT; rm -rf ./db logs/; functions -e __cleanup_on_int; end; cd zksync-os-server; RUST_BACKTRACE=1 RUST_LOG=debug observability_prometheus_port=0 cargo run --release --bin zksync-os-server &> server.log &; end'
+
+# 3. Deploy entrypoint contracts on zksyncos
+deploy-entrypoint:
+    fish -c 'cd account-abstraction && yarn deploy --network zksyncos'
+
+# 4. Fund the test wallet on zksyncos
+fund-zksyncos-wallet:
+    fish -c 'set PRIVATE_KEY 0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110; set TO 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720; cast send --private-key ${PRIVATE_KEY} --rpc-url http://localhost:3050 ${TO} --value 10000000000000000000'
+
+# Run full node server bootstrap script
+run-node-server-script:
+    fish -c 'bash scripts/run_node_server.sh'

@@ -1,0 +1,18 @@
+[package]
+name = "zksync-sso-zksyncos-node"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["node-bindings"] }
+eyre.workspace = true
+serde_json.workspace = true
+url.workspace = true
+ureq.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true

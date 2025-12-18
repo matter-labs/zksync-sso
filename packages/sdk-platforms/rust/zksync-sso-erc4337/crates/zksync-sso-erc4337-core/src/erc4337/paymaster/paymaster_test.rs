@@ -36,8 +36,8 @@ mod tests {
             signer::create_eoa_signer,
         },
         utils::alloy_utilities::test_utilities::{
-            TestInfraConfig,
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+            config::TestInfraConfig,
+            start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
     use alloy::primitives::{U256, Uint, address};
@@ -56,7 +56,7 @@ mod tests {
             bundler_client,
         ) = {
             let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            start_node_and_deploy_contracts_and_start_bundler_with_config(
                 &TestInfraConfig {
                     signer_private_key: signer_private_key.clone(),
                 },

@@ -97,3 +97,5 @@ tempfile = "3"
 strip-ansi-escapes = "0.2"
 libc = "0.2"
 
+# Misc
+ureq = "2.10"
