@@ -176,7 +176,7 @@ This monorepo is comprised of the following packages, products, and examples:
    ```
 
 Your local Auth Server will be running at `http://localhost:3002/`, and the demo
-app will be running at `http://localhost:3004/`.
+app will be running at `http://localhost:3005/`.
 
 ## Running commands
 

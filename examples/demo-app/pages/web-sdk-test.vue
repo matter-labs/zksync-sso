@@ -404,44 +404,6 @@
             {{ loading ? 'Submitting...' : 'Send with Paymaster (EOA)' }}
           </button>
         </div>
-
-        <!-- Paymaster Balance Section -->
-        <div class="mt-4 p-3 bg-purple-50 rounded border border-purple-300">
-          <div class="flex items-center justify-between mb-2">
-            <strong class="text-sm">Paymaster Balance:</strong>
-            <code class="px-2 py-1 bg-white rounded text-xs font-mono">{{ paymasterBalance || 'Loading...' }} ETH</code>
-          </div>
-          <div class="flex gap-2">
-            <input
-              v-model="paymasterFundAmount"
-              type="text"
-              placeholder="1.0"
-              class="flex-1 px-3 py-2 border border-purple-300 rounded text-sm"
-            >
-            <button
-              :disabled="loading"
-              class="px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 text-sm"
-              @click="fundPaymaster"
-            >
-              {{ loading ? 'Funding...' : 'Fund' }}
-            </button>
-            <button
-              :disabled="loading"
-              class="px-3 py-2 bg-purple-400 text-white rounded hover:bg-purple-500 disabled:opacity-50 text-sm"
-              @click="fetchPaymasterBalance"
-            >
-              Refresh
-            </button>
-          </div>
-          <div
-            v-if="fundPaymasterError"
-            class="mt-2 p-2 bg-red-50 rounded border border-red-300"
-          >
-            <p class="text-xs text-red-600">
-              {{ fundPaymasterError }}
-            </p>
-          </div>
-        </div>
       </div>
 
       <!-- Result / Errors -->
@@ -704,8 +666,6 @@ const balanceBeforeTx = ref("");
 const balanceAfterTx = ref("");
 const balanceDifference = ref("");
 const paymasterBalance = ref("");
-const paymasterFundAmount = ref("1");
-const fundPaymasterError = ref("");
 
 // Passkey configuration state
 const passkeyConfig = ref({
@@ -1284,9 +1244,6 @@ async function fundSmartAccount() {
       }
       targetAddress = pm;
       targetLabel = "Paymaster";
-      if (!targetAddress) {
-        throw new Error("No paymaster address configured.");
-      }
     }
 
     // eslint-disable-next-line no-console
@@ -1337,14 +1294,8 @@ async function fundSmartAccount() {
     // eslint-disable-next-line no-console
     console.log(`  ${targetLabel} balance:`, formatEther(balance), "ETH");
 
-    // If we funded the account, also show the smart account balance
-    if (fundParams.value.target === "account" && deploymentResult.value?.address) {
-      const contracts = await loadContracts();
-      const smartAccountBalance = await getBalance(deploymentResult.value.address, contracts.rpcUrl);
-      fundedAccountBalance.value = smartAccountBalance;
-    } else {
-      fundedAccountBalance.value = formatEther(balance);
-    }
+    // Update the displayed balance
+    fundedAccountBalance.value = formatEther(balance);
 
     // Refresh paymaster balance if we just funded it
     if (fundParams.value.target === "paymaster") {
@@ -1401,67 +1352,6 @@ async function fetchPaymasterBalance() {
     // eslint-disable-next-line no-console
     console.error("Failed to fetch paymaster balance:", err);
     paymasterBalance.value = "Error";
-  }
-}
-
-// Fund the paymaster account
-async function fundPaymaster() {
-  fundPaymasterError.value = "";
-  loading.value = true;
-  try {
-    const contracts = await loadContracts();
-    const rpcUrl = contracts.rpcUrl;
-    const paymasterAddress = paymasterTx.value.paymaster || contracts.testPaymaster;
-    if (!paymasterAddress) {
-      throw new Error("No paymaster address configured.");
-    }
-
-    // Get deployer account from wallet config
-    const deployerKey = eoaSignerPrivateKey;
-    const deployerAccount = privateKeyToAccount(`0x${deployerKey}`);
-
-    const walletClient = createWalletClient({
-      account: deployerAccount,
-      chain: getChainConfig(contracts),
-      transport: http(rpcUrl),
-    });
-
-    // Create a simple transfer transaction to fund the paymaster
-    await walletClient.sendTransaction({
-      to: paymasterAddress as Address,
-      value: parseEther(paymasterFundAmount.value),
-      account: deployerAccount,
-    });
-
-    // eslint-disable-next-line no-console
-    console.log("💰 Funded paymaster with", paymasterFundAmount.value, "ETH");
-
-    // Wait for confirmation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Now deposit the funds into the EntryPoint by calling deposit()
-    // eslint-disable-next-line no-console
-    console.log("💳 Depositing funds into EntryPoint...");
-
-    await walletClient.sendTransaction({
-      to: paymasterAddress as Address,
-      data: "0xd0e30db0" as `0x${string}`, // deposit() function selector
-      value: parseEther(paymasterFundAmount.value),
-      account: deployerAccount,
-    });
-
-    // eslint-disable-next-line no-console
-    console.log("✅ Deposit complete");
-
-    // Wait for confirmation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    await fetchPaymasterBalance();
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("Failed to fund paymaster:", err);
-    fundPaymasterError.value = err instanceof Error ? err.message : String(err);
-  } finally {
-    loading.value = false;
   }
 }
 
