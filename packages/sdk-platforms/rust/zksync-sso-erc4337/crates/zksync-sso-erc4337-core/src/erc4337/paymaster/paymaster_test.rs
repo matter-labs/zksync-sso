@@ -55,8 +55,10 @@ mod tests {
             start_anvil_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
-    use alloy::primitives::{U256, Uint, address, bytes, fixed_bytes};
-    use alloy_provider::{Provider, ProviderBuilder};
+    use alloy::{
+        primitives::{U256, Uint, address, bytes, fixed_bytes},
+        providers::{Provider, ProviderBuilder},
+    };
     use std::sync::Arc;
 
     #[tokio::test]
