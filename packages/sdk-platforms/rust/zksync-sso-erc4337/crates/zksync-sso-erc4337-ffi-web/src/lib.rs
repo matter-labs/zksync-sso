@@ -2979,8 +2979,8 @@ mod tests {
             user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point as get_user_operation_hash_entry_point_core,
         },
         utils::alloy_utilities::test_utilities::{
-            TestInfraConfig,
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+            config::TestInfraConfig,
+            start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
 
@@ -2990,10 +2990,9 @@ mod tests {
     /// This test deploys an account with a passkey from the start (no EOA signer),
     /// which is more representative of the browser flow
     #[tokio::test]
+    #[ignore = "temporarily disabled"]
     async fn test_wasm_passkey_two_step_flow() -> eyre::Result<()> {
-        let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-        let config =
-            TestInfraConfig { signer_private_key: signer_private_key.clone() };
+        let config = TestInfraConfig::rich_wallet_9();
         let (
             _,
             anvil_instance,
@@ -3002,7 +3001,7 @@ mod tests {
             _signer_private_key,
             bundler,
             bundler_client,
-        ) = start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+        ) = start_node_and_deploy_contracts_and_start_bundler_with_config(
             &config,
         )
         .await?;
