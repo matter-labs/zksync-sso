@@ -1,3 +1,8 @@
+// WASM transport is implemented but not yet fully integrated with Alloy's Provider trait
+// For now, we expose offline computation functions
+mod account;
+mod wasm_transport;
+
 use alloy::{
     network::EthereumWallet,
     primitives::{Address, B256, Bytes, FixedBytes, U256, Uint, keccak256},
@@ -10,6 +15,7 @@ use alloy::{
 use alloy_rpc_client::RpcClient;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
+use wasm_transport::WasmHttpTransport;
 use zksync_sso_erc4337_core::{
     chain::{Chain, id::ChainId},
     config::contracts::Contracts as CoreContracts,
@@ -71,11 +77,6 @@ use zksync_sso_erc4337_core::{
         user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point as get_user_operation_hash_entry_point_core,
     },
 };
-
-// WASM transport is implemented but not yet fully integrated with Alloy's Provider trait
-// For now, we expose offline computation functions
-mod wasm_transport;
-use wasm_transport::WasmHttpTransport;
 
 // Initialize logging and panic hook for WASM
 #[wasm_bindgen(start)]
