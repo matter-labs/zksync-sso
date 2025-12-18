@@ -20,12 +20,9 @@ type DeployAccountRequest = {
 // Deploy account endpoint
 export const deployAccountHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("[DEBUG] deploy-account handler - Raw request body:", JSON.stringify(req.body, null, 2));
-
     // Validate request body
     const validationResult = deployAccountSchema.safeParse(req.body);
     if (!validationResult.success) {
-      console.log("[DEBUG] Validation failed:", validationResult.error.errors);
       res.status(400).json({
         error: `Invalid parameters: ${validationResult.error.errors.map((e) => e.message).join(", ")}`,
       });

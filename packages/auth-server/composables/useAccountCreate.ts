@@ -3,7 +3,7 @@ import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionSpec } from "zksync-sso-4337/client";
 import { sessionSpecToJSON } from "zksync-sso-4337/client";
 
-export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividiumMode = false) => {
+export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividiumMode = false, userId?: string) => {
   const chainId = toRef(_chainId);
   const { getThrowAwayClient } = useClientStore();
   const { registerPasskey } = usePasskeyRegister();
@@ -54,11 +54,10 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
       credentialPublicKey,
       originDomain: window.location.origin,
       session: sessionData ? sessionSpecToJSON(sessionData) : undefined,
-      userId: credentialId, // Use credential ID as unique user ID
+      userId: userId || credentialId, // Use provided userId or fallback to credentialId for backward compatibility
       eoaSigners: [ownerAddress],
       paymaster,
     };
-    console.log("[DEBUG] useAccountCreate - Request body:", JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(`${apiUrl}/api/deploy-account`, {
       method: "POST",

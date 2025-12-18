@@ -343,13 +343,14 @@ impl PaymasterParams {
 // Normalize/convert PaymasterParams into core params, or None if effectively unset
 fn normalize_paymaster_params(
     pm: Option<PaymasterParams>,
-) -> Option<PaymasterParamsCore> {
+) -> Result<Option<PaymasterParamsCore>, String> {
     match pm {
-        None => None,
+        None => Ok(None),
         Some(pm) => {
             // Treat empty address or zero address with no gas hints as "not provided"
-            let addr_parsed =
-                pm.address().parse::<Address>().unwrap_or(Address::ZERO);
+            let addr_parsed = pm.address().parse::<Address>().map_err(|e| {
+                format!("Invalid paymaster address '{}': {}", pm.address(), e)
+            })?;
 
             let has_gas_hints = pm
                 .verification_gas_limit()
@@ -364,7 +365,7 @@ fn normalize_paymaster_params(
 
             // Empty/zero address and no explicit gas hints => ignore paymaster
             if addr_parsed == Address::ZERO && !has_gas_hints {
-                return None;
+                return Ok(None);
             }
 
             let data_bytes = if pm.data().is_empty() {
@@ -383,12 +384,12 @@ fn normalize_paymaster_params(
             let post_op_gas =
                 pm.post_op_gas_limit().and_then(|s| s.parse::<U256>().ok());
 
-            Some(PaymasterParamsCore {
+            Ok(Some(PaymasterParamsCore {
                 address: addr_parsed,
                 data: data_bytes,
                 verification_gas_limit: verification_gas,
                 post_op_gas_limit: post_op_gas,
-            })
+            }))
         }
     }
 }
@@ -974,7 +975,8 @@ pub fn send_transaction_eoa(
             encoded_call_data_core(to, Some(data_bytes), Some(value_u256));
 
         // Convert optional paymaster params, ignoring effectively empty values
-        let paymaster_params = normalize_paymaster_params(paymaster);
+        let paymaster_params = normalize_paymaster_params(paymaster)
+            .map_err(|e| JsValue::from_str(&e))?;
 
         console_log!(
             "  Encoded call data, calling core send_transaction_eoa..."
@@ -1126,7 +1128,8 @@ pub fn send_user_operation(
         };
 
         // Convert PaymasterParams if provided, ignoring effectively empty values
-        let paymaster_params = normalize_paymaster_params(paymaster);
+        let paymaster_params = normalize_paymaster_params(paymaster)
+            .map_err(|e| JsValue::from_str(&e))?;
 
         console_log!("  Calling send_user_op with bundler...");
 
@@ -1267,7 +1270,8 @@ pub fn prepare_passkey_user_operation(
         let provider = ProviderBuilder::new().connect_client(client);
 
         // Convert optional paymaster params, ignoring effectively empty values
-        let paymaster_params = normalize_paymaster_params(paymaster);
+        let paymaster_params = normalize_paymaster_params(paymaster)
+            .map_err(|e| JsValue::from_str(&e))?;
 
         console_log!("  Created provider and transport");
 
