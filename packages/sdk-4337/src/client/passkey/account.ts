@@ -8,6 +8,7 @@ import {
 import {
   entryPoint08Abi,
   entryPoint08Address,
+  getUserOperationHash,
   toSmartAccount,
   type ToSmartAccountReturnType,
 } from "viem/account-abstraction";
@@ -15,8 +16,6 @@ import {
   decode_nonce_result,
   encode_execute_call_data,
   encode_get_nonce_call_data,
-  encode_get_user_operation_hash_call_data,
-  EncodeGetUserOperationHashParams,
   generate_passkey_stub_signature,
 } from "zksync-sso-web-sdk/bundler";
 
@@ -38,6 +37,8 @@ export type ToPasskeySmartAccountParams<
   rpId: string;
   /** Origin URL (for WebAuthn verification). */
   origin: string;
+  /** Optional override for EntryPoint address (defaults to viem's entryPoint08Address). */
+  entryPointAddress?: Address;
 };
 
 /**
@@ -55,12 +56,14 @@ export async function toPasskeySmartAccount<
   credentialId,
   rpId,
   origin,
+  entryPointAddress,
 }: ToPasskeySmartAccountParams<TTransport, TChain>): Promise<ToSmartAccountReturnType> {
+  const epAddress = entryPointAddress ?? entryPoint08Address;
   return toSmartAccount({
     client,
     entryPoint: {
       abi: entryPoint08Abi,
-      address: entryPoint08Address,
+      address: epAddress,
       version: "0.8",
     },
     async getNonce() {
@@ -71,7 +74,7 @@ export async function toPasskeySmartAccount<
 
       // Viem makes the network call
       const result = await client.call({
-        to: entryPoint08Address,
+        to: epAddress,
         data: calldata,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
@@ -135,27 +138,25 @@ export async function toPasskeySmartAccount<
     },
     async signUserOperation(params) {
       const sender = await this.getAddress();
-
-      // Encode call data for EntryPoint.getUserOpHash() using Rust SDK
-      const callData = encode_get_user_operation_hash_call_data(
-        new EncodeGetUserOperationHashParams(
+      // Compute user operation hash locally with full fields (including paymaster)
+      const userOpHash = getUserOperationHash({
+        chainId: Number(client.chain!.id),
+        entryPointAddress: this.entryPoint.address,
+        entryPointVersion: "0.8",
+        userOperation: {
           sender,
-          params.nonce.toString(),
-          params.callData,
-          params.callGasLimit.toString(),
-          params.verificationGasLimit.toString(),
-          params.preVerificationGas.toString(),
-          params.maxFeePerGas.toString(),
-          params.maxPriorityFeePerGas.toString(),
-        ),
-      ) as Hex;
-
-      // Result is the bytes32 hash from EntryPoint.getUserOpHash()
-      const { data: userOpHash } = await client.call({
-        to: this.entryPoint.address,
-        data: callData,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+          nonce: params.nonce,
+          initCode: (params.initCode ?? "0x") as Hex,
+          callData: (params.callData ?? "0x") as Hex,
+          callGasLimit: params.callGasLimit,
+          verificationGasLimit: params.verificationGasLimit,
+          preVerificationGas: params.preVerificationGas,
+          maxFeePerGas: params.maxFeePerGas,
+          maxPriorityFeePerGas: params.maxPriorityFeePerGas,
+          paymasterAndData: (params.paymasterAndData ?? "0x") as Hex,
+          signature: "0x",
+        },
+      } as any) as Hex;
 
       // Sign with WebAuthn (browser API) and get complete signature
       // signWithPasskey handles:

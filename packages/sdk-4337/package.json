@@ -98,12 +98,20 @@
       "import": "./dist/_esm/client/passkey/index.js",
       "require": "./dist/_cjs/client/passkey/index.js"
     },
+    "./actions/sendUserOperation": {
+      "types": "./dist/_types/actions/sendUserOperation.d.ts",
+      "import": "./dist/_esm/actions/sendUserOperation.js",
+      "require": "./dist/_cjs/actions/sendUserOperation.js"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
     "*": {
       ".": [
         "./dist/_types/index.d.ts"
+      ],
+      "actions/sendUserOperation": [
+        "./dist/_types/actions/sendUserOperation.d.ts"
       ],
       "connector": [
         "./dist/_types/connector/index.d.ts"

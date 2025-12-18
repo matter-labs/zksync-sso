@@ -43,6 +43,7 @@ type SignerConstructorParams = {
   // onSessionStateChange?: (event: { address: Address; chainId: number; state: SessionStateEvent }) => void;
   skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
   storage?: StorageLike;
+  paymasterAddress?: Address;
 };
 
 type ChainsInfo = ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema>["chainsInfo"];
@@ -55,6 +56,7 @@ export class Signer implements SignerInterface {
   private readonly transports: Record<number, Transport> = {};
   private readonly bundlerClients: Record<number, BundlerClient> = {};
   private readonly sessionParameters?: () => (SessionPreferences | Promise<SessionPreferences>);
+  private readonly paymasterAddress?: Address;
   // private readonly onSessionStateChange?: SignerConstructorParams["onSessionStateChange"];
   // private readonly skipPreTransactionStateValidation?: boolean;
 
@@ -62,7 +64,7 @@ export class Signer implements SignerInterface {
   private _chainsInfo: StorageItem<ChainsInfo>;
   private client: { instance: SessionClient; type: "session" } | { instance: WalletClient; type: "auth-server" } | undefined;
 
-  constructor({ metadata, communicator, updateListener, session, chains, transports, bundlerClients, /* onSessionStateChange, skipPreTransactionStateValidation, */ storage }: SignerConstructorParams) {
+  constructor({ metadata, communicator, updateListener, session, chains, transports, bundlerClients, /* onSessionStateChange, skipPreTransactionStateValidation, */ storage, paymasterAddress }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
 
     this.getMetadata = metadata;
@@ -72,6 +74,7 @@ export class Signer implements SignerInterface {
     this.chains = chains;
     this.transports = transports || {};
     this.bundlerClients = bundlerClients || {};
+    this.paymasterAddress = paymasterAddress;
     // this.onSessionStateChange = onSessionStateChange;
     // this.skipPreTransactionStateValidation = skipPreTransactionStateValidation;
 
@@ -249,6 +252,7 @@ export class Signer implements SignerInterface {
       params: {
         metadata,
         sessionPreferences,
+        paymaster: this.paymasterAddress,
       },
     });
     const handshakeData = responseMessage.content.result!;

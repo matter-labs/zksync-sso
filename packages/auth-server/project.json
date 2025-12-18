@@ -11,6 +11,15 @@
       },
       "dependsOn": ["^build", "demo-app:deploy-contracts-erc4337"]
     },
+    "dev:no-deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "commands": ["pnpm run copy:snarkjs && PORT=3002 nuxt dev", "pnpm nx run auth-server-api:dev"],
+        "parallel": true
+      },
+      "dependsOn": ["^build"]
+    },
     "dev:all": {
       "executor": "nx:run-commands",
       "options": {
@@ -50,11 +59,17 @@
         "cwd": "packages/auth-server",
         "commands": [
           {
-            "command": "PORT=3002 pnpm nuxt preview"
+            "command": "pnpm nuxt preview",
+            "prefix": "Auth-Server:"
+          },
+          {
+            "command": "pnpm nx run auth-server-api:dev",
+            "prefix": "Auth-API:"
           }
-        ]
+        ],
+        "parallel": true
       },
-      "dependsOn": ["build:local"]
+      "dependsOn": ["build:local", "^build"]
     },
     "deploy": {
       "executor": "nx:run-commands",

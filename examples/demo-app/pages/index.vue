@@ -5,16 +5,32 @@
     </h1>
     <button
       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4"
-      @click="address ? disconnectWallet() : connectWallet(false)"
+      @click="address ? disconnectWallet() : connectWallet('regular')"
     >
       {{ address ? "Disconnect" : "Connect" }}
     </button>
     <button
       v-if="!address"
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      @click="address ? disconnectWallet() : connectWallet(true)"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4"
+      @click="connectWallet('session')"
     >
       Connect with Session
+    </button>
+    <button
+      v-if="!address"
+      title="Connect with paymaster sponsorship"
+      class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-4"
+      @click="connectWallet('paymaster')"
+    >
+      Connect (Paymaster)
+    </button>
+    <button
+      v-if="!address"
+      title="Connect with session and paymaster sponsorship"
+      class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+      @click="connectWallet('session-paymaster')"
+    >
+      Connect Session (Paymaster)
     </button>
     <div
       v-if="address"
@@ -96,48 +112,92 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract } from "@wagmi/core";
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract } from "@wagmi/core";
 import { createWalletClient, createPublicClient, http, parseEther, type Address, type Hash } from "viem";
 import { zksyncSsoConnector } from "zksync-sso-4337/connector";
 import { privateKeyToAccount } from "viem/accounts";
 import { localhost } from "viem/chains";
+import { onMounted } from "vue";
 import ERC1271CallerContract from "../forge-output-erc1271.json";
+
+// Load contracts from public JSON at runtime to avoid ESM JSON import issues
+const contractsUrl = "/contracts.json";
+let contractsAnvil: Record<string, unknown> = {};
+let testPaymasterAddress: Address | undefined;
+
+const runtimeConfig = useRuntimeConfig();
+
+// Prime with runtime config so server-side renders can still set it
+testPaymasterAddress = (runtimeConfig.public?.testPaymasterAddress as Address | undefined)
+?? (runtimeConfig.public?.NUXT_PUBLIC_TEST_PAYMASTER as Address | undefined);
+
+if (typeof window !== "undefined") {
+  fetch(contractsUrl)
+    .then((r) => r.json())
+    .then((json) => {
+      contractsAnvil = json;
+      // Prefer contract JSON values when available
+      testPaymasterAddress = (contractsAnvil as { testPaymaster?: Address; TestPaymaster?: Address }).testPaymaster
+      ?? (contractsAnvil as { TestPaymaster?: Address }).TestPaymaster
+      ?? testPaymasterAddress;
+    })
+    .catch(() => undefined);
+}
 
 const chain = localhost;
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 
+const sessionConfig = {
+  feeLimit: parseEther("0.1"),
+  transfers: [
+    {
+      to: testTransferTarget,
+      valueLimit: parseEther("0.1"),
+    },
+  ],
+};
+
+const buildConnector = (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
+  const baseConfig: Parameters<typeof zksyncSsoConnector>[0] = {
+    authServerUrl: "http://localhost:3002/confirm",
+  };
+
+  if (mode === "session" || mode === "session-paymaster") {
+    baseConfig.session = sessionConfig;
+  }
+
+  if (mode === "paymaster" || mode === "session-paymaster") {
+    baseConfig.paymaster = testPaymasterAddress;
+  }
+
+  return zksyncSsoConnector(baseConfig);
+};
+
 const publicClient = createPublicClient({
   chain: chain,
   transport: http(),
 });
-const zksyncConnectorWithSession = zksyncSsoConnector({
-  authServerUrl: "http://localhost:3002/confirm",
-  session: {
-    feeLimit: parseEther("0.1"),
-    transfers: [
-      {
-        to: testTransferTarget,
-        valueLimit: parseEther("0.1"),
-      },
-    ],
-  },
-});
-const zksyncConnector = zksyncSsoConnector({
-  authServerUrl: "http://localhost:3002/confirm",
-});
 const wagmiConfig = createConfig({
   chains: [chain],
-  connectors: [zksyncConnector],
+  connectors: [buildConnector("regular")],
   transports: {
     [chain.id]: http(),
   },
 });
-reconnect(wagmiConfig);
 
 const address = ref<Address | null>(null);
 const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
+const isInitializing = ref(true);
+
+// Ensure fresh, unauthenticated state on page load so the connect buttons render
+onMounted(async () => {
+  await disconnect(wagmiConfig).catch(() => undefined);
+  address.value = null;
+  balance.value = null;
+  isInitializing.value = false;
+});
 
 const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
@@ -166,7 +226,10 @@ const fundAccount = async () => {
 
 watchAccount(wagmiConfig, {
   async onChange(data) {
-    address.value = data.address || null;
+    // Don't update address during initialization to avoid race with disconnect
+    if (!isInitializing.value) {
+      address.value = data.address || null;
+    }
   },
 });
 
@@ -179,7 +242,12 @@ watch(address, async () => {
   let currentBalance = await getBalance(wagmiConfig, {
     address: address.value,
   });
-  if (currentBalance && currentBalance.value < parseEther("0.2")) {
+
+  // Skip auto-funding if using paymaster (check query param)
+  const urlParams = new URLSearchParams(window.location.search);
+  const skipFunding = urlParams.get("skipFunding") === "true";
+
+  if (!skipFunding && currentBalance && currentBalance.value < parseEther("0.2")) {
     await fundAccount().catch((error) => {
       // eslint-disable-next-line no-console
       console.error("Funding failed:", error);
@@ -192,11 +260,18 @@ watch(address, async () => {
   balance.value = currentBalance;
 }, { immediate: true });
 
-const connectWallet = async (useSession: boolean) => {
+const connectWallet = async (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
   try {
     errorMessage.value = "";
+    const connector = buildConnector(mode);
+
+    if ((mode === "paymaster" || mode === "session-paymaster") && !testPaymasterAddress) {
+      errorMessage.value = "Paymaster address is not configured.";
+      return;
+    }
+
     connect(wagmiConfig, {
-      connector: useSession ? zksyncConnectorWithSession : zksyncConnector,
+      connector,
       chainId: chain.id,
     });
   } catch (error) {

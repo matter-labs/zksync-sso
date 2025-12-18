@@ -190,6 +190,7 @@ async function createSessionOnChain() {
       address: props.accountAddress as Address,
       signerPrivateKey: props.eoaPrivateKey as `0x${string}`,
       eoaValidatorAddress: props.eoaValidatorAddress as Address,
+      entryPointAddress: contracts.entryPoint as Address,
     });
 
     // eslint-disable-next-line no-console

@@ -8,6 +8,7 @@ import {
 } from "@wagmi/core";
 import type { Compute } from "@wagmi/core/internal";
 import {
+  type Address,
   type Client,
   getAddress,
   SwitchChainError,
@@ -37,6 +38,7 @@ export type ZksyncSsoConnectorOptions = {
   communicator?: Communicator;
   provider?: ProviderInterface;
   connectorMetadata?: ConnectorMetadata;
+  paymaster?: Address;
 };
 
 export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
@@ -141,6 +143,13 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
     },
     async getProvider() {
       if (!walletProvider) {
+        let paymasterAddress: Address | undefined;
+        if (parameters.paymaster) {
+          if (typeof parameters.paymaster === "string") {
+            paymasterAddress = parameters.paymaster as Address;
+          }
+        }
+
         walletProvider = parameters.provider ?? new WalletProvider({
           metadata: {
             name: parameters.metadata?.name,
@@ -153,6 +162,7 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
           bundlerClients: parameters.bundlerClients,
           chains: config.chains,
           customCommunicator: parameters.communicator,
+          paymasterAddress,
         });
       }
       return walletProvider;

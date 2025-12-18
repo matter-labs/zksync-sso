@@ -13,6 +13,7 @@ export type AuthServerRpcSchema = [
     Parameters: {
       metadata: AppMetadata;
       sessionPreferences?: SessionPreferences;
+      paymaster?: Address;
     };
     ReturnType: {
       account: {

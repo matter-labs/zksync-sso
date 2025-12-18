@@ -41,6 +41,8 @@ export type CreateSessionClientParams<
   transport: TTransport;
   /** Optional timestamp override for signature generation */
   currentTimestamp?: bigint;
+  /** Optional override for EntryPoint address used by the account implementation. */
+  entryPointAddress?: Address;
   /** Optional client metadata */
   key?: string;
   name?: string;
@@ -98,6 +100,7 @@ export function createSessionClient<
     sessionKeyPrivateKey,
     sessionSpec,
     currentTimestamp,
+    entryPointAddress: params.entryPointAddress,
   };
 
   const client = createClient({

@@ -20,14 +20,17 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Run tests sequentially to avoid nonce collision on funding transactions */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "html",
+  reporter: [
+    ["list"],
+    ["html", { open: process.env.CI ? "never" : "on-failure" }],
+  ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:3004",
+    baseURL: "http://localhost:3005",
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on",
@@ -41,18 +44,31 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local server before starting the tests */
+  /* Run local servers before starting the tests */
   webServer: [
     {
-      command: "pnpm nx preview demo-app",
-      url: "http://localhost:3004",
+      command: "PORT=3004 pnpm nx dev auth-server-api",
+      url: "http://localhost:3004/api/health",
       reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
       timeout: 180_000,
     },
     {
-      command: "pnpm nx preview auth-server",
+      command:
+        "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nx dev:no-deploy auth-server",
       url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 180_000,
+    },
+    {
+      command: "PORT=3005 pnpm nx dev demo-app",
+      url: "http://localhost:3005",
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
       timeout: 180_000,
     },
   ],

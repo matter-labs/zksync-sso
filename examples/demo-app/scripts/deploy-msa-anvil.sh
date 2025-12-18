@@ -24,9 +24,9 @@ cd "$CONTRACTS_DIR"
 echo "🔨 Building contracts..."
 forge build
 
-# Use pnpm deploy-test to deploy all contracts
+# Use pnpm deploy-test to deploy all contracts (except paymaster)
 echo ""
-echo "📦 Deploying contracts using pnpm deploy-test..."
+echo "📦 Deploying MSA contracts using pnpm deploy-test..."
 DEPLOY_OUTPUT=$(pnpm deploy-test 2>&1)
 
 echo "$DEPLOY_OUTPUT"
@@ -40,9 +40,29 @@ ACCOUNT_IMPL=$(echo "$DEPLOY_OUTPUT" | grep "ModularSmartAccount implementation:
 BEACON=$(echo "$DEPLOY_OUTPUT" | grep "UpgradeableBeacon:" | awk '{print $2}')
 FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MSAFactory:" | awk '{print $2}')
 
+# Deploy MockPaymaster directly from erc4337-contracts (simpler, no dependencies)
+echo ""
+echo "📦 Deploying MockPaymaster..."
+cd "$CONTRACTS_DIR"
+PAYMASTER_OUTPUT=$(forge create test/mocks/MockPaymaster.sol:MockPaymaster --rpc-url "$RPC_URL" --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 --broadcast 2>&1)
+echo "$PAYMASTER_OUTPUT"
+PAYMASTER=$(echo "$PAYMASTER_OUTPUT" | grep "Deployed to:" | awk '{print $3}')
+
+echo "MockPaymaster deployed to: $PAYMASTER"
+
+# Fund the paymaster with ETH from Anvil account #0 (has plenty of ETH)
+echo ""
+echo "💰 Funding paymaster with 10 ETH..."
+ANVIL_ACCOUNT_0_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+cast send "$PAYMASTER" --value 10ether --private-key "$ANVIL_ACCOUNT_0_KEY" --rpc-url "$RPC_URL" 2>&1 || echo "Fund transfer initiated"
+
+# Deposit the paymaster's ETH into the EntryPoint
+echo "💳 Depositing 10 ETH into EntryPoint for paymaster..."
+cast send "$PAYMASTER" "deposit()" --value 10ether --private-key "$ANVIL_ACCOUNT_0_KEY" --rpc-url "$RPC_URL" 2>&1 || echo "Deposit initiated"
+
 # Verify all addresses were extracted
 if [ -z "$EOA_VALIDATOR" ] || [ -z "$SESSION_VALIDATOR" ] || [ -z "$WEBAUTHN_VALIDATOR" ] || \
-   [ -z "$GUARDIAN_EXECUTOR" ] || [ -z "$ACCOUNT_IMPL" ] || [ -z "$BEACON" ] || [ -z "$FACTORY" ]; then
+  [ -z "$GUARDIAN_EXECUTOR" ] || [ -z "$ACCOUNT_IMPL" ] || [ -z "$BEACON" ] || [ -z "$FACTORY" ] || [ -z "$PAYMASTER" ]; then
   echo "❌ Failed to extract all contract addresses from deployment output"
   echo "Please check the deployment logs above"
   exit 1
@@ -57,6 +77,7 @@ echo "  GuardianExecutor: $GUARDIAN_EXECUTOR"
 echo "  ModularSmartAccount impl: $ACCOUNT_IMPL"
 echo "  UpgradeableBeacon: $BEACON"
 echo "  MSAFactory: $FACTORY"
+echo "  MockPaymaster: $PAYMASTER"
 
 # Create contracts-anvil.json
 echo ""
@@ -75,6 +96,8 @@ cat > contracts-anvil.json << EOF
   "accountImplementation": "$ACCOUNT_IMPL",
   "beacon": "$BEACON",
   "factory": "$FACTORY",
+  "testPaymaster": "$PAYMASTER",
+  "mockPaymaster": "$PAYMASTER",
   "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
   "bundlerUrl": "http://localhost:4337"
 }
@@ -89,6 +112,14 @@ echo "✅ Updated contracts.json to use Anvil addresses"
 # Copy to public directory
 cp contracts-anvil.json public/contracts.json
 echo "✅ Copied to public/contracts.json"
+
+# Copy to auth-server stores
+cp contracts-anvil.json "$WORKSPACE_ROOT/packages/auth-server/stores/local-node.json"
+echo "✅ Copied to packages/auth-server/stores/local-node.json"
+
+# Copy to auth-server-api src
+cp contracts-anvil.json "$WORKSPACE_ROOT/packages/auth-server-api/src/contracts.json"
+echo "✅ Copied to packages/auth-server-api/src/contracts.json"
 
 echo ""
 echo "🎉 Deployment complete!"

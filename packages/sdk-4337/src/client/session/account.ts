@@ -9,15 +9,14 @@ import {
 import {
   entryPoint08Abi,
   entryPoint08Address,
+  getUserOperationHash,
   toSmartAccount,
   type ToSmartAccountReturnType,
 } from "viem/account-abstraction";
 import {
   decode_nonce_result,
   encode_get_nonce_call_data,
-  encode_get_user_operation_hash_call_data,
   encode_session_execute_call_data,
-  EncodeGetUserOperationHashParams,
   generate_session_stub_signature_wasm,
   keyed_nonce_decimal,
   session_signature_no_validation_wasm,
@@ -47,6 +46,8 @@ export type ToSessionSmartAccountParams<
   currentTimestamp?: bigint;
   /** Session required contracts. */
   contracts: SessionRequiredContracts;
+  /** Optional override for EntryPoint address (defaults to viem's entryPoint08Address). */
+  entryPointAddress?: Address;
 };
 
 /**
@@ -63,15 +64,17 @@ export async function toSessionSmartAccount<
   contracts,
   sessionSpec,
   currentTimestamp,
+  entryPointAddress,
 }: ToSessionSmartAccountParams<TTransport, TChain>): Promise<ToSmartAccountReturnType> {
   // Precompute session spec JSON once
   const sessionSpecJSON = sessionSpecToJSON(sessionSpec);
+  const epAddress = entryPointAddress ?? entryPoint08Address;
 
   return toSmartAccount({
     client,
     entryPoint: {
       abi: entryPoint08Abi,
-      address: entryPoint08Address,
+      address: epAddress,
       version: "0.8",
     },
     async getNonce() {
@@ -85,7 +88,7 @@ export async function toSessionSmartAccount<
 
       // Call EntryPoint
       const result = await client.call({
-        to: entryPoint08Address,
+        to: epAddress,
         data: calldata,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
@@ -117,8 +120,8 @@ export async function toSessionSmartAccount<
 
       return encoded;
     },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async decodeCalls(data) {
+
+    async decodeCalls() {
       throw new Error("decodeCalls is not supported yet for session accounts.");
     },
 
@@ -149,8 +152,8 @@ export async function toSessionSmartAccount<
         `signMessage is not supported for session accounts. Message: ${String(message)}`,
       );
     },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async signTypedData({ domain, types, primaryType, message }) {
+
+    async signTypedData() {
       throw new Error("signTypedData is not supported for session accounts");
     },
     async signUserOperation(params) {
@@ -163,6 +166,7 @@ export async function toSessionSmartAccount<
       const preVerificationGas = params.preVerificationGas ?? 0n;
       const maxFeePerGas = params.maxFeePerGas ?? 0n;
       const maxPriorityFeePerGas = params.maxPriorityFeePerGas ?? 0n;
+      const paymasterAndData = (params.paymasterAndData ?? "0x") as Hex;
 
       // Debug: Log effective gas & nonce passed into signing to diagnose zero-gas AA23 issues
       console.debug(
@@ -177,26 +181,25 @@ export async function toSessionSmartAccount<
         },
       );
 
-      // Encode call data for EntryPoint.getUserOpHash()
-      const callData = encode_get_user_operation_hash_call_data(
-        new EncodeGetUserOperationHashParams(
+      // Compute user operation hash locally using viem helper (includes paymasterAndData)
+      const userOpHash = getUserOperationHash({
+        chainId: Number(client.chain!.id),
+        entryPointAddress: this.entryPoint.address,
+        entryPointVersion: "0.8",
+        userOperation: {
           sender,
-          nonce.toString(),
-          (params.callData ?? "0x") as Hex,
-          callGasLimit.toString(),
-          verificationGasLimit.toString(),
-          preVerificationGas.toString(),
-          maxFeePerGas.toString(),
-          maxPriorityFeePerGas.toString(),
-        ),
-      ) as Hex;
-
-      // Get user operation hash from EntryPoint
-      const { data: userOpHash } = await client.call({
-        to: this.entryPoint.address,
-        data: callData,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+          nonce,
+          initCode: (params.initCode ?? "0x") as Hex,
+          callData: (params.callData ?? "0x") as Hex,
+          callGasLimit,
+          verificationGasLimit,
+          preVerificationGas,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+          paymasterAndData,
+          signature: "0x",
+        },
+      } as any) as Hex;
 
       // Parse target and selector from callData for validation
       // The callData is already encoded by encodeCalls, so we need to extract execute() params
@@ -210,7 +213,7 @@ export async function toSessionSmartAccount<
         sessionKeyPrivateKey,
         contracts.sessionValidator,
         sessionSpecJSON,
-        userOpHash!,
+        userOpHash,
         timestampStr,
       ) as Hex;
 

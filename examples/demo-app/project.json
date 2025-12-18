@@ -13,7 +13,7 @@
           },
 
           {
-            "command": "PORT=3004 nuxt dev",
+            "command": "PORT=3005 nuxt dev",
             "prefix": "Demo-App:"
           }
         ]
@@ -80,7 +80,7 @@
             "prefix": "Auth-Server:"
           },
           {
-            "command": "PORT=3004 pnpm nuxt preview",
+            "command": "PORT=3005 pnpm nuxt preview",
             "prefix": "Demo-App:"
           }
         ]
@@ -103,6 +103,65 @@
       },
       "dependsOn": ["e2e:setup"]
     },
+    "e2e:demo-only": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "PW_TEST_HTML_REPORT_OPEN=never playwright test --config=playwright.config.ts"
+      }
+    },
+    "e2e:setup": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "pnpm nx run sdk-4337:build --skip-nx-cache",
+            "prefix": "Rebuild-SDK:"
+          },
+          {
+            "command": "cd ../../packages/auth-server && pnpm nuxt build"
+          },
+          {
+            "command": "pnpm nuxt build"
+          },
+          {
+            "command": "pnpm exec playwright install chromium"
+          }
+        ]
+      },
+      "dependsOn": ["deploy-contracts-erc4337"]
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "PORT=3005 pnpm run dev"
+      }
+    },
+    "redeploy-and-sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "./scripts/deploy-msa-anvil.sh",
+            "prefix": "Deploy-Anvil:"
+          },
+          {
+            "command": "pnpm nx run demo-app:deploy-contracts-erc4337",
+            "prefix": "Stub-ERC4337:"
+          }
+        ]
+      }
+    },
+    "e2e:erc4337:no-deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "PW_TEST_HTML_REPORT_OPEN=never playwright test --config=playwright-erc4337.config.ts"
+      }
+    },
     "e2e:erc4337": {
       "executor": "nx:run-commands",
       "options": {
@@ -110,6 +169,26 @@
         "command": "playwright test --config=playwright-erc4337.config.ts"
       },
       "dependsOn": ["e2e:setup:erc4337"]
+    },
+    "e2e:erc4337:demo-only": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "cd ../.. && ( cd examples/demo-app && PORT=3005 pnpm nuxt preview > /tmp/demo-app.log 2>&1 & echo $! > /tmp/demo-app.pid ) && sleep 5",
+            "prefix": "Start-Demo:"
+          },
+          {
+            "command": "playwright test --config=playwright-erc4337.config.ts",
+            "prefix": "Tests:"
+          },
+          {
+            "command": "kill $(cat /tmp/demo-app.pid) 2>/dev/null || true",
+            "prefix": "Cleanup:"
+          }
+        ]
+      }
     },
     "ci:erc4337": {
       "executor": "nx:run-commands",

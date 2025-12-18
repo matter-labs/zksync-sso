@@ -49,6 +49,7 @@ type ChainContracts = {
   factory: Address;
   bundlerUrl?: string;
   beacon?: Address; // Optional, for deployment
+  testPaymaster?: Address; // Optional, for paymaster sponsorship
 };
 
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
@@ -131,7 +132,7 @@ export const useClientStore = defineStore("client", () => {
     });
   };
 
-  const getClient = ({ chainId }: { chainId: SupportedChainId }) => {
+  const getClient = ({ chainId = defaultChain.id, usePaymaster = false }: { chainId?: SupportedChainId; usePaymaster?: boolean } = {}) => {
     if (!address.value) throw new Error("Address is not set");
     if (!credentialId.value) throw new Error("Credential ID is not set");
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -150,6 +151,7 @@ export const useClientStore = defineStore("client", () => {
       bundlerClient,
       chain,
       transport: createTransport(),
+      paymaster: usePaymaster ? contracts.testPaymaster : undefined,
     });
 
     return client;
@@ -189,10 +191,12 @@ export const useClientStore = defineStore("client", () => {
     chainId,
     address,
     credentialId,
+    usePaymaster = false,
   }: {
     chainId: SupportedChainId;
     address: Address;
     credentialId: Hex;
+    usePaymaster?: boolean;
   }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
@@ -210,6 +214,7 @@ export const useClientStore = defineStore("client", () => {
       bundlerClient,
       chain,
       transport: createTransport(),
+      paymaster: usePaymaster ? contracts.testPaymaster : undefined,
     });
   };
 

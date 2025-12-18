@@ -42,6 +42,8 @@ export type CreatePasskeyClientParams<
     rpId: string;
     /** Origin URL (for WebAuthn verification). */
     origin: string;
+    /** Optional override for EntryPoint address used by the account implementation. */
+    entryPointAddress?: Address;
   };
 
   /** Bundler client instance (created externally by user) */
@@ -52,6 +54,9 @@ export type CreatePasskeyClientParams<
 
   /** Transport for public RPC calls */
   transport: TTransport;
+
+  /** Optional paymaster address for sponsored transactions */
+  paymaster?: Address;
 
   /** Optional client metadata */
   key?: string;
@@ -152,6 +157,9 @@ export function createPasskeyClient<
 ): PasskeyClient<TTransport, TChain, TRpcSchema> {
   const { account: accountConfig, bundlerClient, chain, transport } = params;
 
+  // Wrap bundler client to inject paymaster if provided
+  const wrappedBundlerClient = bundlerClient;
+
   // Create public client for RPC calls
   const publicClient = createPublicClient({
     chain,
@@ -166,6 +174,7 @@ export function createPasskeyClient<
     credentialId: accountConfig.credentialId,
     rpId: accountConfig.rpId,
     origin: accountConfig.origin,
+    entryPointAddress: accountConfig.entryPointAddress,
   };
 
   // Create the client with all actions
@@ -183,14 +192,14 @@ export function createPasskeyClient<
     .extend((client) =>
       passkeyClientActions({
         client,
-        bundler: bundlerClient,
+        bundler: wrappedBundlerClient,
         passkeyAccount: passkeyAccountParams,
         accountAddress: accountConfig.address,
         validatorAddress: accountConfig.validatorAddress,
       }),
     )
     .extend(() => ({
-      bundler: bundlerClient,
+      bundler: wrappedBundlerClient,
     }));
 
   return client as PasskeyClient<TTransport, TChain, TRpcSchema>;

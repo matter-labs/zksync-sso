@@ -187,6 +187,7 @@ async function sendTransaction() {
       bundlerClient,
       chain,
       transport: http(),
+      entryPointAddress: contracts.entryPoint as Address,
     });
 
     // If an allowed recipient is configured, enforce it matches the selected target

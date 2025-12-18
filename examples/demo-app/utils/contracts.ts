@@ -16,6 +16,8 @@ export interface ContractsConfig {
   beacon: Address;
   factory: Address;
   bundlerUrl?: string;
+  testPaymaster?: Address;
+  entryPoint?: Address;
 }
 
 let cachedContracts: ContractsConfig | null = null;

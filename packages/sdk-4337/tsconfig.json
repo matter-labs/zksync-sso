@@ -6,6 +6,6 @@
   "compilerOptions": {
     "baseUrl": ".",
     "composite": true,
-    "module": "nodenext"
+    "module": "NodeNext"
   }
 }

@@ -1,15 +1,16 @@
+import type { Address } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionSpec } from "zksync-sso-4337/client";
 import { sessionSpecToJSON } from "zksync-sso-4337/client";
 
-export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividiumMode = false) => {
+export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividiumMode = false, userId?: string) => {
   const chainId = toRef(_chainId);
   const { getThrowAwayClient } = useClientStore();
   const { registerPasskey } = usePasskeyRegister();
   const { fetchAddressAssociationMessage, associateAddress, deleteAddressAssociation } = usePrividiumAddressAssociation();
   const runtimeConfig = useRuntimeConfig();
 
-  const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionSpec, "signer">) => {
+  const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionSpec, "signer">, paymaster?: Address) => {
     const result = await registerPasskey();
     if (!result) {
       throw new Error("Failed to register passkey");
@@ -47,20 +48,23 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
       throw new Error("Auth Server API URL is not configured");
     }
 
+    const requestBody = {
+      chainId: chainId.value,
+      credentialId,
+      credentialPublicKey,
+      originDomain: window.location.origin,
+      session: sessionData ? sessionSpecToJSON(sessionData) : undefined,
+      userId: userId || credentialId, // Use provided userId or fallback to credentialId for backward compatibility
+      eoaSigners: [ownerAddress],
+      paymaster,
+    };
+
     const response = await fetch(`${apiUrl}/api/deploy-account`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        chainId: chainId.value,
-        credentialId,
-        credentialPublicKey,
-        originDomain: window.location.origin,
-        session: sessionData ? sessionSpecToJSON(sessionData) : undefined,
-        userId: credentialId, // Use credential ID as unique user ID
-        eoaSigners: [ownerAddress],
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const data = await response.json();

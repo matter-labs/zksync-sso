@@ -14,6 +14,7 @@ type DeployAccountRequest = {
   originDomain: string;
   userId?: string;
   eoaSigners?: Address[];
+  paymaster?: Address;
 };
 
 // Deploy account endpoint
@@ -81,10 +82,18 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Send transaction
     let txHash: Hex;
     try {
-      txHash = await walletClient.sendTransaction({
+      const txParams: any = {
         to: transaction.to,
         data: transaction.data,
-      });
+      };
+
+      // Add paymaster if provided
+      if (body.paymaster) {
+        txParams.paymaster = body.paymaster;
+        txParams.paymasterInput = "0x";
+      }
+
+      txHash = await walletClient.sendTransaction(txParams);
     } catch (error) {
       console.error("Transaction send failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
