@@ -48,7 +48,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3005 PORT=3002 pnpm nx dev:no-deploy auth-server",
+        "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nx dev:no-deploy auth-server",
       url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
