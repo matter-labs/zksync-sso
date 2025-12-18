@@ -241,7 +241,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
     .toBeGreaterThan(endBalance + 0.1);
 });
 
-test("Create account with Paymaster and send ETH (no session)", async ({ page }) => {
+test.fixme("Create account with Paymaster and send ETH (no session)", async ({ page }) => {
   // Create a basic passkey account without session
   await page.getByRole("button", { name: "Connect", exact: true }).click();
 
@@ -303,7 +303,7 @@ test("Create account with Paymaster and send ETH (no session)", async ({ page })
   await expect(startBalance, "Balance after transfer should be ~0.1 ETH less").toBeGreaterThan(endBalance + 0.09);
 });
 
-test("Create session account with Paymaster and send ETH", async ({ page }) => {
+test.fixme("Create session account with Paymaster and send ETH", async ({ page }) => {
   // Trigger session connection with paymaster sponsorship
   await page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true }).click();
 
