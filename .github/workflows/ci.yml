@@ -112,8 +112,8 @@ jobs:
         run: |
           nohup pnpm nx dev auth-server-api > /tmp/auth-server-api.log 2>&1 &
           echo $! > /tmp/auth-server-api.pid
-          echo "Waiting for Auth Server API on 3005..."
-          timeout 60 bash -c 'until nc -z localhost 3005; do echo "Wait-API: Waiting..."; sleep 1; done'
+          echo "Waiting for Auth Server API on 3004..."
+          timeout 60 bash -c 'until nc -z localhost 3004; do echo "Wait-API: Waiting..."; sleep 1; done'
           echo "Auth Server API ready."
 
       - name: Show Auth Server API logs on failure
