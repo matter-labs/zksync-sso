@@ -1,0 +1,7 @@
+{
+  "eoaValidator": "0xde612c1b1C06982551157FB53E61a123c6045DFC",
+  "webauthnValidator": "0xE854be130245223cBDD20c85f4F126996669Cf08",
+  "sessionValidator": "0x41b6892Bf7aFB4feeACDd96AAf34205124380A47",
+  "factory": "0x099961116Ba4371a2516034233177Ee3eFcdaf39",
+  "bundlerUrl": "http://localhost:4337"
+}

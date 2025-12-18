@@ -30,16 +30,33 @@ const config: HardhatUserConfig = {
     hardhat: {
       zksync: true,
     },
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      // This network uses a standard local Ethereum node (e.g., Anvil or Hardhat Network) that does not support zkSync-specific features.
+      // zkSync is disabled here to allow minimal ERC721 deployment and testing without zkSync extensions.
+      zksync: false,
+    },
   },
   zksolc: {
     version: "latest",
     settings: {
-      // find all available options in the official documentation
-      // https://docs.zksync.io/build/tooling/hardhat/hardhat-zksync-solc#configuration
+      // enable viaIR for complex system contract compilation when needed
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+      viaIR: true,
     },
   },
   solidity: {
     version: "0.8.17",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+      viaIR: true,
+    },
   },
 };
 

@@ -1,5 +1,39 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import type { Chain } from "viem/chains";
+import { defineChain } from "viem/utils";
+import topLevelAwait from "vite-plugin-top-level-await";
+import wasm from "vite-plugin-wasm";
+
+// Anvil chain configuration (chain ID 1337 to match erc4337-contracts setup)
+const anvilChain: Chain = {
+  id: 1337,
+  name: "Anvil",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["http://127.0.0.1:8545"] },
+  },
+};
+
+const zksyncOsTestnet = defineChain({
+  id: 8022833,
+  name: "ZKsyncOS Testnet",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "ZKsyncOS Testnet Explorer",
+      url: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
+    },
+  },
+});
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -19,14 +53,16 @@ export default defineNuxtConfig({
   $production: {
     runtimeConfig: {
       public: {
-        chain: zksyncSepoliaTestnet,
+        chain: zksyncOsTestnet, // Update to use atlas testnet when deploying
         contracts: {
           nft: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
           paymaster: "0x60eef092977DF2738480a6986e2aCD10236b1FA7",
+          webauthnValidator: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
         },
+        bundlerUrl: "http://localhost:4337",
         baseUrl: "https://nft.zksync.dev",
         authServerUrl: "https://auth-test.zksync.dev/confirm",
-        explorerUrl: "https://sepolia.explorer.zksync.io",
+        explorerUrl: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
       },
     },
   },
@@ -57,11 +93,13 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chain: zksyncInMemoryNode,
+      chain: anvilChain,
       contracts: {
-        nft: "0xF4E1ee85f0645b5871B03bc40d151C174F0e86f6",
-        paymaster: "0x25B89fa6e157937f845ec0Fb41733B29bc20A4d3",
+        nft: process.env.NUXT_PUBLIC_CONTRACTS_NFT || "0x4c07ce6454D5340591f62fD7d3978B6f42Ef953e",
+        paymaster: process.env.NUXT_PUBLIC_CONTRACTS_PAYMASTER || "",
+        webauthnValidator: process.env.NUXT_PUBLIC_CONTRACTS_WEBAUTHN_VALIDATOR || "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       },
+      bundlerUrl: process.env.NUXT_PUBLIC_BUNDLER_URL || "http://localhost:4337",
       baseUrl: "http://localhost:3006",
       authServerUrl: "http://localhost:3002/confirm",
       explorerUrl: "http://localhost:3010",
@@ -77,6 +115,10 @@ export default defineNuxtConfig({
     },
   },
   vite: {
+    plugins: [
+      wasm(),
+      topLevelAwait(),
+    ],
     css: {
       preprocessorOptions: {
         scss: {
