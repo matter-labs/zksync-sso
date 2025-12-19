@@ -340,6 +340,10 @@ test("Create account with session, create session via paymaster, and send ETH", 
   await page.getByRole("button", { name: "Disconnect", exact: true }).click();
   await expect(page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true })).toBeVisible();
 
+  // Store balance before session creation with paymaster
+  const balanceBeforePaymaster = initialBalance;
+  console.log("Balance before session creation with paymaster:", balanceBeforePaymaster, "ETH");
+
   // Connect with session (paymaster will sponsor session creation)
   await page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true }).click();
   await page.waitForTimeout(2000);
@@ -377,6 +381,17 @@ test("Create account with session, create session via paymaster, and send ETH", 
 
   // Verify session was created (balance should be available)
   expect(sessionStartBalance).toBeGreaterThan(0);
+
+  // Verify paymaster paid the fees - balance should not have decreased (or decreased minimally)
+  // Session creation typically costs gas, but paymaster should cover it
+  const balanceDifference = balanceBeforePaymaster - sessionStartBalance;
+  console.log("Balance after session creation:", sessionStartBalance, "ETH");
+  console.log("Balance difference:", balanceDifference, "ETH");
+
+  // Balance should not have decreased significantly (allow for minor variations)
+  // If paymaster is working, the difference should be near zero
+  expect(balanceDifference).toBeLessThan(0.001); // Allow for minimal difference
+  console.log("✓ Paymaster successfully covered session creation fees");
 
   // TODO: Sending with session+paymaster currently fails with AA23 session validation error
   // This needs investigation - the session creation works but using it fails
