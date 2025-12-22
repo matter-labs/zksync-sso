@@ -138,25 +138,55 @@ export async function toPasskeySmartAccount<
     },
     async signUserOperation(params) {
       const sender = await this.getAddress();
-      // Compute user operation hash locally with full fields (including paymaster)
+
+      // For EntryPoint v0.8, extract paymaster fields if provided as separate params
+      const hasPaymaster = !!(params as any).paymaster;
+      const paymaster = (params as any).paymaster as Address | undefined;
+      const paymasterData = ((params as any).paymasterData as Hex) ?? ("0x" as Hex);
+      const paymasterVerificationGasLimit = (params as any).paymasterVerificationGasLimit as bigint | undefined;
+      const paymasterPostOpGasLimit = (params as any).paymasterPostOpGasLimit as bigint | undefined;
+
+      console.log("[passkey/account.ts] signUserOperation called with:", {
+        hasPaymaster,
+        paymaster,
+        paymasterData,
+        paymasterVerificationGasLimit: paymasterVerificationGasLimit?.toString(),
+        paymasterPostOpGasLimit: paymasterPostOpGasLimit?.toString(),
+        nonce: params.nonce?.toString(),
+      });
+
+      // Compute user operation hash for v0.8
+      // IMPORTANT: For v0.8, DO NOT use paymasterAndData - use the separate fields directly
+      const userOp: any = {
+        sender,
+        nonce: params.nonce,
+        initCode: (params.initCode ?? "0x") as Hex,
+        callData: (params.callData ?? "0x") as Hex,
+        callGasLimit: params.callGasLimit,
+        verificationGasLimit: params.verificationGasLimit,
+        preVerificationGas: params.preVerificationGas,
+        maxFeePerGas: params.maxFeePerGas,
+        maxPriorityFeePerGas: params.maxPriorityFeePerGas,
+        signature: "0x",
+      };
+
+      // Add paymaster fields if present (v0.8 uses separate fields, not paymasterAndData)
+      if (hasPaymaster && paymaster) {
+        userOp.paymaster = paymaster;
+        userOp.paymasterVerificationGasLimit = paymasterVerificationGasLimit;
+        userOp.paymasterPostOpGasLimit = paymasterPostOpGasLimit;
+        userOp.paymasterData = paymasterData;
+      }
+
       const userOpHash = getUserOperationHash({
         chainId: Number(client.chain!.id),
         entryPointAddress: this.entryPoint.address,
         entryPointVersion: "0.8",
-        userOperation: {
-          sender,
-          nonce: params.nonce,
-          initCode: (params.initCode ?? "0x") as Hex,
-          callData: (params.callData ?? "0x") as Hex,
-          callGasLimit: params.callGasLimit,
-          verificationGasLimit: params.verificationGasLimit,
-          preVerificationGas: params.preVerificationGas,
-          maxFeePerGas: params.maxFeePerGas,
-          maxPriorityFeePerGas: params.maxPriorityFeePerGas,
-          paymasterAndData: (params.paymasterAndData ?? "0x") as Hex,
-          signature: "0x",
-        },
+        userOperation: userOp,
       } as any) as Hex;
+
+      console.log("[passkey/account.ts] Computed UserOp hash:", userOpHash);
+      console.log("[passkey/account.ts] Hash includes paymaster fields:", hasPaymaster);
 
       // Sign with WebAuthn (browser API) and get complete signature
       // signWithPasskey handles:
@@ -172,6 +202,9 @@ export async function toPasskeySmartAccount<
         rpId,
         origin,
       });
+
+      console.log("[passkey/account.ts] Generated signature:", signature);
+      console.log("[passkey/account.ts] Signature includes paymaster:", hasPaymaster);
 
       return signature;
     },

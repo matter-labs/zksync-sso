@@ -11,12 +11,19 @@
       },
       "dependsOn": ["^build", "demo-app:deploy-contracts-erc4337"]
     },
+    "dev:with-api": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "commands": ["pnpm run copy:snarkjs && PORT=3002 nuxt dev", "pnpm nx run auth-server-api:dev"]
+      },
+      "dependsOn": ["^build"]
+    },
     "dev:no-deploy": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "commands": ["pnpm run copy:snarkjs && PORT=3002 nuxt dev", "pnpm nx run auth-server-api:dev"],
-        "parallel": true
+        "command": "pnpm run copy:snarkjs && PORT=3002 nuxt dev"
       },
       "dependsOn": ["^build"]
     },

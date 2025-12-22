@@ -241,12 +241,12 @@ test("Create passkey account and send ETH", async ({ page }) => {
     .toBeGreaterThan(endBalance + 0.1);
 });
 
-test("Create passkey account and verify paymaster button", async ({ page }) => {
+test("Create passkey account and send ETH with paymaster", async ({ page }) => {
   // Create account with regular connect
   await page.getByRole("button", { name: "Connect", exact: true }).click();
 
   await page.waitForTimeout(2000);
-  const popup = page.context().pages()[1];
+  let popup = page.context().pages()[1];
   await expect(popup.getByText("Connect to")).toBeVisible();
   popup.on("console", (msg) => {
     if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
@@ -256,8 +256,13 @@ test("Create passkey account and verify paymaster button", async ({ page }) => {
   });
 
   // Setup WebAuthn for passkey creation
-  const client = await popup.context().newCDPSession(popup);
+  let client = await popup.context().newCDPSession(popup);
   await client.send("WebAuthn.enable");
+  let newCredential: WebAuthnCredential | null = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    console.log("New Passkey credential added");
+    newCredential = credentialAdded.credential;
+  });
   await client.send("WebAuthn.addVirtualAuthenticator", {
     options: {
       protocol: "ctap2",
@@ -279,16 +284,129 @@ test("Create passkey account and verify paymaster button", async ({ page }) => {
   await expect(page.getByText("Disconnect")).toBeVisible({ timeout: 10000 });
   await expect(page.getByText("Balance:")).toBeVisible();
 
-  const balanceText = await page.getByText("Balance:").innerText();
-  const balance = +balanceText.replace("Balance: ", "").replace(" ETH", "");
+  const startBalanceText = await page.getByText("Balance:").innerText();
+  const startBalance = +startBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  console.log(`Starting balance: ${startBalance} ETH`);
 
-  // Verify paymaster button exists and is enabled
+  // Click "Send 0.1 ETH (Paymaster)" button
   await expect(page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true }).click();
+
+  // Wait for Auth Server to pop back up
+  await page.waitForTimeout(2000);
+
+  // Check if popup appeared
+  const pages = page.context().pages();
+  console.log(`Number of pages after clicking paymaster button: ${pages.length}`);
+  if (pages.length < 2) {
+    console.log("ERROR: Auth server popup did not appear!");
+    console.log("This means the paymaster transaction may not require confirmation");
+    throw new Error("Auth server popup did not appear after clicking paymaster button");
+  }
+
+  popup = pages[1];
+
+  // Debug: Check what screen the popup is showing
+  console.log(`Popup URL: ${popup.url()}`);
+  const popupTitle = await popup.title();
+  console.log(`Popup title: ${popupTitle}`);
+
+  // Check if this is a connection screen or transaction screen
+  const isConnectionScreen = popup.url().includes("/connect");
+  console.log(`Is connection screen: ${isConnectionScreen}`);
+
+  if (isConnectionScreen) {
+    console.log("⚠️  Popup is showing connection approval, not transaction confirmation!");
+    console.log("This means disconnect/reconnect triggered a new connection request");
+    console.log("We need to approve the connection first, then wait for transaction popup");
+
+    // Recreate the virtual authenticator for connection approval
+    client = await popup.context().newCDPSession(popup);
+    await client.send("WebAuthn.enable");
+    const connResult = await client.send("WebAuthn.addVirtualAuthenticator", {
+      options: {
+        protocol: "ctap2",
+        transport: "usb",
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        automaticPresenceSimulation: true,
+      },
+    });
+    await expect(newCredential).not.toBeNull();
+    await client.send("WebAuthn.addCredential", {
+      authenticatorId: connResult.authenticatorId,
+      credential: newCredential!,
+    });
+
+    // Click "Connect" to approve the connection
+    console.log("Clicking Connect button to approve reconnection...");
+    await popup.getByTestId("connect").click();
+
+    // Wait for connection popup to close and transaction popup to open
+    await page.waitForTimeout(3000);
+    const pagesAfterConnection = page.context().pages();
+    console.log(`Pages after connection approval: ${pagesAfterConnection.length}`);
+
+    if (pagesAfterConnection.length < 2) {
+      throw new Error("Transaction popup did not appear after connection approval");
+    }
+
+    // Get the NEW popup (transaction confirmation)
+    popup = pagesAfterConnection[pagesAfterConnection.length - 1];
+    console.log(`New popup URL: ${popup.url()}`);
+  }
+
+  // Now we should have the transaction confirmation popup
+  // Recreate the virtual authenticator for transaction signature
+  client = await popup.context().newCDPSession(popup);
+  await client.send("WebAuthn.enable");
+  const result = await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+  await expect(newCredential).not.toBeNull();
+  await client.send("WebAuthn.addCredential", {
+    authenticatorId: result.authenticatorId,
+    credential: newCredential!,
+  });
+
+  // Verify the transaction details in auth server
+  await expect(popup.getByText("-0.1")).toBeVisible();
+  await expect(popup.getByText("Sending to")).toBeVisible();
+
+  // CRITICAL: Verify that fees are shown as sponsored (paymaster covers them)
+  await expect(popup.getByText("Fees")).toBeVisible();
+  const sponsoredText = popup.getByText("0 ETH (Sponsored)");
+  await expect(sponsoredText, "Paymaster should cover fees - expecting '0 ETH (Sponsored)' to be shown").toBeVisible();
+  console.log("✓ Auth server shows fees are sponsored by paymaster");
+
+  // Confirm the transfer
+  await popup.getByTestId("confirm").click();
+
+  // Wait for confirmation to complete and popup to close
+  await page.waitForTimeout(2000);
+
+  // Verify transaction completed
   await expect(page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true })).toBeEnabled();
 
-  console.log(`Account created with balance: ${balance} ETH. Paymaster button verified.`);
-  // Note: Actual paymaster transaction testing is covered by Test 4 (session + paymaster)
-  // which successfully tests paymaster sponsorship via the "Connect Session (Paymaster)" flow
+  const endBalanceText = await page.getByText("Balance:").innerText();
+  const endBalance = +endBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  console.log(`Ending balance: ${endBalance} ETH`);
+
+  const balanceChange = startBalance - endBalance;
+  console.log(`Balance change: ${balanceChange} ETH`);
+
+  // Balance should decrease by EXACTLY 0.1 ETH (no gas fees paid by user)
+  // Allow small tolerance for rounding
+  expect(Math.abs(balanceChange - 0.1), "Balance should decrease by exactly 0.1 ETH (paymaster pays gas)").toBeLessThan(0.001);
+  console.log("✓ Paymaster successfully covered gas fees - balance decreased by exactly 0.1 ETH");
 });
 
 test("Create account with session, create session via paymaster, and send ETH", async ({ page }) => {

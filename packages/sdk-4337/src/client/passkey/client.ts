@@ -17,6 +17,7 @@ import {
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
 
+import type { PaymasterConfig } from "../../actions/sendUserOperation.js";
 import type { ToPasskeySmartAccountParams } from "./account.js";
 import {
   type PasskeyClientActions,
@@ -55,8 +56,8 @@ export type CreatePasskeyClientParams<
   /** Transport for public RPC calls */
   transport: TTransport;
 
-  /** Optional paymaster address for sponsored transactions */
-  paymaster?: Address;
+  /** Optional paymaster configuration for sponsored transactions - can be either a full config object or just an address string */
+  paymaster?: PaymasterConfig | Address;
 
   /** Optional client metadata */
   key?: string;
@@ -196,6 +197,7 @@ export function createPasskeyClient<
         passkeyAccount: passkeyAccountParams,
         accountAddress: accountConfig.address,
         validatorAddress: accountConfig.validatorAddress,
+        paymaster: params.paymaster,
       }),
     )
     .extend(() => ({

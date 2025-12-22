@@ -132,13 +132,20 @@ export const useClientStore = defineStore("client", () => {
     });
   };
 
-  const getClient = ({ chainId = defaultChain.id, usePaymaster = false }: { chainId?: SupportedChainId; usePaymaster?: boolean } = {}) => {
+  const getClient = ({ chainId = defaultChain.id, usePaymaster = false, paymasterAddress }: { chainId?: SupportedChainId; usePaymaster?: boolean; paymasterAddress?: string } = {}) => {
     if (!address.value) throw new Error("Address is not set");
     if (!credentialId.value) throw new Error("Credential ID is not set");
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
     const contracts = contractsByChain[chainId];
     const bundlerClient = getBundlerClient({ chainId });
+
+    console.log("[client.ts getClient] usePaymaster:", usePaymaster);
+    console.log("[client.ts getClient] passed paymasterAddress:", paymasterAddress);
+    console.log("[client.ts getClient] contracts.testPaymaster:", contracts.testPaymaster);
+    // Use passed address, fallback to contracts.testPaymaster if usePaymaster is true
+    const finalPaymasterAddress = paymasterAddress ?? (usePaymaster ? contracts.testPaymaster : undefined);
+    console.log("[client.ts getClient] final paymaster address being passed:", finalPaymasterAddress);
 
     const client = createPasskeyClient({
       account: {
@@ -151,7 +158,7 @@ export const useClientStore = defineStore("client", () => {
       bundlerClient,
       chain,
       transport: createTransport(),
-      paymaster: usePaymaster ? contracts.testPaymaster : undefined,
+      paymaster: finalPaymasterAddress,
     });
 
     return client;

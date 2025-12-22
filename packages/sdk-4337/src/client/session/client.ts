@@ -16,6 +16,7 @@ import {
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
 
+import type { PaymasterConfig } from "../../actions/sendUserOperation.js";
 import type { SessionRequiredContracts, ToSessionSmartAccountParams } from "./account.js";
 import { type SessionClientActions, sessionClientActions } from "./client-actions.js";
 import type { SessionSpec } from "./types.js";
@@ -39,6 +40,8 @@ export type CreateSessionClientParams<
   chain: TChain;
   /** Transport for public RPC */
   transport: TTransport;
+  /** Optional paymaster configuration for sponsoring transactions */
+  paymaster?: PaymasterConfig;
   /** Optional timestamp override for signature generation */
   currentTimestamp?: bigint;
   /** Optional override for EntryPoint address used by the account implementation. */
@@ -89,6 +92,7 @@ export function createSessionClient<
     chain,
     transport,
     currentTimestamp,
+    paymaster,
   } = params;
 
   const publicClient = createPublicClient({ chain, transport });
@@ -119,6 +123,7 @@ export function createSessionClient<
         bundler: bundlerClient,
         sessionAccount: sessionAccountParams,
         accountAddress: address,
+        paymaster,
       }),
     )
     .extend(() => ({
