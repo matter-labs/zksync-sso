@@ -168,6 +168,12 @@ const sessionConfig = {
 const buildConnector = (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
   const baseConfig: Parameters<typeof zksyncSsoConnector>[0] = {
     authServerUrl: "http://localhost:3002/confirm",
+    connectorMetadata: {
+      id: `zksync-sso-${mode}`,
+      name: "ZKsync",
+      icon: "https://zksync.io/favicon.ico",
+      type: "zksync-sso",
+    },
   };
 
   if (mode === "session" || mode === "session-paymaster") {
@@ -187,7 +193,12 @@ const publicClient = createPublicClient({
 });
 const wagmiConfig = createConfig({
   chains: [chain],
-  connectors: [buildConnector("regular")],
+  connectors: [
+    buildConnector("regular"),
+    buildConnector("session"),
+    buildConnector("paymaster"),
+    buildConnector("session-paymaster"),
+  ],
   transports: {
     [chain.id]: http(),
   },
@@ -272,10 +283,18 @@ watch(address, async () => {
 const connectWallet = async (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
   try {
     errorMessage.value = "";
-    const connector = buildConnector(mode);
 
     if ((mode === "paymaster" || mode === "session-paymaster") && !testPaymasterAddress) {
       errorMessage.value = "Paymaster address is not configured.";
+      return;
+    }
+
+    // Find the pre-configured connector for this mode by ID
+    const connectorId = `zksync-sso-${mode}`;
+    const connector = wagmiConfig.connectors.find((c) => c.id === connectorId);
+
+    if (!connector) {
+      errorMessage.value = `Connector for mode "${mode}" not found.`;
       return;
     }
 

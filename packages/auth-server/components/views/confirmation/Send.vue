@@ -235,7 +235,7 @@ const hasPaymaster = computed<boolean>(() => {
   if (requestPaymaster.value) {
     return true;
   }
-  // Check if transaction has paymaster params (zkSync format)
+  // Check if transaction has paymaster params
   const params = transactionParams.value as unknown;
   if (params?.paymasterParams || params?.paymaster) {
     return true;
