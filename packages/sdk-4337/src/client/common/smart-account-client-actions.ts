@@ -188,8 +188,6 @@ export function smartAccountClientActions<
             }
           : {};
 
-      console.log("[smart-account-client-actions.ts sendTransaction] About to call bundler.sendUserOperation with paymaster params:", paymasterParams);
-
       // Send user operation through bundler
       const userOpHash = await config.bundler.sendUserOperation({
         account,

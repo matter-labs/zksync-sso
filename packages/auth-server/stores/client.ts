@@ -140,12 +140,7 @@ export const useClientStore = defineStore("client", () => {
     const contracts = contractsByChain[chainId];
     const bundlerClient = getBundlerClient({ chainId });
 
-    console.log("[client.ts getClient] usePaymaster:", usePaymaster);
-    console.log("[client.ts getClient] passed paymasterAddress:", paymasterAddress);
-    console.log("[client.ts getClient] contracts.testPaymaster:", contracts.testPaymaster);
-    // Use passed address, fallback to contracts.testPaymaster if usePaymaster is true
     const finalPaymasterAddress = paymasterAddress ?? (usePaymaster ? contracts.testPaymaster : undefined);
-    console.log("[client.ts getClient] final paymaster address being passed:", finalPaymasterAddress);
 
     const client = createPasskeyClient({
       account: {

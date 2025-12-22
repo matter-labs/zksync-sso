@@ -276,7 +276,6 @@ export const getConnectedSsoSessionClient = async<
   config: config,
   parameters: GetConnectorClientParameters<config, chainId> = {},
 ): Promise<GetConnectedSsoClientReturnType<config, chainId>> => {
-  // Get the current connection
   const connections = getConnections(config);
   const connection = connections.find((c) => c.accounts.length > 0);
 
@@ -289,7 +288,6 @@ export const getConnectedSsoSessionClient = async<
     throw new Error("Connector does not support getClient method. Make sure you're using the ZKsync SSO connector.");
   }
 
-  // Use the custom _getClient method to get our custom client
   const client = await (connection.connector as any)._getClient(parameters);
 
   if (!isSsoSessionClient(client)) {

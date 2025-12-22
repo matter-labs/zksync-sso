@@ -254,21 +254,15 @@ const confirmTransaction = async () => {
       throw new Error("Transaction parameters are not available");
     }
     const usePaymasterFlag = !!requestPaymaster.value;
-    console.log("[Send.vue] requestPaymaster.value:", requestPaymaster.value);
-    console.log("[Send.vue] usePaymaster flag:", usePaymasterFlag);
-    // Extract address - handle both string and PaymasterConfig object
     const paymasterAddr = typeof requestPaymaster.value === "string"
       ? requestPaymaster.value
       : requestPaymaster.value?.address;
-    console.log("[Send.vue] passing paymasterAddress:", paymasterAddr);
     const client = getClient({
       chainId: requestChain.value!.id,
       usePaymaster: usePaymasterFlag,
       paymasterAddress: paymasterAddr,
     });
-    console.log("[Send.vue] client created, sending transaction...");
     const transactionHash = await client.sendTransaction(transactionParams.value);
-    console.log("[Send.vue] transaction hash:", transactionHash);
     return {
       result: transactionHash,
     };
