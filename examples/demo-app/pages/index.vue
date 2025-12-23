@@ -121,7 +121,7 @@
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, createConfig, connect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract, getConnectorClient } from "@wagmi/core";
 import { createWalletClient, createPublicClient, http, parseEther, toHex, type Address, type Hash } from "viem";
-import { zksyncSsoConnector } from "zksync-sso-4337/connector";
+import { zksyncSsoConnector, getConnectedSsoSessionClient, isSsoSessionClientConnected } from "zksync-sso-4337/connector";
 import { privateKeyToAccount } from "viem/accounts";
 import { localhost } from "viem/chains";
 import { onMounted } from "vue";
@@ -324,18 +324,30 @@ const sendTokens = async () => {
   errorMessage.value = "";
   isSendingEth.value = true;
   try {
-    // Get the connector client which will have paymaster config if connected with paymaster mode
-    const connectorClient = await getConnectorClient(wagmiConfig);
+    let transactionHash: Hash;
 
-    // Use the provider's request method which routes through our custom client
-    const transactionHash = await connectorClient.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: address.value,
+    // Check if we're using a session client
+    const isSession = await isSsoSessionClientConnected(wagmiConfig);
+
+    if (isSession) {
+      // Use session client's sendTransaction which routes through bundler
+      const sessionClient = await getConnectedSsoSessionClient(wagmiConfig);
+      transactionHash = await sessionClient.sendTransaction({
         to: testTransferTarget,
-        value: toHex(parseEther("0.1")),
-      }],
-    }) as Hash;
+        value: parseEther("0.1"),
+      });
+    } else {
+      // Use regular connector client for non-session (passkey) transactions
+      const connectorClient = await getConnectorClient(wagmiConfig);
+      transactionHash = await connectorClient.request({
+        method: "eth_sendTransaction",
+        params: [{
+          from: address.value,
+          to: testTransferTarget,
+          value: toHex(parseEther("0.1")),
+        }],
+      }) as Hash;
+    }
 
     const receipt = await waitForTransactionReceipt(wagmiConfig, {
       hash: transactionHash,

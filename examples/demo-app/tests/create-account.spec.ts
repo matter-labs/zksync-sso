@@ -52,7 +52,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByText("ZKsync SSO Demo")).toBeVisible();
 });
 
-test.skip("Create account with session and send ETH", async ({ page }) => {
+test("Create account with session and send ETH", async ({ page }) => {
   // Step 1: regular connect to create account with passkey
   await page.getByRole("button", { name: "Connect", exact: true }).click();
 
