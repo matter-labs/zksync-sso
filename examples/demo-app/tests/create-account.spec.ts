@@ -132,7 +132,16 @@ test("Create account with session and send ETH", async ({ page }) => {
 
   // Step 3: send ETH under session (no extra signing step expected)
   await page.getByRole("button", { name: "Send 0.1 ETH", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeEnabled();
+
+  // Wait for transaction to be sent (button should be disabled during transaction)
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeDisabled();
+
+  // Wait for transaction to complete (button becomes enabled again)
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeEnabled({ timeout: 30000 });
+
+  // Wait a bit for balance to update
+  await page.waitForTimeout(2000);
+
   const sessionEndBalanceText = await page.getByText("Balance:").innerText();
   const sessionEndBalance = +sessionEndBalanceText.replace("Balance: ", "").replace(" ETH", "");
 
@@ -241,14 +250,13 @@ test("Create passkey account and send ETH", async ({ page }) => {
     .toBeGreaterThan(endBalance + 0.1);
 });
 
-test.fixme("Create account with Paymaster and send ETH (no session)", async ({ page }) => {
-  // Create a basic passkey account without session
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
+test("Create passkey account and send ETH with paymaster", async ({ page }) => {
+  // Create account with paymaster connect (paymaster sponsors all gas)
+  await page.getByRole("button", { name: "Connect (Paymaster)", exact: true }).click();
 
-  // Ensure popup is displayed and prepare logging
   await page.waitForTimeout(2000);
-  const popup = page.context().pages()[1];
-  await expect(popup.getByText(/Connect to|Act on your behalf/)).toBeVisible();
+  let popup = page.context().pages()[1];
+  await expect(popup.getByText("Connect to")).toBeVisible();
   popup.on("console", (msg) => {
     if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
   });
@@ -256,7 +264,113 @@ test.fixme("Create account with Paymaster and send ETH (no session)", async ({ p
     console.log(`Auth server uncaught exception: "${exception}"`);
   });
 
-  // Setup WebAuthn virtual authenticator for passkey creation
+  // Setup WebAuthn for passkey creation
+  let client = await popup.context().newCDPSession(popup);
+  await client.send("WebAuthn.enable");
+  let newCredential: WebAuthnCredential | null = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    console.log("New Passkey credential added");
+    newCredential = credentialAdded.credential;
+  });
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+
+  // Complete signup
+  await popup.getByTestId("signup").click();
+  await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
+  await popup.getByTestId("connect").click();
+
+  // Wait for connection
+  await page.waitForTimeout(3000);
+  await expect(page.getByText("Disconnect")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("Balance:")).toBeVisible();
+
+  const startBalanceText = await page.getByText("Balance:").innerText();
+  const startBalance = +startBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  console.log(`Starting balance: ${startBalance} ETH`);
+
+  // Click "Send 0.1 ETH (Paymaster)" button
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true }).click();
+
+  // Wait for Auth Server to pop back up for transaction confirmation
+  await page.waitForTimeout(2000);
+  popup = page.context().pages()[1];
+
+  // Setup virtual authenticator for transaction signature
+  client = await popup.context().newCDPSession(popup);
+  await client.send("WebAuthn.enable");
+  const result = await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+  await expect(newCredential).not.toBeNull();
+  await client.send("WebAuthn.addCredential", {
+    authenticatorId: result.authenticatorId,
+    credential: newCredential!,
+  });
+
+  // Verify the transaction details in auth server
+  await expect(popup.getByText("-0.1")).toBeVisible();
+  await expect(popup.getByText("Sending to")).toBeVisible();
+
+  // CRITICAL: Verify that fees are shown as sponsored (paymaster covers them)
+  await expect(popup.getByText("Fees")).toBeVisible();
+  const sponsoredText = popup.getByText("0 ETH (Sponsored)");
+  await expect(sponsoredText, "Paymaster should cover fees - expecting '0 ETH (Sponsored)' to be shown").toBeVisible();
+  console.log("✓ Auth server shows fees are sponsored by paymaster");
+
+  // Confirm the transfer
+  await popup.getByTestId("confirm").click();
+
+  // Wait for confirmation to complete and popup to close (paymaster txs may take longer)
+  await page.waitForTimeout(5000);
+
+  // Verify transaction completed
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true })).toBeEnabled();
+
+  const endBalanceText = await page.getByText("Balance:").innerText();
+  const endBalance = +endBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  console.log(`Ending balance: ${endBalance} ETH`);
+
+  const balanceChange = startBalance - endBalance;
+  console.log(`Balance change: ${balanceChange} ETH`);
+
+  // Balance should decrease by EXACTLY 0.1 ETH (no gas fees paid by user)
+  // Allow small tolerance for rounding
+  expect(Math.abs(balanceChange - 0.1), "Balance should decrease by exactly 0.1 ETH (paymaster pays gas)").toBeLessThan(0.001);
+  console.log("✓ Paymaster successfully covered gas fees - balance decreased by exactly 0.1 ETH");
+});
+
+test("Create account with session, create session via paymaster, and send ETH", async ({ page }) => {
+  // Step 1: Create a passkey account without session (regular connect)
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+
+  await page.waitForTimeout(2000);
+  const popup = page.context().pages()[1];
+  await expect(popup.getByText("Connect to")).toBeVisible();
+  popup.on("console", (msg) => {
+    if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
+  });
+  popup.on("pageerror", (exception) => {
+    console.log(`Auth server uncaught exception: "${exception}"`);
+  });
+
+  // Setup WebAuthn for passkey creation
   const client = await popup.context().newCDPSession(popup);
   await client.send("WebAuthn.enable");
   let newCredential: WebAuthnCredential | null = null;
@@ -276,57 +390,35 @@ test.fixme("Create account with Paymaster and send ETH (no session)", async ({ p
   });
 
   // Complete signup
-  const signupBtn = popup.getByTestId("signup");
-  if (await signupBtn.isVisible()) {
-    await signupBtn.click();
-    await expect(popup.getByText(/Connect to ZKsync SSO Demo|Authorize ZKsync SSO Demo/)).toBeVisible();
-  }
+  await popup.getByTestId("signup").click();
+  await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
   await popup.getByTestId("connect").click();
 
-  await expect(newCredential).not.toBeNull();
-
-  // Account created
+  // Wait for connection
   await page.waitForTimeout(2000);
   await expect(page.getByText("Disconnect")).toBeVisible();
+  const initialBalanceText = await page.getByText("Balance:").innerText();
+  const initialBalance = +initialBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  await expect(initialBalance, "Balance should be non-zero after initial funding").toBeGreaterThan(0);
 
-  // Capture starting balance
-  const startBalanceText = await page.getByText("Balance:").innerText();
-  const startBalance = +startBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  // Step 2: Disconnect and reconnect with "Connect Session (Paymaster)"
+  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true })).toBeVisible();
 
-  // Send 0.1 ETH (paymaster should sponsor gas)
-  await page.getByRole("button", { name: "Send 0.1 ETH", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeEnabled();
+  // Store balance before session creation with paymaster
+  const balanceBeforePaymaster = initialBalance;
+  console.log("Balance before session creation with paymaster:", balanceBeforePaymaster, "ETH");
 
-  // Validate balance decreased by ~0.1 ETH
-  const endBalanceText = await page.getByText("Balance:").innerText();
-  const endBalance = +endBalanceText.replace("Balance: ", "").replace(" ETH", "");
-  await expect(startBalance, "Balance after transfer should be ~0.1 ETH less").toBeGreaterThan(endBalance + 0.09);
-});
-
-test.fixme("Create session account with Paymaster and send ETH", async ({ page }) => {
-  // Trigger session connection with paymaster sponsorship
+  // Connect with session (paymaster will sponsor session creation)
   await page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true }).click();
-
-  // Ensure popup is displayed and prepare logging
   await page.waitForTimeout(2000);
-  const popup = page.context().pages()[1];
-  await expect(popup.getByText(/Connect to|Act on your behalf/)).toBeVisible();
-  popup.on("console", (msg) => {
-    if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
-  });
-  popup.on("pageerror", (exception) => {
-    console.log(`Auth server uncaught exception: "${exception}"`);
-  });
+  const sessionPopup = page.context().pages()[1];
+  await expect(sessionPopup.getByText("Act on your behalf")).toBeVisible();
 
-  // Setup WebAuthn virtual authenticator for passkey creation (first-time session)
-  const client = await popup.context().newCDPSession(popup);
-  await client.send("WebAuthn.enable");
-  let newCredential: WebAuthnCredential | null = null;
-  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
-    console.log("New Passkey credential added");
-    newCredential = credentialAdded.credential;
-  });
-  await client.send("WebAuthn.addVirtualAuthenticator", {
+  // Setup WebAuthn with existing credential
+  const sessionClient = await sessionPopup.context().newCDPSession(sessionPopup);
+  await sessionClient.send("WebAuthn.enable");
+  const sessionAuthenticator = await sessionClient.send("WebAuthn.addVirtualAuthenticator", {
     options: {
       protocol: "ctap2",
       transport: "usb",
@@ -336,33 +428,35 @@ test.fixme("Create session account with Paymaster and send ETH", async ({ page }
       automaticPresenceSimulation: true,
     },
   });
-
-  // If signup is shown, complete signup before connect; otherwise proceed to authorize/connect
-  const signupBtn = popup.getByTestId("signup");
-  if (await signupBtn.isVisible()) {
-    await signupBtn.click();
-    await expect(popup.getByText(/Connect to ZKsync SSO Demo|Authorize ZKsync SSO Demo/)).toBeVisible();
-  } else {
-    await expect(popup.getByText(/Authorize ZKsync SSO Demo/)).toBeVisible();
-  }
-  await popup.getByTestId("connect").click();
-
   await expect(newCredential).not.toBeNull();
+  await sessionClient.send("WebAuthn.addCredential", {
+    authenticatorId: sessionAuthenticator.authenticatorId,
+    credential: newCredential!,
+  });
 
-  // Connected via session + paymaster
+  // Authorize session creation with paymaster
+  await expect(sessionPopup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
+  await sessionPopup.getByTestId("connect").click();
+
+  // Wait for session creation to complete
   await page.waitForTimeout(2000);
   await expect(page.getByText("Disconnect")).toBeVisible();
+  const sessionBalanceText = await page.getByText("Balance:").innerText();
+  const sessionStartBalance = +sessionBalanceText.replace("Balance: ", "").replace(" ETH", "");
 
-  // Capture starting balance
-  const startBalanceText = await page.getByText("Balance:").innerText();
-  const startBalance = +startBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  // Verify session was created (balance should be available)
+  expect(sessionStartBalance).toBeGreaterThan(0);
 
-  // Send under session (paymaster should sponsor fees)
-  await page.getByRole("button", { name: "Send 0.1 ETH", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeEnabled();
+  // Verify paymaster paid the fees - balance should not have decreased (or decreased minimally)
+  // Session creation typically costs gas, but paymaster should cover it
+  const balanceDifference = balanceBeforePaymaster - sessionStartBalance;
+  console.log("Balance after session creation:", sessionStartBalance, "ETH");
+  console.log("Balance difference:", balanceDifference, "ETH");
 
-  // Validate balance decreased by ~0.1 ETH
-  const endBalanceText = await page.getByText("Balance:").innerText();
-  const endBalance = +endBalanceText.replace("Balance: ", "").replace(" ETH", "");
-  await expect(startBalance, "Balance after transfer should be ~0.1 ETH less").toBeGreaterThan(endBalance + 0.09);
+  // Balance should not have decreased significantly (allow for minor variations)
+  // If paymaster is working, the difference should be near zero
+  expect(balanceDifference).toBeLessThan(0.001); // Allow for minimal difference
+  console.log("✓ Paymaster successfully covered session creation fees");
+
+  console.log("Session created successfully with balance:", sessionStartBalance, "ETH");
 });

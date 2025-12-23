@@ -132,13 +132,15 @@ export const useClientStore = defineStore("client", () => {
     });
   };
 
-  const getClient = ({ chainId = defaultChain.id, usePaymaster = false }: { chainId?: SupportedChainId; usePaymaster?: boolean } = {}) => {
+  const getClient = ({ chainId = defaultChain.id, usePaymaster = false, paymasterAddress }: { chainId?: SupportedChainId; usePaymaster?: boolean; paymasterAddress?: string } = {}) => {
     if (!address.value) throw new Error("Address is not set");
     if (!credentialId.value) throw new Error("Credential ID is not set");
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
     const contracts = contractsByChain[chainId];
     const bundlerClient = getBundlerClient({ chainId });
+
+    const finalPaymasterAddress = paymasterAddress ?? (usePaymaster ? contracts.testPaymaster : undefined);
 
     const client = createPasskeyClient({
       account: {
@@ -151,7 +153,7 @@ export const useClientStore = defineStore("client", () => {
       bundlerClient,
       chain,
       transport: createTransport(),
-      paymaster: usePaymaster ? contracts.testPaymaster : undefined,
+      paymaster: finalPaymasterAddress,
     });
 
     return client;

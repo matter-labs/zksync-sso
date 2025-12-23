@@ -18,7 +18,7 @@
     </button>
     <button
       v-if="!address"
-      title="Connect with paymaster sponsorship"
+      title="Connect with paymaster sponsoring gas (no session)"
       class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-4"
       @click="connectWallet('paymaster')"
     >
@@ -44,13 +44,20 @@
     >
       <p>Balance: {{ balance ? `${balance.formatted} ${balance.symbol}` : '...' }}</p>
     </div>
+    <div
+      v-if="address"
+      class="mt-4"
+    >
+      <p>Connection Mode: {{ connectionMode }} {{ isPaymasterEnabled ? '(Gas Sponsored ✨)' : '' }}</p>
+    </div>
     <button
       v-if="address"
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-3 mr-4 disabled:bg-slate-300"
+      :class="isPaymasterEnabled ? 'bg-green-500 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-700'"
+      class="text-white font-bold py-2 px-4 rounded mt-3 mr-4 disabled:bg-slate-300"
       :disabled="isSendingEth"
       @click="sendTokens()"
     >
-      Send 0.1 ETH
+      Send 0.1 ETH{{ isPaymasterEnabled ? ' (Paymaster)' : '' }}
     </button>
 
     <!-- <div
@@ -112,9 +119,9 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract } from "@wagmi/core";
-import { createWalletClient, createPublicClient, http, parseEther, type Address, type Hash } from "viem";
-import { zksyncSsoConnector } from "zksync-sso-4337/connector";
+import { disconnect, getBalance, watchAccount, createConfig, connect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract, getConnectorClient } from "@wagmi/core";
+import { createWalletClient, createPublicClient, http, parseEther, toHex, type Address, type Hash } from "viem";
+import { zksyncSsoConnector, getConnectedSsoSessionClient, isSsoSessionClientConnected } from "zksync-sso-4337/connector";
 import { privateKeyToAccount } from "viem/accounts";
 import { localhost } from "viem/chains";
 import { onMounted } from "vue";
@@ -161,6 +168,14 @@ const sessionConfig = {
 const buildConnector = (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
   const baseConfig: Parameters<typeof zksyncSsoConnector>[0] = {
     authServerUrl: "http://localhost:3002/confirm",
+    // Add unique timestamp to ensure each connector is truly fresh
+    // This prevents Wagmi from reusing cached connector instances
+    connectorMetadata: {
+      id: `zksync-sso-${mode}-${Date.now()}`,
+      name: "ZKsync",
+      icon: "https://zksync.io/favicon.ico",
+      type: "zksync-sso",
+    },
   };
 
   if (mode === "session" || mode === "session-paymaster") {
@@ -189,6 +204,8 @@ const wagmiConfig = createConfig({
 const address = ref<Address | null>(null);
 const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
+const connectionMode = ref<string>("Not connected");
+const isPaymasterEnabled = computed(() => connectionMode.value === "paymaster" || connectionMode.value === "session-paymaster");
 const isInitializing = ref(true);
 
 // Ensure fresh, unauthenticated state on page load so the connect buttons render
@@ -270,6 +287,9 @@ const connectWallet = async (mode: "regular" | "session" | "paymaster" | "sessio
       return;
     }
 
+    // Track which mode was used for connection
+    connectionMode.value = mode;
+
     connect(wagmiConfig, {
       connector,
       chainId: chain.id,
@@ -283,7 +303,16 @@ const connectWallet = async (mode: "regular" | "session" | "paymaster" | "sessio
 
 const disconnectWallet = async () => {
   errorMessage.value = "";
-  await disconnect(wagmiConfig);
+  try {
+    await disconnect(wagmiConfig);
+  } catch (error) {
+    // If connector doesn't have disconnect method, manually reset state
+    // eslint-disable-next-line no-console
+    console.warn("Disconnect failed, manually resetting state:", error);
+    address.value = null;
+    balance.value = null;
+  }
+  connectionMode.value = "Not connected";
 };
 
 /* Send ETH */
@@ -295,18 +324,29 @@ const sendTokens = async () => {
   errorMessage.value = "";
   isSendingEth.value = true;
   try {
-    let transactionHash;
+    let transactionHash: Hash;
 
-    transactionHash = await sendTransaction(wagmiConfig, {
-      to: testTransferTarget,
-      value: parseEther("0.1"),
-    });
+    // Check if we're using a session client
+    const isSession = await isSsoSessionClientConnected(wagmiConfig);
 
-    // FIXME: When not using sessions, sendTransaction returns a map and not a string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((transactionHash as any).value !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      transactionHash = (transactionHash as any).value;
+    if (isSession) {
+      // Use session client's sendTransaction which routes through bundler
+      const sessionClient = await getConnectedSsoSessionClient(wagmiConfig);
+      transactionHash = await sessionClient.sendTransaction({
+        to: testTransferTarget,
+        value: parseEther("0.1"),
+      });
+    } else {
+      // Use regular connector client for non-session (passkey) transactions
+      const connectorClient = await getConnectorClient(wagmiConfig);
+      transactionHash = await connectorClient.request({
+        method: "eth_sendTransaction",
+        params: [{
+          from: address.value,
+          to: testTransferTarget,
+          value: toHex(parseEther("0.1")),
+        }],
+      }) as Hash;
     }
 
     const receipt = await waitForTransactionReceipt(wagmiConfig, {
