@@ -1,7 +1,8 @@
-import type { Account, Address, Chain, Client, Hex, Transport } from "viem";
-import { encodeAbiParameters, encodeFunctionData, keccak256, pad, parseAbiParameters, toHex } from "viem";
+import type { Account, Address, Chain, Hex, Transport, WalletClient } from "viem";
+import { encodeAbiParameters, keccak256, pad, parseAbiParameters, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
-import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
+import { getPublicKeyBytesFromPasskeySignature } from "zksync-sso";
+import { base64urlToUint8Array } from "zksync-sso-4337/utils";
 
 import { GuardianExecutorAbi, RecoveryType } from "~/abi/GuardianExecutorAbi";
 
@@ -169,21 +170,15 @@ export const useRecoveryGuardian = () => {
     const client = getClient({ chainId: defaultChain.id });
 
     // Call proposeGuardian on the GuardianExecutor module through the smart account
-    const calldata = encodeFunctionData({
+    const tx = await client.writeContract({
+      address: contracts.guardianExecutor,
       abi: GuardianExecutorAbi,
       functionName: "proposeGuardian",
       args: [address],
     });
 
-    const tx = await client.sendUserOperation({
-      calls: [{
-        to: contracts.guardianExecutor,
-        data: calldata,
-      }],
-    });
-
-    // Wait for user operation receipt
-    const receipt = await client.waitForUserOperationReceipt({ hash: tx });
+    // Wait for transaction receipt
+    const receipt = await client.waitForTransactionReceipt({ hash: tx });
     return receipt;
   });
 
@@ -196,20 +191,14 @@ export const useRecoveryGuardian = () => {
 
     const client = getClient({ chainId: defaultChain.id });
 
-    const calldata = encodeFunctionData({
+    const tx = await client.writeContract({
+      address: contracts.guardianExecutor,
       abi: GuardianExecutorAbi,
       functionName: "removeGuardian",
       args: [address],
     });
 
-    const tx = await client.sendUserOperation({
-      calls: [{
-        to: contracts.guardianExecutor,
-        data: calldata,
-      }],
-    });
-
-    const receipt = await client.waitForUserOperationReceipt({ hash: tx });
+    const receipt = await client.waitForTransactionReceipt({ hash: tx });
 
     // Refresh guardians list
     getGuardians(client.account.address);
@@ -220,7 +209,7 @@ export const useRecoveryGuardian = () => {
    * Accept/confirm a guardian proposal for a given account
    * This is called by the guardian (from their EOA) to accept the guardian role
    */
-  const { inProgress: confirmGuardianInProgress, error: confirmGuardianError, execute: confirmGuardian } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ client, accountToGuard }: { client: Client<transport, chain, account>; accountToGuard: Address }) => {
+  const { inProgress: confirmGuardianInProgress, error: confirmGuardianError, execute: confirmGuardian } = useAsync(async <transport extends Transport, chain extends Chain, account extends Account>({ client, accountToGuard }: { client: WalletClient<transport, chain, account>; accountToGuard: Address }) => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
 
     // Call acceptGuardian directly from the guardian's wallet
@@ -229,9 +218,16 @@ export const useRecoveryGuardian = () => {
       abi: GuardianExecutorAbi,
       functionName: "acceptGuardian",
       args: [accountToGuard],
+      chain: null,
     });
 
     const transactionReceipt = await waitForTransactionReceipt(client, { hash: tx, confirmations: 1 });
+
+    // Check if transaction was successful
+    if (transactionReceipt.status === "reverted") {
+      throw new Error("Transaction reverted: Guardian confirmation failed");
+    }
+
     return { transactionReceipt };
   });
 
@@ -244,20 +240,14 @@ export const useRecoveryGuardian = () => {
 
     const client = getClient({ chainId: defaultChain.id });
 
-    const calldata = encodeFunctionData({
+    const tx = await client.writeContract({
+      address: contracts.guardianExecutor,
       abi: GuardianExecutorAbi,
       functionName: "discardRecovery",
       args: [],
     });
 
-    const tx = await client.sendUserOperation({
-      calls: [{
-        to: contracts.guardianExecutor,
-        data: calldata,
-      }],
-    });
-
-    const receipt = await client.waitForUserOperationReceipt({ hash: tx });
+    const receipt = await client.waitForTransactionReceipt({ hash: tx });
     return receipt;
   });
 
@@ -275,7 +265,7 @@ export const useRecoveryGuardian = () => {
     accountToRecover: Address;
     credentialPublicKey: Uint8Array<ArrayBufferLike>;
     credentialId: string;
-    client: Client<transport, chain, account>;
+    client: WalletClient<transport, chain, account>;
     recoveryType?: RecoveryType;
   }) => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
@@ -294,7 +284,7 @@ export const useRecoveryGuardian = () => {
       recoveryData = encodeAbiParameters(
         parseAbiParameters("bytes32 credentialIdHash, bytes32[2] publicKey"),
         [
-          keccak256(toHex(base64UrlToUint8Array(credentialId))),
+          keccak256(toHex(base64urlToUint8Array(credentialId))),
           publicKeyHex,
         ],
       );
@@ -308,6 +298,7 @@ export const useRecoveryGuardian = () => {
       abi: GuardianExecutorAbi,
       functionName: "initializeRecovery",
       args: [accountToRecover, recoveryType, recoveryData],
+      chain: null,
     });
 
     await waitForTransactionReceipt(client, { hash: tx });
@@ -396,7 +387,7 @@ export const useRecoveryGuardian = () => {
     const recoveryData = encodeAbiParameters(
       parseAbiParameters("bytes32 credentialIdHash, bytes32[2] publicKey"),
       [
-        keccak256(toHex(base64UrlToUint8Array(credentialId))),
+        keccak256(toHex(base64urlToUint8Array(credentialId))),
         rawPublicKey,
       ],
     );

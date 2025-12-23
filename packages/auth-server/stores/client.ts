@@ -47,7 +47,6 @@ type ChainContracts = {
   bundlerUrl?: string;
   beacon?: Address; // Optional, for deployment
   testPaymaster?: Address; // Optional, for paymaster sponsorship
-  guardianExecutor?: Address; // Guardian executor module
   recovery?: Address; // Recovery module (legacy SDK)
   guardianExecutor?: Address; // Guardian executor module (ERC-4337)
   accountPaymaster?: Address; // Paymaster for account operations

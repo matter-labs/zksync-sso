@@ -63,12 +63,12 @@
       Confirm Guardian
     </ZkButton>
 
-    <!-- <CommonConnectButton
+    <CommonConnectButton
       v-if="!isSsoAccount"
       type="primary"
       class="w-full md:max-w-48 mt-4"
       :disabled="confirmGuardianInProgress || getConfigurableAccountInProgress"
-    /> -->
+    />
 
     <ZkButton
       type="secondary"

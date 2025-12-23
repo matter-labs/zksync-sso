@@ -9,6 +9,7 @@ export {
   passkeyClientActions,
 } from "./client-actions.js";
 export {
+  base64urlToUint8Array,
   type CreateCredentialOptions,
   createWebAuthnCredential,
   getPasskeyCredential,

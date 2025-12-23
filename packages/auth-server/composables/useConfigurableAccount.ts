@@ -1,7 +1,3 @@
-// TODO: This composable is only used in recovery flows (not available in sdk-4337)
-// This composable has been commented out until guardian recovery support is added to sdk-4337
-
-/*
 import type { Address } from "viem";
 import { WebAuthValidatorAbi } from "zksync-sso/abi";
 import { fetchAccount } from "zksync-sso/client";
@@ -76,4 +72,3 @@ export const useConfigurableAccount = () => {
     getConfigurableAccount,
   };
 };
-*/
