@@ -8,6 +8,7 @@ export {
   type PasskeyClientActions,
   passkeyClientActions,
 } from "./client-actions.js";
+export { getPublicKeyBytesFromPasskeySignature } from "./cose.js";
 export {
   base64urlToUint8Array,
   type CreateCredentialOptions,

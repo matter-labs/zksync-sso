@@ -1,8 +1,7 @@
 import type { Account, Address, Chain, Hex, Transport, WalletClient } from "viem";
 import { encodeAbiParameters, keccak256, pad, parseAbiParameters, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
-import { getPublicKeyBytesFromPasskeySignature } from "zksync-sso";
-import { base64urlToUint8Array } from "zksync-sso-4337/utils";
+import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
 
 import { GuardianExecutorAbi, RecoveryType } from "~/abi/GuardianExecutorAbi";
 

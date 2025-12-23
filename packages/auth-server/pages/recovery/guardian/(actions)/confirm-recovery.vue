@@ -106,7 +106,7 @@
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
 import { type Address, hexToBytes, isAddressEqual, keccak256, toHex } from "viem";
-// import { base64UrlToUint8Array } from "zksync-sso/utils";
+import { base64urlToUint8Array } from "zksync-sso-4337/utils";
 import { z } from "zod";
 
 import { uint8ArrayToHex } from "@/utils/formatters";
@@ -168,7 +168,7 @@ const recoveryParams = computedAsync(async () => RecoveryParamsSchema.parseAsync
 const recoveryCompleted = computedAsync(async () => {
   if (!recoveryParams.value?.accountAddress) return false;
   const result = await getRecovery(recoveryParams.value.accountAddress);
-  return result?.hashedCredentialId === keccak256(toHex(base64UrlToUint8Array(recoveryParams.value.credentialId)));
+  return result?.hashedCredentialId === keccak256(toHex(base64urlToUint8Array(recoveryParams.value.credentialId)));
 });
 
 const guardians = computedAsync(async () => {
