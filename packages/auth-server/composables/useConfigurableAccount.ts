@@ -1,6 +1,6 @@
 import type { Address } from "viem";
-import { WebAuthValidatorAbi } from "zksync-sso/abi";
 import { fetchAccount } from "zksync-sso/client";
+import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
 
 export const useConfigurableAccount = () => {
   const { getPublicClient, getConfigurableClient, defaultChain } = useClientStore();
@@ -15,7 +15,7 @@ export const useConfigurableAccount = () => {
     const [events, removedEvents] = await Promise.all([
       publicClient.getContractEvents({
         address: factoryAddress,
-        abi: WebAuthValidatorAbi,
+        abi: WebAuthnValidatorAbi,
         eventName: "PasskeyCreated",
         args: {
           keyOwner: address,
@@ -25,7 +25,7 @@ export const useConfigurableAccount = () => {
       }),
       publicClient.getContractEvents({
         address: factoryAddress,
-        abi: WebAuthValidatorAbi,
+        abi: WebAuthnValidatorAbi,
         eventName: "PasskeyRemoved",
         args: {
           keyOwner: address,

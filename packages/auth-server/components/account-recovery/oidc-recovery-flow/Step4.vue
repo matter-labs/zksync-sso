@@ -202,7 +202,7 @@ import type { Address, Hex } from "viem";
 import { bytesToBigInt, encodeAbiParameters, keccak256, pad, zeroAddress } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { sendTransaction } from "viem/zksync";
-import { OidcRecoveryValidatorAbi } from "zksync-sso/abi";
+import { OidcRecoveryValidatorAbi } from "zksync-sso-4337/abi";
 import { createNonceV2 } from "zksync-sso-circuits";
 
 import { GOOGLE_CERTS_URL, GOOGLE_ISS } from "./constants";
