@@ -1,7 +1,7 @@
 import { createWalletClient, type Hex, http, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { zksync, zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
-import { OidcKeyRegistryAbi } from "zksync-sso-4337/abi";
+import { OidcKeyRegistryAbi } from "zksync-sso/abi";
 import { CircomBigInt } from "zksync-sso-circuits";
 
 import { type BaseKey, type Key, keySchema, type ValidNetworks } from "./types.js";
