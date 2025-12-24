@@ -312,14 +312,14 @@ pub(super) async fn terminate_child_gracefully(child: &mut Child, label: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::alloy_utilities::test_utilities::start_anvil_and_deploy_contracts;
+    use crate::utils::alloy_utilities::test_utilities::start_node_and_deploy_contracts;
     use eyre::Result;
 
     #[tokio::test]
     #[ignore = "manual test"]
     async fn test_alto_start_stop_without_anviltesthelper() -> Result<()> {
         let (node_url, anvil_instance, _, _, _) =
-            start_anvil_and_deploy_contracts().await?;
+            start_node_and_deploy_contracts().await?;
 
         let alto_cfg = AltoTestHelperConfig { node_url, ..Default::default() };
 

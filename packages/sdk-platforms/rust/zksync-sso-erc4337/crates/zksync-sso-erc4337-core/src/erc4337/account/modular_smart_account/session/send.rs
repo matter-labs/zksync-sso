@@ -40,8 +40,8 @@ mod tests {
             signer::{Signer, create_eoa_signer},
         },
         utils::alloy_utilities::test_utilities::{
-            TestInfraConfig,
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+            config::TestInfraConfig,
+            start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
     use alloy::{
@@ -88,7 +88,7 @@ mod tests {
             let config = TestInfraConfig {
                 signer_private_key: signer_private_key.clone(),
             };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            start_node_and_deploy_contracts_and_start_bundler_with_config(
                 &config,
             )
             .await?
@@ -307,7 +307,7 @@ mod tests {
             let config = TestInfraConfig {
                 signer_private_key: signer_private_key.clone(),
             };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            start_node_and_deploy_contracts_and_start_bundler_with_config(
                 &config,
             )
             .await?

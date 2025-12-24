@@ -24,3 +24,19 @@ fix:
 # Run tests
 test:
     cargo nextest run
+
+# Run tests with ZkSyncOS backend
+test-zksyncos:
+    SSO_TEST_NODE_BACKEND=zksyncos cargo nextest run
+
+# Run zksync OS node tests
+test-node:
+    cargo test -p zksync-sso-zksyncos-node --test spawn
+
+# Run zksync OS node tests with nextest
+test-node-nextest:
+    cargo nextest run -p zksync-sso-zksyncos-node --test spawn
+
+# Prepare environment and start zksync OS server like CI
+start-node-server:
+    ./scripts/run_node_server.sh

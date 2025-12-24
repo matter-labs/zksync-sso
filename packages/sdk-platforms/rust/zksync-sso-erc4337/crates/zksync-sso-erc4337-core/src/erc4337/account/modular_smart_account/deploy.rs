@@ -242,8 +242,8 @@ mod tests {
             signer::{Signer, create_eoa_signer},
         },
         utils::alloy_utilities::test_utilities::{
-            TestInfraConfig, start_anvil_and_deploy_contracts,
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+            config::TestInfraConfig, start_node_and_deploy_contracts,
+            start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
     use alloy::{
@@ -256,7 +256,7 @@ mod tests {
     #[tokio::test]
     async fn test_deploy_account_basic() -> eyre::Result<()> {
         let (_, anvil_instance, provider, contracts, _) =
-            start_anvil_and_deploy_contracts().await?;
+            start_node_and_deploy_contracts().await?;
 
         let factory_address = contracts.account_factory;
 
@@ -278,7 +278,7 @@ mod tests {
     #[tokio::test]
     async fn test_deploy_account_with_eoa_signer() -> eyre::Result<()> {
         let (_, anvil_instance, provider, contracts, _) =
-            start_anvil_and_deploy_contracts().await?;
+            start_node_and_deploy_contracts().await?;
 
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;
@@ -320,7 +320,7 @@ mod tests {
     #[tokio::test]
     async fn test_deploy_account_with_session_validator() -> eyre::Result<()> {
         let (_, anvil_instance, provider, contracts, _) =
-            start_anvil_and_deploy_contracts().await?;
+            start_node_and_deploy_contracts().await?;
 
         let factory_address = contracts.account_factory;
         let session_validator_address = contracts.session_validator;
@@ -363,7 +363,7 @@ mod tests {
     #[tokio::test]
     async fn test_deploy_account_with_eoa_and_session() -> eyre::Result<()> {
         let (_, anvil_instance, provider, contracts, _) =
-            start_anvil_and_deploy_contracts().await?;
+            start_node_and_deploy_contracts().await?;
 
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;
@@ -442,7 +442,7 @@ mod tests {
             let config = TestInfraConfig {
                 signer_private_key: signer_private_key.clone(),
             };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            start_node_and_deploy_contracts_and_start_bundler_with_config(
                 &config,
             )
             .await?

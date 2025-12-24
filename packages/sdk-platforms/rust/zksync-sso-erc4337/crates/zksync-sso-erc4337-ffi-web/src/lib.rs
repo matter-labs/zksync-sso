@@ -2979,8 +2979,8 @@ mod tests {
             user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point as get_user_operation_hash_entry_point_core,
         },
         utils::alloy_utilities::test_utilities::{
-            TestInfraConfig,
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+            config::TestInfraConfig,
+            start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
 
@@ -3002,7 +3002,7 @@ mod tests {
             _signer_private_key,
             bundler,
             bundler_client,
-        ) = start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+        ) = start_node_and_deploy_contracts_and_start_bundler_with_config(
             &config,
         )
         .await?;
