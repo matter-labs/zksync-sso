@@ -1,5 +1,4 @@
-import type { Address } from "viem";
-import { fetchAccount } from "zksync-sso-4337";
+import type { Address, Hex } from "viem";
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
 
 export const useConfigurableAccount = () => {
@@ -52,19 +51,13 @@ export const useConfigurableAccount = () => {
 
     const latestEvent = activeEvents[activeEvents.length - 1];
 
-    const { credentialId } = await fetchAccount({
-      client: publicClient,
-      contracts: {
-        webauthnValidator: webauthnValidatorAddress,
-      },
-      originDomain: window.location.origin,
-      credentialId: latestEvent.args.credentialId,
-    });
+    // The credentialId from the event is already in hex format (bytes type from contract)
+    const credentialIdHex = latestEvent.args.credentialId as Hex;
 
     return getConfigurableClient({
       chainId: defaultChain.id,
       address,
-      credentialId,
+      credentialId: credentialIdHex,
     });
   });
 

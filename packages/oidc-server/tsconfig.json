@@ -4,13 +4,13 @@
     // Enable latest features
     "lib": ["ESNext"],
     "target": "esnext",
-    "module": "nodenext",
+    "module": "NodeNext",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
 
     // Bundler mode
-    "moduleResolution": "nodenext",
+    "moduleResolution": "NodeNext",
     "verbatimModuleSyntax": true,
     "noEmit": false,
     "outDir": "./dist",
