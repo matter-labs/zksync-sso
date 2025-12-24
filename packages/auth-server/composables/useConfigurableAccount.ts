@@ -1,20 +1,20 @@
 import type { Address } from "viem";
-import { fetchAccount } from "zksync-sso/client";
+import { fetchAccount } from "zksync-sso-4337";
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
 
 export const useConfigurableAccount = () => {
-  const { getPublicClient, getConfigurableClient, defaultChain } = useClientStore();
+  const { getPublicClient, getConfigurableClient, defaultChain, contractsByChain } = useClientStore();
 
   const { inProgress: getConfigurableAccountInProgress, error: getConfigurableAccountError, execute: getConfigurableAccount } = useAsync(async ({ address }: { address: Address }) => {
     const publicClient = getPublicClient({ chainId: defaultChain.id });
-    const factoryAddress = contractsByChain[defaultChain.id].accountFactory;
+    const webauthnValidatorAddress = contractsByChain[defaultChain.id].webauthnValidator;
 
     // FIXME: events should be scoped to the origin domain
     // As well, this doesn't seem to be a reliable way of retrieving a `credentialId`
     // but works for now.
     const [events, removedEvents] = await Promise.all([
       publicClient.getContractEvents({
-        address: factoryAddress,
+        address: webauthnValidatorAddress,
         abi: WebAuthnValidatorAbi,
         eventName: "PasskeyCreated",
         args: {
@@ -24,7 +24,7 @@ export const useConfigurableAccount = () => {
         strict: true,
       }),
       publicClient.getContractEvents({
-        address: factoryAddress,
+        address: webauthnValidatorAddress,
         abi: WebAuthnValidatorAbi,
         eventName: "PasskeyRemoved",
         args: {
@@ -52,17 +52,19 @@ export const useConfigurableAccount = () => {
 
     const latestEvent = activeEvents[activeEvents.length - 1];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { username, passkeyPublicKey } = await fetchAccount(publicClient as any, {
-      contracts: contractsByChain[defaultChain.id],
-      uniqueAccountId: latestEvent.args.credentialId,
+    const { credentialId } = await fetchAccount({
+      client: publicClient,
+      contracts: {
+        webauthnValidator: webauthnValidatorAddress,
+      },
+      originDomain: window.location.origin,
+      credentialId: latestEvent.args.credentialId,
     });
 
     return getConfigurableClient({
       chainId: defaultChain.id,
       address,
-      credentialPublicKey: passkeyPublicKey,
-      username,
+      credentialId,
     });
   });
 

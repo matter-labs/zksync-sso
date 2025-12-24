@@ -21,10 +21,12 @@ export { getAccountAddressFromLogs, prepareDeploySmartAccount } from "./deploy.j
 export type {
   AddPasskeyParams,
   AddPasskeyResult,
+  FetchAccountParams,
+  FetchAccountResult,
   FindAddressesByPasskeyParams,
   FindAddressesByPasskeyResult,
 } from "./passkey.js";
-export { addPasskey, findAddressesByPasskey } from "./passkey.js";
+export { addPasskey, fetchAccount, findAddressesByPasskey } from "./passkey.js";
 
 // Utilities
 export { generateAccountId } from "./utils.js";
