@@ -81,7 +81,8 @@ import GuardianFlow from "~/components/account-recovery/guardian-flow/Root.vue";
 import Button from "~/components/zk/button.vue";
 import Dialog from "~/components/zk/dialog.vue";
 
-const { enabled: oidcEnabled } = useOidcConfig();
+// const { enabled: oidcEnabled } = useOidcConfig();
+const oidcEnabled = false;
 
 type Step = "select-method" | "guardian" | "google";
 const currentStep = ref<Step>("select-method");

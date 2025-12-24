@@ -167,6 +167,8 @@ import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
 import Web3Avatar from "web3-avatar-vue";
 import type { ExtractParams } from "zksync-sso-4337/client";
 
+import { formatAmount, shortenAddress } from "~/utils/formatters";
+
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
 const { responseInProgress, responseError, requestParams, requestChain, requestPaymaster } = storeToRefs(useRequestsStore());

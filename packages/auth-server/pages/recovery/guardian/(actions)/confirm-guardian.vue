@@ -175,8 +175,8 @@ const status = computed(() => {
 
 const confirmGuardianAction = async () => {
   try {
-    let client;
     confirmGuardianError.value = null;
+    let client;
 
     if (isSsoAccount.value) {
       client = (await getConfigurableAccount({ address: guardianAddress.value }))!;
@@ -184,16 +184,20 @@ const confirmGuardianAction = async () => {
       client = await getWalletClient({ chainId: defaultChain.id });
     }
 
-    await confirmGuardian({
+    const result = await confirmGuardian({
       accountToGuard: accountAddress.value,
       client,
     });
-    confirmGuardianError.value = null;
-    await getGuardians(accountAddress.value);
+
+    // Only refresh guardian list if transaction succeeded
+    if (result) {
+      await getGuardians(accountAddress.value);
+    }
   } catch (err) {
-    confirmGuardianError.value = "An error occurred while confirming the guardian. Please try again.";
+    const errorMessage = err instanceof Error ? err.message : "An error occurred while confirming the guardian.";
+    confirmGuardianError.value = errorMessage;
     // eslint-disable-next-line no-console
-    console.error(err);
+    console.error("Guardian confirmation error:", err);
   }
 };
 

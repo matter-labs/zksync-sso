@@ -9,3 +9,4 @@ export * from "./errors/index.js";
 
 // Re-export actions
 export * from "./actions/sendUserOperation.js";
+export * from "./client/actions/index.js";

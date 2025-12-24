@@ -1,7 +1,5 @@
 <template>
-  <div />
-  <!-- TODO: Recovery methods not yet available in sdk-4337 -->
-  <!-- <div class="flex flex-col flex-1">
+  <div class="flex flex-col flex-1">
     <Card
       v-if="recoveryMethods.length === 0"
       class="border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600"
@@ -92,6 +90,7 @@
           </div>
         </Card>
 
+        <!--
         <Card
           v-for="method in activeOidc"
           :key="method.digest"
@@ -130,14 +129,15 @@
             </Button>
           </div>
         </Card>
+ -->
         <AddRecoveryMethodModal @closed="refreshGuardians" />
       </div>
     </div>
-  </div> -->
+  </div>
 </template>
 
 <script setup lang="ts">
-/* import { ShieldCheckIcon, SparklesIcon, WalletIcon } from "@heroicons/vue/24/solid";
+import { WalletIcon } from "@heroicons/vue/24/solid";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 
 import AddRecoveryMethodModal from "~/components/account-recovery/AddRecoveryMethodModal.vue";
@@ -156,17 +156,20 @@ const {
   removeGuardian,
   removeGuardianInProgress,
 } = useRecoveryGuardian();
+/*
 const {
   getOidcAccounts,
   oidcAccounts,
   getOidcAccountsInProgress,
   removeOidcAccount,
 } = useRecoveryOidc();
+*/
 
 const config = useRuntimeConfig();
 
 const appUrl = config.public.appUrl;
 
+/*
 const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
   return {
     method: "OIDC",
@@ -175,6 +178,7 @@ const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
     addedOn: new Date(Number(oidcData.addedOn) * 1000),
   };
 }));
+*/
 
 const guardianMethods = computed(() => (getGuardiansData.value ?? []).map((guardian) => ({
   method: "Guardian",
@@ -185,25 +189,27 @@ const guardianMethods = computed(() => (getGuardiansData.value ?? []).map((guard
 
 const recoveryMethods = computed(() => [
   ...guardianMethods.value,
-  ...activeOidc.value,
+  // ...activeOidc.value,
 ]);
 
 const refreshGuardians = () => {
   if (accountAddress) {
     getGuardians(accountAddress);
-    getOidcAccounts(accountAddress);
+    // getOidcAccounts(accountAddress);
   }
 };
 
+/*
 async function removeOidc() {
   await removeOidcAccount();
   refreshGuardians();
 }
+*/
 
 watchEffect(async () => {
   if (accountAddress) {
     await getGuardians(accountAddress);
-    await getOidcAccounts(accountAddress);
+    // await getOidcAccounts(accountAddress);
   }
-}); */
+});
 </script>

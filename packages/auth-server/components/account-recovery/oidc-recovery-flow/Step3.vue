@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { bytesToHex, type Hex, toHex } from "viem";
-// import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
+import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
 
 const emit = defineEmits<{
   (e: "done", passkey: PasskeyData): void;
@@ -44,7 +44,7 @@ async function getNewPasskey(): Promise<PasskeyData> {
   }
 
   return {
-    credentialId: toHex(base64UrlToUint8Array(credentialId)),
+    credentialId: toHex(base64urlToUint8Array(credentialId)),
     passkeyPubKey: [bytesToHex(buf1), bytesToHex(buf2)],
   };
 }

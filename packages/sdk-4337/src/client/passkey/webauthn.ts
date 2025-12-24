@@ -23,7 +23,7 @@ function uint8ArrayToBase64url(bytes: Uint8Array): string {
 /**
  * Convert base64url string to Uint8Array
  */
-function base64urlToUint8Array(base64url: string): Uint8Array {
+export function base64urlToUint8Array(base64url: string): Uint8Array {
   const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
   const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, "=");
   const binary = atob(padded);
