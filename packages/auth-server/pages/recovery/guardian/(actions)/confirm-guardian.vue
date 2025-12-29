@@ -108,6 +108,7 @@ import { AddressSchema } from "@/utils/schemas";
 const accountData = useAppKitAccount();
 const route = useRoute();
 const { confirmGuardian, confirmGuardianInProgress, getGuardians, getGuardiansData } = useRecoveryGuardian();
+const { verifyAccountSetup } = useDebugGuardian();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
 const { getWalletClient, defaultChain } = useClientStore();
 const { isSsoAccount: checkIsSsoAccount, isLoading: isSsoAccountLoading, error: isSsoAccountError } = useIsSsoAccount();
@@ -176,6 +177,11 @@ const status = computed(() => {
 const confirmGuardianAction = async () => {
   try {
     confirmGuardianError.value = null;
+
+    // Debug: Verify account setup before attempting confirmation
+    console.log("=== Starting Guardian Confirmation Debug ===");
+    await verifyAccountSetup(accountAddress.value);
+
     let client;
 
     if (isSsoAccount.value) {

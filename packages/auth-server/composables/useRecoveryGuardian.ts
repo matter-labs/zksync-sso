@@ -273,7 +273,18 @@ export const useRecoveryGuardian = () => {
     let recoveryData: Hex;
 
     if (recoveryType === RecoveryType.WebAuthn) {
+      // Validate inputs before encoding
+      if (!credentialId || credentialId.trim().length === 0) {
+        throw new Error("credentialId cannot be empty");
+      }
+
       const publicKeyBytes = getPublicKeyBytesFromPasskeySignature(credentialPublicKey);
+
+      // Validate that public key coordinates are valid 32-byte values
+      if (publicKeyBytes[0].length !== 32 || publicKeyBytes[1].length !== 32) {
+        throw new Error("Invalid public key coordinates: must be 32 bytes each");
+      }
+
       const publicKeyHex = [
         pad(`0x${publicKeyBytes[0].toString("hex")}`),
         pad(`0x${publicKeyBytes[1].toString("hex")}`),

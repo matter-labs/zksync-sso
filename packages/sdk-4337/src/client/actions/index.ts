@@ -28,5 +28,12 @@ export type {
 } from "./passkey.js";
 export { addPasskey, fetchAccount, findAddressesByPasskey } from "./passkey.js";
 
+// Module management exports
+export type {
+  IsModuleInstalledParams,
+  IsModuleInstalledResult,
+} from "./modules.js";
+export { isGuardianModuleInstalled, isModuleInstalled, ModuleType } from "./modules.js";
+
 // Utilities
 export { generateAccountId } from "./utils.js";

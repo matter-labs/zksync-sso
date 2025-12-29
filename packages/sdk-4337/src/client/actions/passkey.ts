@@ -315,7 +315,7 @@ export async function fetchAccount(
   });
 
   if (!publicKeyCoords || !publicKeyCoords[0] || !publicKeyCoords[1]) {
-    throw new Error(`Passkey credentials not found in on-chain module for passkey ${credentialId}`);
+    throw new Error(`Credential not found in on-chain module for credential ${credentialId}`);
   }
 
   // Convert the public key coordinates back to COSE format
