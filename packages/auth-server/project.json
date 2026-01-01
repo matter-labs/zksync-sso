@@ -93,6 +93,14 @@
         "command": "firebase hosting:channel:deploy --only zksync-auth-server-staging --project zksync-auth-server-staging"
       },
       "dependsOn": ["build"]
+    },
+    "e2e:guardian": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "PW_TEST_HTML_REPORT_OPEN=never pnpm exec playwright test guardian.spec.ts --config playwright.config.ts"
+      },
+      "dependsOn": ["build:local"]
     }
   }
 }

@@ -10,6 +10,7 @@
     <template #trigger>
       <slot name="trigger">
         <Button
+          data-testid="add-recovery-method-modal"
           class="w-full lg:w-auto"
           type="primary"
         >
@@ -44,6 +45,7 @@
         <div class="flex flex-col gap-5 w-full max-w-xs">
           <Button
             class="w-full"
+            data-testid="add-guardian-method"
             @click="selectMethod('guardian')"
           >
             Recover with Guardian

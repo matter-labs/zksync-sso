@@ -13,6 +13,8 @@
             <div class="flex flex-col items-end">
               <ZkTooltip :label="copyLabel">
                 <button
+                  data-testid="account-address"
+                  :data-address="address"
                   class="text-lg leading-tight font-medium text-neutral-900 dark:text-neutral-100 cursor-pointer border-b border-dashed border-neutral-300 dark:border-neutral-600 hover:border-neutral-500 dark:hover:border-neutral-400 hover:scale-105 transition-all duration-200"
                   @click="copyContent"
                 >
