@@ -35,10 +35,13 @@
         </template>
       </account-recovery-confirm-info-card>
 
-      <!-- DEBUG: Confirmation Flow State - Always Visible -->
-      <div class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg border-2 border-yellow-500">
+      <!-- DEBUG: Confirmation Flow State -->
+      <div
+        v-if="isDevelopment"
+        class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg border-2 border-yellow-500"
+      >
         <h3 class="font-semibold mb-2">
-          ⚡ Confirmation Flow Debug (Always Visible)
+          ⚡ Confirmation Flow Debug
         </h3>
         <div class="space-y-1 text-sm">
           <p><strong>Current State:</strong> <span class="font-mono text-lg">{{ confirmationState }}</span></p>
@@ -49,7 +52,10 @@
       </div>
 
       <!-- DEBUG: SSO Connection Status -->
-      <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+      <div
+        v-if="isDevelopment"
+        class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg"
+      >
         <h3 class="font-semibold mb-2">
           🔍 SSO Connection Debug Info
         </h3>
@@ -202,6 +208,7 @@ const guardianAddress = ref<Address>(params.data.guardianAddress);
 const isSsoAccount = ref<null | boolean>(null);
 const confirmGuardianError = ref<string | null>(null);
 const confirmationState = ref<string>("ready");
+const isDevelopment = computed(() => process.env.NODE_ENV === "development");
 
 const isConnectedWalletGuardian = computed(() => {
   return accountData.value.isConnected && isAddressEqual(accountData.value.address as `0x${string}`, guardianAddress.value);
@@ -317,15 +324,23 @@ const confirmGuardianAction = async () => {
 const navigateToLogin = () => {
   // Redirect to login page with return URL to come back to this confirmation page
   const returnUrl = encodeURIComponent(route.fullPath);
+  // @ts-expect-error - Dynamic redirect URL not compatible with typed routes
   navigateTo(`/?redirect=${returnUrl}`);
 };
 
 const signOutAndLogin = async () => {
   // Sign out of current SSO session
+  // @ts-expect-error - Logout route not compatible with typed routes
   await navigateTo("/logout");
   // After logout completes, redirect to login with return URL
   const returnUrl = encodeURIComponent(route.fullPath);
+  // @ts-expect-error - Dynamic redirect URL not compatible with typed routes
   await navigateTo(`/?redirect=${returnUrl}`);
+};
+
+const signOut = async () => {
+  // @ts-expect-error - Logout route not compatible with typed routes
+  await navigateTo("/logout");
 };
 
 onMounted(async () => {

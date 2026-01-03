@@ -450,7 +450,7 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
   await guardianPage.waitForTimeout(2000);
 
   // No popup - we're already on the auth-server signup page
-  await setupWebAuthn(guardianPage);
+  const { newCredential: guardianCredential } = await setupWebAuthn(guardianPage);
 
   await guardianPage.getByTestId("signup").click();
 
@@ -648,6 +648,102 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
   }
 
   console.log("\n=== Guardian with Paymaster E2E Test Complete ===\n");
+
+  // Cleanup
+  await guardianContext.close();
+});
+
+test.skip("Guardian flow: full recovery execution", async ({ page, context: baseContext }) => {
+  test.setTimeout(120000); // Extended timeout for full recovery flow
+  console.log("\n=== Starting Full Recovery Execution E2E Test ===\n");
+  console.log("⚠️  This test is currently skipped - recovery UI pages need to be reviewed for correct test selectors");
+
+  // Step 1: Create account owner
+  console.log("Step 1: Creating account owner...");
+  await page.goto("http://localhost:3002");
+
+  const { newCredential: _ownerCredential } = await setupWebAuthn(page);
+  await page.getByTestId("signup").click();
+
+  await page.waitForURL("**/dashboard", { timeout: 15000 });
+  await page.waitForTimeout(2000);
+
+  await expect(page.getByTestId("account-address")).toBeVisible({ timeout: 10000 });
+  const ownerAddress = await page.getByTestId("account-address").getAttribute("data-address") || "";
+  console.log(`✅ Owner account created: ${ownerAddress}`);
+
+  await fundAccount(ownerAddress);
+
+  // Step 2: Create guardian account
+  console.log("\nStep 2: Creating guardian account...");
+  const guardianContext = await baseContext.browser()!.newContext();
+  const guardianPage = await guardianContext.newPage();
+
+  await guardianPage.goto("http://localhost:3002");
+  await guardianPage.waitForTimeout(2000);
+
+  const { newCredential: _guardianCredential } = await setupWebAuthn(guardianPage);
+  await guardianPage.getByTestId("signup").click();
+
+  await guardianPage.waitForURL("**/dashboard", { timeout: 15000 });
+  await guardianPage.waitForTimeout(2000);
+
+  await expect(guardianPage.getByTestId("account-address")).toBeVisible({ timeout: 10000 });
+  const guardianAddress = await guardianPage.getByTestId("account-address").getAttribute("data-address") || "";
+  console.log(`✅ Guardian account created: ${guardianAddress}`);
+
+  await fundAccount(guardianAddress);
+
+  // Step 3: Owner proposes guardian
+  console.log("\nStep 3: Owner proposing guardian...");
+  await page.goto("http://localhost:3002/dashboard/settings");
+  await page.waitForTimeout(2000);
+
+  const addRecoveryButton = page.getByTestId("add-recovery-method");
+  await expect(addRecoveryButton).toBeVisible({ timeout: 10000 });
+  await addRecoveryButton.click();
+  await page.waitForTimeout(1000);
+
+  const guardianMethodButton = page.getByTestId("add-guardian-method");
+  await expect(guardianMethodButton).toBeVisible({ timeout: 5000 });
+  await guardianMethodButton.click();
+  await page.waitForTimeout(1000);
+
+  const continueButton = page.getByTestId("continue-recovery-method");
+  await expect(continueButton).toBeVisible({ timeout: 10000 });
+  await continueButton.click();
+  await page.waitForTimeout(1000);
+
+  const guardianAddressInput = page.getByTestId("guardian-address-input");
+  await expect(guardianAddressInput).toBeVisible({ timeout: 10000 });
+  await guardianAddressInput.fill(guardianAddress);
+
+  const proposeButton = page.getByTestId("propose-guardian-button");
+  await expect(proposeButton).toBeVisible({ timeout: 5000 });
+  await proposeButton.click();
+
+  await expect(page.getByText(/proposing/i)).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText(/proposed/i)).toBeVisible({ timeout: 90000 });
+  console.log("✅ Guardian proposed successfully");
+
+  // Step 4: Guardian accepts role
+  console.log("\nStep 4: Guardian accepting role...");
+  const confirmUrl = await page.getByTestId("guardian-confirmation-link").getAttribute("href") || "";
+  await guardianPage.goto(`http://localhost:3002${confirmUrl}`);
+  await guardianPage.waitForTimeout(2000);
+
+  const confirmButton = guardianPage.getByTestId("confirm-guardian-button");
+  await expect(confirmButton).toBeVisible({ timeout: 10000 });
+  await confirmButton.click();
+
+  await expect(guardianPage.getByText(/confirming/i)).toBeVisible({ timeout: 10000 });
+  await expect(guardianPage.getByText(/confirmed/i)).toBeVisible({ timeout: 90000 });
+  console.log("✅ Guardian confirmed successfully");
+
+  // NOTE: Recovery execution steps 5-10 would follow similar patterns
+  // but are skipped until recovery UI pages are updated with proper test IDs
+
+  console.log("\n=== Full Recovery Execution E2E Test Complete (Skipped) ===\n");
 
   // Cleanup
   await guardianContext.close();

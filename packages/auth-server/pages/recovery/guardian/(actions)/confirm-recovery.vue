@@ -219,7 +219,7 @@ const handleConfirmRecovery = async () => {
       client,
       accountToRecover: recoveryParams.value.accountAddress,
       credentialPublicKey: hexToBytes(`0x${recoveryParams.value.credentialPublicKey}`),
-      accountId: recoveryParams.value.credentialId,
+      credentialId: recoveryParams.value.credentialId,
     });
     confirmGuardianErrorMessage.value = null;
   } catch (err) {
