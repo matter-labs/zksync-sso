@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { type Address, bytesToHex } from "viem";
-import { OidcRecoveryValidatorAbi } from "zksync-sso/abi";
+import { OidcRecoveryValidatorAbi } from "zksync-sso-4337/abi";
 import type { OidcDigest } from "zksync-sso-circuits";
 
 const { startGoogleOauth } = useGoogleOauth();

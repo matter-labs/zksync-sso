@@ -120,6 +120,14 @@
       },
       "dependsOn": ["e2e:setup"]
     },
+    "e2e:guardian": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "command": "PW_TEST_HTML_REPORT_OPEN=never playwright test tests/guardian.spec.ts --config=playwright-erc4337.config.ts"
+      },
+      "dependsOn": ["e2e:setup:erc4337"]
+    },
     "e2e:demo-only": {
       "executor": "nx:run-commands",
       "options": {

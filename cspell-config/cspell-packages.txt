@@ -7,3 +7,4 @@ levischuck
 ofetch
 reown
 jose
+pinia

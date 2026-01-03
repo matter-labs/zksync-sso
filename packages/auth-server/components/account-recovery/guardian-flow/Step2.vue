@@ -6,6 +6,7 @@
     v-model="guardianAddress"
     :error="!!addressError"
     :messages="addressError ? [addressError] : undefined"
+    data-testid="guardian-address-input"
     placeholder="0x..."
     class="w-full text-left"
     @input="validateAddress"
