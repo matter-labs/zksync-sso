@@ -1,8 +1,9 @@
-/* eslint-disable no-console */
-import type { Page } from "@playwright/test";
-import { expect, test } from "@playwright/test";
+/* eslint-disable no-console, simple-import-sort/imports */
 import { exec } from "child_process";
 import { promisify } from "util";
+
+import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 const execAsync = promisify(exec);
 
