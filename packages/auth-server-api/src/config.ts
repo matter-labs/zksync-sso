@@ -45,6 +45,9 @@ const envSchema = z.object({
   PRIVIDIUM_ADMIN_PRIVATE_KEY: z.string().optional(),
   PRIVIDIUM_TEMPLATE_KEY: z.string().optional(),
   SSO_AUTH_SERVER_BASE_URL: z.string().optional(),
+  // Rate Limiting Configuration
+  RATE_LIMIT_DEPLOY_MAX: z.string().default("20"),
+  RATE_LIMIT_DEPLOY_WINDOW_MS: z.string().default("3600000"), // 1 hour
 });
 
 // Parse and validate environment variables
@@ -153,4 +156,10 @@ const prividiumConfig: PrividiumConfig = {
   ssoAuthServerBaseUrl: env.SSO_AUTH_SERVER_BASE_URL || "",
 };
 
-export { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, prividiumConfig, SESSION_VALIDATOR_ADDRESS, SUPPORTED_CHAINS, WEBAUTHN_VALIDATOR_ADDRESS };
+// Rate limiting configuration
+const rateLimitConfig = {
+  deployMax: parseInt(env.RATE_LIMIT_DEPLOY_MAX, 10),
+  deployWindowMs: parseInt(env.RATE_LIMIT_DEPLOY_WINDOW_MS, 10),
+};
+
+export { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, prividiumConfig, rateLimitConfig, SESSION_VALIDATOR_ADDRESS, SUPPORTED_CHAINS, WEBAUTHN_VALIDATOR_ADDRESS };

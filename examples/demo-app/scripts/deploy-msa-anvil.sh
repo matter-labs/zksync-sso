@@ -8,8 +8,8 @@ WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Configuration
 DEPLOYER_ADDRESS="0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"  # Anvil account #9
-RPC_URL="http://localhost:5050"
-CHAIN_ID=6565
+RPC_URL="http://localhost:8545"
+CHAIN_ID=1337
 CONTRACTS_DIR="$WORKSPACE_ROOT/packages/erc4337-contracts"
 
 echo "🚀 Deploying MSA Factory and modules to Anvil (standard EVM)..."
@@ -44,7 +44,7 @@ FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MSAFactory:" | awk '{print $2}')
 echo ""
 echo "📦 Deploying MockPaymaster..."
 cd "$CONTRACTS_DIR"
-PAYMASTER_OUTPUT=$(forge create test/mocks/MockPaymaster.sol:MockPaymaster --rpc-url "$RPC_URL" --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast 2>&1)
+PAYMASTER_OUTPUT=$(forge create test/mocks/MockPaymaster.sol:MockPaymaster --rpc-url "$RPC_URL" --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 --broadcast 2>&1)
 echo "$PAYMASTER_OUTPUT"
 PAYMASTER=$(echo "$PAYMASTER_OUTPUT" | grep "Deployed to:" | awk '{print $3}')
 
