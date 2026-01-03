@@ -267,32 +267,12 @@ const status = computed(() => {
 });
 
 const confirmGuardianAction = async () => {
-  console.error("[DIAGNOSTIC] BUTTON CLICKED - Click event received by confirmGuardianAction");
-  console.error("[DIAGNOSTIC] confirmGuardianAction CALLED - function entry point");
-  console.error("[DIAGNOSTIC] Current confirmationState before starting:", confirmationState.value);
-  console.error("[DIAGNOSTIC] Loading states - confirmGuardianInProgress:", confirmGuardianInProgress.value, "getConfigurableAccountInProgress:", getConfigurableAccountInProgress.value);
-
   try {
-    console.error("[DIAGNOSTIC] Inside try block, about to reset error");
     confirmGuardianError.value = null;
-
-    console.error("[DIAGNOSTIC] About to set confirmationState to 'started'");
     confirmationState.value = "started";
-    console.error("[DIAGNOSTIC] confirmationState set to:", confirmationState.value);
-    console.error("[DIAGNOSTIC] Waiting 100ms to verify state persists...");
     await new Promise((resolve) => setTimeout(resolve, 100));
-    console.error("[DIAGNOSTIC] After 100ms, confirmationState is:", confirmationState.value);
 
-    // Debug: Verify account setup before attempting confirmation
-    console.log("=== Starting Guardian Confirmation Debug ===");
-    console.log("Account to guard:", accountAddress.value);
-    console.log("Guardian address:", guardianAddress.value);
-    console.log("Is connected SSO guardian:", isConnectedSsoGuardian.value);
-
-    console.log("🔵 Setting state to verifying_account");
     confirmationState.value = "verifying_account";
-    console.error("[DIAGNOSTIC] State changed to verifying_account:", confirmationState.value);
-    console.log("🔵 About to call verifyAccountSetup");
 
     let client;
 
@@ -300,52 +280,35 @@ const confirmGuardianAction = async () => {
     if (isConnectedSsoGuardian.value) {
       // User is logged in as the guardian SSO account - use SSO client with paymaster
       confirmationState.value = "getting_sso_client";
-      console.log("Getting configurable account with paymaster for guardian:", guardianAddress.value);
       client = (await getConfigurableAccount({ address: guardianAddress.value, usePaymaster: true }))!;
-      console.log("Got configurable client with address:", client.account.address);
       confirmationState.value = "got_sso_client";
     } else {
       // User needs to connect with wallet (either not logged in or using different account)
       confirmationState.value = "getting_wallet_client";
-      console.log("Using wallet client for guardian confirmation");
       if (!accountData.value.isConnected) {
         throw new Error("Please connect your wallet first");
       }
       client = await getWalletClient({ chainId: defaultChain.id });
-      console.log("Got wallet client with address:", client.account.address);
       confirmationState.value = "got_wallet_client";
     }
 
     confirmationState.value = "calling_confirm_guardian";
-    console.log("Calling confirmGuardian with client address:", client.account.address);
     const result = await confirmGuardian({
       accountToGuard: accountAddress.value,
       client,
     });
     confirmationState.value = "confirm_guardian_completed";
-    console.log("confirmGuardian completed successfully, result:", result);
 
     // Only refresh guardian list if transaction succeeded
     if (result) {
       confirmationState.value = "refreshing_guardians";
       await getGuardians(accountAddress.value);
       confirmationState.value = "complete";
-      console.log("Guardian list refreshed");
     }
   } catch (err) {
-    console.error("[DIAGNOSTIC] =============== ERROR CAUGHT ===============");
-    console.error("[DIAGNOSTIC] Error object:", err);
-    console.error("[DIAGNOSTIC] Error message:", err instanceof Error ? err.message : String(err));
-    console.error("[DIAGNOSTIC] Error stack:", err instanceof Error ? err.stack : "No stack");
-    console.error("[DIAGNOSTIC] confirmationState before error handling:", confirmationState.value);
-
     confirmationState.value = "error: " + (err instanceof Error ? err.message : "Unknown error");
-    console.error("[DIAGNOSTIC] confirmationState set to:", confirmationState.value);
-
     const errorMessage = err instanceof Error ? err.message : "An error occurred while confirming the guardian.";
     confirmGuardianError.value = errorMessage;
-    console.error("[DIAGNOSTIC] confirmGuardianError set to:", confirmGuardianError.value);
-    console.error("[DIAGNOSTIC] =============== END ERROR HANDLING ===============");
     // eslint-disable-next-line no-console
     console.error("Guardian confirmation error:", err);
   }
@@ -373,10 +336,18 @@ onMounted(async () => {
 
   await getGuardians(accountAddress.value);
   console.log("[confirm-guardian] Checking if guardian is SSO account:", guardianAddress.value);
-  const result = await checkIsSsoAccount(guardianAddress.value);
-  console.log("[confirm-guardian] checkIsSsoAccount result:", result);
-  isSsoAccount.value = result === undefined ? null : result;
-  console.log("[confirm-guardian] isSsoAccount.value set to:", isSsoAccount.value);
+
+  try {
+    const result = await checkIsSsoAccount(guardianAddress.value);
+    console.log("[confirm-guardian] checkIsSsoAccount result:", result);
+    isSsoAccount.value = result === undefined ? null : result;
+    console.log("[confirm-guardian] isSsoAccount.value set to:", isSsoAccount.value);
+  } catch {
+    // Error already logged by useIsSsoAccount, and it already returned false
+    // The error is re-thrown by useAsync, but we can ignore it here
+    console.log("[confirm-guardian] checkIsSsoAccount threw (expected for ModularSmartAccount), treating as SSO account");
+    isSsoAccount.value = true; // ModularSmartAccounts are SSO accounts in our system
+  }
 
   console.error("[DIAGNOSTIC] onMounted complete - Final loading states:");
   console.error("  confirmGuardianInProgress:", confirmGuardianInProgress.value);

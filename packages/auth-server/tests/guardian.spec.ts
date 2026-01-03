@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
+import type { Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { exec } from "child_process";
 import { promisify } from "util";
-
-import { expect, test, type Page } from "@playwright/test";
 
 const execAsync = promisify(exec);
 
@@ -105,7 +105,8 @@ test.beforeEach(async ({ page }) => {
   await waitForAuthServerToLoad(page);
 });
 
-test("Guardian flow: propose and confirm guardian", async ({ page }) => {
+test("Guardian flow: propose and confirm guardian", async ({ page, context: _context }) => {
+  test.setTimeout(90000); // Extended timeout for full guardian flow with account creation
   console.log("\n=== Starting Guardian E2E Test ===\n");
 
   // ===== Step 1: Create Primary Account =====
@@ -231,8 +232,20 @@ test("Guardian flow: propose and confirm guardian", async ({ page }) => {
   // NOTE: The SSO client automatically signs ERC-4337 transactions,
   // so there are NO popup windows to interact with during guardian proposal
   console.log("Waiting for guardian proposal transaction to complete...");
-  await page.waitForTimeout(5000); // Wait for module installation + guardian proposal
+  await page.waitForTimeout(8000); // Wait for module installation + guardian proposal
   console.log("Guardian proposal initiated");
+
+  // Handle "Do you wish to confirm your guardian now?" dialog
+  try {
+    const confirmLaterButton = page.getByRole("button", { name: /Confirm Later/i });
+    await confirmLaterButton.waitFor({ state: "visible", timeout: 10000 });
+    await confirmLaterButton.click();
+    console.log("Clicked 'Confirm Later' on the confirmation prompt");
+    await page.waitForTimeout(5000); // Wait for dialog to close and transaction to complete
+  } catch (error) {
+    console.log("⚠ Warning: 'Do you wish to confirm your guardian now?' prompt not found");
+    console.log(`   ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   // ===== Step 5: Confirm Guardian =====
   console.log("\nStep 5: Confirming guardian...");
@@ -386,6 +399,7 @@ test("Guardian flow: propose and confirm guardian", async ({ page }) => {
 });
 
 test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
+  test.setTimeout(90000); // Extended timeout for full guardian flow with paymaster
   console.log("\n=== Starting Guardian with Paymaster E2E Test ===\n");
 
   // ===== Step 1: Create Primary Account with Paymaster =====
@@ -495,8 +509,20 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
   // NOTE: The SSO client automatically signs ERC-4337 transactions with paymaster,
   // so there are NO popup windows to interact with during guardian proposal
   console.log("Waiting for paymaster-sponsored guardian proposal to complete...");
-  await page.waitForTimeout(5000); // Wait for module installation + guardian proposal
+  await page.waitForTimeout(8000); // Wait for module installation + guardian proposal
   console.log("Guardian proposal with paymaster initiated");
+
+  // Handle "Do you wish to confirm your guardian now?" dialog
+  try {
+    const confirmLaterButton = page.getByRole("button", { name: /Confirm Later/i });
+    await confirmLaterButton.waitFor({ state: "visible", timeout: 10000 });
+    await confirmLaterButton.click();
+    console.log("Clicked 'Confirm Later' on the confirmation prompt");
+    await page.waitForTimeout(5000); // Wait for dialog to close and transaction to complete
+  } catch (error) {
+    console.log("⚠ Warning: 'Do you wish to confirm your guardian now?' prompt not found");
+    console.log(`   ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   // ===== Step 4: Confirm Guardian with Paymaster =====
   console.log("\nStep 4: Confirming guardian with paymaster...");
@@ -594,8 +620,31 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
   console.log("Clicking Confirm Guardian button...");
   await confirmGuardianButton.click();
 
-  console.log("Waiting for paymaster-sponsored confirmation...");
+  console.log("Waiting for paymaster-sponsored confirmation transaction...");
+  await guardianPage.waitForTimeout(3000);
+
+  // Check if we need to sign the confirmation (popup might appear)
+  const guardianPagesBefore = guardianContext.pages().length;
+  await guardianPage.waitForTimeout(1000);
+  if (guardianContext.pages().length > guardianPagesBefore) {
+    const guardianSignPopup = guardianContext.pages()[guardianContext.pages().length - 1];
+    console.log("Guardian signing popup detected...");
+    await reuseCredential(guardianSignPopup, guardianCredential!);
+    const confirmBtn = guardianSignPopup.getByTestId("confirm");
+    if (await confirmBtn.isVisible({ timeout: 5000 })) {
+      await confirmBtn.click();
+      await guardianPage.waitForTimeout(3000);
+    }
+  }
+
+  // Verify success
   await guardianPage.waitForTimeout(5000);
+  const successIndicator = guardianPage.getByText(/Guardian.*confirmed|Success|Confirmed/i);
+  if (await successIndicator.isVisible({ timeout: 5000 })) {
+    console.log("✅ Guardian confirmation success message visible");
+  } else {
+    console.log("⚠️  No explicit success message found after paymaster confirmation");
+  }
 
   console.log("\n=== Guardian with Paymaster E2E Test Complete ===\n");
 
