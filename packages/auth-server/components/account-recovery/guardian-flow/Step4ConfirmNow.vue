@@ -97,7 +97,7 @@ const { getWalletClient, defaultChain } = useClientStore();
 const { isSsoAccount: checkIsSsoAccount, isLoading, error: isSsoAccountError } = useIsSsoAccount();
 const { confirmGuardian, confirmGuardianInProgress } = useRecoveryGuardian();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
-const { address } = useAccountStore();
+const { address: currentSsoAddress } = useAccountStore();
 const accountData = useAppKitAccount();
 
 const confirmGuardianErrorMessage = ref<string | null>(null);
@@ -116,29 +116,52 @@ const handleCheck = async () => {
 
 const handleConfirmGuardian = async () => {
   try {
-    if (!address) {
+    if (!currentSsoAddress) {
       throw new Error("No account logged in");
     }
 
+    console.log(`[Step4ConfirmNow] Starting confirmation. Account to guard: ${currentSsoAddress}, Guardian address: ${props.guardianAddress}, Is SSO: ${isSsoAccount.value}`);
+
     let client: Parameters<typeof confirmGuardian>[0]["client"];
 
-    if (isSsoAccount.value) {
-      const configurableAccount = await getConfigurableAccount({ address: props.guardianAddress });
+    // Check if guardian is the currently connected SSO account
+    const isCurrentSsoGuardian = isSsoAccount.value
+      && currentSsoAddress
+      && props.guardianAddress.toLowerCase() === currentSsoAddress.toLowerCase();
+
+    if (isCurrentSsoGuardian) {
+      // Guardian is the current SSO account - use SSO client with paymaster
+      console.log("[Step4ConfirmNow] Getting configurable account for current SSO guardian");
+      const configurableAccount = await getConfigurableAccount({
+        address: props.guardianAddress,
+        usePaymaster: true,
+      });
       if (!configurableAccount) {
+        console.error(`[Step4ConfirmNow] No configurable account found for ${props.guardianAddress}`);
         throw new Error("No configurable account found");
       }
+      console.log("[Step4ConfirmNow] Using SSO client:", configurableAccount.account.address);
       client = configurableAccount;
     } else {
+      // Guardian is a different account - use WalletConnect
+      if (!accountData.value.isConnected) {
+        throw new Error("Please connect your wallet first");
+      }
+      console.log("[Step4ConfirmNow] Getting wallet client for guardian");
       client = await getWalletClient({ chainId: defaultChain.id });
+      console.log("[Step4ConfirmNow] Using wallet client:", client.account.address);
     }
 
+    console.log(`[Step4ConfirmNow] Calling confirmGuardian with client address: ${client.account.address}`);
     await confirmGuardian({
       client,
-      accountToGuard: address,
+      accountToGuard: currentSsoAddress,
     });
+    console.log("[Step4ConfirmNow] Guardian confirmed successfully");
     confirmGuardianErrorMessage.value = null;
     emit("next");
   } catch (err) {
+    console.error("[Step4ConfirmNow] Error confirming guardian:", err);
     confirmGuardianErrorMessage.value = "An error occurred while confirming the guardian. Please try again.";
     // eslint-disable-next-line no-console
     console.error(err);

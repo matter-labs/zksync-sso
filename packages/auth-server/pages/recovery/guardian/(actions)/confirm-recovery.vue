@@ -75,12 +75,12 @@
               >
                 Confirm Recovery
               </ZkButton>
-              <!-- <CommonConnectButton
+              <CommonConnectButton
                 v-if="!selectedGuardianInfo?.isSsoAccount"
                 type="primary"
                 class="w-full max-w-56"
                 :disabled="initRecoveryInProgress || getConfigurableAccountInProgress"
-              /> -->
+              />
             </div>
             <p
               v-if="!selectedGuardianInfo?.isSsoAccount && accountData.isConnected && !isConnectedWalletGuardian"
