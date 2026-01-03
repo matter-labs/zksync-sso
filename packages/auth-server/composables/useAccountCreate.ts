@@ -3,12 +3,11 @@ import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionSpec } from "zksync-sso-4337/client";
 import { sessionSpecToJSON } from "zksync-sso-4337/client";
 
-export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividiumMode = false, userId?: string) => {
+export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
   const chainId = toRef(_chainId);
-  const { getThrowAwayClient } = useClientStore();
   const { registerPasskey } = usePasskeyRegister();
-  const { fetchAddressAssociationMessage, associateAddress, deleteAddressAssociation } = usePrividiumAddressAssociation();
   const runtimeConfig = useRuntimeConfig();
+  const { getPrividiumInstance } = usePrividiumAuthStore();
 
   const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionSpec, "signer">, paymaster?: Address) => {
     const result = await registerPasskey();
@@ -33,15 +32,6 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
     const ownerKey = generatePrivateKey();
     const ownerAddress = privateKeyToAddress(ownerKey);
 
-    const deployerClient = getThrowAwayClient({ chainId: chainId.value });
-
-    // For Prividium mode, associate temporary address before deployment
-    if (prividiumMode) {
-      const { message } = await fetchAddressAssociationMessage(deployerClient.account.address);
-      const signature = await deployerClient.signMessage({ message });
-      await associateAddress(deployerClient.account.address, message, signature);
-    }
-
     // Call backend API to deploy account
     const apiUrl = runtimeConfig.public.authServerApiUrl;
     if (!apiUrl) {
@@ -54,16 +44,29 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
       credentialPublicKey,
       originDomain: window.location.origin,
       session: sessionData ? sessionSpecToJSON(sessionData) : undefined,
-      userId: userId || credentialId, // Use provided userId or fallback to credentialId for backward compatibility
+      userId: credentialId,
       eoaSigners: [ownerAddress],
       paymaster,
     };
 
+    // Build headers - include Prividium auth if in Prividium mode
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (runtimeConfig.public.prividiumMode) {
+      const prividium = getPrividiumInstance();
+      if (prividium) {
+        const authHeaders = prividium.getAuthHeaders();
+        if (authHeaders?.Authorization) {
+          headers.Authorization = authHeaders.Authorization;
+        }
+      }
+    }
+
     const response = await fetch(`${apiUrl}/api/deploy-account`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 
@@ -79,15 +82,6 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>, prividium
     }
 
     const address = data.address;
-
-    // Clean up temporary association for Prividium mode
-    if (prividiumMode) {
-      await deleteAddressAssociation(deployerClient.account.address).catch((err) => {
-        // Ignore errors on cleanup
-        // eslint-disable-next-line no-console
-        console.warn("Failed to delete temporary address association:", err);
-      });
-    }
 
     return {
       address,

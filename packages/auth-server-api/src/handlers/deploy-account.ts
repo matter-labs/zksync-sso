@@ -1,11 +1,12 @@
 import type { Request, Response } from "express";
-import { type Address, createPublicClient, createWalletClient, type Hex, http } from "viem";
+import { type Address, createPublicClient, createWalletClient, type Hex, http, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
-import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
+import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, prividiumConfig, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
 import { deployAccountSchema } from "../schemas.js";
+import { addAddressToUser, createProxyTransport, getAdminAuthService, whitelistContract } from "../services/prividium/index.js";
 
 type DeployAccountRequest = {
   chainId: number;
@@ -14,7 +15,6 @@ type DeployAccountRequest = {
   originDomain: string;
   userId?: string;
   eoaSigners?: Address[];
-  paymaster?: Address;
 };
 
 // Deploy account endpoint
@@ -34,25 +34,46 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Get chain from request
     const chain = getChain(body.chainId);
 
+    // Get admin token if in Prividium mode (needed for RPC proxy, whitelisting, and address association)
+    let adminToken: string | undefined;
+    if (prividiumConfig.enabled && req.prividiumUser) {
+      try {
+        const adminAuth = getAdminAuthService(prividiumConfig);
+        adminToken = await adminAuth.getValidToken();
+      } catch (error) {
+        console.error("Admin authentication failed:", error);
+        res.status(500).json({
+          error: "Admin authentication failed",
+        });
+        return;
+      }
+    }
+
+    // Create transport - use Prividium proxy if enabled, otherwise direct RPC
+    const transport = prividiumConfig.enabled && adminToken
+      ? createProxyTransport(prividiumConfig.proxyUrl, adminToken)
+      : http(env.RPC_URL);
+
     // Create clients
     const publicClient = createPublicClient({
       chain,
-      transport: http(env.RPC_URL),
+      transport,
     });
 
     const deployerAccount = privateKeyToAccount(env.DEPLOYER_PRIVATE_KEY as Hex);
     const walletClient = createWalletClient({
       account: deployerAccount,
       chain,
-      transport: http(env.RPC_URL),
+      transport,
     });
 
     // Check deployer balance
     const balance = await publicClient.getBalance({ address: deployerAccount.address });
-    const minBalance = BigInt("100000000000000000"); // 0.1 ETH minimum
+    const minBalance = parseEther("0.01"); // Minimum balance required for deployment
     if (balance < minBalance) {
+      console.error(`Deployer balance too low: ${balance.toString()} < ${minBalance.toString()}`);
       res.status(500).json({
-        error: `Insufficient balance to cover deployment. Current: ${balance.toString()}, Required: ${minBalance.toString()}`,
+        error: "Deployer doesn't have enough balance to cover deployment",
       });
       return;
     }
@@ -82,16 +103,10 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Send transaction
     let txHash: Hex;
     try {
-      const txParams: any = {
+      const txParams = {
         to: transaction.to,
         data: transaction.data,
       };
-
-      // Add paymaster if provided
-      if (body.paymaster) {
-        txParams.paymaster = body.paymaster;
-        txParams.paymasterInput = "0x";
-      }
 
       txHash = await walletClient.sendTransaction(txParams);
     } catch (error) {
@@ -104,7 +119,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
         return;
       }
       res.status(500).json({
-        error: `Transaction failed: ${errorMessage}`,
+        error: "Internal server error",
       });
       return;
     }
@@ -119,9 +134,8 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       });
     } catch (error) {
       console.error("Transaction receipt failed:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({
-        error: `Transaction failed to be mined: ${errorMessage}`,
+        error: "Internal server error",
       });
       return;
     }
@@ -129,7 +143,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Check if transaction was successful
     if (receipt.status === "reverted") {
       res.status(500).json({
-        error: "Deployment reverted: Transaction execution failed",
+        error: "Deployment reverted",
       });
       return;
     }
@@ -140,22 +154,55 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       deployedAddress = getAccountAddressFromLogs(receipt.logs);
     } catch (error) {
       console.error("Failed to extract address from logs:", error);
-      const errorMessage = error instanceof Error ? error.message : "";
       res.status(500).json({
-        error: `Deployment failed: Could not extract account address from logs. ${errorMessage}`,
+        error: "Internal server error",
       });
       return;
     }
 
     console.log("Account deployed at:", deployedAddress);
 
+    // Prividium post-deployment steps (all blocking)
+    if (prividiumConfig.enabled && req.prividiumUser && adminToken) {
+      // Step 1: Whitelist the contract with template (blocking)
+      try {
+        await whitelistContract(
+          deployedAddress,
+          prividiumConfig.templateKey,
+          adminToken,
+          prividiumConfig.permissionsApiUrl,
+        );
+      } catch (error) {
+        console.error("Failed to whitelist contract:", error);
+        res.status(500).json({
+          error: "Failed to whitelist contract",
+        });
+        return;
+      }
+
+      // Step 2: Associate address with user (blocking)
+      try {
+        await addAddressToUser(
+          req.prividiumUser.userId,
+          [deployedAddress],
+          adminToken,
+          prividiumConfig.permissionsApiUrl,
+        );
+      } catch (error) {
+        console.error("Failed to associate address with user:", error);
+        res.status(500).json({
+          error: "Failed to associate address with user",
+        });
+        return;
+      }
+    }
+
     // Return success response
     res.json({ address: deployedAddress });
   } catch (error) {
     console.error("Deployment error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     res.status(500).json({
-      error: `Deployment failed: ${errorMessage}`,
+      error: "Internal server error",
     });
   }
 };

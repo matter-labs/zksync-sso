@@ -35,7 +35,7 @@
         </ZkHighlightWrapper>
       </div>
 
-      <!-- Authenticated: Show account creation flow or login options -->
+      <!-- Authenticated: Show account creation or login options -->
       <div
         v-else
         class="flex flex-col"
@@ -58,11 +58,8 @@
           </div>
         </div>
 
-        <!-- Account creation or login flow -->
-        <div
-          v-if="!accountDeployed"
-          class="flex flex-col gap-5"
-        >
+        <!-- Account creation or login -->
+        <div class="flex flex-col gap-5">
           <ZkHighlightWrapper>
             <ZkButton
               class="w-full"
@@ -84,166 +81,22 @@
             Log In to Existing Account
           </ZkButton>
         </div>
-
-        <!-- Address association step (after account deployment) -->
-        <div
-          v-else
-          class="space-y-6"
-        >
-          <!-- Progress indicator -->
-          <div class="mb-6 px-8">
-            <div class="flex items-center justify-between">
-              <div class="flex flex-col items-center">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-primary-300 text-white">
-                  ✓
-                </div>
-                <span class="text-xs text-slate-600 dark:text-slate-400 mt-2 text-center">Account Created</span>
-              </div>
-              <div
-                :class="[
-                  'flex-1 h-1 mx-2 self-start mt-3.5',
-                  addressAssociated ? 'bg-primary-300' : 'bg-slate-200 dark:bg-slate-700',
-                ]"
-              />
-              <div class="flex flex-col items-center">
-                <div
-                  :class="[
-                    'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ring-2 ring-offset-1',
-                    addressAssociated
-                      ? 'bg-primary-300 text-white ring-primary-300 ring-offset-white dark:ring-offset-slate-900'
-                      : 'bg-white dark:bg-slate-900 text-primary-300 ring-primary-300 ring-offset-white dark:ring-offset-slate-900',
-                  ]"
-                >
-                  {{ addressAssociated ? '✓' : '2' }}
-                </div>
-                <span class="text-xs text-slate-600 dark:text-slate-400 mt-2 text-center">Complete Setup</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Complete Setup -->
-          <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-            <p class="text-center text-sm text-slate-600 dark:text-slate-400 mb-4">
-              Confirm your passkey to complete the setup.
-            </p>
-            <ZkButton
-              class="w-full"
-              :loading="associateInProgress"
-              :disabled="addressAssociated"
-              @click="executeAssociation"
-            >
-              {{ addressAssociated ? 'Setup Complete ✓' : 'Confirm Passkey' }}
-            </ZkButton>
-          </div>
-
-          <!-- Go Back Button -->
-          <div class="text-center">
-            <button
-              class="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline"
-              @click="resetToInitialState"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { zeroAddress } from "viem";
-import { createPasskeyClient } from "zksync-sso-4337/client";
-
 const runtimeConfig = useRuntimeConfig();
 const chainId = runtimeConfig.public.chainId as SupportedChainId;
 
 const prividiumAuthStore = usePrividiumAuthStore();
 const { loading, isAuthenticated, profile } = storeToRefs(prividiumAuthStore);
-const { createTransport } = useClientStore();
 const { login } = useAccountStore();
-const { fetchAddressAssociationMessage, associateAddress } = usePrividiumAddressAssociation();
 const { loginInProgress, loginToAccount } = useAccountLogin(chainId);
-const { registerInProgress: deployInProgress, createAccount, createAccountError } = useAccountCreate(chainId, true);
+const { registerInProgress: deployInProgress, createAccount, createAccountError } = useAccountCreate(chainId);
 
-const accountDeploymentResult = ref<Awaited<ReturnType<typeof createAccount>> | null>(null);
-
-// Use separate getClient since the one from client store requires login data to already be present
-// but we need it before logging user in
-const getClient = () => {
-  if (!accountDeploymentResult.value) throw new Error("No deployed account available");
-  const chain = supportedChains.find((chain) => chain.id === chainId);
-  if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
-  const contracts = contractsByChain[chainId];
-
-  return createPasskeyClient({
-    account: {
-      address: accountDeploymentResult.value.address,
-      validatorAddress: contracts.webauthnValidator,
-      credentialId: accountDeploymentResult.value.credentialId,
-      rpId: window.location.hostname,
-      origin: window.location.origin,
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    bundlerClient: null as any, // Not needed for address association
-    chain,
-    transport: createTransport(),
-  });
-};
-
-const { inProgress: associateInProgress, execute: executeAssociation, error: associationError } = useAsync(async () => {
-  if (!accountDeploymentResult.value) {
-    throw new Error("No deployed account to associate address with.");
-  }
-
-  // Get passkey client with the deployed account
-  const passkeyClient = getClient();
-
-  // Fetch association message
-  const { message } = await fetchAddressAssociationMessage(passkeyClient.account.address);
-
-  // Sign with passkey
-  const signature = await passkeyClient.signTypedData({
-    domain: {
-      name: "AddressAssociationVerifier",
-      version: "1.0.0",
-      chainId: chainId,
-      verifyingContract: zeroAddress,
-    },
-    types: {
-      AddressAssociation: [
-        { name: "message", type: "string" },
-      ],
-    },
-    primaryType: "AddressAssociation",
-    message: {
-      message,
-    },
-  });
-
-  // Associate the address
-  await associateAddress(passkeyClient.account.address, message, signature);
-
-  login({
-    address: accountDeploymentResult.value.address,
-    credentialId: accountDeploymentResult.value.credentialId,
-  });
-  addressAssociated.value = true;
-
-  // Navigate to dashboard after successful association
-  setTimeout(() => {
-    navigateTo("/dashboard");
-  }, 1000);
-});
-
-const addressAssociated = ref(false);
-const accountDeployed = computed(() => !!accountDeploymentResult.value);
-const error = computed(() => createAccountError.value?.message || associationError.value?.message || "");
-
-const resetToInitialState = () => {
-  accountDeploymentResult.value = null;
-  addressAssociated.value = false;
-};
+const error = computed(() => createAccountError.value?.message || "");
 
 const handlePrividiumLogin = async () => {
   await prividiumAuthStore.signInWithPopup();
@@ -251,11 +104,17 @@ const handlePrividiumLogin = async () => {
 
 const logout = () => {
   prividiumAuthStore.signOut();
-  resetToInitialState();
 };
 
 const deployAccount = async () => {
-  accountDeploymentResult.value = await createAccount();
+  const result = await createAccount();
+  if (result) {
+    login({
+      address: result.address,
+      credentialId: result.credentialId,
+    });
+    navigateTo("/dashboard");
+  }
 };
 
 const logIn = async () => {
@@ -264,9 +123,5 @@ const logIn = async () => {
     navigateTo("/dashboard");
     return;
   }
-  // if (result?.recoveryRequest?.isReady === false) {
-  //   navigateTo(`/recovery/account-not-ready?address=${result!.recoveryRequest.accountAddress}`);
-  //   return;
-  // }
 };
 </script>
