@@ -36,7 +36,7 @@ export default defineNuxtConfig({
   },
   ssr: false,
   devServer: {
-    port: 3003,
+    port: 3002,
   },
   css: ["@/assets/css/tailwind.css", "@/assets/css/style.scss", "web3-avatar-vue/dist/style.css"],
   googleFonts: {

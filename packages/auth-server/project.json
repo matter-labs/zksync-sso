@@ -6,17 +6,24 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "commands": ["pnpm run copy:snarkjs && PORT=3003 nuxt dev", "pnpm nx run auth-server-api:dev"],
+        "commands": ["pnpm run copy:snarkjs && PORT=3002 nuxt dev", "pnpm nx run auth-server-api:dev"],
         "parallel": true
       },
       "dependsOn": ["^build", "demo-app:deploy-contracts-erc4337"]
+    },
+    "dev:with-api": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "commands": ["pnpm run copy:snarkjs && PORT=3002 nuxt dev", "pnpm nx run auth-server-api:dev"]
+      },
+      "dependsOn": ["^build"]
     },
     "dev:no-deploy": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "commands": ["pnpm run copy:snarkjs && PORT=3002 nuxt dev", "pnpm nx run auth-server-api:dev"],
-        "parallel": true
+        "command": "pnpm run copy:snarkjs && PORT=3002 nuxt dev"
       },
       "dependsOn": ["^build"]
     },
@@ -59,11 +66,11 @@
         "cwd": "packages/auth-server",
         "commands": [
           {
-            "command": "pnpm nuxt preview",
-            "prefix": "Auth-Server:"
+            "command": "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nuxt preview",
+            "prefix": "Auth-Frontend:"
           },
           {
-            "command": "pnpm nx run auth-server-api:dev",
+            "command": "PORT=3004 pnpm nx run auth-server-api:dev",
             "prefix": "Auth-API:"
           }
         ],

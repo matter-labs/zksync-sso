@@ -10,6 +10,7 @@ import {
 import type { BundlerClient } from "viem/account-abstraction";
 import { encode_create_session_call_data } from "zksync-sso-web-sdk/bundler";
 
+import type { PaymasterConfig } from "../../actions/sendUserOperation.js";
 import {
   type SmartAccountClientActions,
   smartAccountClientActions,
@@ -29,6 +30,7 @@ export type PasskeyClientData<
   passkeyAccount: ToPasskeySmartAccountParams<TTransport, TChain>;
   accountAddress: Address;
   validatorAddress: Address;
+  paymaster?: PaymasterConfig | Address;
 };
 
 /**
@@ -73,6 +75,7 @@ export function passkeyClientActions<
     accountFactory: () => toPasskeySmartAccount(config.passkeyAccount),
     client: config.client,
     accountAddress: config.accountAddress,
+    paymaster: config.paymaster,
   });
 
   // Return base actions with passkey-specific overrides

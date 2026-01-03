@@ -89,6 +89,10 @@
           <CommonContentLoader :length="18" />&nbsp;<CommonContentLoader :length="8" />
         </span>
         <span
+          v-else-if="hasPaymaster"
+          class="text-green-400 font-medium"
+        >0 ETH (Sponsored)</span>
+        <span
           v-else
         >{{ formatUnits(totalFee, 18) }} ETH</span>
       &nbsp;
@@ -165,7 +169,7 @@ import type { ExtractParams } from "zksync-sso-4337/client";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { responseInProgress, responseError, requestParams, requestChain } = storeToRefs(useRequestsStore());
+const { responseInProgress, responseError, requestParams, requestChain, requestPaymaster } = storeToRefs(useRequestsStore());
 const { getClient } = useClientStore();
 
 const transactionParams = computed(() => {
@@ -226,17 +230,41 @@ const totalFee = computed<bigint>(() => {
   return 0n;
 });
 
+const hasPaymaster = computed<boolean>(() => {
+  // Check if request has paymaster metadata (ERC-4337)
+  if (requestPaymaster.value) {
+    return true;
+  }
+  // Check if transaction has paymaster params
+  const params = transactionParams.value as unknown;
+  if (params?.paymasterParams || params?.paymaster) {
+    return true;
+  }
+  // Also check prepared transaction
+  const prepared = preparedTransaction.value as unknown;
+  if (prepared?.paymasterParams || prepared?.paymaster) {
+    return true;
+  }
+  return false;
+});
+
 const confirmTransaction = async () => {
   respond(async () => {
     if (!transactionParams.value) {
       throw new Error("Transaction parameters are not available");
     }
-    const client = getClient({ chainId: requestChain.value!.id });
+    const usePaymasterFlag = !!requestPaymaster.value;
+    const paymasterAddr = typeof requestPaymaster.value === "string"
+      ? requestPaymaster.value
+      : requestPaymaster.value?.address;
+    const client = getClient({
+      chainId: requestChain.value!.id,
+      usePaymaster: usePaymasterFlag,
+      paymasterAddress: paymasterAddr,
+    });
     const transactionHash = await client.sendTransaction(transactionParams.value);
     return {
-      result: {
-        value: transactionHash,
-      },
+      result: transactionHash,
     };
   });
 };

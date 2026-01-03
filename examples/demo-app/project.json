@@ -87,6 +87,23 @@
       },
       "dependsOn": ["build:local"]
     },
+    "dev-all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/demo-app",
+        "commands": [
+          {
+            "command": "pnpm nx dev:with-api auth-server",
+            "prefix": "Auth-Server:"
+          },
+          {
+            "command": "PORT=3005 pnpm run dev",
+            "prefix": "Demo-App:"
+          }
+        ]
+      },
+      "dependsOn": ["build:local"]
+    },
     "e2e:setup:erc4337": {
       "executor": "nx:run-commands",
       "options": {

@@ -59,6 +59,7 @@ export interface RPCRequestMessage<
   content: {
     action: RequestArguments<TMethod, TSchema>;
     chainId: number;
+    paymaster?: Address; // ERC-4337 paymaster metadata (not part of transaction params)
   };
 }
 

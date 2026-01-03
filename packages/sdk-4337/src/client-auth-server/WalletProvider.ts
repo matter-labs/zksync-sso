@@ -3,6 +3,7 @@ import type { Address, Chain, Transport } from "viem";
 import { toHex } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
 
+import type { PaymasterConfig } from "../actions/sendUserOperation.js";
 import type { Communicator } from "../communicator/index.js";
 import { PopupCommunicator } from "../communicator/PopupCommunicator.js";
 import { serializeError, standardErrors } from "../errors/index.js";
@@ -29,14 +30,14 @@ export type WalletProviderConstructorOptions = {
   // skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
   customCommunicator?: Communicator;
   storage?: StorageLike;
-  paymasterAddress?: Address;
+  paymaster?: PaymasterConfig;
 };
 
 export class WalletProvider extends EventEmitter implements ProviderInterface {
   readonly isZksyncSso = true;
   private signer: Signer;
 
-  constructor({ metadata, chains, transports, bundlerClients, session, authServerUrl, /* onSessionStateChange, skipPreTransactionStateValidation, */ customCommunicator, storage, paymasterAddress }: WalletProviderConstructorOptions) {
+  constructor({ metadata, chains, transports, bundlerClients, session, authServerUrl, /* onSessionStateChange, skipPreTransactionStateValidation, */ customCommunicator, storage, paymaster }: WalletProviderConstructorOptions) {
     super();
     const communicator = customCommunicator ?? new PopupCommunicator(authServerUrl || DEFAULT_AUTH_SERVER_URL);
     this.signer = new Signer({
@@ -54,7 +55,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       // onSessionStateChange,
       // skipPreTransactionStateValidation,
       storage,
-      paymasterAddress,
+      paymaster,
     });
   }
 

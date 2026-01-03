@@ -20,6 +20,7 @@ import {
   waitForCallsStatus,
 } from "viem/actions";
 
+import type { PaymasterConfig } from "../../actions/sendUserOperation.js";
 import { addPasskey as addPasskeyAction } from "../actions/passkey.js";
 
 /**
@@ -37,6 +38,8 @@ export type SmartAccountClientData<
   client: Client<TTransport, TChain, Account | undefined>;
   /** Smart account address */
   accountAddress: Address;
+  /** Optional paymaster configuration for sponsoring transactions - can be either a full config object or just an address string */
+  paymaster?: PaymasterConfig | Address;
 };
 
 /**
@@ -47,6 +50,7 @@ export type SmartAccountClientActions<TChain extends Chain = Chain, TAccount ext
   WalletActions<TChain, TAccount>,
   "addChain" | "getPermissions" | "requestAddresses" | "requestPermissions" | "switchChain" | "watchAsset" | "prepareTransactionRequest" | "signTransaction"
 > & {
+
   /**
    * Add a passkey to the smart account.
    * Returns the transaction hash.
@@ -77,6 +81,19 @@ export function smartAccountClientActions<
 >(
   config: SmartAccountClientData<TTransport, TChain>,
 ): SmartAccountClientActions<TChain, TAccount extends Account ? TAccount : Account> {
+  // Normalize paymaster to PaymasterConfig format at the start
+  // config.paymaster can be either PaymasterConfig object OR string address
+  const normalizedPaymaster = config.paymaster
+    ? typeof config.paymaster === "string"
+      ? {
+          address: config.paymaster as Address,
+          verificationGasLimit: 500_000n,
+          postOpGasLimit: 1_000_000n,
+          data: "0x" as `0x${string}`,
+        }
+      : config.paymaster
+    : undefined;
+
   // Lazy-load the smart account (cached after first load)
   let smartAccountPromise: Promise<ToSmartAccountReturnType> | null = null;
   const getSmartAccount = async (): Promise<ToSmartAccountReturnType> => {
@@ -106,6 +123,17 @@ export function smartAccountClientActions<
     sendCalls: async (args) => {
       const account = await getSmartAccount();
 
+      // For v0.8 EntryPoint, pass separate paymaster fields (not packed paymasterAndData)
+      // These fields get included in the UserOp BEFORE signing
+      const paymasterParams = normalizedPaymaster
+        ? {
+            paymaster: normalizedPaymaster.address,
+            paymasterData: normalizedPaymaster.data ?? ("0x" as Hex),
+            paymasterVerificationGasLimit: normalizedPaymaster.verificationGasLimit ?? 500_000n,
+            paymasterPostOpGasLimit: normalizedPaymaster.postOpGasLimit ?? 1_000_000n,
+          }
+        : {};
+
       // Send all calls through bundler in a single userOp
       const userOpHash = await config.bundler.sendUserOperation({
         account,
@@ -115,6 +143,7 @@ export function smartAccountClientActions<
           value: call.value ?? 0n,
           data: call.data ?? "0x",
         })),
+        ...paymasterParams,
       });
 
       // Return the userOp hash as the ID in the expected format
@@ -139,8 +168,25 @@ export function smartAccountClientActions<
     },
 
     // Override sendTransaction to use bundler
-    sendTransaction: async (args) => {
+    // Note: We accept an extended parameter set with optional paymaster
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sendTransaction: async (args: any) => {
       const account = await getSmartAccount();
+
+      // Use per-transaction paymaster if provided, otherwise fall back to config
+      const paymasterAddress = args.paymaster ?? normalizedPaymaster?.address;
+
+      // For v0.8 EntryPoint, pass separate paymaster fields (not packed paymasterAndData)
+      // These fields get included in the UserOp BEFORE signing
+      const paymasterParams
+        = normalizedPaymaster || paymasterAddress
+          ? {
+              paymaster: paymasterAddress!,
+              paymasterData: normalizedPaymaster?.data ?? ("0x" as Hex),
+              paymasterVerificationGasLimit: normalizedPaymaster?.verificationGasLimit ?? 500_000n,
+              paymasterPostOpGasLimit: normalizedPaymaster?.postOpGasLimit ?? 1_000_000n,
+            }
+          : {};
 
       // Send user operation through bundler
       const userOpHash = await config.bundler.sendUserOperation({
@@ -152,6 +198,7 @@ export function smartAccountClientActions<
             data: args.data ?? "0x",
           },
         ],
+        ...paymasterParams,
       });
 
       // Wait for the user operation to be included and get the actual transaction hash
@@ -176,6 +223,16 @@ export function smartAccountClientActions<
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
 
+      // For paymaster to be included in signature, use paymasterContext not callback
+      const paymasterParams = normalizedPaymaster
+        ? {
+            paymaster: normalizedPaymaster.address,
+            paymasterData: normalizedPaymaster.data ?? ("0x" as Hex),
+            paymasterVerificationGasLimit: normalizedPaymaster.verificationGasLimit ?? 500_000n,
+            paymasterPostOpGasLimit: normalizedPaymaster.postOpGasLimit ?? 1_000_000n,
+          }
+        : {};
+
       // Send through bundler
       const userOpHash = await config.bundler.sendUserOperation({
         account,
@@ -186,6 +243,7 @@ export function smartAccountClientActions<
             data,
           },
         ],
+        ...paymasterParams,
       });
 
       // Wait for confirmation and return actual tx hash
@@ -218,6 +276,15 @@ export function smartAccountClientActions<
         },
       });
 
+      const paymasterParams = normalizedPaymaster
+        ? {
+            paymaster: normalizedPaymaster.address,
+            paymasterData: normalizedPaymaster.data ?? ("0x" as Hex),
+            paymasterVerificationGasLimit: normalizedPaymaster.verificationGasLimit ?? 500_000n,
+            paymasterPostOpGasLimit: normalizedPaymaster.postOpGasLimit ?? 1_000_000n,
+          }
+        : {};
+
       // Send the transaction through bundler
       const userOpHash = await config.bundler.sendUserOperation({
         account,
@@ -228,6 +295,7 @@ export function smartAccountClientActions<
             value: 0n,
           },
         ],
+        ...paymasterParams,
       });
 
       // Wait for the user operation to be included
