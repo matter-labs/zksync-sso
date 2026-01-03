@@ -1,7 +1,7 @@
 export const usePrividiumAddressAssociation = () => {
   const { getPrividiumInstance } = usePrividiumAuthStore();
   const runtimeConfig = useRuntimeConfig();
-  const proxyBaseUrl = runtimeConfig.public.prividium?.proxyBaseUrl;
+  const permissionsApiBaseUrl = runtimeConfig.public.prividium?.permissionsApiBaseUrl;
 
   const getAuthHeaders = () => {
     const prividium = getPrividiumInstance();
@@ -13,7 +13,7 @@ export const usePrividiumAddressAssociation = () => {
   };
 
   const fetchAddressAssociationMessage = async (address: string) => {
-    const response = await $fetch<{ message?: string; nonce?: string; error?: string }>(`${proxyBaseUrl}/permissions/user-wallets/initiate`, {
+    const response = await $fetch<{ message?: string; nonce?: string; error?: string }>(`${permissionsApiBaseUrl}/api/user-wallets/initiate`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: {
@@ -34,7 +34,7 @@ export const usePrividiumAddressAssociation = () => {
   };
 
   const associateAddress = async (address: string, message: string, signature: string) => {
-    const associateResponse = await $fetch<{ success?: boolean; error?: string }>(`${proxyBaseUrl}/permissions/user-wallets/associate`, {
+    const associateResponse = await $fetch<{ success?: boolean; error?: string }>(`${permissionsApiBaseUrl}/api/user-wallets/associate`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: {
@@ -54,7 +54,7 @@ export const usePrividiumAddressAssociation = () => {
   };
 
   const deleteAddressAssociation = async (address: string) => {
-    await $fetch(`${proxyBaseUrl}/permissions/user-wallets/${address}`, {
+    await $fetch(`${permissionsApiBaseUrl}/api/user-wallets/${address}`, {
       method: "DELETE",
       headers: getAuthHeaders(),
     });

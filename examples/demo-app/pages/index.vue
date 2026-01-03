@@ -160,7 +160,7 @@ const sessionConfig = {
 
 const buildConnector = (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
   const baseConfig: Parameters<typeof zksyncSsoConnector>[0] = {
-    authServerUrl: "http://localhost:3002/confirm",
+    authServerUrl: "http://localhost:3003/confirm",
   };
 
   if (mode === "session" || mode === "session-paymaster") {

@@ -1,4 +1,4 @@
-import { createPrividiumChain, type PrividiumChain, type UserProfile } from "test-prividium-sdk";
+import { createPrividiumChain, type PrividiumChain, type UserProfile } from "prividium";
 
 let prividiumInstance: PrividiumChain | null = null;
 
@@ -20,9 +20,9 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
     if (!runtimeConfig.public.prividiumMode) return null;
 
     if (!prividiumInstance) {
-      const { clientId, proxyBaseUrl, authBaseUrl, permissionsApiBaseUrl } = runtimeConfig.public.prividium || {};
+      const { clientId, rpcUrl, authBaseUrl, permissionsApiBaseUrl } = runtimeConfig.public.prividium || {};
 
-      if (!clientId || !proxyBaseUrl || !authBaseUrl || !permissionsApiBaseUrl) {
+      if (!clientId || !rpcUrl || !authBaseUrl || !permissionsApiBaseUrl) {
         error.value = "Prividium configuration is incomplete";
         return null;
       }
@@ -30,7 +30,7 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
       prividiumInstance = createPrividiumChain({
         clientId,
         chain: defaultChain,
-        rpcUrl: `${proxyBaseUrl}/rpc`,
+        rpcUrl,
         authBaseUrl,
         permissionsApiBaseUrl: permissionsApiBaseUrl,
         redirectUrl: `${window.location.origin}/callback`,
@@ -109,6 +109,10 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
       profile.value = await prividium.fetchUser();
       return profile;
     } catch (err) {
+      if (err instanceof Error && err.message.includes("401 Unauthorized")) {
+        signOut();
+        return;
+      }
       error.value = err instanceof Error ? err.message : "Failed to fetch profile";
     } finally {
       loading.value = false;

@@ -1,8 +1,9 @@
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 
-import { env } from "./config.js";
+import { env, prividiumConfig } from "./config.js";
 import { deployAccountHandler } from "./handlers/deploy-account.js";
+import { prividiumAuthMiddleware } from "./middleware/prividium-auth.js";
 
 // Initialize Express app
 const app = express();
@@ -33,8 +34,8 @@ app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Deploy account endpoint
-app.post("/api/deploy-account", deployAccountHandler);
+// Deploy account endpoint (with Prividium auth middleware when enabled)
+app.post("/api/deploy-account", prividiumAuthMiddleware(prividiumConfig), deployAccountHandler);
 
 // Global error handler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
