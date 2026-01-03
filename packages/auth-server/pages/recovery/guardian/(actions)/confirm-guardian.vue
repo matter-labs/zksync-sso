@@ -329,30 +329,16 @@ const signOutAndLogin = async () => {
 };
 
 onMounted(async () => {
-  console.error("[DIAGNOSTIC] onMounted - Initial loading states:");
-  console.error("  confirmGuardianInProgress:", confirmGuardianInProgress.value);
-  console.error("  getConfigurableAccountInProgress:", getConfigurableAccountInProgress.value);
-  console.error("  isSsoAccountLoading:", isSsoAccountLoading.value);
-
   await getGuardians(accountAddress.value);
-  console.log("[confirm-guardian] Checking if guardian is SSO account:", guardianAddress.value);
 
   try {
     const result = await checkIsSsoAccount(guardianAddress.value);
-    console.log("[confirm-guardian] checkIsSsoAccount result:", result);
     isSsoAccount.value = result === undefined ? null : result;
-    console.log("[confirm-guardian] isSsoAccount.value set to:", isSsoAccount.value);
   } catch {
     // Error already logged by useIsSsoAccount, and it already returned false
     // The error is re-thrown by useAsync, but we can ignore it here
-    console.log("[confirm-guardian] checkIsSsoAccount threw (expected for ModularSmartAccount), treating as SSO account");
     isSsoAccount.value = true; // ModularSmartAccounts are SSO accounts in our system
   }
-
-  console.error("[DIAGNOSTIC] onMounted complete - Final loading states:");
-  console.error("  confirmGuardianInProgress:", confirmGuardianInProgress.value);
-  console.error("  getConfigurableAccountInProgress:", getConfigurableAccountInProgress.value);
-  console.error("  isSsoAccountLoading:", isSsoAccountLoading.value);
 });
 
 definePageMeta({
