@@ -35,8 +35,8 @@ app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Deploy account endpoint (with Prividium auth middleware when enabled, plus rate limiting)
-app.post("/api/deploy-account", prividiumAuthMiddleware(prividiumConfig), deployLimiter, deployAccountHandler);
+// Deploy account endpoint (rate limiting first, then auth, then handler)
+app.post("/api/deploy-account", deployLimiter, prividiumAuthMiddleware(prividiumConfig), deployAccountHandler);
 
 // Global error handler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
