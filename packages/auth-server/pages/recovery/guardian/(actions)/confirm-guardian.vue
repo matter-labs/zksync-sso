@@ -156,6 +156,7 @@
       <ZkButton
         v-if="canConfirmGuardian"
         class="w-full lg:w-fit"
+        data-testid="confirm-guardian-button"
         :loading="confirmGuardianInProgress || getConfigurableAccountInProgress"
         @click="confirmGuardianAction"
       >
