@@ -260,10 +260,75 @@
       <div id="transfer-error" class="hidden error-box"></div>
     </div>
 
+    <!-- Step 4: Aave Deposit/Withdraw -->
+    <div class="card">
+      <div class="step-header">
+        <div class="step-number">4</div>
+        <div class="step-title">Aave Lending (L1)</div>
+      </div>
+
+      <div class="info-box">
+        <strong>📊 How it works:</strong>
+        <p style="margin-top: 8px; font-size: 0.9rem;">
+          Your L2 account has a shadow account on L1 Sepolia. You can deposit ETH into Aave on L1
+          and earn interest. The deposit/withdraw happens via L2-to-L1 messaging.
+        </p>
+      </div>
+
+      <div id="aave-balance-section" class="info-box hidden">
+        <strong>Shadow Account:</strong> <code id="shadowAccountDisplay"></code>
+        <div style="margin-top: 8px;">
+          <strong>Aave Balance:</strong> <span class="balance" id="aaveBalanceDisplay">0 aETH</span>
+        </div>
+        <button id="refreshAaveBalanceBtn" style="margin-top: 12px; background: #28a745; width: auto; padding: 8px 16px;">
+          Refresh Aave Balance
+        </button>
+      </div>
+
+      <div id="aave-deposit-form">
+        <div class="form-group">
+          <label for="aaveDepositAmount">Deposit Amount (ETH)</label>
+          <input type="number" id="aaveDepositAmount" step="0.01" placeholder="0.1">
+        </div>
+        <button id="aaveDepositBtn" disabled>Deposit to Aave (L1)</button>
+      </div>
+
+      <div id="aave-deposit-success" class="hidden success-box">
+        <strong>✓ Deposit Initiated!</strong>
+        <div>TX Hash: <code id="aaveDepositTxHash"></code></div>
+        <p style="margin-top: 8px; font-size: 0.9rem;">
+          ⏳ L2-to-L1 message sent. Finalization takes ~15 minutes.
+          Check your Aave balance after finalization.
+        </p>
+      </div>
+
+      <div id="aave-deposit-error" class="hidden error-box"></div>
+
+      <div id="aave-withdraw-form" style="margin-top: 16px;">
+        <div class="form-group">
+          <label for="aaveWithdrawAmount">Withdraw Amount (aETH)</label>
+          <input type="number" id="aaveWithdrawAmount" step="0.01" placeholder="0.1">
+        </div>
+        <button id="aaveWithdrawBtn" disabled>Withdraw from Aave (L1)</button>
+      </div>
+
+      <div id="aave-withdraw-success" class="hidden success-box">
+        <strong>✓ Withdrawal Initiated!</strong>
+        <div>TX Hash: <code id="aaveWithdrawTxHash"></code></div>
+        <p style="margin-top: 8px; font-size: 0.9rem;">
+          ⏳ L2-to-L1 message sent. Finalization takes ~15 minutes.
+          Check your shadow account balance after finalization.
+        </p>
+      </div>
+
+      <div id="aave-withdraw-error" class="hidden error-box"></div>
+    </div>
+
     <!-- Network Info -->
     <div class="footer">
-      <strong>Network:</strong> Ethereum Sepolia Testnet<br>
-      <strong>RPC:</strong> Alchemy API
+      <strong>L2:</strong> ZKSync OS Testnet<br>
+      <strong>L1:</strong> Ethereum Sepolia<br>
+      <strong>Aave Pool:</strong> 0x6Ae4...8951
     </div>
   </div>
 

@@ -2,7 +2,9 @@ import {
   concat,
   createPublicClient,
   createWalletClient,
+  defineChain,
   encodeAbiParameters,
+  encodeFunctionData,
   formatEther,
   http,
   keccak256,
@@ -15,42 +17,111 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt, writeContract } from "viem/actions";
-import { sepolia } from "viem/chains";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "zksync-sso/utils";
+import {
+  AAVE_CONTRACTS,
+  getShadowAccount,
+  createAaveDepositBundle,
+  createAaveWithdrawBundle,
+  getAaveBalance,
+} from "./aave-utils.js";
 
-// Sepolia Configuration
-const SEPOLIA_RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU";
+// ZKsync OS configuration
+const zksyncOsTestnet = defineChain({
+  id: 8022833,
+  name: "ZKsync OS Developer Preview",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev/"],
+      webSocket: ["wss://zksync-os-testnet-alpha.zksync.dev/ws"],
+    },
+    public: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev/"],
+      webSocket: ["wss://zksync-os-testnet-alpha.zksync.dev/ws"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "ZKsync OS Explorer",
+      url: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
+    },
+  },
+});
+
+const DEFAULT_ZKSYNC_OS_RPC_URL = "https://zksync-os-testnet-alpha.zksync.dev/";
+const LOCAL_RPC_PROXY_URL = "http://localhost:4339";
+const isBrowser = typeof window !== "undefined";
+const shouldUseLocalRpcProxy = isBrowser && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+const ZKSYNC_OS_RPC_URL = shouldUseLocalRpcProxy ? LOCAL_RPC_PROXY_URL : DEFAULT_ZKSYNC_OS_RPC_URL;
 
 // Deployer private key (for deploying accounts)
-const DEPLOYER_PRIVATE_KEY = "0xef506537558847aa991149381c4fedee8fe1252cf868986ac1692336530ec85c";
+// const DEPLOYER_PRIVATE_KEY = "0xef506537558847aa991149381c4fedee8fe1252cf868986ac1692336530ec85c";
+const DEPLOYER_PRIVATE_KEY = "0x1cfcab2cf5ad255cb3387f7fdca2651a61377b334a2a3daa4af86eb476369105";
 
-// Contract addresses on Sepolia
+// Contract addresses on ZKsync OS testnet
 const CONTRACTS = {
-  passkey: "0xAbcB5AB6eBb69F4F5F8cf1a493F56Ad3d28562bd",
-  session: "0x09fbd5b956AF5c64C7eB4fb473E7E64DAF0f79D7",
-  accountFactory: "0xF33128d7Cd2ab37Af12B3a22D9dA79f928c2B450",
+  p256Verifier: "0xD65900405073D912215bC8dEb811dFFD72263065", // P256VerifierNoPrecompile - Pure Solidity!
+  passkey: "0xc66A20c63606f221D4d5A39147E3bf3635DD7a39", // WebAuthnValidator (uses pure Solidity verifier)
+  session: "0xbd2608f3512A3a163394fbAB99a286E151Bf30be", // SessionKeyValidator
+  accountFactory: "0xF52708DE29453BBfd27AA8fC7b4bc7EF87E05892", // MSAFactory
   entryPoint: "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
-  // Using local bundler for Ethereum Sepolia
-  bundlerUrl: "http://localhost:4337",
+  bundlerUrl: "http://localhost:4337", // Local bundler for better debugging
   oidcKeyRegistry: "0x0000000000000000000000000000000000000000",
 };
-
 // State
 let accountAddress = null;
 let passkeyCredentials = null;
 let publicClient = null;
+let sepoliaClient = null;
+let shadowAccount = null;
 
 // LocalStorage keys
 const STORAGE_KEY_PASSKEY = "zksync_sso_passkey";
 const STORAGE_KEY_ACCOUNT = "zksync_sso_account";
 
+// Sepolia configuration for L1 operations
+const sepolia = defineChain({
+  id: 11155111,
+  name: "Sepolia",
+  nativeCurrency: {
+    name: "Sepolia Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU"],
+    },
+    public: {
+      http: ["https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Etherscan",
+      url: "https://sepolia.etherscan.io",
+    },
+  },
+});
+
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
   // Setup public client for balance checks FIRST
   publicClient = createPublicClient({
+    chain: zksyncOsTestnet,
+    transport: http(ZKSYNC_OS_RPC_URL),
+  });
+
+  // Setup Sepolia client for L1 balance checks
+  sepoliaClient = createPublicClient({
     chain: sepolia,
-    transport: http(SEPOLIA_RPC_URL),
+    transport: http("https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU"),
   });
 
   setupEventListeners();
@@ -63,6 +134,9 @@ function setupEventListeners() {
   document.getElementById("refreshBalanceBtn").addEventListener("click", handleRefreshBalance);
   document.getElementById("transferBtn").addEventListener("click", handleTransfer);
   document.getElementById("resetPasskeyBtn").addEventListener("click", handleResetPasskey);
+  document.getElementById("aaveDepositBtn").addEventListener("click", handleAaveDeposit);
+  document.getElementById("aaveWithdrawBtn").addEventListener("click", handleAaveWithdraw);
+  document.getElementById("refreshAaveBalanceBtn").addEventListener("click", refreshAaveBalance);
 }
 
 // Load existing passkey from localStorage
@@ -96,6 +170,7 @@ function loadExistingPasskey() {
       document.getElementById("transferBtn").disabled = false;
 
       handleRefreshBalance();
+      initializeAaveSection();
 
       console.log("✅ Loaded existing account from storage");
     }
@@ -185,8 +260,8 @@ async function handleDeployAccount() {
     const deployerAccount = privateKeyToAccount(DEPLOYER_PRIVATE_KEY);
     const deployerClient = createWalletClient({
       account: deployerAccount,
-      chain: sepolia,
-      transport: http(SEPOLIA_RPC_URL),
+      chain: zksyncOsTestnet,
+      transport: http(ZKSYNC_OS_RPC_URL),
     });
 
     console.log(`Deployer address: ${deployerAccount.address}`);
@@ -336,6 +411,7 @@ async function handleDeployAccount() {
     document.getElementById("transferBtn").disabled = false;
 
     handleRefreshBalance();
+    initializeAaveSection();
   } catch (error) {
     console.error("Deployment failed:", error);
     document.getElementById("deploy-error").textContent = "Deployment failed: " + error.message;
@@ -498,11 +574,11 @@ async function handleTransfer() {
     console.log(`Nonce: ${nonce}`);
 
     // ERC-4337 v0.8 uses packed gas limits
-    const callGasLimit = 200000n;
-    const verificationGasLimit = 500000n;
-    const maxFeePerGas = 2000000000n; // 2 gwei
-    const maxPriorityFeePerGas = 1000000000n; // 1 gwei
-    const preVerificationGas = 100000n;
+    const callGasLimit = 500000n; // Increased from 200000
+    const verificationGasLimit = 2000000n; // Increased from 500000
+    const maxFeePerGas = 10000000000n; // 10 gwei (increased from 2)
+    const maxPriorityFeePerGas = 5000000000n; // 5 gwei (increased from 1)
+    const preVerificationGas = 200000n; // Increased from 100000
 
     // Pack gas limits: (verificationGasLimit << 128) | callGasLimit
     const accountGasLimits = pad(toHex((verificationGasLimit << 128n) | callGasLimit), { size: 32 });
@@ -533,7 +609,7 @@ async function handleTransfer() {
 
     const domainSeparator = keccak256(encodeAbiParameters(
       parseAbiParameters("bytes32,bytes32,bytes32,uint256,address"),
-      [domainTypeHash, nameHash, versionHash, BigInt(sepolia.id), CONTRACTS.entryPoint],
+      [domainTypeHash, nameHash, versionHash, BigInt(zksyncOsTestnet.id), CONTRACTS.entryPoint],
     ));
 
     // Hash the PackedUserOperation struct
@@ -707,5 +783,647 @@ async function handleTransfer() {
   } finally {
     btn.disabled = false;
     btn.textContent = "Send ETH";
+  }
+}
+
+// ===== AAVE INTEGRATION =====
+
+// Initialize Aave section when account is deployed
+async function initializeAaveSection() {
+  if (!accountAddress) return;
+
+  try {
+    console.log("🔵 Initializing Aave section...");
+
+    // Get shadow account address
+    shadowAccount = await getShadowAccount(publicClient, accountAddress);
+    console.log(`Shadow account: ${shadowAccount}`);
+
+    // Update UI
+    document.getElementById("shadowAccountDisplay").textContent = shadowAccount;
+    document.getElementById("aave-balance-section").classList.remove("hidden");
+
+    // Enable Aave buttons
+    document.getElementById("aaveDepositBtn").disabled = false;
+    document.getElementById("aaveWithdrawBtn").disabled = false;
+    document.getElementById("refreshAaveBalanceBtn").disabled = false;
+
+    // Refresh Aave balance
+    await refreshAaveBalance();
+
+    console.log("✅ Aave section initialized");
+  } catch (error) {
+    console.error("Failed to initialize Aave section:", error);
+  }
+}
+
+// Refresh Aave balance (aToken balance on L1)
+async function refreshAaveBalance() {
+  if (!shadowAccount) return;
+
+  const btn = document.getElementById("refreshAaveBalanceBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Refreshing...";
+  }
+
+  try {
+    console.log("🔵 Checking Aave balance on L1 Sepolia...");
+
+    const balance = await getAaveBalance(sepoliaClient, shadowAccount);
+    console.log(`Aave balance: ${formatEther(balance)} aETH`);
+
+    // Update UI
+    document.getElementById("aaveBalanceDisplay").textContent = formatEther(balance) + " aETH";
+  } catch (error) {
+    console.error("Failed to refresh Aave balance:", error);
+    document.getElementById("aaveBalanceDisplay").textContent = "Error loading balance";
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Refresh Balance";
+    }
+  }
+}
+
+// Handle Aave deposit
+async function handleAaveDeposit() {
+  if (!accountAddress || !shadowAccount) return;
+
+  const btn = document.getElementById("aaveDepositBtn");
+  btn.disabled = true;
+  btn.textContent = "Depositing...";
+
+  // Hide previous messages
+  document.getElementById("aave-deposit-success").classList.add("hidden");
+  document.getElementById("aave-deposit-error").classList.add("hidden");
+
+  try {
+    // First, ensure account is initialized
+    await ensureAccountInitialized();
+
+    const amount = document.getElementById("aaveDepositAmount").value;
+    if (!amount || parseFloat(amount) <= 0) {
+      throw new Error("Please enter a valid amount");
+    }
+
+    const amountWei = parseEther(amount);
+    console.log(`🔵 Initiating Aave deposit of ${amount} ETH...`);
+
+    // Use the SDK's requestPasskeyAuthentication for signing
+    const { requestPasskeyAuthentication } = await import("zksync-sso/client/passkey");
+
+    // Create Aave deposit bundle
+    const bundle = await createAaveDepositBundle(amountWei, shadowAccount);
+    console.log("Bundle created:", bundle);
+
+    // Encode the call to L2InteropCenter.sendBundleToL1
+    const l2InteropCallData = encodeFunctionData({
+      abi: bundle.abi,
+      functionName: bundle.functionName,
+      args: bundle.args,
+    });
+
+    // Wrap in ERC-7579 execute(bytes32 mode, bytes executionData) format
+    const modeCode = pad("0x01", { dir: "right", size: 32 }); // simple batch execute
+
+    // Encode execution data as Call[] array
+    const executionData = encodeAbiParameters(
+      [{
+        components: [
+          { name: "to", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "data", type: "bytes" },
+        ],
+        name: "Call",
+        type: "tuple[]",
+      }],
+      [[{
+        to: AAVE_CONTRACTS.l2InteropCenter,
+        value: 0n,
+        data: l2InteropCallData,
+      }]],
+    );
+
+    // Encode execute(bytes32,bytes) call
+    const callData = concat([
+      "0xe9ae5c53", // execute(bytes32,bytes) selector
+      encodeAbiParameters(
+        [{ type: "bytes32" }, { type: "bytes" }],
+        [modeCode, executionData],
+      ),
+    ]);
+
+    // Get current nonce
+    const nonce = await publicClient.readContract({
+      address: CONTRACTS.entryPoint,
+      abi: [
+        {
+          type: "function",
+          name: "getNonce",
+          inputs: [
+            { name: "sender", type: "address" },
+            { name: "key", type: "uint192" },
+          ],
+          outputs: [{ name: "nonce", type: "uint256" }],
+          stateMutability: "view",
+        },
+      ],
+      functionName: "getNonce",
+      args: [accountAddress, 0n],
+    });
+
+    console.log(`Nonce: ${nonce}`);
+
+    // Get gas price
+    const feeData = await publicClient.estimateFeesPerGas();
+    const maxFeePerGas = feeData.maxFeePerGas;
+    const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas || (maxFeePerGas * 5n) / 100n;
+
+    // Gas limits for Aave operation (L2-to-L1 requires more gas)
+    const callGasLimit = BigInt(3_000_000);
+    const verificationGasLimit = BigInt(1_500_000);
+    const preVerificationGas = BigInt(100_000);
+
+    // Pack gas limits (v0.8 format)
+    const accountGasLimits = concat([
+      pad(toHex(verificationGasLimit), { size: 16 }),
+      pad(toHex(callGasLimit), { size: 16 }),
+    ]);
+
+    const gasFees = concat([
+      pad(toHex(maxPriorityFeePerGas), { size: 16 }),
+      pad(toHex(maxFeePerGas), { size: 16 }),
+    ]);
+
+    // Create PackedUserOperation for v0.8
+    const packedUserOp = {
+      sender: accountAddress,
+      nonce,
+      initCode: "0x",
+      callData,
+      accountGasLimits,
+      preVerificationGas,
+      gasFees,
+      paymasterAndData: "0x",
+      signature: "0x",
+    };
+
+    // Calculate UserOperation hash manually using EIP-712 for v0.8
+    const PACKED_USEROP_TYPEHASH = "0x29a0bca4af4be3421398da00295e58e6d7de38cb492214754cb6a47507dd6f8e";
+
+    // EIP-712 domain separator
+    const domainTypeHash = "0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f";
+    const nameHash = keccak256(toBytes("ERC4337"));
+    const versionHash = keccak256(toBytes("1"));
+
+    const domainSeparator = keccak256(encodeAbiParameters(
+      parseAbiParameters("bytes32,bytes32,bytes32,uint256,address"),
+      [domainTypeHash, nameHash, versionHash, BigInt(zksyncOsTestnet.id), CONTRACTS.entryPoint],
+    ));
+
+    // Hash the PackedUserOperation struct
+    const structHash = keccak256(encodeAbiParameters(
+      parseAbiParameters("bytes32,address,uint256,bytes32,bytes32,bytes32,uint256,bytes32,bytes32"),
+      [
+        PACKED_USEROP_TYPEHASH,
+        packedUserOp.sender,
+        packedUserOp.nonce,
+        keccak256(packedUserOp.initCode),
+        keccak256(packedUserOp.callData),
+        packedUserOp.accountGasLimits,
+        packedUserOp.preVerificationGas,
+        packedUserOp.gasFees,
+        keccak256(packedUserOp.paymasterAndData),
+      ],
+    ));
+
+    // EIP-712 typed data hash
+    const userOpHash = keccak256(concat(["0x1901", domainSeparator, structHash]));
+
+    console.log("🔐 Requesting passkey authentication for Aave deposit...");
+
+    // Sign with passkey
+    const passkeySignature = await requestPasskeyAuthentication({
+      challenge: userOpHash,
+      credentialPublicKey: new Uint8Array(passkeyCredentials.credentialPublicKey),
+      authenticatorSelection: {},
+      timeout: 60000,
+    });
+
+    // Parse signature
+    const response = passkeySignature.passkeyAuthenticationResponse.response;
+    const authenticatorDataHex = toHex(base64UrlToUint8Array(response.authenticatorData));
+    const credentialIdHex = toHex(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.id));
+    const signatureData = unwrapEC2Signature(base64UrlToUint8Array(response.signature));
+
+    const r = pad(toHex(signatureData.r), { size: 32 });
+    const s = pad(toHex(signatureData.s), { size: 32 });
+
+    // Encode signature
+    const passkeySignatureEncoded = encodeAbiParameters(
+      [
+        { type: "bytes" },
+        { type: "string" },
+        { type: "bytes32[2]" },
+        { type: "bytes" },
+      ],
+      [
+        authenticatorDataHex,
+        new TextDecoder().decode(base64UrlToUint8Array(response.clientDataJSON)),
+        [r, s],
+        credentialIdHex,
+      ],
+    );
+
+    packedUserOp.signature = concat([CONTRACTS.passkey, passkeySignatureEncoded]);
+
+    console.log("📤 Submitting Aave deposit UserOperation to bundler...");
+
+    // Submit to bundler
+    const userOpForBundler = {
+      sender: packedUserOp.sender,
+      nonce: toHex(packedUserOp.nonce),
+      factory: null,
+      factoryData: null,
+      callData: packedUserOp.callData,
+      callGasLimit: toHex(callGasLimit),
+      verificationGasLimit: toHex(verificationGasLimit),
+      preVerificationGas: toHex(preVerificationGas),
+      maxFeePerGas: toHex(maxFeePerGas),
+      maxPriorityFeePerGas: toHex(maxPriorityFeePerGas),
+      paymaster: null,
+      paymasterVerificationGasLimit: null,
+      paymasterPostOpGasLimit: null,
+      paymasterData: null,
+      signature: packedUserOp.signature,
+    };
+
+    const bundlerResponse = await fetch(CONTRACTS.bundlerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_sendUserOperation",
+        params: [userOpForBundler, CONTRACTS.entryPoint],
+      }),
+    });
+
+    const bundlerResult = await bundlerResponse.json();
+
+    if (bundlerResult.error) {
+      throw new Error(`Bundler error: ${bundlerResult.error.message}`);
+    }
+
+    const userOpHashFromBundler = bundlerResult.result;
+    console.log(`UserOperation submitted: ${userOpHashFromBundler}`);
+    console.log("⏳ Waiting for L2 confirmation (this may take a few seconds)...");
+
+    // Poll for receipt
+    let receipt = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const receiptResponse = await fetch(CONTRACTS.bundlerUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "eth_getUserOperationReceipt",
+          params: [userOpHashFromBundler],
+        }),
+      });
+
+      const receiptResult = await receiptResponse.json();
+      if (receiptResult.result) {
+        receipt = receiptResult.result;
+        break;
+      }
+    }
+
+    if (!receipt) {
+      throw new Error("Transaction timeout - could not get receipt");
+    }
+
+    if (receipt.success) {
+      console.log("✅ L2 transaction successful!");
+      console.log(`Transaction hash: ${receipt.receipt.transactionHash}`);
+      console.log("⏳ L2-to-L1 message sent. Finalization takes ~15 minutes...");
+
+      // Update UI
+      document.getElementById("aave-deposit-success").classList.remove("hidden");
+      document.getElementById("aaveDepositTxHash").textContent = receipt.receipt.transactionHash;
+
+      // Clear form
+      document.getElementById("aaveDepositAmount").value = "";
+
+      // Note: Balance will update after L1 finalization (~15 min)
+      console.log("💡 Note: Aave balance will update after L2-to-L1 finalization (~15 minutes)");
+    } else {
+      throw new Error("Transaction failed");
+    }
+  } catch (error) {
+    console.error("Aave deposit failed:", error);
+    document.getElementById("aave-deposit-error").textContent = "Deposit failed: " + error.message;
+    document.getElementById("aave-deposit-error").classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Deposit to Aave";
+  }
+}
+
+// Handle Aave withdraw
+async function handleAaveWithdraw() {
+  if (!accountAddress || !shadowAccount) return;
+
+  const btn = document.getElementById("aaveWithdrawBtn");
+  btn.disabled = true;
+  btn.textContent = "Withdrawing...";
+
+  // Hide previous messages
+  document.getElementById("aave-withdraw-success").classList.add("hidden");
+  document.getElementById("aave-withdraw-error").classList.add("hidden");
+
+  try {
+    // First, ensure account is initialized
+    await ensureAccountInitialized();
+
+    const amount = document.getElementById("aaveWithdrawAmount").value;
+    if (!amount || parseFloat(amount) <= 0) {
+      throw new Error("Please enter a valid amount");
+    }
+
+    const amountWei = parseEther(amount);
+    console.log(`🔵 Initiating Aave withdrawal of ${amount} aETH...`);
+
+    // Use the SDK's requestPasskeyAuthentication for signing
+    const { requestPasskeyAuthentication } = await import("zksync-sso/client/passkey");
+
+    // Check balance first
+    const balance = await getAaveBalance(sepoliaClient, shadowAccount);
+    if (balance < amountWei) {
+      throw new Error(`Insufficient Aave balance. You have ${formatEther(balance)} aETH`);
+    }
+
+    // Create Aave withdraw bundle
+    const bundle = await createAaveWithdrawBundle(amountWei, shadowAccount, accountAddress, sepoliaClient);
+    console.log("Withdraw bundle created:", bundle);
+
+    // Encode the call to L2InteropCenter.sendBundleToL1
+    const l2InteropCallData = encodeFunctionData({
+      abi: bundle.abi,
+      functionName: bundle.functionName,
+      args: bundle.args,
+    });
+
+    // Wrap in ERC-7579 execute(bytes32 mode, bytes executionData) format
+    const modeCode = pad("0x01", { dir: "right", size: 32 }); // simple batch execute
+
+    // Encode execution data as Call[] array
+    const executionData = encodeAbiParameters(
+      [{
+        components: [
+          { name: "to", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "data", type: "bytes" },
+        ],
+        name: "Call",
+        type: "tuple[]",
+      }],
+      [[{
+        to: AAVE_CONTRACTS.l2InteropCenter,
+        value: 0n,
+        data: l2InteropCallData,
+      }]],
+    );
+
+    // Encode execute(bytes32,bytes) call
+    const callData = concat([
+      "0xe9ae5c53", // execute(bytes32,bytes) selector
+      encodeAbiParameters(
+        [{ type: "bytes32" }, { type: "bytes" }],
+        [modeCode, executionData],
+      ),
+    ]);
+
+    // Get current nonce
+    const nonce = await publicClient.readContract({
+      address: CONTRACTS.entryPoint,
+      abi: [
+        {
+          type: "function",
+          name: "getNonce",
+          inputs: [
+            { name: "sender", type: "address" },
+            { name: "key", type: "uint192" },
+          ],
+          outputs: [{ name: "nonce", type: "uint256" }],
+          stateMutability: "view",
+        },
+      ],
+      functionName: "getNonce",
+      args: [accountAddress, 0n],
+    });
+
+    console.log(`Nonce: ${nonce}`);
+
+    // Get gas price
+    const feeData = await publicClient.estimateFeesPerGas();
+    const maxFeePerGas = feeData.maxFeePerGas;
+    const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas || (maxFeePerGas * 5n) / 100n;
+
+    // Gas limits for Aave operation
+    const callGasLimit = BigInt(3_000_000);
+    const verificationGasLimit = BigInt(1_500_000);
+    const preVerificationGas = BigInt(100_000);
+
+    // Pack gas limits (v0.8 format)
+    const accountGasLimits = concat([
+      pad(toHex(verificationGasLimit), { size: 16 }),
+      pad(toHex(callGasLimit), { size: 16 }),
+    ]);
+
+    const gasFees = concat([
+      pad(toHex(maxPriorityFeePerGas), { size: 16 }),
+      pad(toHex(maxFeePerGas), { size: 16 }),
+    ]);
+
+    // Create PackedUserOperation for v0.8
+    const packedUserOp = {
+      sender: accountAddress,
+      nonce,
+      initCode: "0x",
+      callData,
+      accountGasLimits,
+      preVerificationGas,
+      gasFees,
+      paymasterAndData: "0x",
+      signature: "0x",
+    };
+
+    // Calculate UserOperation hash manually using EIP-712 for v0.8
+    const PACKED_USEROP_TYPEHASH = "0x29a0bca4af4be3421398da00295e58e6d7de38cb492214754cb6a47507dd6f8e";
+
+    // EIP-712 domain separator
+    const domainTypeHash = "0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f";
+    const nameHash = keccak256(toBytes("ERC4337"));
+    const versionHash = keccak256(toBytes("1"));
+
+    const domainSeparator = keccak256(encodeAbiParameters(
+      parseAbiParameters("bytes32,bytes32,bytes32,uint256,address"),
+      [domainTypeHash, nameHash, versionHash, BigInt(zksyncOsTestnet.id), CONTRACTS.entryPoint],
+    ));
+
+    // Hash the PackedUserOperation struct
+    const structHash = keccak256(encodeAbiParameters(
+      parseAbiParameters("bytes32,address,uint256,bytes32,bytes32,bytes32,uint256,bytes32,bytes32"),
+      [
+        PACKED_USEROP_TYPEHASH,
+        packedUserOp.sender,
+        packedUserOp.nonce,
+        keccak256(packedUserOp.initCode),
+        keccak256(packedUserOp.callData),
+        packedUserOp.accountGasLimits,
+        packedUserOp.preVerificationGas,
+        packedUserOp.gasFees,
+        keccak256(packedUserOp.paymasterAndData),
+      ],
+    ));
+
+    // EIP-712 typed data hash
+    const userOpHash = keccak256(concat(["0x1901", domainSeparator, structHash]));
+
+    console.log("🔐 Requesting passkey authentication for Aave withdrawal...");
+
+    // Sign with passkey
+    const passkeySignature = await requestPasskeyAuthentication({
+      challenge: userOpHash,
+      credentialPublicKey: new Uint8Array(passkeyCredentials.credentialPublicKey),
+      authenticatorSelection: {},
+      timeout: 60000,
+    });
+
+    // Parse signature
+    const response = passkeySignature.passkeyAuthenticationResponse.response;
+    const authenticatorDataHex = toHex(base64UrlToUint8Array(response.authenticatorData));
+    const credentialIdHex = toHex(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.id));
+    const signatureData = unwrapEC2Signature(base64UrlToUint8Array(response.signature));
+
+    const r = pad(toHex(signatureData.r), { size: 32 });
+    const s = pad(toHex(signatureData.s), { size: 32 });
+
+    // Encode signature
+    const passkeySignatureEncoded = encodeAbiParameters(
+      [
+        { type: "bytes" },
+        { type: "string" },
+        { type: "bytes32[2]" },
+        { type: "bytes" },
+      ],
+      [
+        authenticatorDataHex,
+        new TextDecoder().decode(base64UrlToUint8Array(response.clientDataJSON)),
+        [r, s],
+        credentialIdHex,
+      ],
+    );
+
+    packedUserOp.signature = concat([CONTRACTS.passkey, passkeySignatureEncoded]);
+
+    console.log("📤 Submitting Aave withdrawal UserOperation to bundler...");
+
+    // Submit to bundler
+    const userOpForBundler = {
+      sender: packedUserOp.sender,
+      nonce: toHex(packedUserOp.nonce),
+      factory: null,
+      factoryData: null,
+      callData: packedUserOp.callData,
+      callGasLimit: toHex(callGasLimit),
+      verificationGasLimit: toHex(verificationGasLimit),
+      preVerificationGas: toHex(preVerificationGas),
+      maxFeePerGas: toHex(maxFeePerGas),
+      maxPriorityFeePerGas: toHex(maxPriorityFeePerGas),
+      paymaster: null,
+      paymasterVerificationGasLimit: null,
+      paymasterPostOpGasLimit: null,
+      paymasterData: null,
+      signature: packedUserOp.signature,
+    };
+
+    const bundlerResponse = await fetch(CONTRACTS.bundlerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_sendUserOperation",
+        params: [userOpForBundler, CONTRACTS.entryPoint],
+      }),
+    });
+
+    const bundlerResult = await bundlerResponse.json();
+
+    if (bundlerResult.error) {
+      throw new Error(`Bundler error: ${bundlerResult.error.message}`);
+    }
+
+    const userOpHashFromBundler = bundlerResult.result;
+    console.log(`UserOperation submitted: ${userOpHashFromBundler}`);
+    console.log("⏳ Waiting for L2 confirmation (this may take a few seconds)...");
+
+    // Poll for receipt
+    let receipt = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const receiptResponse = await fetch(CONTRACTS.bundlerUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "eth_getUserOperationReceipt",
+          params: [userOpHashFromBundler],
+        }),
+      });
+
+      const receiptResult = await receiptResponse.json();
+      if (receiptResult.result) {
+        receipt = receiptResult.result;
+        break;
+      }
+    }
+
+    if (!receipt) {
+      throw new Error("Transaction timeout - could not get receipt");
+    }
+
+    if (receipt.success) {
+      console.log("✅ L2 transaction successful!");
+      console.log(`Transaction hash: ${receipt.receipt.transactionHash}`);
+      console.log("⏳ L2-to-L1 message sent. Finalization takes ~15 minutes...");
+
+      // Update UI
+      document.getElementById("aave-withdraw-success").classList.remove("hidden");
+      document.getElementById("aaveWithdrawTxHash").textContent = receipt.receipt.transactionHash;
+
+      // Clear form
+      document.getElementById("aaveWithdrawAmount").value = "";
+
+      // Note: Balance will update after L1 finalization (~15 min)
+      console.log("💡 Note: Aave balance will update after L2-to-L1 finalization (~15 minutes)");
+    } else {
+      throw new Error("Transaction failed");
+    }
+  } catch (error) {
+    console.error("Aave withdrawal failed:", error);
+    document.getElementById("aave-withdraw-error").textContent = "Withdrawal failed: " + error.message;
+    document.getElementById("aave-withdraw-error").classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Withdraw from Aave";
   }
 }

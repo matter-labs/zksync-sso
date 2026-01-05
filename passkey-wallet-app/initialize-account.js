@@ -1,20 +1,46 @@
 import {
   createPublicClient,
   createWalletClient,
+  defineChain,
   encodeAbiParameters,
   http,
   parseAbiParameters,
   toHex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { sepolia } from "viem/chains";
+
+const zksyncOsTestnet = defineChain({
+  id: 8022833,
+  name: "ZKsync OS Developer Preview",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev/"],
+      webSocket: ["wss://zksync-os-testnet-alpha.zksync.dev/ws"],
+    },
+    public: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev/"],
+      webSocket: ["wss://zksync-os-testnet-alpha.zksync.dev/ws"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "ZKsync OS Explorer",
+      url: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
+    },
+  },
+});
 
 // Configuration
-const SEPOLIA_RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU";
+const RPC_URL = "https://zksync-os-testnet-alpha.zksync.dev/";
 const DEPLOYER_PRIVATE_KEY = "0xef506537558847aa991149381c4fedee8fe1252cf868986ac1692336530ec85c";
 
 const CONTRACTS = {
-  passkey: "0xAbcB5AB6eBb69F4F5F8cf1a493F56Ad3d28562bd",
+  passkey: "0xa5C2c5C723239C0cD11a5691954CdAC4369C874b",
 };
 
 // Account to initialize
@@ -31,15 +57,15 @@ async function initializeAccount() {
   console.log(`Account: ${ACCOUNT_ADDRESS}`);
 
   const publicClient = createPublicClient({
-    chain: sepolia,
-    transport: http(SEPOLIA_RPC_URL),
+    chain: zksyncOsTestnet,
+    transport: http(RPC_URL),
   });
 
   const deployerAccount = privateKeyToAccount(DEPLOYER_PRIVATE_KEY);
   const deployerClient = createWalletClient({
     account: deployerAccount,
-    chain: sepolia,
-    transport: http(SEPOLIA_RPC_URL),
+    chain: zksyncOsTestnet,
+    transport: http(RPC_URL),
   });
 
   console.log(`Deployer: ${deployerAccount.address}`);

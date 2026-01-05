@@ -1,15 +1,40 @@
 #!/usr/bin/env node
 import * as dotenv from "dotenv";
-import { createPublicClient, createWalletClient, encodeAbiParameters, encodeFunctionData, http, keccak256, parseAbiParameters } from "viem";
+import { createPublicClient, createWalletClient, defineChain, encodeAbiParameters, encodeFunctionData, http, keccak256, parseAbiParameters } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { sepolia } from "viem/chains";
 
 // Load .env file
 dotenv.config();
 
+const zksyncOsTestnet = defineChain({
+  id: 8022833,
+  name: "ZKsync OS Developer Preview",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev/"],
+      webSocket: ["wss://zksync-os-testnet-alpha.zksync.dev/ws"],
+    },
+    public: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev/"],
+      webSocket: ["wss://zksync-os-testnet-alpha.zksync.dev/ws"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "ZKsync OS Explorer",
+      url: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
+    },
+  },
+});
+
 // Configuration
-const SEPOLIA_RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU";
-const FACTORY_ADDRESS = "0xF33128d7Cd2ab37Af12B3a22D9dA79f928c2B450";
+const RPC_URL = "https://zksync-os-testnet-alpha.zksync.dev/";
+const FACTORY_ADDRESS = "0x757b5c9854d327A6B76840c996dfAac0F6b3Dc1f";
 
 // Get private key from environment
 const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
@@ -59,14 +84,14 @@ async function deployAccount() {
   // Create clients
   const account = privateKeyToAccount(PRIVATE_KEY);
   const publicClient = createPublicClient({
-    chain: sepolia,
-    transport: http(SEPOLIA_RPC_URL),
+    chain: zksyncOsTestnet,
+    transport: http(RPC_URL),
   });
 
   const walletClient = createWalletClient({
     account,
-    chain: sepolia,
-    transport: http(SEPOLIA_RPC_URL),
+    chain: zksyncOsTestnet,
+    transport: http(RPC_URL),
   });
 
   console.log("Deployer Address:", account.address);
@@ -86,7 +111,7 @@ async function deployAccount() {
   console.log("Status: Ready to deploy\n");
 
   // Encode init data for WebAuthn validator module
-  const WEBAUTHN_VALIDATOR = "0xAbcB5AB6eBb69F4F5F8cf1a493F56Ad3d28562bd";
+  const WEBAUTHN_VALIDATOR = "0xa5C2c5C723239C0cD11a5691954CdAC4369C874b";
   const origin = "http://localhost:3000"; // Change if using different origin
 
   // Init data for the WebAuthn validator
