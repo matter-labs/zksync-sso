@@ -141,6 +141,7 @@ function setupEventListeners() {
   document.getElementById("refreshBalanceBtn").addEventListener("click", handleRefreshBalance);
   document.getElementById("transferBtn").addEventListener("click", handleTransfer);
   document.getElementById("resetPasskeyBtn").addEventListener("click", handleResetPasskey);
+  document.getElementById("resetPasskeyMainBtn").addEventListener("click", handleResetPasskey);
   document.getElementById("aaveDepositBtn").addEventListener("click", handleAaveDeposit);
   document.getElementById("aaveWithdrawBtn").addEventListener("click", handleAaveWithdraw);
   document.getElementById("refreshAaveBalanceBtn").addEventListener("click", refreshAaveBalance);
@@ -1028,7 +1029,7 @@ async function handleAaveDeposit() {
     const { requestPasskeyAuthentication } = await import("zksync-sso/client/passkey");
 
     // Create Aave deposit bundle
-    const bundle = await createAaveDepositBundle(amountWei, shadowAccount);
+    const { bundle, withdrawCall } = await createAaveDepositBundle(amountWei, shadowAccount);
     console.log("Bundle created:", bundle);
 
     // Encode the call to L2InteropCenter.sendBundleToL1
@@ -1052,11 +1053,18 @@ async function handleAaveDeposit() {
         name: "Call",
         type: "tuple[]",
       }],
-      [[{
-        to: AAVE_CONTRACTS.l2InteropCenter,
-        value: 0n,
-        data: l2InteropCallData,
-      }]],
+      [[
+        {
+          to: withdrawCall.to,
+          value: withdrawCall.value,
+          data: withdrawCall.data,
+        },
+        {
+          to: AAVE_CONTRACTS.l2InteropCenter,
+          value: 0n,
+          data: l2InteropCallData,
+        },
+      ]],
     );
 
     // Encode execute(bytes32,bytes) call
