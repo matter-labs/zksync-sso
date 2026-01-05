@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Passkey Wallet - Ethereum Sepolia</title>
+  <title>PayPal Wallet - Powered by ZKsync</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
     * {
       box-sizing: border-box;
@@ -12,326 +13,590 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background: #f5f7fa;
       min-height: 100vh;
-      padding: 20px;
     }
 
+    /* PayPal Header */
+    .paypal-header {
+      background: #ffffff;
+      border-bottom: 1px solid #cbd2d9;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .paypal-logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #0070ba;
+      letter-spacing: -0.5px;
+    }
+
+    .header-balance {
+      font-size: 14px;
+      color: #2c2e2f;
+    }
+
+    .header-balance strong {
+      color: #0070ba;
+      font-size: 18px;
+    }
+
+    /* Main Container */
     .container {
-      max-width: 600px;
+      max-width: 800px;
       margin: 0 auto;
+      padding: 24px;
     }
 
-    h1 {
-      color: white;
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+
+    .nav-tab {
+      flex: 1;
+      padding: 16px;
       text-align: center;
-      margin-bottom: 30px;
-      font-size: 2.5rem;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      background: white;
+      border: none;
+      border-right: 1px solid #cbd2d9;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #6c7378;
+      transition: all 0.2s;
     }
 
+    .nav-tab:last-child {
+      border-right: none;
+    }
+
+    .nav-tab:hover {
+      background: #f5f7fa;
+    }
+
+    .nav-tab.active {
+      color: #0070ba;
+      background: #f5f7fa;
+      border-bottom: 3px solid #0070ba;
+    }
+
+    /* Content Sections */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Card Styling */
     .card {
       background: white;
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 24px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-
-    .step-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .step-number {
-      background: #667eea;
-      color: white;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      margin-right: 12px;
-    }
-
-    .step-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .form-group {
       margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 500;
+      color: #2c2e2f;
+      margin-bottom: 16px;
+    }
+
+    .card-subtitle {
+      font-size: 14px;
+      color: #6c7378;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 20px;
     }
 
     label {
       display: block;
       margin-bottom: 8px;
+      font-size: 14px;
       font-weight: 500;
-      color: #555;
+      color: #2c2e2f;
     }
 
     input {
       width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: border-color 0.3s;
+      padding: 14px 16px;
+      border: 1px solid #cbd2d9;
+      border-radius: 4px;
+      font-size: 15px;
+      color: #2c2e2f;
+      transition: border-color 0.2s;
     }
 
     input:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #0070ba;
+      box-shadow: 0 0 0 2px rgba(0, 112, 186, 0.1);
     }
 
+    /* PayPal Button Styles */
     button {
       width: 100%;
-      padding: 14px;
-      background: #667eea;
+      padding: 14px 24px;
+      background: #0070ba;
       color: white;
       border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 500;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: background 0.2s;
     }
 
     button:hover:not(:disabled) {
-      background: #5568d3;
+      background: #005ea6;
     }
 
     button:disabled {
-      background: #ccc;
+      background: #cbd2d9;
       cursor: not-allowed;
     }
 
-    .success-box {
-      background: #d4edda;
-      border: 2px solid #c3e6cb;
-      color: #155724;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 16px;
+    button.secondary {
+      background: white;
+      color: #0070ba;
+      border: 1px solid #cbd2d9;
     }
 
-    .success-box strong {
+    button.secondary:hover:not(:disabled) {
+      background: #f5f7fa;
+      border-color: #0070ba;
+    }
+
+    button.small {
+      width: auto;
+      padding: 10px 20px;
+      font-size: 13px;
+      display: inline-block;
+      margin-top: 12px;
+    }
+
+    /* Alert Boxes */
+    .alert {
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .alert-success {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      color: #2e7d32;
+    }
+
+    .alert-error {
+      background: #ffebee;
+      border-left: 4px solid #f44336;
+      color: #c62828;
+    }
+
+    .alert-info {
+      background: #e3f2fd;
+      border-left: 4px solid #0070ba;
+      color: #1565c0;
+    }
+
+    .alert strong {
       display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    /* Info Display */
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f7fa;
+      font-size: 14px;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      color: #6c7378;
+    }
+
+    .info-value {
+      color: #2c2e2f;
+      font-weight: 500;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .balance-display {
+      text-align: center;
+      padding: 32px;
+      background: linear-gradient(135deg, #0070ba 0%, #005ea6 100%);
+      color: white;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .balance-label {
+      font-size: 14px;
+      opacity: 0.9;
       margin-bottom: 8px;
     }
 
-    .error-box {
-      background: #f8d7da;
-      border: 2px solid #f5c6cb;
-      color: #721c24;
-      padding: 16px;
-      border-radius: 8px;
-      margin-top: 16px;
-    }
-
-    .info-box {
-      background: #d1ecf1;
-      border: 2px solid #bee5eb;
-      color: #0c5460;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 16px;
+    .balance-amount {
+      font-size: 36px;
+      font-weight: 300;
+      letter-spacing: -1px;
     }
 
     code {
-      background: #f4f4f4;
-      padding: 4px 8px;
-      border-radius: 4px;
+      background: #f5f7fa;
+      padding: 3px 6px;
+      border-radius: 3px;
       font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
+      font-size: 12px;
       word-break: break-all;
-      display: inline-block;
-      margin-top: 4px;
-    }
-
-    .balance {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #667eea;
-    }
-
-    .footer {
-      background: rgba(255,255,255,0.1);
-      color: white;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      text-align: center;
-    }
-
-    .loading {
-      opacity: 0.7;
-      pointer-events: none;
     }
 
     .hidden {
       display: none;
     }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: #6c7378;
+      border-top: 1px solid #cbd2d9;
+      margin-top: 32px;
+    }
+
+    /* Setup Flow */
+    .setup-step {
+      padding: 24px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .setup-step.completed {
+      background: #f5f7fa;
+      border-left: 4px solid #4caf50;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #0070ba;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .step-icon.completed {
+      background: #4caf50;
+    }
+
+    .step-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #2c2e2f;
+    }
   </style>
 </head>
 <body>
+  <!-- PayPal Header -->
+  <div class="paypal-header">
+    <div class="paypal-logo">PayPal</div>
+    <div class="header-balance">
+      Balance: <strong><span id="headerBalance">--</span> ETH</strong>
+    </div>
+  </div>
+
   <div class="container">
-    <h1>🔐 Passkey Wallet</h1>
-
-    <!-- Step 1: Create Passkey -->
-    <div class="card">
-      <div class="step-header">
-        <div class="step-number">1</div>
-        <div class="step-title">Create Passkey</div>
-      </div>
-
-      <div id="passkey-input">
-        <div class="form-group">
-          <label for="userName">Your Name</label>
-          <input type="text" id="userName" placeholder="Enter your name">
-        </div>
-        <button id="createPasskeyBtn">Create Passkey</button>
-      </div>
-
-      <div id="passkey-success" class="hidden success-box">
-        <strong>✓ Passkey Created!</strong>
-        <div>Credential ID: <code id="credentialIdDisplay"></code></div>
-        <button id="resetPasskeyBtn" style="margin-top: 12px; background: #dc3545; font-size: 0.9rem;">Reset Passkey</button>
-      </div>
-
-      <div id="passkey-error" class="hidden error-box"></div>
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="home">Home</button>
+      <button class="nav-tab" data-tab="send">Send</button>
+      <button class="nav-tab" data-tab="earn">Earn</button>
+      <button class="nav-tab" data-tab="activity">Activity</button>
     </div>
 
-    <!-- Step 2: Deploy Account -->
-    <div class="card">
-      <div class="step-header">
-        <div class="step-number">2</div>
-        <div class="step-title">Deploy Smart Account</div>
+    <!-- Home Tab -->
+    <div class="tab-content active" id="home-tab">
+      <!-- Setup Steps (shown if not fully set up) -->
+      <div id="setup-section">
+        <div class="card">
+          <div class="card-title">Get Started</div>
+          <div class="card-subtitle">Set up your secure PayPal wallet to start sending and receiving money</div>
+        </div>
+
+        <!-- Step 1: Create Passkey -->
+        <div class="setup-step" id="passkey-step">
+          <div class="step-header">
+            <div class="step-icon" id="passkey-icon">1</div>
+            <div class="step-title">Create Security Key</div>
+          </div>
+
+          <div id="passkey-input">
+            <div class="form-group">
+              <label for="userName">Your Name</label>
+              <input type="text" id="userName" placeholder="Enter your name">
+            </div>
+            <button id="createPasskeyBtn">Create Secure Wallet</button>
+          </div>
+
+          <div id="passkey-success" class="hidden alert alert-success">
+            <strong>✓ Security Key Created</strong>
+            <div class="info-row">
+              <span class="info-label">Credential ID:</span>
+              <span class="info-value"><code id="credentialIdDisplay"></code></span>
+            </div>
+            <button id="resetPasskeyBtn" class="secondary small">Reset</button>
+          </div>
+
+          <div id="passkey-error" class="hidden alert alert-error"></div>
+        </div>
+
+        <!-- Step 2: Deploy Account -->
+        <div class="setup-step" id="deploy-step">
+          <div class="step-header">
+            <div class="step-icon" id="deploy-icon">2</div>
+            <div class="step-title">Activate Your Wallet</div>
+          </div>
+
+          <div id="deploy-button-container">
+            <p class="card-subtitle">
+              Deploy your smart wallet on the blockchain to start managing your funds.
+            </p>
+            <button id="deployAccountBtn" disabled>Activate Wallet</button>
+          </div>
+
+          <div id="deploy-success" class="hidden alert alert-success">
+            <strong>✓ Wallet Activated!</strong>
+            <div class="info-row">
+              <span class="info-label">Address:</span>
+              <span class="info-value"><code id="accountAddressDisplay"></code></span>
+            </div>
+            <button id="refreshBalanceBtn" class="secondary small">Refresh Balance</button>
+          </div>
+
+          <div id="deploy-error" class="hidden alert alert-error"></div>
+        </div>
       </div>
 
-      <div id="deploy-button-container">
-        <p style="margin-bottom: 16px; color: #666;">
-          Deploy a smart account contract that can be controlled with your passkey.
-        </p>
-        <button id="deployAccountBtn" disabled>Deploy Account</button>
-      </div>
+      <!-- Main Wallet View (shown after setup) -->
+      <div id="wallet-view" class="hidden">
+        <div class="balance-display">
+          <div class="balance-label">Your Balance</div>
+          <div class="balance-amount"><span id="balanceDisplay">0.00 ETH</span></div>
+        </div>
 
-      <div id="deploy-success" class="hidden success-box">
-        <strong>✓ Account Deployed!</strong>
-        <div>Address: <code id="accountAddressDisplay"></code></div>
-        <div style="margin-top: 8px;">Balance: <span class="balance" id="balanceDisplay">0 ETH</span></div>
-        <button id="refreshBalanceBtn" style="margin-top: 12px; background: #28a745;">Refresh Balance</button>
-      </div>
+        <div class="card">
+          <div class="card-title">Your Wallet</div>
+          <div class="info-row">
+            <span class="info-label">Address:</span>
+            <span class="info-value"><code id="walletAddressDisplay"></code></span>
+          </div>
+        </div>
 
-      <div id="deploy-error" class="hidden error-box"></div>
+        <div class="card">
+          <div class="card-title">Quick Actions</div>
+          <button id="quickSendBtn">Send Money</button>
+          <button id="quickEarnBtn" class="secondary" style="margin-top: 12px;">Earn Interest</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Step 3: Transfer ETH -->
-    <div class="card">
-      <div class="step-header">
-        <div class="step-number">3</div>
-        <div class="step-title">Transfer ETH</div>
-      </div>
+    <!-- Send Tab -->
+    <div class="tab-content" id="send-tab">
+      <div class="card">
+        <div class="card-title">Send Money</div>
 
-      <div id="transfer-form">
-        <div class="form-group">
-          <label for="recipientAddress">Recipient Address</label>
-          <input type="text" id="recipientAddress" placeholder="0x...">
+        <div id="transfer-form">
+          <div class="form-group">
+            <label for="recipientAddress">Recipient Address</label>
+            <input type="text" id="recipientAddress" placeholder="0x...">
+          </div>
+
+          <div class="form-group">
+            <label for="transferAmount">Amount (ETH)</label>
+            <input type="number" id="transferAmount" step="0.001" placeholder="0.01">
+          </div>
+
+          <button id="transferBtn" disabled>Send ETH</button>
         </div>
 
-        <div class="form-group">
-          <label for="transferAmount">Amount (ETH)</label>
-          <input type="number" id="transferAmount" step="0.001" placeholder="0.01">
+        <div id="transfer-success" class="hidden alert alert-success">
+          <strong>✓ Transaction Sent!</strong>
+          <div class="info-row">
+            <span class="info-label">Transaction:</span>
+            <span class="info-value"><code id="txHashDisplay"></code></span>
+          </div>
         </div>
 
-        <button id="transferBtn" disabled>Send ETH</button>
+        <div id="transfer-error" class="hidden alert alert-error"></div>
       </div>
-
-      <div id="transfer-success" class="hidden success-box">
-        <strong>✓ Transaction Sent!</strong>
-        <div>TX Hash: <code id="txHashDisplay"></code></div>
-      </div>
-
-      <div id="transfer-error" class="hidden error-box"></div>
     </div>
 
-    <!-- Step 4: Aave Deposit/Withdraw -->
-    <div class="card">
-      <div class="step-header">
-        <div class="step-number">4</div>
-        <div class="step-title">Aave Lending (L1)</div>
-      </div>
-
-      <div class="info-box">
-        <strong>📊 How it works:</strong>
-        <p style="margin-top: 8px; font-size: 0.9rem;">
-          Your L2 account has a shadow account on L1 Sepolia. You can deposit ETH into Aave on L1
-          and earn interest. The deposit/withdraw happens via L2-to-L1 messaging.
-        </p>
-      </div>
-
-      <div id="aave-balance-section" class="info-box hidden">
-        <strong>Shadow Account:</strong> <code id="shadowAccountDisplay"></code>
-        <div style="margin-top: 8px;">
-          <strong>Aave Balance:</strong> <span class="balance" id="aaveBalanceDisplay">0 aETH</span>
+    <!-- Earn Tab -->
+    <div class="tab-content" id="earn-tab">
+      <div class="card">
+        <div class="card-title">Earn Interest with Aave</div>
+        <div class="card-subtitle">
+          Deposit your ETH to earn interest through Aave lending protocol on Ethereum Layer 1.
         </div>
-        <button id="refreshAaveBalanceBtn" style="margin-top: 12px; background: #28a745; width: auto; padding: 8px 16px;">
-          Refresh Aave Balance
-        </button>
       </div>
 
-      <div id="aave-deposit-form">
-        <div class="form-group">
-          <label for="aaveDepositAmount">Deposit Amount (ETH)</label>
-          <input type="number" id="aaveDepositAmount" step="0.01" placeholder="0.1">
+      <div id="aave-balance-section" class="card hidden">
+        <div class="info-row">
+          <span class="info-label">Shadow Account:</span>
+          <span class="info-value"><code id="shadowAccountDisplay"></code></span>
         </div>
-        <button id="aaveDepositBtn" disabled>Deposit to Aave (L1)</button>
-      </div>
-
-      <div id="aave-deposit-success" class="hidden success-box">
-        <strong>✓ Deposit Initiated!</strong>
-        <div>TX Hash: <code id="aaveDepositTxHash"></code></div>
-        <p style="margin-top: 8px; font-size: 0.9rem;">
-          ⏳ L2-to-L1 message sent. Finalization takes ~15 minutes.
-          Check your Aave balance after finalization.
-        </p>
-      </div>
-
-      <div id="aave-deposit-error" class="hidden error-box"></div>
-
-      <div id="aave-withdraw-form" style="margin-top: 16px;">
-        <div class="form-group">
-          <label for="aaveWithdrawAmount">Withdraw Amount (aETH)</label>
-          <input type="number" id="aaveWithdrawAmount" step="0.01" placeholder="0.1">
+        <div class="info-row">
+          <span class="info-label">Aave Deposits:</span>
+          <span class="info-value"><span id="aaveBalanceDisplay">0</span> aETH</span>
         </div>
-        <button id="aaveWithdrawBtn" disabled>Withdraw from Aave (L1)</button>
+        <button id="refreshAaveBalanceBtn" class="secondary small">Refresh</button>
       </div>
 
-      <div id="aave-withdraw-success" class="hidden success-box">
-        <strong>✓ Withdrawal Initiated!</strong>
-        <div>TX Hash: <code id="aaveWithdrawTxHash"></code></div>
-        <p style="margin-top: 8px; font-size: 0.9rem;">
-          ⏳ L2-to-L1 message sent. Finalization takes ~15 minutes.
-          Check your shadow account balance after finalization.
-        </p>
+      <div class="card">
+        <div class="card-title">Deposit</div>
+        <div id="aave-deposit-form">
+          <div class="form-group">
+            <label for="aaveDepositAmount">Amount (ETH)</label>
+            <input type="number" id="aaveDepositAmount" step="0.01" placeholder="0.1">
+          </div>
+          <button id="aaveDepositBtn" disabled>Deposit to Aave</button>
+        </div>
+
+        <div id="aave-deposit-success" class="hidden alert alert-success">
+          <strong>✓ Deposit Initiated!</strong>
+          <div class="info-row">
+            <span class="info-label">Transaction:</span>
+            <span class="info-value"><code id="aaveDepositTxHash"></code></span>
+          </div>
+          <div class="alert-info" style="margin-top: 12px; padding: 12px;">
+            ⏳ Your deposit will be finalized in ~15 minutes
+          </div>
+        </div>
+
+        <div id="aave-deposit-error" class="hidden alert alert-error"></div>
       </div>
 
-      <div id="aave-withdraw-error" class="hidden error-box"></div>
+      <div class="card">
+        <div class="card-title">Withdraw</div>
+        <div id="aave-withdraw-form">
+          <div class="form-group">
+            <label for="aaveWithdrawAmount">Amount (aETH)</label>
+            <input type="number" id="aaveWithdrawAmount" step="0.01" placeholder="0.1">
+          </div>
+          <button id="aaveWithdrawBtn" disabled>Withdraw from Aave</button>
+        </div>
+
+        <div id="aave-withdraw-success" class="hidden alert alert-success">
+          <strong>✓ Withdrawal Initiated!</strong>
+          <div class="info-row">
+            <span class="info-label">Transaction:</span>
+            <span class="info-value"><code id="aaveWithdrawTxHash"></code></span>
+          </div>
+          <div class="alert-info" style="margin-top: 12px; padding: 12px;">
+            ⏳ Your withdrawal will be finalized in ~15 minutes
+          </div>
+        </div>
+
+        <div id="aave-withdraw-error" class="hidden alert alert-error"></div>
+      </div>
     </div>
 
-    <!-- Network Info -->
+    <!-- Activity Tab -->
+    <div class="tab-content" id="activity-tab">
+      <div class="card">
+        <div class="card-title">Recent Activity</div>
+        <div class="card-subtitle">Your transaction history will appear here</div>
+        <div style="text-align: center; padding: 40px; color: #6c7378;">
+          <p>No recent transactions</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
     <div class="footer">
-      <strong>L2:</strong> ZKSync OS Testnet<br>
-      <strong>L1:</strong> Ethereum Sepolia<br>
-      <strong>Aave Pool:</strong> 0x6Ae4...8951
+      <strong>Network:</strong> ZKSync OS Testnet (Layer 2) • Ethereum Sepolia (Layer 1)<br>
+      Powered by ZKSync • Secured by Passkey Authentication
     </div>
   </div>
 
   <script type="module" src="/main.js"></script>
+  <script>
+    // Tab Navigation
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+
+        // Update active tab
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update active content
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+      });
+    });
+
+    // Quick action buttons
+    document.getElementById('quickSendBtn')?.addEventListener('click', () => {
+      document.querySelector('[data-tab="send"]').click();
+    });
+
+    document.getElementById('quickEarnBtn')?.addEventListener('click', () => {
+      document.querySelector('[data-tab="earn"]').click();
+    });
+
+    // Update header balance when main balance changes
+    const observer = new MutationObserver(() => {
+      const mainBalance = document.getElementById('balanceDisplay').textContent;
+      document.getElementById('headerBalance').textContent = mainBalance;
+    });
+
+    const balanceElement = document.getElementById('balanceDisplay');
+    if (balanceElement) {
+      observer.observe(balanceElement, { childList: true, characterData: true, subtree: true });
+    }
+  </script>
 </body>
 </html>

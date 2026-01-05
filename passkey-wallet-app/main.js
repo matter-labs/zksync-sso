@@ -19,14 +19,15 @@ import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt, writeContract } from "viem/actions";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "zksync-sso/utils";
+
 import {
   AAVE_CONTRACTS,
-  getShadowAccount,
   createAaveDepositBundle,
   createAaveWithdrawBundle,
   getAaveBalance,
+  getShadowAccount,
 } from "./aave-utils.js";
-
+0x79417992f3658F324770622FdBD2F09e091e2587
 // ZKsync OS configuration
 const zksyncOsTestnet = defineChain({
   id: 8022833,
@@ -80,10 +81,16 @@ let passkeyCredentials = null;
 let publicClient = null;
 let sepoliaClient = null;
 let shadowAccount = null;
+let balanceRefreshInterval = null;
+let aaveBalanceRefreshInterval = null;
 
 // LocalStorage keys
 const STORAGE_KEY_PASSKEY = "zksync_sso_passkey";
 const STORAGE_KEY_ACCOUNT = "zksync_sso_account";
+
+// Auto-refresh interval (in milliseconds)
+const BALANCE_REFRESH_INTERVAL = 5000; // 5 seconds
+const AAVE_BALANCE_REFRESH_INTERVAL = 10000; // 10 seconds (slower to reduce RPC calls)
 
 // Sepolia configuration for L1 operations
 const sepolia = defineChain({
@@ -144,6 +151,12 @@ function loadExistingPasskey() {
   const savedPasskey = localStorage.getItem(STORAGE_KEY_PASSKEY);
   const savedAccount = localStorage.getItem(STORAGE_KEY_ACCOUNT);
 
+  console.log("🔍 Checking for saved passkey...");
+  console.log("STORAGE_KEY_PASSKEY:", STORAGE_KEY_PASSKEY);
+  console.log("STORAGE_KEY_ACCOUNT:", STORAGE_KEY_ACCOUNT);
+  console.log("savedPasskey:", savedPasskey ? "Found" : "Not found");
+  console.log("savedAccount:", savedAccount ? "Found" : "Not found");
+
   if (savedPasskey) {
     passkeyCredentials = JSON.parse(savedPasskey);
 
@@ -151,6 +164,15 @@ function loadExistingPasskey() {
     document.getElementById("passkey-input").classList.add("hidden");
     document.getElementById("passkey-success").classList.remove("hidden");
     document.getElementById("credentialIdDisplay").textContent = passkeyCredentials.credentialId;
+
+    // Update PayPal UI step 1
+    const passkeyStep = document.getElementById("passkey-step");
+    const passkeyIcon = document.getElementById("passkey-icon");
+    if (passkeyStep) passkeyStep.classList.add("completed");
+    if (passkeyIcon) {
+      passkeyIcon.classList.add("completed");
+      passkeyIcon.textContent = "✓";
+    }
 
     // Enable deployment button
     document.getElementById("deployAccountBtn").disabled = false;
@@ -166,10 +188,35 @@ function loadExistingPasskey() {
       document.getElementById("deploy-success").classList.remove("hidden");
       document.getElementById("accountAddressDisplay").textContent = accountAddress;
 
+      // Update PayPal UI step 2
+      const deployStep = document.getElementById("deploy-step");
+      const deployIcon = document.getElementById("deploy-icon");
+      if (deployStep) deployStep.classList.add("completed");
+      if (deployIcon) {
+        deployIcon.classList.add("completed");
+        deployIcon.textContent = "✓";
+      }
+
+      // Show wallet view instead of setup section
+      const setupSection = document.getElementById("setup-section");
+      const walletView = document.getElementById("wallet-view");
+      if (setupSection) setupSection.classList.add("hidden");
+      if (walletView) walletView.classList.remove("hidden");
+
+      // Update wallet address display
+      const walletAddressDisplay = document.getElementById("walletAddressDisplay");
+      if (walletAddressDisplay) walletAddressDisplay.textContent = accountAddress;
+
       // Enable transfer
       document.getElementById("transferBtn").disabled = false;
 
-      handleRefreshBalance();
+      // Enable Aave buttons
+      const aaveDepositBtn = document.getElementById("aaveDepositBtn");
+      const aaveWithdrawBtn = document.getElementById("aaveWithdrawBtn");
+      if (aaveDepositBtn) aaveDepositBtn.disabled = false;
+      if (aaveWithdrawBtn) aaveWithdrawBtn.disabled = false;
+
+      startBalanceAutoRefresh();
       initializeAaveSection();
 
       console.log("✅ Loaded existing account from storage");
@@ -234,6 +281,15 @@ async function handleCreatePasskey() {
     document.getElementById("passkey-input").classList.add("hidden");
     document.getElementById("passkey-success").classList.remove("hidden");
     document.getElementById("credentialIdDisplay").textContent = result.credentialId;
+
+    // Update PayPal UI step 1
+    const passkeyStep = document.getElementById("passkey-step");
+    const passkeyIcon = document.getElementById("passkey-icon");
+    if (passkeyStep) passkeyStep.classList.add("completed");
+    if (passkeyIcon) {
+      passkeyIcon.classList.add("completed");
+      passkeyIcon.textContent = "✓";
+    }
 
     // Enable deploy button
     document.getElementById("deployAccountBtn").disabled = false;
@@ -407,10 +463,35 @@ async function handleDeployAccount() {
     document.getElementById("deploy-success").classList.remove("hidden");
     document.getElementById("accountAddressDisplay").textContent = accountAddress;
 
+    // Update PayPal UI step 2
+    const deployStep = document.getElementById("deploy-step");
+    const deployIcon = document.getElementById("deploy-icon");
+    if (deployStep) deployStep.classList.add("completed");
+    if (deployIcon) {
+      deployIcon.classList.add("completed");
+      deployIcon.textContent = "✓";
+    }
+
+    // Show wallet view instead of setup section
+    const setupSection = document.getElementById("setup-section");
+    const walletView = document.getElementById("wallet-view");
+    if (setupSection) setupSection.classList.add("hidden");
+    if (walletView) walletView.classList.remove("hidden");
+
+    // Update wallet address display
+    const walletAddressDisplay = document.getElementById("walletAddressDisplay");
+    if (walletAddressDisplay) walletAddressDisplay.textContent = accountAddress;
+
     // Enable transfer
     document.getElementById("transferBtn").disabled = false;
 
-    handleRefreshBalance();
+    // Enable Aave buttons
+    const aaveDepositBtn = document.getElementById("aaveDepositBtn");
+    const aaveWithdrawBtn = document.getElementById("aaveWithdrawBtn");
+    if (aaveDepositBtn) aaveDepositBtn.disabled = false;
+    if (aaveWithdrawBtn) aaveWithdrawBtn.disabled = false;
+
+    startBalanceAutoRefresh();
     initializeAaveSection();
   } catch (error) {
     console.error("Deployment failed:", error);
@@ -422,7 +503,48 @@ async function handleDeployAccount() {
   }
 }
 
-// Step 3: Refresh Balance
+// Auto-refresh balance in the background
+async function autoRefreshBalance() {
+  if (!accountAddress) return;
+
+  try {
+    const balance = await publicClient.getBalance({
+      address: accountAddress,
+      blockTag: 'latest', // Force fetching the latest block
+    });
+
+    const balanceInEth = formatEther(balance);
+    document.getElementById("balanceDisplay").textContent = `${balanceInEth} ETH`;
+  } catch (error) {
+    console.error("Auto-refresh balance failed:", error);
+  }
+}
+
+// Start auto-refresh
+function startBalanceAutoRefresh() {
+  // Clear any existing interval
+  if (balanceRefreshInterval) {
+    clearInterval(balanceRefreshInterval);
+  }
+
+  // Refresh immediately
+  autoRefreshBalance();
+
+  // Then refresh every 5 seconds
+  balanceRefreshInterval = setInterval(autoRefreshBalance, BALANCE_REFRESH_INTERVAL);
+  console.log("✅ Balance auto-refresh started");
+}
+
+// Stop auto-refresh
+function stopBalanceAutoRefresh() {
+  if (balanceRefreshInterval) {
+    clearInterval(balanceRefreshInterval);
+    balanceRefreshInterval = null;
+    console.log("⏹️  Balance auto-refresh stopped");
+  }
+}
+
+// Step 3: Refresh Balance (manual)
 async function handleRefreshBalance() {
   if (!accountAddress) return;
 
@@ -431,13 +553,7 @@ async function handleRefreshBalance() {
   btn.textContent = "Refreshing...";
 
   try {
-    const balance = await publicClient.getBalance({
-      address: accountAddress,
-    });
-
-    const balanceInEth = formatEther(balance);
-    document.getElementById("balanceDisplay").textContent = `${balanceInEth} ETH`;
-    console.log(`💰 Balance: ${balanceInEth} ETH`);
+    await autoRefreshBalance();
   } catch (error) {
     console.error("Balance fetch failed:", error);
   } finally {
@@ -811,9 +927,47 @@ async function initializeAaveSection() {
     // Refresh Aave balance
     await refreshAaveBalance();
 
+    // Start auto-refresh for Aave balance
+    startAaveBalanceAutoRefresh();
+
     console.log("✅ Aave section initialized");
   } catch (error) {
     console.error("Failed to initialize Aave section:", error);
+  }
+}
+
+// Silent auto-refresh for Aave balance (no UI feedback)
+async function autoRefreshAaveBalance() {
+  if (!shadowAccount) return;
+
+  try {
+    const balance = await getAaveBalance(sepoliaClient, shadowAccount);
+    document.getElementById("aaveBalanceDisplay").textContent = formatEther(balance);
+  } catch (error) {
+    console.error("Auto-refresh Aave balance failed:", error);
+  }
+}
+
+// Start Aave balance auto-refresh
+function startAaveBalanceAutoRefresh() {
+  if (aaveBalanceRefreshInterval) {
+    clearInterval(aaveBalanceRefreshInterval);
+  }
+
+  // Initial refresh
+  autoRefreshAaveBalance();
+
+  // Set up interval
+  aaveBalanceRefreshInterval = setInterval(autoRefreshAaveBalance, AAVE_BALANCE_REFRESH_INTERVAL);
+  console.log("✅ Aave balance auto-refresh started");
+}
+
+// Stop Aave balance auto-refresh
+function stopAaveBalanceAutoRefresh() {
+  if (aaveBalanceRefreshInterval) {
+    clearInterval(aaveBalanceRefreshInterval);
+    aaveBalanceRefreshInterval = null;
+    console.log("⏹️  Aave balance auto-refresh stopped");
   }
 }
 
@@ -834,7 +988,7 @@ async function refreshAaveBalance() {
     console.log(`Aave balance: ${formatEther(balance)} aETH`);
 
     // Update UI
-    document.getElementById("aaveBalanceDisplay").textContent = formatEther(balance) + " aETH";
+    document.getElementById("aaveBalanceDisplay").textContent = formatEther(balance);
   } catch (error) {
     console.error("Failed to refresh Aave balance:", error);
     document.getElementById("aaveBalanceDisplay").textContent = "Error loading balance";
