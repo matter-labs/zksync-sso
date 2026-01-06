@@ -1,5 +1,5 @@
 import type { Account, Address, Chain, Hex, Transport, WalletClient } from "viem";
-import { encodeAbiParameters, encodeFunctionData, keccak256, parseAbiParameters, toHex } from "viem";
+import { encodeAbiParameters, keccak256, parseAbiParameters, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
 
@@ -185,66 +185,20 @@ export const useRecoveryGuardian = () => {
         stateMutability: "view",
       }],
       functionName: "isModuleInstalled",
-      args: [1n, contracts.guardianExecutor, "0x"], // 1 = MODULE_TYPE_EXECUTOR
+      args: [2n, contracts.guardianExecutor, "0x"], // 2 = MODULE_TYPE_EXECUTOR
     });
 
-    // Install module if not already installed
+    // Module should be installed during account deployment
     if (!isModuleInstalled) {
-      // NOTE: installModule must be called DIRECTLY on the account (not wrapped in execute)
-      // We use sendTransaction with the encoded installModule call as the data
-      const installModuleData = encodeFunctionData({
-        abi: [{
-          type: "function",
-          name: "installModule",
-          inputs: [
-            { name: "moduleTypeId", type: "uint256" },
-            { name: "module", type: "address" },
-            { name: "initData", type: "bytes" },
-          ],
-          outputs: [],
-          stateMutability: "nonpayable",
-        }],
-        functionName: "installModule",
-        args: [1n, contracts.guardianExecutor, "0x"], // 1 = MODULE_TYPE_EXECUTOR, empty initData
-      });
-
-      const installTx = await client.sendTransaction({
-        to: accountAddress,
-        data: installModuleData,
-      });
-
-      const installReceipt = await client.waitForTransactionReceipt({ hash: installTx });
-
-      if (installReceipt.status === "reverted") {
-        throw new Error(`Failed to install GuardianExecutor module for account ${accountAddress}`);
-      }
-
-      // Verify module installation succeeded
-      const isInitialized = await publicClient.readContract({
-        address: contracts.guardianExecutor,
-        abi: GuardianExecutorAbi,
-        functionName: "isInitialized",
-        args: [accountAddress],
-      });
-
-      // eslint-disable-next-line no-console
-      console.log("📋 Module installation verification:", {
-        guardianExecutor: contracts.guardianExecutor,
-        account: accountAddress,
-        isInitialized,
-        installationTxHash: installTx,
-      });
-
-      if (!isInitialized) {
-        throw new Error(
-          `Module installation failed: GuardianExecutor.isInitialized(${accountAddress}) returned false. `
-          + `Installation transaction: ${installTx}`,
-        );
-      }
-
-      // eslint-disable-next-line no-console
-      console.log("✅ Module installation confirmed");
+      throw new Error(
+        `GuardianExecutor module is not installed for account ${accountAddress}. `
+        + "The module should be installed during account deployment. "
+        + `GuardianExecutor address: ${contracts.guardianExecutor}`,
+      );
     }
+
+    // eslint-disable-next-line no-console
+    console.log("✅ GuardianExecutor module is installed");
 
     // eslint-disable-next-line no-console
     console.log("🔍 Proposing guardian:", {
@@ -294,7 +248,7 @@ export const useRecoveryGuardian = () => {
     }
 
     // Verify the guardian was actually proposed by checking for the GuardianProposed event
-    const guardianProposedEventTopic = "0x6d05492139c5ea989514a5d2150c028041e5c087e2a39967f67dc7d2655adb81"; // keccak256("GuardianProposed(address,address)")
+    const guardianProposedEventTopic = "0xf1284770232ce131bb37044a576145e0b24fd6b24f5710624b11255d5ac61a81"; // keccak256("GuardianProposed(address,address)")
     const proposalEvent = receipt.logs.find((log) =>
       log.topics[0] === guardianProposedEventTopic
       && log.topics[1]?.toLowerCase() === `0x000000000000000000000000${accountAddress.slice(2).toLowerCase()}`

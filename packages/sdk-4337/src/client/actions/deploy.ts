@@ -38,6 +38,9 @@ export type PrepareDeploySmartAccountParams = {
   /** Optional: Install session validator module during deployment */
   installSessionValidator?: boolean;
 
+  /** Optional array of executor module addresses to install during deployment */
+  executorModules?: Address[];
+
   /** Optional user ID for deterministic account deployment. If provided, generates deterministic accountId from userId */
   userId?: string;
 
@@ -103,6 +106,7 @@ export function prepareDeploySmartAccount(
     userId,
     accountId: customAccountId,
     installSessionValidator,
+    executorModules,
   } = params;
 
   // Validation: Check that required validators are provided
@@ -162,6 +166,17 @@ export function prepareDeploySmartAccount(
     );
   }
 
+  // Debug logging
+  console.log("🔍 encode_deploy_account_call_data params:", {
+    accountId,
+    eoaSigners: eoaSigners || [],
+    eoaValidator: contracts.eoaValidator || null,
+    hasPasskey: !!passkeyPayload,
+    webauthnValidator: contracts.webauthnValidator || null,
+    sessionValidator: (installSessionValidator && contracts.sessionValidator) || null,
+    executorModules: executorModules || [],
+  });
+
   const encodedCallData = encode_deploy_account_call_data(
     accountId,
     eoaSigners || [],
@@ -170,7 +185,10 @@ export function prepareDeploySmartAccount(
     passkeyPayload as any,
     contracts.webauthnValidator || null,
     (installSessionValidator && contracts.sessionValidator) || null,
+    executorModules || [],
   ) as Hex;
+
+  console.log("✅ Encoded call data length:", encodedCallData.length);
 
   return {
     transaction: {
