@@ -14,7 +14,7 @@ const __dirname = dirname(__filename);
 
 // Load ABIs
 const L1_INTEROP_HANDLER_ABI = JSON.parse(
-  readFileSync(join(__dirname, "../aave-interop-demo/utils/abis/L1InteropHandler.json"), "utf-8"),
+  readFileSync(join(__dirname, "abis/L1InteropHandler.json"), "utf-8"),
 ).abi;
 
 // Configuration
