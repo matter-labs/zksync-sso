@@ -395,7 +395,7 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
   await guardianPage.waitForTimeout(5000);
 
   // Check for success message
-  const successIndicator = guardianPage.getByText(/Guardian.*confirmed|Success|Confirmed/i);
+  const successIndicator = guardianPage.getByText(/Guardian.*confirmed|Success|Confirmed/i).first();
   if (await successIndicator.isVisible({ timeout: 5000 })) {
     console.log("✅ Guardian confirmation success message visible");
   } else {
@@ -678,7 +678,7 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
 
   // Verify success
   await guardianPage.waitForTimeout(5000);
-  const successIndicator = guardianPage.getByText(/Guardian.*confirmed|Success|Confirmed/i);
+  const successIndicator = guardianPage.getByText(/Guardian.*confirmed|Success|Confirmed/i).first();
   if (await successIndicator.isVisible({ timeout: 5000 })) {
     console.log("✅ Guardian confirmation success message visible");
   } else {
@@ -844,20 +844,141 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
     await guardianPage.waitForTimeout(2000);
   }
 
-  // Check if confirmation text appeared
-  const confirmingVisible = await guardianPage.getByText(/confirming/i).isVisible({ timeout: 2000 }).catch(() => false);
-  if (!confirmingVisible) {
-    const finalState = await stateElement.textContent().catch(() => "unknown");
-    console.log("⚠️ 'Confirming' text not visible after waiting. Final state:", finalState);
-    throw new Error(`Guardian confirmation did not show progress. Final state: ${finalState}`);
+  // Check for successful completion
+  const finalState = await stateElement.textContent().catch(() => "unknown");
+  if (finalState !== "complete" && finalState !== "confirm_guardian_completed") {
+    console.log("⚠️ Guardian confirmation did not complete. Final state:", finalState);
+    throw new Error(`Guardian confirmation failed. Final state: ${finalState}`);
   }
-  console.log("✅ Guardian confirmed successfully");
+  console.log("✅ Guardian confirmed successfully. Final state:", finalState);
 
-  // NOTE: Recovery execution steps 5-10 would follow similar patterns
-  // but are skipped until recovery UI pages are updated with proper test IDs
+  // Step 5: Owner initiates recovery with new passkey
+  console.log("\nStep 5: Owner initiating account recovery...");
 
-  console.log("\n=== Full Recovery Execution E2E Test Complete (Skipped) ===\n");
+  // Create new recovery credential
+  const recoveryContext = await baseContext.browser()!.newContext();
+  const recoveryPage = await recoveryContext.newPage();
+
+  // Navigate directly to guardian recovery page
+  await recoveryPage.goto("http://localhost:3002/recovery/guardian");
+  await recoveryPage.waitForTimeout(2000);
+
+  // Enter owner account address - find the input inside the ZkInput component
+  const accountInput = recoveryPage.locator("#address input");
+  await expect(accountInput).toBeVisible({ timeout: 10000 });
+  await accountInput.fill(ownerAddress);
+  await recoveryPage.waitForTimeout(1000);
+
+  // Click Continue button
+  const continueBtn = recoveryPage.getByRole("button", { name: /Continue/i });
+  await expect(continueBtn).toBeEnabled({ timeout: 5000 });
+  await continueBtn.click();
+  await recoveryPage.waitForTimeout(2000);
+
+  // Set up WebAuthn mock for recovery passkey
+  await setupWebAuthn(recoveryPage);
+
+  const createPasskeyBtn = recoveryPage.getByRole("button", { name: /Generate Passkey/i });
+  await expect(createPasskeyBtn).toBeVisible({ timeout: 10000 });
+  await createPasskeyBtn.click();
+  await recoveryPage.waitForTimeout(3000);
+
+  // Click "Confirm Later" to see the recovery URL
+  const confirmLaterBtn = recoveryPage.getByRole("button", { name: /Confirm Later/i });
+  await expect(confirmLaterBtn).toBeVisible({ timeout: 10000 });
+  await confirmLaterBtn.click();
+  await recoveryPage.waitForTimeout(2000);
+
+  // Wait for the recovery URL link to be visible and extract it
+  const recoveryLink = recoveryPage.locator("a[href*='confirm-recovery']");
+  await expect(recoveryLink).toBeVisible({ timeout: 10000 });
+
+  const confirmRecoveryUrl = await recoveryLink.getAttribute("href");
+
+  console.log(`✅ Recovery initiated. Confirmation URL: ${confirmRecoveryUrl}`);
+
+  // Step 6: Guardian confirms the recovery
+  console.log("\nStep 6: Guardian confirming recovery request...");
+
+  if (!confirmRecoveryUrl) {
+    throw new Error("Failed to get recovery confirmation URL");
+  }
+
+  // The URL is already a full URL, use it directly
+  await guardianPage.goto(confirmRecoveryUrl);
+  console.log("Navigated to recovery confirmation page");
+
+  // Wait for page to load
+  await guardianPage.waitForLoadState("networkidle");
+  await guardianPage.waitForTimeout(2000);
+
+  // Take a screenshot to see what's on the page
+  await guardianPage.screenshot({ path: "test-results/recovery-page-debug.png" });
+
+  // Check what's actually on the page
+  const bodyText = await guardianPage.locator("body").textContent();
+  console.log(`Page content (first 1000 chars): ${bodyText?.substring(0, 1000)}`);
+
+  // Check if there's an error message first (before trying to find h1)
+  const errorCard = guardianPage.locator("[title='Error']");
+  const hasError = await errorCard.isVisible().catch(() => false);
+  if (hasError) {
+    const errorMsg = await guardianPage.locator("body").textContent();
+    console.log(`❌ Error on recovery page: ${errorMsg?.substring(0, 500)}`);
+    throw new Error(`Recovery page shows error. credentialPublicKey is empty in URL: ${confirmRecoveryUrl}`);
+  }
+
+  // Now try to find h1
+  const h1Element = guardianPage.locator("h1");
+  const h1Visible = await h1Element.isVisible().catch(() => false);
+  if (!h1Visible) {
+    throw new Error(`No h1 found on page. This likely means the page failed to load due to missing credentialPublicKey in URL: ${confirmRecoveryUrl}`);
+  }
+  const pageTitle = await h1Element.textContent();
+  console.log(`Recovery page title: ${pageTitle}`);
+
+  // Select guardian from dropdown (it's a native select element inside account-recovery-account-select)
+  const guardianSelect = guardianPage.locator("select");
+  await expect(guardianSelect).toBeVisible({ timeout: 10000 });
+  await guardianSelect.selectOption(guardianAddress);
+  await guardianPage.waitForTimeout(1000);
+
+  // Confirm the recovery
+  const confirmRecoveryBtn = guardianPage.getByRole("button", { name: /Confirm Recovery/i });
+  await expect(confirmRecoveryBtn).toBeVisible({ timeout: 10000 });
+  await confirmRecoveryBtn.click();
+  await guardianPage.waitForTimeout(5000);
+
+  // Verify recovery was initiated
+  const recoveryCompletedMsg = guardianPage.getByText(/24hrs/i);
+  const recoveryCompleted = await recoveryCompletedMsg.isVisible({ timeout: 10000 }).catch(() => false);
+
+  if (!recoveryCompleted) {
+    // Take a screenshot for debugging
+    await guardianPage.screenshot({ path: "test-results/recovery-confirmation-debug.png" });
+    const bodyText = await guardianPage.locator("body").textContent();
+    console.log("Page content:", bodyText?.substring(0, 500));
+    throw new Error("Recovery confirmation failed - completion message not visible");
+  }
+
+  console.log("✅ Guardian confirmed recovery successfully");
+
+  // Step 7: Verify recovery is pending (skip execution for now as it requires time travel)
+  console.log("\nStep 7: Verifying recovery is in pending state...");
+  console.log("Note: Full recovery execution requires EVM time manipulation");
+  console.log("The recovery would need to wait 24 hours before it can be finalized");
+
+  console.log("\n=== Full Recovery E2E Flow Complete ===\n");
+  console.log("Summary:");
+  console.log("  ✅ Owner account created");
+  console.log("  ✅ Guardian account created");
+  console.log("  ✅ Guardian proposed by owner");
+  console.log("  ✅ Guardian confirmed their role");
+  console.log("  ✅ Owner initiated recovery with new passkey");
+  console.log("  ✅ Guardian confirmed the recovery request");
+  console.log("  ⏳ Recovery pending (24hr delay before finalization)");
 
   // Cleanup
   await guardianContext.close();
+  await recoveryContext.close();
 });

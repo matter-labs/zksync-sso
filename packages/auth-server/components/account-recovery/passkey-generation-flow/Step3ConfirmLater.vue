@@ -46,7 +46,8 @@ const recoveryUrl = computedAsync(async () => {
   const queryParams = new URLSearchParams();
 
   const credentialId = props.newPasskey.credentialId;
-  const credentialPublicKey = uint8ArrayToHex(props.newPasskey.credentialPublicKey);
+  // Serialize the public key as JSON since it's {x, y} format
+  const credentialPublicKey = JSON.stringify(props.newPasskey.credentialPublicKey);
 
   queryParams.set("credentialId", credentialId);
   queryParams.set("credentialPublicKey", credentialPublicKey);
