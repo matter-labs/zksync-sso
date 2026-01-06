@@ -12,8 +12,9 @@ ERC-4337 bundler service with CORS proxy for ZKsync SSO. Built on
 
 ## Ports
 
-- **4337**: CORS proxy (accessible from browsers)
+- **4337**: Bundler CORS proxy (browser -> Alto)
 - **4338**: Alto bundler API (internal)
+- **4339**: RPC CORS proxy (browser -> zkSync OS RPC)
 
 ## Quick Start
 
@@ -24,6 +25,10 @@ Works out of the box with local Anvil:
 ```bash
 # Install dependencies
 pnpm install
+
+# Setup private keys
+Create `.env` file similar to .env.example
+Update private keys in alto-config.json
 
 # Start bundler (uses default anvil keys)
 pnpm dev
@@ -42,7 +47,7 @@ Create a `.env` file:
 ```bash
 EXECUTOR_PRIVATE_KEY=0x...
 UTILITY_PRIVATE_KEY=0x...
-RPC_URL=https://sepolia.drpc.org
+RPC_URL=https://zksync-os-testnet-alpha.zksync.dev/
 ```
 
 Then start:
@@ -62,10 +67,10 @@ docker build -t sso-bundler packages/bundler
 ### Run
 
 ```bash
-docker run -p 4337:4337 -p 4338:4338 \
+docker run -p 4337:4337 -p 4338:4338 -p 4339:4339 \
   -e EXECUTOR_PRIVATE_KEY=0x... \
   -e UTILITY_PRIVATE_KEY=0x... \
-  -e RPC_URL=https://sepolia.drpc.org \
+  -e RPC_URL=https://zksync-os-testnet-alpha.zksync.dev/ \
   sso-bundler
 ```
 
@@ -74,10 +79,10 @@ docker run -p 4337:4337 -p 4338:4338 \
 ```bash
 docker pull ghcr.io/matter-labs/sso-bundler:latest
 
-docker run -p 4337:4337 -p 4338:4338 \
+docker run -p 4337:4337 -p 4338:4338 -p 4339:4339 \
   -e EXECUTOR_PRIVATE_KEY=0x... \
   -e UTILITY_PRIVATE_KEY=0x... \
-  -e RPC_URL=https://sepolia.drpc.org \
+  -e RPC_URL=https://zksync-os-testnet-alpha.zksync.dev/ \
   ghcr.io/matter-labs/sso-bundler:latest
 ```
 
@@ -96,13 +101,16 @@ The bundler generates an Alto config file at runtime with these fixed values:
 - **EntryPoint**: `0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108`
 - **Port**: 4338
 - **Safe Mode**: false
+- **RPC Proxy**: forwards to `RPC_URL` on port 4339
 
 ## API Usage
 
 Send ERC-4337 user operations to: `http://localhost:4337`
 
-The CORS proxy automatically forwards requests to Alto bundler and adds
-appropriate CORS headers for browser compatibility.
+Send standard JSON-RPC calls (e.g. `eth_getBalance`) to: `http://localhost:4339`
+
+Both proxies automatically forward requests and add permissive CORS headers
+for browser compatibility.
 
 ## Development
 

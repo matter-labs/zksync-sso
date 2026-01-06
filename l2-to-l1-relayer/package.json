@@ -1,0 +1,16 @@
+{
+  "name": "l2-to-l1-relayer",
+  "version": "1.0.0",
+  "description": "Relayer service to execute L2-to-L1 messages for Aave deposits/withdrawals",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "viem": "^2.21.54",
+    "dotenv": "^16.4.7",
+    "@matterlabs/zksync-js": "^0.0.1"
+  }
+}

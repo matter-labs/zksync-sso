@@ -423,7 +423,7 @@
       <div id="wallet-view" class="hidden">
         <div class="balance-display">
           <div class="balance-label">Your Balance</div>
-          <div class="balance-amount"><span id="balanceDisplay">0.00 ETH</span></div>
+          <div class="balance-amount"><span id="balanceDisplay">0.00</span> ETH</div>
         </div>
 
         <div class="card">
@@ -441,6 +441,7 @@
           <div class="card-title">Quick Actions</div>
           <button id="quickSendBtn">Send Money</button>
           <button id="quickEarnBtn" class="secondary" style="margin-top: 12px;">Earn Interest</button>
+          <button id="faucetBtn" class="secondary" style="margin-top: 12px;">Faucet for your wallet</button>
         </div>
       </div>
     </div>
@@ -551,9 +552,10 @@
       <div class="card">
         <div class="card-title">Recent Activity</div>
         <div class="card-subtitle">Your transaction history will appear here</div>
-        <div style="text-align: center; padding: 40px; color: #6c7378;">
+        <div id="activity-empty" style="text-align: center; padding: 40px; color: #6c7378;">
           <p>No recent transactions</p>
         </div>
+        <div id="activity-list" class="hidden"></div>
       </div>
     </div>
 

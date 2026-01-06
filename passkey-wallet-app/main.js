@@ -27,7 +27,7 @@ import {
   getAaveBalance,
   getShadowAccount,
 } from "./aave-utils.js";
-0x79417992f3658F324770622FdBD2F09e091e2587
+
 // ZKsync OS configuration
 const zksyncOsTestnet = defineChain({
   id: 8022833,
@@ -58,12 +58,12 @@ const zksyncOsTestnet = defineChain({
 const DEFAULT_ZKSYNC_OS_RPC_URL = "https://zksync-os-testnet-alpha.zksync.dev/";
 const LOCAL_RPC_PROXY_URL = "http://localhost:4339";
 const isBrowser = typeof window !== "undefined";
-const shouldUseLocalRpcProxy = isBrowser && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+const shouldUseLocalRpcProxy = false; // Disabled - use direct RPC URL
 const ZKSYNC_OS_RPC_URL = shouldUseLocalRpcProxy ? LOCAL_RPC_PROXY_URL : DEFAULT_ZKSYNC_OS_RPC_URL;
 
-// Deployer private key (for deploying accounts)
-// const DEPLOYER_PRIVATE_KEY = "0xef506537558847aa991149381c4fedee8fe1252cf868986ac1692336530ec85c";
-const DEPLOYER_PRIVATE_KEY = "0x1cfcab2cf5ad255cb3387f7fdca2651a61377b334a2a3daa4af86eb476369105";
+// Deployer private key (for deploying accounts and faucet)
+// Can be set via VITE_DEPLOYER_PRIVATE_KEY environment variable
+const DEPLOYER_PRIVATE_KEY = import.meta.env?.VITE_DEPLOYER_PRIVATE_KEY;
 
 // Contract addresses on ZKsync OS testnet
 const CONTRACTS = {
@@ -72,9 +72,14 @@ const CONTRACTS = {
   session: "0xbd2608f3512A3a163394fbAB99a286E151Bf30be", // SessionKeyValidator
   accountFactory: "0xF52708DE29453BBfd27AA8fC7b4bc7EF87E05892", // MSAFactory
   entryPoint: "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
+  // bundlerUrl: "https://bundler-api.stage-sso.zksync.dev",
   bundlerUrl: "http://localhost:4337", // Local bundler for better debugging
   oidcKeyRegistry: "0x0000000000000000000000000000000000000000",
 };
+
+const STATUS_ENDPOINT = "http://localhost:4340/status";
+const L2_EXPLORER_BASE = "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev/tx/";
+const L1_EXPLORER_BASE = "https://sepolia.etherscan.io/tx/";
 // State
 let accountAddress = null;
 let passkeyCredentials = null;
@@ -87,6 +92,7 @@ let aaveBalanceRefreshInterval = null;
 // LocalStorage keys
 const STORAGE_KEY_PASSKEY = "zksync_sso_passkey";
 const STORAGE_KEY_ACCOUNT = "zksync_sso_account";
+const STORAGE_KEY_TX_METADATA = "zksync_sso_tx_metadata";
 
 // Auto-refresh interval (in milliseconds)
 const BALANCE_REFRESH_INTERVAL = 5000; // 5 seconds
@@ -139,12 +145,211 @@ function setupEventListeners() {
   document.getElementById("createPasskeyBtn").addEventListener("click", handleCreatePasskey);
   document.getElementById("deployAccountBtn").addEventListener("click", handleDeployAccount);
   document.getElementById("refreshBalanceBtn").addEventListener("click", handleRefreshBalance);
+  document.getElementById("faucetBtn").addEventListener("click", handleFaucet);
   document.getElementById("transferBtn").addEventListener("click", handleTransfer);
   document.getElementById("resetPasskeyBtn").addEventListener("click", handleResetPasskey);
   document.getElementById("resetPasskeyMainBtn").addEventListener("click", handleResetPasskey);
   document.getElementById("aaveDepositBtn").addEventListener("click", handleAaveDeposit);
   document.getElementById("aaveWithdrawBtn").addEventListener("click", handleAaveWithdraw);
   document.getElementById("refreshAaveBalanceBtn").addEventListener("click", refreshAaveBalance);
+}
+
+let activityInterval = null;
+
+// Transaction metadata storage helpers
+function saveTxMetadata(txHash, action, amount) {
+  try {
+    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || '{}');
+    metadata[txHash] = {
+      action,
+      amount,
+      submittedAt: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEY_TX_METADATA, JSON.stringify(metadata));
+  } catch (error) {
+    console.error('Failed to save tx metadata:', error);
+  }
+}
+
+function getTxMetadata(txHash) {
+  try {
+    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || '{}');
+    return metadata[txHash] || null;
+  } catch (error) {
+    console.error('Failed to get tx metadata:', error);
+    return null;
+  }
+}
+
+function renderActivity(status) {
+  const activityList = document.getElementById("activity-list");
+  const activityEmpty = document.getElementById("activity-empty");
+  if (!activityList || !activityEmpty) return;
+
+  activityList.textContent = "";
+
+  const pending = status?.pending || [];
+  const finalized = status?.finalized || [];
+
+  // Load localStorage metadata to enrich timestamps
+  let localStorageMetadata = {};
+  try {
+    localStorageMetadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || '{}');
+  } catch (error) {
+    console.error('Failed to load localStorage metadata:', error);
+  }
+
+  // Only show transactions that belong to the current user (have metadata in localStorage)
+  const items = [
+    ...pending.map((tx) => {
+      const txHash = tx.hash;
+      const localMeta = localStorageMetadata[txHash];
+      // Only include if we have metadata for this transaction
+      if (!localMeta) return null;
+      return {
+        type: "pending",
+        ...tx,
+        // Use localStorage submittedAt if available for more accurate sorting
+        sortTimestamp: localMeta?.submittedAt || tx.addedAt,
+      };
+    }).filter(Boolean), // Remove null entries
+    ...finalized.map((tx) => {
+      const txHash = tx.l2TxHash;
+      const localMeta = localStorageMetadata[txHash];
+      // Only include if we have metadata for this transaction
+      if (!localMeta) return null;
+      return {
+        type: "finalized",
+        ...tx,
+        // Use localStorage submittedAt if available, otherwise use finalizedAt
+        sortTimestamp: localMeta?.submittedAt || tx.finalizedAt,
+      };
+    }).filter(Boolean), // Remove null entries
+  ];
+
+  // Add transactions from localStorage that aren't in the daemon's status yet
+  const daemonTxHashes = new Set([
+    ...pending.map(tx => tx.hash),
+    ...finalized.map(tx => tx.l2TxHash)
+  ]);
+
+  for (const [txHash, txMeta] of Object.entries(localStorageMetadata)) {
+    if (!daemonTxHashes.has(txHash) && txMeta.action && txMeta.amount) {
+      items.push({
+        type: "pending",
+        hash: txHash,
+        action: txMeta.action,
+        amount: txMeta.amount,
+        sortTimestamp: txMeta.submittedAt || new Date().toISOString(),
+      });
+    }
+  }
+
+  // Sort: Pending first, then by timestamp (newest first)
+  items.sort((a, b) => {
+    // Primary: Pending transactions always come before finalized
+    if (a.type === "pending" && b.type === "finalized") return -1;
+    if (a.type === "finalized" && b.type === "pending") return 1;
+
+    // Secondary: Within same status, sort by timestamp (newest first)
+    const timeA = new Date(a.sortTimestamp || 0).getTime();
+    const timeB = new Date(b.sortTimestamp || 0).getTime();
+
+    if (timeB !== timeA) {
+      return timeB - timeA; // Descending order (newest first)
+    }
+
+    // Tertiary: if timestamps are equal, use transaction hash as tiebreaker
+    const hashA = a.hash || a.l2TxHash || '';
+    const hashB = b.hash || b.l2TxHash || '';
+    return hashB.localeCompare(hashA);
+  });
+
+  if (items.length === 0) {
+    activityEmpty.classList.remove("hidden");
+    activityList.classList.add("hidden");
+    return;
+  }
+
+  activityEmpty.classList.add("hidden");
+  activityList.classList.remove("hidden");
+
+  items.slice(0, 20).forEach((tx) => {
+    const row = document.createElement("div");
+    row.className = "info-row";
+
+    const label = document.createElement("span");
+    label.className = "info-label";
+
+    // Get metadata from localStorage
+    const txHash = tx.hash || tx.l2TxHash;
+    const storedMetadata = getTxMetadata(txHash);
+
+    // Use stored metadata if available, fallback to tx data
+    let action = storedMetadata?.action || tx.action || "Unknown";
+    let amount = storedMetadata?.amount || tx.amount || "0";
+    const statusText = tx.type === "pending" ? "Pending" : "Finalized";
+
+    if (action !== "Unknown" && amount !== "0") {
+      label.textContent = `${amount} ETH (${statusText})`;
+    } else {
+      label.textContent = statusText;
+    }
+
+    const value = document.createElement("span");
+    value.className = "info-value";
+
+    // Helper to truncate hash: 0x1234...5678
+    const truncateHash = (hash) => {
+      if (!hash || hash.length < 12) return hash;
+      return `${hash.slice(0, 6)}...${hash.slice(-4)}`;
+    };
+
+    // Determine L2 link text based on action type
+    const l2Link = document.createElement("a");
+    l2Link.href = `${L2_EXPLORER_BASE}${txHash}`;
+    l2Link.target = "_blank";
+    l2Link.rel = "noreferrer";
+
+    const l2TxLabel = action === "Deposit" ? "L2 Deposit Tx" :
+                      action === "Withdrawal" ? "L2 Withdrawal Tx" :
+                      "L2 Tx";
+    l2Link.textContent = `${l2TxLabel} ${truncateHash(txHash)}`;
+
+    value.appendChild(l2Link);
+
+    if (tx.type === "finalized" && tx.l1FinalizeTxHash) {
+      const sep = document.createTextNode(" \u2022 ");
+      value.appendChild(sep);
+      const l1Link = document.createElement("a");
+      l1Link.href = `${L1_EXPLORER_BASE}${tx.l1FinalizeTxHash}`;
+      l1Link.target = "_blank";
+      l1Link.rel = "noreferrer";
+      l1Link.textContent = `L1 Finalization Tx ${truncateHash(tx.l1FinalizeTxHash)}`;
+      value.appendChild(l1Link);
+    }
+
+    row.appendChild(label);
+    row.appendChild(value);
+    activityList.appendChild(row);
+  });
+}
+
+async function refreshActivity() {
+  try {
+    const response = await fetch(STATUS_ENDPOINT);
+    if (!response.ok) return;
+    const status = await response.json();
+    renderActivity(status);
+  } catch (error) {
+    console.log("Activity refresh failed:", error.message);
+  }
+}
+
+function startActivityPoll() {
+  if (activityInterval) clearInterval(activityInterval);
+  refreshActivity();
+  activityInterval = setInterval(refreshActivity, 15000);
 }
 
 // Load existing passkey from localStorage
@@ -219,6 +424,7 @@ function loadExistingPasskey() {
 
       startBalanceAutoRefresh();
       initializeAaveSection();
+      startActivityPoll();
 
       console.log("✅ Loaded existing account from storage");
     }
@@ -240,6 +446,7 @@ function handleResetPasskey() {
   if (confirm("Are you sure you want to reset your passkey? You will need to create a new one and deploy a new account.")) {
     localStorage.removeItem(STORAGE_KEY_PASSKEY);
     localStorage.removeItem(STORAGE_KEY_ACCOUNT);
+    localStorage.removeItem(STORAGE_KEY_TX_METADATA); // Clear transaction history
     location.reload();
   }
 }
@@ -494,6 +701,7 @@ async function handleDeployAccount() {
 
     startBalanceAutoRefresh();
     initializeAaveSection();
+    startActivityPoll();
   } catch (error) {
     console.error("Deployment failed:", error);
     document.getElementById("deploy-error").textContent = "Deployment failed: " + error.message;
@@ -515,7 +723,7 @@ async function autoRefreshBalance() {
     });
 
     const balanceInEth = formatEther(balance);
-    document.getElementById("balanceDisplay").textContent = `${balanceInEth} ETH`;
+    document.getElementById("balanceDisplay").textContent = balanceInEth;
   } catch (error) {
     console.error("Auto-refresh balance failed:", error);
   }
@@ -560,6 +768,71 @@ async function handleRefreshBalance() {
   } finally {
     btn.disabled = false;
     btn.textContent = "Refresh Balance";
+  }
+}
+
+// Faucet function to fund the account
+async function handleFaucet() {
+  if (!accountAddress) return;
+
+  const btn = document.getElementById("faucetBtn");
+  btn.disabled = true;
+  btn.textContent = "Funding...";
+
+  try {
+    console.log("🚰 Starting faucet for account:", accountAddress);
+
+    // Create deployer wallet client
+    const deployerAccount = privateKeyToAccount(DEPLOYER_PRIVATE_KEY);
+    const deployerWallet = createWalletClient({
+      account: deployerAccount,
+      chain: zksyncOsTestnet,
+      transport: http(ZKSYNC_OS_RPC_URL),
+    });
+
+    const FAUCET_AMOUNT = parseEther("0.03");
+
+    // Transaction 1: Deposit to EntryPoint
+    console.log("📥 Depositing to EntryPoint...");
+    const depositHash = await deployerWallet.writeContract({
+      address: CONTRACTS.entryPoint,
+      abi: [{
+        type: "function",
+        name: "depositTo",
+        inputs: [{ name: "account", type: "address" }],
+        outputs: [],
+        stateMutability: "payable",
+      }],
+      functionName: "depositTo",
+      args: [accountAddress],
+      value: FAUCET_AMOUNT,
+    });
+
+    console.log(`✅ EntryPoint deposit tx: ${depositHash}`);
+    await waitForTransactionReceipt(publicClient, { hash: depositHash });
+
+    // Transaction 2: Direct ETH transfer to account
+    console.log("💸 Sending ETH to account...");
+    const transferHash = await deployerWallet.sendTransaction({
+      to: accountAddress,
+      value: FAUCET_AMOUNT,
+    });
+
+    console.log(`✅ Direct transfer tx: ${transferHash}`);
+    await waitForTransactionReceipt(publicClient, { hash: transferHash });
+
+    console.log("🎉 Faucet complete! Funded with 0.06 ETH total");
+
+    // Refresh balance
+    await autoRefreshBalance();
+
+    alert("Success! Your wallet has been funded with 0.06 ETH (0.03 to EntryPoint + 0.03 direct)");
+  } catch (error) {
+    console.error("Faucet failed:", error);
+    alert("Faucet failed: " + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Faucet for your wallet";
   }
 }
 
@@ -1274,9 +1547,21 @@ async function handleAaveDeposit() {
       console.log(`Transaction hash: ${receipt.receipt.transactionHash}`);
       console.log("⏳ L2-to-L1 message sent. Finalization takes ~15 minutes...");
 
+      // Save transaction metadata to localStorage
+      saveTxMetadata(receipt.receipt.transactionHash, "Deposit", amount);
+
       // Update UI
       document.getElementById("aave-deposit-success").classList.remove("hidden");
-      document.getElementById("aaveDepositTxHash").textContent = receipt.receipt.transactionHash;
+      {
+        const txEl = document.getElementById("aaveDepositTxHash");
+        txEl.textContent = "";
+        const link = document.createElement("a");
+        link.href = `${L2_EXPLORER_BASE}${receipt.receipt.transactionHash}`;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.textContent = receipt.receipt.transactionHash;
+        txEl.appendChild(link);
+      }
 
       // Clear form
       document.getElementById("aaveDepositAmount").value = "";
@@ -1568,9 +1853,21 @@ async function handleAaveWithdraw() {
       console.log(`Transaction hash: ${receipt.receipt.transactionHash}`);
       console.log("⏳ L2-to-L1 message sent. Finalization takes ~15 minutes...");
 
+      // Save transaction metadata to localStorage
+      saveTxMetadata(receipt.receipt.transactionHash, "Withdrawal", amount);
+
       // Update UI
       document.getElementById("aave-withdraw-success").classList.remove("hidden");
-      document.getElementById("aaveWithdrawTxHash").textContent = receipt.receipt.transactionHash;
+      {
+        const txEl = document.getElementById("aaveWithdrawTxHash");
+        txEl.textContent = "";
+        const link = document.createElement("a");
+        link.href = `${L2_EXPLORER_BASE}${receipt.receipt.transactionHash}`;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.textContent = receipt.receipt.transactionHash;
+        txEl.appendChild(link);
+      }
 
       // Clear form
       document.getElementById("aaveWithdrawAmount").value = "";

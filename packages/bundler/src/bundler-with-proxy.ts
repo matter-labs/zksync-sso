@@ -11,6 +11,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 import { startProxy } from "./bundler-proxy.js";
+import { startRpcProxy } from "./rpc-cors-proxy.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -65,12 +66,16 @@ async function waitForPort(port: number, maxAttempts = 30, delayMs = 1000): Prom
 export async function startBundler(): Promise<void> {
   let alto: ChildProcess | undefined;
   let proxyServer: http.Server | undefined;
+  let rpcProxyServer: http.Server | undefined;
 
   // Cleanup handler
   const cleanup = () => {
     log("SETUP", "Shutting down...", colors.yellow);
     if (alto) {
       alto.kill();
+    }
+    if (rpcProxyServer) {
+      rpcProxyServer.close();
     }
     if (proxyServer) {
       proxyServer.close();
@@ -98,6 +103,9 @@ export async function startBundler(): Promise<void> {
     log("ALTO", `Exited with code ${code}`, colors.yellow);
     if (proxyServer) {
       proxyServer.close();
+    }
+    if (rpcProxyServer) {
+      rpcProxyServer.close();
     }
     process.exit(code || 0);
   });
@@ -129,7 +137,22 @@ export async function startBundler(): Promise<void> {
   }
 
   log("PROXY", "Ready and listening on port 4337", colors.green);
-  log("SETUP", "Both services started successfully!", colors.green);
+
+  log("SETUP", "Starting RPC CORS proxy on port 4339...", colors.cyan);
+  rpcProxyServer = startRpcProxy();
+
+  const rpcProxyReady = await waitForPort(4339);
+  if (!rpcProxyReady) {
+    log("RPC", "Failed to start - port 4339 not listening after 30 seconds", colors.red);
+    alto.kill();
+    proxyServer.close();
+    rpcProxyServer.close();
+    process.exit(1);
+  }
+
+  log("RPC", "Ready and listening on port 4339", colors.green);
+  log("SETUP", "All services started successfully!", colors.green);
   log("SETUP", "Alto bundler: http://localhost:4338", colors.green);
-  log("SETUP", "CORS proxy: http://localhost:4337", colors.green);
+  log("SETUP", "Bundler CORS proxy: http://localhost:4337", colors.green);
+  log("SETUP", "RPC CORS proxy: http://localhost:4339", colors.green);
 }
