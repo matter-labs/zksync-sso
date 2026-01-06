@@ -1,5 +1,5 @@
 import type { Account, Address, Chain, Hex, Transport, WalletClient } from "viem";
-import { encodeAbiParameters, keccak256, pad, parseAbiParameters, toHex } from "viem";
+import { encodeAbiParameters, keccak256, parseAbiParameters, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
 
@@ -212,76 +212,83 @@ export const useRecoveryGuardian = () => {
       if (installReceipt.status === "reverted") {
         throw new Error(`Failed to install GuardianExecutor module for account ${accountAddress}`);
       }
+
+      // Verify module installation succeeded
+      const isInitialized = await publicClient.readContract({
+        address: contracts.guardianExecutor,
+        abi: GuardianExecutorAbi,
+        functionName: "isInitialized",
+        args: [accountAddress],
+      });
+
+      // eslint-disable-next-line no-console
+      console.log("📋 Module installation verification:", {
+        guardianExecutor: contracts.guardianExecutor,
+        account: accountAddress,
+        isInitialized,
+        installationTxHash: installTx,
+      });
+
+      if (!isInitialized) {
+        throw new Error(
+          `Module installation failed: GuardianExecutor.isInitialized(${accountAddress}) returned false. `
+          + `Installation transaction: ${installTx}`,
+        );
+      }
+
+      // eslint-disable-next-line no-console
+      console.log("✅ Module installation confirmed");
     }
 
-    // Call proposeGuardian on the GuardianExecutor module through the smart account
-    // We need to call it through the account's execute function so that msg.sender is the account
-    const { encodeFunctionData, encodePacked } = await import("viem");
-    const callData = encodeFunctionData({
+    // eslint-disable-next-line no-console
+    console.log("🔍 Proposing guardian:", {
+      guardianExecutor: contracts.guardianExecutor,
+      guardianAddress: address,
+      accountAddress,
+    });
+
+    // Call GuardianExecutor.proposeGuardian() directly
+    // The SDK will automatically wrap this in account.execute() via encode_execute_call_data
+    const tx = await client.writeContract({
+      address: contracts.guardianExecutor,
       abi: GuardianExecutorAbi,
       functionName: "proposeGuardian",
       args: [address],
     });
 
-    // For ERC-7579 single execution mode, the calldata is: abi.encodePacked(target, value, data)
-    // This matches the Solidity test pattern: abi.encodePacked(address(target), uint256(0), data)
-    const executionCalldata = encodePacked(
-      ["address", "uint256", "bytes"],
-      [contracts.guardianExecutor, 0n, callData],
-    );
+    // eslint-disable-next-line no-console
+    console.log("✅ Guardian proposal transaction sent:", tx);
 
-    console.log("🔧 proposeGuardian execution details:", {
-      guardianExecutor: contracts.guardianExecutor,
-      callDataLength: callData.length,
-      callDataPreview: callData.substring(0, 66),
-      executionCalldataLength: executionCalldata.length,
-      executionCalldataPreview: executionCalldata.substring(0, 66),
-    });
+    // Get the full transaction receipt for event parsing
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
 
-    // Execute the call through the smart account
-    // Mode encoding: CALLTYPE_SINGLE (0x00) + EXECTYPE_DEFAULT (0x00) + unused (0x00) + ModePayload (0x00000000)
-    const tx = await client.writeContract({
-      address: accountAddress,
-      abi: [{
-        type: "function",
-        name: "execute",
-        inputs: [
-          { name: "mode", type: "bytes32" },
-          { name: "executionCalldata", type: "bytes" },
-        ],
-        outputs: [],
-        stateMutability: "payable",
-      }],
-      functionName: "execute",
-      args: [
-        "0x0000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`, // mode: CALLTYPE_SINGLE (0x00) + EXECTYPE_DEFAULT (0x00)
-        executionCalldata,
-      ],
-    });
-
-    // Wait for transaction receipt
-    const receipt = await client.waitForTransactionReceipt({ hash: tx });
-
+    // eslint-disable-next-line no-console
     console.log("Guardian proposal transaction receipt:", {
       hash: tx,
       status: receipt.status,
       gasUsed: receipt.gasUsed,
       blockNumber: receipt.blockNumber,
-      logs: receipt.logs.map((log) => ({
-        address: log.address,
-        topics: log.topics,
-        data: log.data,
-      })),
+      logsCount: receipt.logs.length,
     });
 
-    if (receipt.status === "reverted") {
+    // eslint-disable-next-line no-console
+    console.log("🔍 All emitted events:");
+    receipt.logs.forEach((log, i) => {
+      // eslint-disable-next-line no-console
+      console.log(`  Event ${i + 1}:`, {
+        address: log.address,
+        topic0: log.topics[0],
+        topics: log.topics,
+        data: log.data,
+      });
+    });
+
+    if (receipt.status != "success") {
       throw new Error(`Failed to propose guardian ${address} for account ${accountAddress}`);
     }
 
     // Verify the guardian was actually proposed by checking for the GuardianProposed event
-    // Event signature: GuardianProposed(address indexed account, address indexed guardian)
     const guardianProposedEventTopic = "0x6d05492139c5ea989514a5d2150c028041e5c087e2a39967f67dc7d2655adb81"; // keccak256("GuardianProposed(address,address)")
-
     const proposalEvent = receipt.logs.find((log) =>
       log.topics[0] === guardianProposedEventTopic
       && log.topics[1]?.toLowerCase() === `0x000000000000000000000000${accountAddress.slice(2).toLowerCase()}`
@@ -289,13 +296,20 @@ export const useRecoveryGuardian = () => {
     );
 
     if (!proposalEvent) {
-      console.error("GuardianProposed event not found in transaction logs. This means the execute call did not reach proposeGuardian.");
+      // eslint-disable-next-line no-console
+      console.error("GuardianProposed event not found in transaction logs.");
+      // eslint-disable-next-line no-console
       console.error("Expected event topic:", guardianProposedEventTopic);
+      // eslint-disable-next-line no-console
       console.error("Expected account:", accountAddress);
+      // eslint-disable-next-line no-console
       console.error("Expected guardian:", address);
-      throw new Error("Guardian proposal transaction succeeded but GuardianProposed event was not emitted. The execute call may have failed silently or called the wrong function.");
+      // eslint-disable-next-line no-console
+      console.error("All event topics:", receipt.logs.map((l) => l.topics[0]));
+      throw new Error("Guardian proposal transaction succeeded but GuardianProposed event was not emitted.");
     }
 
+    // eslint-disable-next-line no-console
     console.log("✅ GuardianProposed event found, proposal successful");
 
     return receipt;

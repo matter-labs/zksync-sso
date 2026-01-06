@@ -220,6 +220,14 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
   console.log("\nStep 4: Proposing guardian...");
   await page.bringToFront();
 
+  // Capture console logs from the primary page during proposal
+  const primaryPageConsole: string[] = [];
+  page.on("console", (msg) => {
+    const logMsg = `[${msg.type()}] ${msg.text()}`;
+    primaryPageConsole.push(logMsg);
+    console.log(`Primary page console: ${logMsg}`);
+  });
+
   // Enter guardian address in the modal/input
   const guardianInput = page.getByTestId("guardian-address-input").locator("input");
   await expect(guardianInput).toBeVisible({ timeout: 5000 });
@@ -244,6 +252,12 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
 
   await page.waitForTimeout(8000); // Wait for module installation + guardian proposal
   console.log("Guardian proposal initiated");
+
+  // Log all captured console messages
+  if (primaryPageConsole.length > 0) {
+    console.log(`\n📋 Captured ${primaryPageConsole.length} console messages from primary page:`);
+    primaryPageConsole.forEach((msg, i) => console.log(`  ${i + 1}. ${msg}`));
+  }
 
   // Handle "Do you wish to confirm your guardian now?" dialog
   try {
@@ -489,6 +503,15 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
   // ===== Step 3: Navigate to Guardian Settings and Propose ===
   console.log("\nStep 3: Proposing guardian with paymaster...");
   await page.bringToFront();
+
+  // Capture console logs from the primary page during proposal
+  const primaryPageConsole: string[] = [];
+  page.on("console", (msg) => {
+    const logMsg = `[${msg.type()}] ${msg.text()}`;
+    primaryPageConsole.push(logMsg);
+    console.log(`Primary page console: ${logMsg}`);
+  });
+
   await page.goto("http://localhost:3002/dashboard/settings");
   await page.waitForTimeout(2000);
 
@@ -521,6 +544,12 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
   console.log("Waiting for paymaster-sponsored guardian proposal to complete...");
   await page.waitForTimeout(8000); // Wait for module installation + guardian proposal
   console.log("Guardian proposal with paymaster initiated");
+
+  // Log all captured console messages
+  if (primaryPageConsole.length > 0) {
+    console.log(`\n📋 Captured ${primaryPageConsole.length} console messages from primary page:`);
+    primaryPageConsole.forEach((msg, i) => console.log(`  ${i + 1}. ${msg}`));
+  }
 
   // Handle "Do you wish to confirm your guardian now?" dialog
   try {
@@ -704,6 +733,15 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
 
   // Step 3: Owner proposes guardian
   console.log("\nStep 3: Owner proposing guardian...");
+
+  // Capture console logs from the owner page during proposal
+  const ownerPageConsole: string[] = [];
+  page.on("console", (msg) => {
+    const logMsg = `[${msg.type()}] ${msg.text()}`;
+    ownerPageConsole.push(logMsg);
+    console.log(`Owner page console: ${logMsg}`);
+  });
+
   await page.goto("http://localhost:3002/dashboard/settings");
   await page.waitForTimeout(2000);
 
@@ -739,6 +777,12 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
 
   await page.waitForTimeout(8000);
   console.log("✅ Guardian proposed successfully");
+
+  // Log all captured console messages
+  if (ownerPageConsole.length > 0) {
+    console.log(`\n📋 Captured ${ownerPageConsole.length} console messages from owner page:`);
+    ownerPageConsole.forEach((msg, i) => console.log(`  ${i + 1}. ${msg}`));
+  }
 
   // Step 4: Guardian accepts role
   console.log("\nStep 4: Guardian accepting role...");
