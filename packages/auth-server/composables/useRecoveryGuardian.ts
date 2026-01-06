@@ -1,5 +1,5 @@
 import type { Account, Address, Chain, Hex, Transport, WalletClient } from "viem";
-import { encodeAbiParameters, keccak256, parseAbiParameters, toHex } from "viem";
+import { encodeAbiParameters, encodeFunctionData, keccak256, parseAbiParameters, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
 
@@ -190,8 +190,9 @@ export const useRecoveryGuardian = () => {
 
     // Install module if not already installed
     if (!isModuleInstalled) {
-      const installTx = await client.writeContract({
-        address: accountAddress,
+      // NOTE: installModule must be called DIRECTLY on the account (not wrapped in execute)
+      // We use sendTransaction with the encoded installModule call as the data
+      const installModuleData = encodeFunctionData({
         abi: [{
           type: "function",
           name: "installModule",
@@ -205,6 +206,11 @@ export const useRecoveryGuardian = () => {
         }],
         functionName: "installModule",
         args: [1n, contracts.guardianExecutor, "0x"], // 1 = MODULE_TYPE_EXECUTOR, empty initData
+      });
+
+      const installTx = await client.sendTransaction({
+        to: accountAddress,
+        data: installModuleData,
       });
 
       const installReceipt = await client.waitForTransactionReceipt({ hash: installTx });
