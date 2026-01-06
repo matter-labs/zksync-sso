@@ -311,14 +311,14 @@ async function finalizeTx(txHash) {
 
       if (status.phase === "FINALIZED") {
         console.log(`✅ Withdrawal already finalized for ${txHash}`);
-        return { success: true, reason: "already_finalized" };
+        // Don't return - continue to check L2InteropCenter message
       } else if (status.phase === "READY_TO_FINALIZE") {
         // Ready to finalize - execute now
         console.log(`🚀 Withdrawal is ready - finalizing now...`);
         await sdk.withdrawals.tryFinalize(txHash);
         await sdk.withdrawals.wait(txHash, { for: "finalized" });
         console.log(`✅ Withdrawal finalized for ${txHash}`);
-        return { success: true, reason: "finalized" };
+        // Don't return - continue to check L2InteropCenter message
       } else {
         // Not ready yet - return and try again later
         console.log(`⏳ Withdrawal not ready yet (phase: ${status.phase}) - will retry later`);
