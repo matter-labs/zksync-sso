@@ -12,7 +12,8 @@
 </template>
 
 <script setup lang="ts">
-const { enabled } = useOidcConfig();
+// const { enabled } = useOidcConfig();
+const enabled = false;
 
 if (!enabled) {
   await navigateTo("/");

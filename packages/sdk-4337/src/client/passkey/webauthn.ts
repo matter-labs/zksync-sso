@@ -246,6 +246,11 @@ export interface WebAuthnCredential {
    */
   credentialId: Hex;
 
+  /**
+   * Raw credential ID (base64url encoded string)
+   */
+  credentialIdBase64url: string;
+
   publicKey: {
     /**
      * X coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
@@ -391,6 +396,7 @@ export async function createWebAuthnCredential(options: CreateCredentialOptions)
 
   return {
     credentialId: bytesToHex(credId),
+    credentialIdBase64url: credential.id,
     publicKey: {
       x: bytesToHex(xBuffer),
       y: bytesToHex(yBuffer),

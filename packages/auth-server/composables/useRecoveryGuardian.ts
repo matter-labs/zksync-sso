@@ -1,5 +1,5 @@
 import type { Account, Address, Chain, Hex, Transport, WalletClient } from "viem";
-import { encodeAbiParameters, keccak256, parseAbiParameters, toHex } from "viem";
+import { encodeAbiParameters, keccak256, pad, parseAbiParameters, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
 

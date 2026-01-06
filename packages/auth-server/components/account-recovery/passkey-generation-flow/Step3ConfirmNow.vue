@@ -78,6 +78,7 @@
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
 import { type Address, isAddressEqual } from "viem";
+import { getPasskeySignatureFromPublicKeyBytes } from "zksync-sso-4337/client/passkey";
 
 import type { RegisterNewPasskeyReturnType } from "~/composables/usePasskeyRegister";
 
@@ -141,11 +142,17 @@ const handleConfirmRecovery = async () => {
       client = await getWalletClient({ chainId: defaultChain.id });
     }
 
+    // Convert {x, y} public key format to Uint8Array (COSE format)
+    const credentialPublicKeyBytes = getPasskeySignatureFromPublicKeyBytes([
+      props.newPasskey.credentialPublicKey.x,
+      props.newPasskey.credentialPublicKey.y,
+    ]);
+
     await initRecovery({
       client,
       accountToRecover: props.accountAddress,
-      credentialPublicKey: props.newPasskey.credentialPublicKey,
-      accountId: props.newPasskey.credentialId,
+      credentialPublicKey: credentialPublicKeyBytes,
+      credentialId: props.newPasskey.credentialIdBase64url,
     });
     confirmGuardianErrorMessage.value = null;
     emit("next");
