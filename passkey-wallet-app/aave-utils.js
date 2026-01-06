@@ -116,7 +116,7 @@ export async function createAaveDepositBundle(amount, shadowAccount) {
 export async function createAaveWithdrawBundle(amount, shadowAccount, l2Receiver, l1Client) {
   const AAVE_POOL_ABI = (await import("./abis/IPool.json")).default;
   const WETH_ABI = (await import("./abis/IWETH.json")).default;
-  const L1_BRIDGEHUB_ABI = (await import("../aave-interop-demo/utils/abis/IL1Bridgehub.json")).default;
+  const L1_BRIDGEHUB_ABI = (await import("./abis/IL1Bridgehub.json")).default;
   const L2_INTEROP_CENTER_ABI = (await import("./abis/L2InteropCenter.json")).default;
 
   // Calculate mintValue for L2 gas

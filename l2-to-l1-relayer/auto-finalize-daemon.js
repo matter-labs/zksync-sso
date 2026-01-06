@@ -443,12 +443,21 @@ async function finalizeTx(txHash) {
         gasPrice: bumpedGasPrice,
       });
     } catch (writeError) {
+      // Log the full error for debugging
+      console.log(`❌ Error sending finalization transaction:`);
+      console.log(`   Error: ${writeError.message}`);
+
       // Check if error indicates message already finalized
-      if (writeError.message?.includes("L1ShadowAccount: call failed")
-        || writeError.message?.includes("already finalized")) {
+      // Only treat as already finalized if we have strong evidence
+      if (writeError.message?.includes("already finalized")
+        || writeError.message?.includes("AlreadyExecuted")
+        || writeError.message?.includes("MessageAlreadyFinalized")) {
         console.log(`✅ Message appears to be already finalized`);
         return { success: true, reason: "already_finalized" };
       }
+
+      // For other errors (including generic "call failed"), throw so we can retry
+      console.log(`⚠️  Transaction failed - will retry later`);
       throw writeError;
     }
 

@@ -14,13 +14,13 @@ const __dirname = dirname(__filename);
 
 // Load ABIs
 const L1_INTEROP_HANDLER_ABI = JSON.parse(
-  readFileSync(join(__dirname, "../aave-interop-demo/utils/abis/L1InteropHandler.json"), "utf-8"),
+  readFileSync(join(__dirname, "./abis/L1InteropHandler.json"), "utf-8"),
 ).abi;
 const L1_BRIDGEHUB_ABI = JSON.parse(
-  readFileSync(join(__dirname, "../aave-interop-demo/utils/abis/IL1Bridgehub.json"), "utf-8"),
+  readFileSync(join(__dirname, "./abis/IL1Bridgehub.json"), "utf-8"),
 ).abi;
 const ERC20_ABI = JSON.parse(
-  readFileSync(join(__dirname, "../passkey-wallet-app/abis/IERC20.json"), "utf-8"),
+  readFileSync(join(__dirname, "./abis/IERC20.json"), "utf-8"),
 ).abi;
 const WETH_GATEWAY_ABI = JSON.parse(
   readFileSync(join(__dirname, "../passkey-wallet-app/abis/IWrappedTokenGatewayV3.json"), "utf-8"),
@@ -43,7 +43,7 @@ const config = {
 };
 
 // Transaction to finalize
-const TX_HASH = "0xbf50e84239a183f0f5fa791641f6d7de0ab1a9c2240990564d72ea7fd89e3b48";
+const TX_HASH = "0x285de9b4ca0edc586e97f65bd312f36d90bccff79507fd0b60c1b288f6be445e";
 
 console.log(`\n🚀 Finalizing L2-to-L1 Message\n`);
 console.log(`📍 L2 TX: ${TX_HASH}`);
