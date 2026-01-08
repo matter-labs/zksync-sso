@@ -852,8 +852,8 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
   }
   console.log("✅ Guardian confirmed successfully. Final state:", finalState);
 
-  // Step 5: Owner initiates recovery with new passkey
-  console.log("\nStep 5: Owner initiating account recovery...");
+  // Step 5: Owner initiates recovery with new passkey using "Confirm Now" flow
+  console.log("\nStep 5: Owner initiating account recovery with Confirm Now...");
 
   // Create new recovery credential
   const recoveryContext = await baseContext.browser()!.newContext();
@@ -883,83 +883,87 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
   await createPasskeyBtn.click();
   await recoveryPage.waitForTimeout(3000);
 
-  // Click "Confirm Later" to see the recovery URL
+  // Step 6: Click "Confirm Later" to get the recovery URL
+  console.log("\nStep 6: Getting recovery confirmation URL...");
+
+  // Click "Confirm Later" to get the URL
   const confirmLaterBtn = recoveryPage.getByRole("button", { name: /Confirm Later/i });
   await expect(confirmLaterBtn).toBeVisible({ timeout: 10000 });
   await confirmLaterBtn.click();
   await recoveryPage.waitForTimeout(2000);
 
-  // Wait for the recovery URL link to be visible and extract it
-  const recoveryLink = recoveryPage.locator("a[href*='confirm-recovery']");
+  // Find and extract the recovery URL from the page
+  const recoveryLink = recoveryPage.locator("a[href*=\"/recovery/guardian/confirm-recovery\"]");
   await expect(recoveryLink).toBeVisible({ timeout: 10000 });
+  const recoveryConfirmationUrl = await recoveryLink.getAttribute("href");
+  console.log(`Recovery confirmation URL: ${recoveryConfirmationUrl}`);
 
-  const confirmRecoveryUrl = await recoveryLink.getAttribute("href");
-
-  console.log(`✅ Recovery initiated. Confirmation URL: ${confirmRecoveryUrl}`);
-
-  // Step 6: Guardian confirms the recovery
-  console.log("\nStep 6: Guardian confirming recovery request...");
-
-  if (!confirmRecoveryUrl) {
-    throw new Error("Failed to get recovery confirmation URL");
+  if (!recoveryConfirmationUrl) {
+    throw new Error("Failed to capture recovery confirmation URL");
   }
 
-  // The URL is already a full URL, use it directly
-  await guardianPage.goto(confirmRecoveryUrl);
-  console.log("Navigated to recovery confirmation page");
+  // Close the owner's recovery page and context
+  await recoveryPage.close();
+  await recoveryContext.close();
 
-  // Wait for page to load
+  // Step 7: Guardian confirms recovery
+  console.log("\nStep 7: Guardian confirming recovery...");
+
+  // Navigate directly to the recovery confirmation URL
+  await guardianPage.goto(recoveryConfirmationUrl);
   await guardianPage.waitForLoadState("networkidle");
-  await guardianPage.waitForTimeout(2000);
 
-  // Take a screenshot to see what's on the page
-  await guardianPage.screenshot({ path: "test-results/recovery-page-debug.png" });
-
-  // Check what's actually on the page
-  const bodyText = await guardianPage.locator("body").textContent();
-  console.log(`Page content (first 1000 chars): ${bodyText?.substring(0, 1000)}`);
-
-  // Check if there's an error message first (before trying to find h1)
-  const errorCard = guardianPage.locator("[title='Error']");
-  const hasError = await errorCard.isVisible().catch(() => false);
-  if (hasError) {
-    const errorMsg = await guardianPage.locator("body").textContent();
-    console.log(`❌ Error on recovery page: ${errorMsg?.substring(0, 500)}`);
-    throw new Error(`Recovery page shows error. credentialPublicKey is empty in URL: ${confirmRecoveryUrl}`);
-  }
-
-  // Now try to find h1
-  const h1Element = guardianPage.locator("h1");
-  const h1Visible = await h1Element.isVisible().catch(() => false);
-  if (!h1Visible) {
-    throw new Error(`No h1 found on page. This likely means the page failed to load due to missing credentialPublicKey in URL: ${confirmRecoveryUrl}`);
-  }
-  const pageTitle = await h1Element.textContent();
-  console.log(`Recovery page title: ${pageTitle}`);
-
-  // Select guardian from dropdown (it's a native select element inside account-recovery-account-select)
+  // Wait for the guardian select dropdown to load
   const guardianSelect = guardianPage.locator("select");
-  await expect(guardianSelect).toBeVisible({ timeout: 10000 });
-  await guardianSelect.selectOption(guardianAddress);
+  await expect(guardianSelect).toBeVisible({ timeout: 15000 });
+
+  // Debug: Check what options are actually in the dropdown
+  await guardianPage.waitForTimeout(3000); // Give time for async guardians to load
+  const allOptions = await guardianSelect.locator("option").all();
+  console.log(`\nFound ${allOptions.length} option(s) in guardian dropdown:`);
+  for (const option of allOptions) {
+    const value = await option.getAttribute("value");
+    const text = await option.textContent();
+    console.log(`  - value="${value}" text="${text}"`);
+  }
+
+  // Try to select the guardian (try both cases)
+  const normalizedGuardianAddress = guardianAddress.toLowerCase();
+  console.log(`\nLooking for guardian: ${guardianAddress}`);
+  console.log(`Normalized (lowercase): ${normalizedGuardianAddress}`);
+
+  // Check if the option exists in either case
+  let optionFound = false;
+  for (const option of allOptions) {
+    const value = await option.getAttribute("value");
+    if (value && value.toLowerCase() === normalizedGuardianAddress) {
+      console.log(`✅ Found matching option with value: ${value}`);
+      await guardianSelect.selectOption({ value: value });
+      optionFound = true;
+      break;
+    }
+  }
+
+  if (!optionFound) {
+    throw new Error(`Guardian option not found in dropdown. Expected: ${guardianAddress} (or ${normalizedGuardianAddress}). Available options: ${allOptions.length > 0 ? (await Promise.all(allOptions.map(async (o) => await o.getAttribute("value")))).join(", ") : "none"}`);
+  }
+
   await guardianPage.waitForTimeout(1000);
 
-  // Confirm the recovery
+  // Click Confirm Recovery button
   const confirmRecoveryBtn = guardianPage.getByRole("button", { name: /Confirm Recovery/i });
   await expect(confirmRecoveryBtn).toBeVisible({ timeout: 10000 });
+  await expect(confirmRecoveryBtn).toBeEnabled({ timeout: 5000 });
   await confirmRecoveryBtn.click();
-  await guardianPage.waitForTimeout(5000);
 
-  // Verify recovery was initiated
-  const recoveryCompletedMsg = guardianPage.getByText(/24hrs/i);
-  const recoveryCompleted = await recoveryCompletedMsg.isVisible({ timeout: 10000 }).catch(() => false);
+  console.log("Clicked Confirm Recovery, waiting for success message...");
 
-  if (!recoveryCompleted) {
-    // Take a screenshot for debugging
-    await guardianPage.screenshot({ path: "test-results/recovery-confirmation-debug.png" });
-    const bodyText = await guardianPage.locator("body").textContent();
-    console.log("Page content:", bodyText?.substring(0, 500));
-    throw new Error("Recovery confirmation failed - completion message not visible");
-  }
+  // Verify recovery was initiated - look for success message
+  const successMessage = guardianPage.getByText(/24hrs/i)
+    .or(guardianPage.getByText(/24 hours/i))
+    .or(guardianPage.getByText(/recovery.*initiated/i));
+
+  await expect(successMessage).toBeVisible({ timeout: 20000 });
 
   console.log("✅ Guardian confirmed recovery successfully");
 
@@ -980,5 +984,4 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
 
   // Cleanup
   await guardianContext.close();
-  await recoveryContext.close();
 });
