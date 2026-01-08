@@ -23,16 +23,21 @@ pub fn encode_propose_guardian_call_data(
     new_guardian: String,
 ) -> Result<String, JsValue> {
     // Parse addresses
-    let guardian_executor_addr = guardian_executor
-        .parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid guardian executor address: {}", e)))?;
+    let guardian_executor_addr =
+        guardian_executor.parse::<Address>().map_err(|e| {
+            JsValue::from_str(&format!(
+                "Invalid guardian executor address: {}",
+                e
+            ))
+        })?;
 
-    let new_guardian_addr = new_guardian
-        .parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid new guardian address: {}", e)))?;
+    let new_guardian_addr = new_guardian.parse::<Address>().map_err(|e| {
+        JsValue::from_str(&format!("Invalid new guardian address: {}", e))
+    })?;
 
     // Get the encoded call data
-    let call_data = propose_guardian_call_data(new_guardian_addr, guardian_executor_addr);
+    let call_data =
+        propose_guardian_call_data(new_guardian_addr, guardian_executor_addr);
 
     // Return as hex string
     Ok(format!("0x{}", hex::encode(call_data)))
@@ -56,16 +61,27 @@ pub fn encode_remove_guardian_call_data(
     guardian_to_remove: String,
 ) -> Result<String, JsValue> {
     // Parse addresses
-    let guardian_executor_addr = guardian_executor
-        .parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid guardian executor address: {}", e)))?;
+    let guardian_executor_addr =
+        guardian_executor.parse::<Address>().map_err(|e| {
+            JsValue::from_str(&format!(
+                "Invalid guardian executor address: {}",
+                e
+            ))
+        })?;
 
-    let guardian_to_remove_addr = guardian_to_remove
-        .parse::<Address>()
-        .map_err(|e| JsValue::from_str(&format!("Invalid guardian to remove address: {}", e)))?;
+    let guardian_to_remove_addr =
+        guardian_to_remove.parse::<Address>().map_err(|e| {
+            JsValue::from_str(&format!(
+                "Invalid guardian to remove address: {}",
+                e
+            ))
+        })?;
 
     // Get the encoded call data
-    let call_data = remove_guardian_call_data(guardian_to_remove_addr, guardian_executor_addr);
+    let call_data = remove_guardian_call_data(
+        guardian_to_remove_addr,
+        guardian_executor_addr,
+    );
 
     // Return as hex string
     Ok(format!("0x{}", hex::encode(call_data)))
