@@ -28,6 +28,14 @@ import {
   getShadowAccount,
 } from "./aave-utils.js";
 
+import { sendInteropMessage } from "./interop.js";
+import {
+  getTokenInfo,
+  getTokenBalance,
+  getWrappedTokenAddress,
+  transferTokensInterop,
+} from "./token-interop.js";
+
 // ZKsync OS configuration
 const zksyncOsTestnet = defineChain({
   id: 8022833,
@@ -64,6 +72,10 @@ const ZKSYNC_OS_RPC_URL = shouldUseLocalRpcProxy ? LOCAL_RPC_PROXY_URL : DEFAULT
 // Deployer private key (for deploying accounts and faucet)
 // Can be set via VITE_DEPLOYER_PRIVATE_KEY environment variable
 const DEPLOYER_PRIVATE_KEY = import.meta.env?.VITE_DEPLOYER_PRIVATE_KEY;
+
+// Interop private key (for local chain interop transactions)
+// Can be set via VITE_INTEROP_PRIVATE_KEY environment variable
+const INTEROP_PRIVATE_KEY = import.meta.env?.VITE_INTEROP_PRIVATE_KEY || "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110";
 
 // Contract addresses on ZKsync OS testnet
 const CONTRACTS = {
@@ -152,6 +164,9 @@ function setupEventListeners() {
   document.getElementById("aaveDepositBtn").addEventListener("click", handleAaveDeposit);
   document.getElementById("aaveWithdrawBtn").addEventListener("click", handleAaveWithdraw);
   document.getElementById("refreshAaveBalanceBtn").addEventListener("click", refreshAaveBalance);
+  document.getElementById("interopSendBtn").addEventListener("click", handleInteropSend);
+  document.getElementById("refreshTokenBalancesBtn").addEventListener("click", handleRefreshTokenBalances);
+  document.getElementById("tokenTransferBtn").addEventListener("click", handleTokenTransfer);
 }
 
 let activityInterval = null;
@@ -782,7 +797,7 @@ async function handleFaucet() {
   try {
     console.log("🚰 Starting faucet for account:", accountAddress);
 
-    // Create deployer wallet client
+    // Create deployer wallet client for L2
     const deployerAccount = privateKeyToAccount(DEPLOYER_PRIVATE_KEY);
     const deployerWallet = createWalletClient({
       account: deployerAccount,
@@ -821,12 +836,32 @@ async function handleFaucet() {
     console.log(`✅ Direct transfer tx: ${transferHash}`);
     await waitForTransactionReceipt(publicClient, { hash: transferHash });
 
-    console.log("🎉 Faucet complete! Funded with 0.06 ETH total");
+    // Transaction 3: Fund shadow account on Sepolia
+    console.log("🌉 Funding shadow account on Sepolia...");
+    const shadowAccount = await getShadowAccount(publicClient, accountAddress);
+    console.log(`Shadow account: ${shadowAccount}`);
+
+    const sepoliaDeployerWallet = createWalletClient({
+      account: deployerAccount,
+      chain: sepolia,
+      transport: http("https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU"),
+    });
+
+    const SHADOW_AMOUNT = parseEther("0.01");
+    const shadowTransferHash = await sepoliaDeployerWallet.sendTransaction({
+      to: shadowAccount,
+      value: SHADOW_AMOUNT,
+    });
+
+    console.log(`✅ Shadow account funding tx: ${shadowTransferHash}`);
+    await waitForTransactionReceipt(sepoliaClient, { hash: shadowTransferHash });
+
+    console.log("🎉 Faucet complete! Funded with 0.07 ETH total (0.06 on L2 + 0.01 on Sepolia shadow account)");
 
     // Refresh balance
     await autoRefreshBalance();
 
-    alert("Success! Your wallet has been funded with 0.06 ETH (0.03 to EntryPoint + 0.03 direct)");
+    alert("Success! Your wallet has been funded with:\n• 0.03 ETH to EntryPoint\n• 0.03 ETH direct to wallet\n• 0.01 ETH to shadow account on Sepolia");
   } catch (error) {
     console.error("Faucet failed:", error);
     alert("Faucet failed: " + error.message);
@@ -1884,5 +1919,246 @@ async function handleAaveWithdraw() {
   } finally {
     btn.disabled = false;
     btn.textContent = "Withdraw from Aave";
+  }
+}
+
+// Interop functionality
+const CHAIN_A_RPC = "http://localhost:3050";
+const CHAIN_B_RPC = "http://localhost:3051";
+
+async function handleInteropSend() {
+  const btn = document.getElementById("interopSendBtn");
+  const message = document.getElementById("interopMessage").value;
+  const directionSelect = document.getElementById("interopMessageDirection");
+  const direction = directionSelect.value;
+
+  // Hide previous results
+  document.getElementById("interop-success").classList.add("hidden");
+  document.getElementById("interop-error").classList.add("hidden");
+  document.getElementById("interop-progress").classList.remove("hidden");
+
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+
+  const progressSteps = document.getElementById("interopProgressSteps");
+  progressSteps.innerHTML = "";
+
+  const addProgressStep = (step) => {
+    const stepEl = document.createElement("div");
+    stepEl.textContent = step;
+    stepEl.style.padding = "4px 0";
+    stepEl.style.fontSize = "13px";
+    progressSteps.appendChild(stepEl);
+  };
+
+  try {
+    console.log("🌉 Starting interop message flow...");
+
+    // Determine source and destination based on direction
+    const isAtoB = direction === "a-to-b";
+    const sourceRpc = isAtoB ? CHAIN_A_RPC : CHAIN_B_RPC;
+    const destRpc = isAtoB ? CHAIN_B_RPC : CHAIN_A_RPC;
+
+    const result = await sendInteropMessage(message, INTEROP_PRIVATE_KEY, addProgressStep, sourceRpc, destRpc);
+
+    // Hide progress and show success
+    document.getElementById("interop-progress").classList.add("hidden");
+    document.getElementById("interop-success").classList.remove("hidden");
+
+    // Fill in success details
+    document.getElementById("interopTxHashSource").textContent = result.txHash;
+    document.getElementById("interopBatchNumber").textContent = result.batchNumber;
+    document.getElementById("interopMessageIndex").textContent = result.messageIndex;
+    document.getElementById("interopMessageDirectionValue").textContent = isAtoB ? "Chain A → Chain B" : "Chain B → Chain A";
+
+    console.log("✅ Interop verification successful!");
+  } catch (error) {
+    console.error("Interop failed:", error);
+    document.getElementById("interop-progress").classList.add("hidden");
+    document.getElementById("interop-error").textContent = "Interop failed: " + error.message;
+    document.getElementById("interop-error").classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Send Message";
+  }
+}
+
+// Token transfer functionality
+const TOKEN_ADDRESS = "0xe441CF0795aF14DdB9f7984Da85CD36DB1B8790d";
+
+// Refresh token balances
+async function handleRefreshTokenBalances() {
+  const btn = document.getElementById("refreshTokenBalancesBtn");
+
+  // Don't disable button if it doesn't exist (called from tab switch)
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Refreshing...";
+  }
+
+  try {
+    console.log("🔄 Refreshing token balances...");
+
+    // Create providers using ethers (for token-interop compatibility)
+    const { ethers } = await import("ethers");
+    const providerA = new ethers.JsonRpcProvider(CHAIN_A_RPC);
+    const providerB = new ethers.JsonRpcProvider(CHAIN_B_RPC);
+
+    // Get token info from Chain A
+    const tokenInfo = await getTokenInfo(TOKEN_ADDRESS, providerA);
+    document.getElementById("tokenName").textContent = tokenInfo.name;
+    document.getElementById("tokenSymbol").textContent = tokenInfo.symbol;
+    document.getElementById("tokenSymbolA").textContent = tokenInfo.symbol;
+    document.getElementById("tokenSymbolB").textContent = tokenInfo.symbol;
+
+    console.log("Token info:", tokenInfo);
+
+    // Get wallet address (use the interop private key)
+    const wallet = new ethers.Wallet(INTEROP_PRIVATE_KEY, providerA);
+    const walletAddress = wallet.address;
+
+    // Get balance on Chain A
+    const balanceA = await getTokenBalance(TOKEN_ADDRESS, walletAddress, providerA);
+    const formattedBalanceA = ethers.formatUnits(balanceA, tokenInfo.decimals);
+    document.getElementById("tokenBalanceA").textContent = formattedBalanceA;
+
+    console.log("Balance on Chain A:", formattedBalanceA, tokenInfo.symbol);
+
+    // Get wrapped token address on Chain B
+    const chainAId = (await providerA.getNetwork()).chainId;
+    const wrappedTokenAddress = await getWrappedTokenAddress(TOKEN_ADDRESS, chainAId, providerB);
+
+    if (wrappedTokenAddress) {
+      const balanceB = await getTokenBalance(wrappedTokenAddress, walletAddress, providerB);
+      const formattedBalanceB = ethers.formatUnits(balanceB, tokenInfo.decimals);
+      document.getElementById("tokenBalanceB").textContent = formattedBalanceB;
+      console.log("Balance on Chain B:", formattedBalanceB, tokenInfo.symbol);
+    } else {
+      document.getElementById("tokenBalanceB").textContent = "0 (not bridged yet)";
+      console.log("Token not yet bridged to Chain B");
+    }
+
+    console.log("✅ Token balances refreshed");
+  } catch (error) {
+    console.error("Failed to refresh token balances:", error);
+    // Only alert if triggered manually by button
+    if (btn) {
+      alert("Failed to refresh token balances: " + error.message);
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Refresh Token Balances";
+    }
+  }
+}
+
+// Export to window for tab switch to access
+window.handleRefreshTokenBalances = handleRefreshTokenBalances;
+
+// Transfer tokens
+async function handleTokenTransfer() {
+  const btn = document.getElementById("tokenTransferBtn");
+  const amountInput = document.getElementById("tokenTransferAmount");
+  const directionSelect = document.getElementById("tokenTransferDirection");
+  const amount = amountInput.value;
+  const direction = directionSelect.value;
+
+  if (!amount || parseFloat(amount) <= 0) {
+    alert("Please enter a valid amount");
+    return;
+  }
+
+  // Hide previous results
+  document.getElementById("token-transfer-success").classList.add("hidden");
+  document.getElementById("token-transfer-error").classList.add("hidden");
+  document.getElementById("token-transfer-progress").classList.remove("hidden");
+
+  btn.disabled = true;
+  btn.textContent = "Transferring...";
+
+  const progressSteps = document.getElementById("tokenTransferProgressSteps");
+  progressSteps.innerHTML = "";
+
+  const addProgressStep = (step) => {
+    const stepEl = document.createElement("div");
+    stepEl.textContent = step;
+    stepEl.style.padding = "4px 0";
+    stepEl.style.fontSize = "13px";
+    progressSteps.appendChild(stepEl);
+  };
+
+  try {
+    console.log("🌉 Starting token transfer...");
+
+    // Create providers using ethers
+    const { ethers } = await import("ethers");
+    const providerA = new ethers.JsonRpcProvider(CHAIN_A_RPC);
+    const providerB = new ethers.JsonRpcProvider(CHAIN_B_RPC);
+
+    // Determine source and destination based on direction
+    const isAtoB = direction === "a-to-b";
+    const sourceProvider = isAtoB ? providerA : providerB;
+    const destProvider = isAtoB ? providerB : providerA;
+    const sourceTokenAddress = TOKEN_ADDRESS; // Always the original token on Chain A
+
+    // Get token info to parse amount with correct decimals
+    const tokenInfo = await getTokenInfo(TOKEN_ADDRESS, providerA);
+    const amountBigInt = ethers.parseUnits(amount, tokenInfo.decimals);
+
+    // Get recipient address (same wallet)
+    const wallet = new ethers.Wallet(INTEROP_PRIVATE_KEY, sourceProvider);
+    const recipientAddress = wallet.address;
+
+    // For B→A, we need to get the wrapped token address on Chain B
+    let transferTokenAddress = sourceTokenAddress;
+    const chainAId = (await providerA.getNetwork()).chainId;
+
+    if (!isAtoB) {
+      const wrappedTokenAddress = await getWrappedTokenAddress(TOKEN_ADDRESS, chainAId, providerB);
+      if (!wrappedTokenAddress) {
+        throw new Error("Token not yet bridged to Chain B. Please transfer from A to B first.");
+      }
+      transferTokenAddress = wrappedTokenAddress;
+    }
+
+    const result = await transferTokensInterop(
+      transferTokenAddress,
+      amountBigInt,
+      recipientAddress,
+      INTEROP_PRIVATE_KEY,
+      sourceProvider,
+      destProvider,
+      TOKEN_ADDRESS,        // originalTokenAddress - always Chain A token
+      chainAId,             // originalChainId - always Chain A ID
+      addProgressStep
+    );
+
+    // Hide progress and show success
+    document.getElementById("token-transfer-progress").classList.add("hidden");
+    document.getElementById("token-transfer-success").classList.remove("hidden");
+
+    // Fill in success details
+    document.getElementById("tokenTransferTxHashSource").textContent = result.sendTxHash;
+    document.getElementById("tokenTransferTxHashDest").textContent = result.executeTxHash;
+    document.getElementById("tokenTransferAmountValue").textContent = amount;
+    document.getElementById("tokenTransferSymbol").textContent = tokenInfo.symbol;
+    document.getElementById("tokenTransferDirectionValue").textContent = isAtoB ? "Chain A → Chain B" : "Chain B → Chain A";
+
+    console.log("✅ Token transfer successful!");
+
+    // Refresh balances after 2 seconds
+    setTimeout(() => {
+      handleRefreshTokenBalances();
+    }, 2000);
+
+  } catch (error) {
+    console.error("Token transfer failed:", error);
+    document.getElementById("token-transfer-progress").classList.add("hidden");
+    document.getElementById("token-transfer-error").textContent = "Token transfer failed: " + error.message;
+    document.getElementById("token-transfer-error").classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Transfer Tokens";
   }
 }

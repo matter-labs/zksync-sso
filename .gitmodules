@@ -7,3 +7,6 @@
 [submodule "packages/circuits"]
 	path = packages/circuits
 	url = git@github.com:Moonsong-Labs/zksync-social-login-circuit.git
+[submodule "passkey-wallet-app/token-deployment/lib/openzeppelin-contracts"]
+	path = passkey-wallet-app/token-deployment/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts

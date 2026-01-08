@@ -353,6 +353,7 @@
       <button class="nav-tab active" data-tab="home">Home</button>
       <button class="nav-tab" data-tab="send">Send</button>
       <button class="nav-tab" data-tab="earn">Earn</button>
+      <button class="nav-tab" data-tab="interop">Interop</button>
       <button class="nav-tab" data-tab="activity">Activity</button>
     </div>
 
@@ -547,6 +548,151 @@
       </div>
     </div>
 
+    <!-- Interop Tab -->
+    <div class="tab-content" id="interop-tab">
+      <div class="card">
+        <div class="card-title">Cross-Chain Interop (Local)</div>
+        <div class="card-subtitle">
+          Send messages between two local ZKsync chains using L2-to-L2 interop messaging.
+          <br><strong>Note:</strong> This feature connects to local chains only (ports 3050 & 3051).
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="alert-info">
+          <strong>Setup Required</strong>
+          Make sure you have two local ZKsync chains running:
+          <ul style="margin: 8px 0 0 20px;">
+            <li>Chain A: http://localhost:3050</li>
+            <li>Chain B: http://localhost:3051</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Send Interop Message</div>
+        <div id="interop-form">
+          <div class="form-group">
+            <label for="interopMessage">Message</label>
+            <input type="text" id="interopMessage" placeholder="hello interop" value="hello interop">
+          </div>
+
+          <div class="form-group">
+            <label for="interopMessageDirection">Message Direction</label>
+            <select id="interopMessageDirection" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="a-to-b">Chain A → Chain B</option>
+              <option value="b-to-a">Chain B → Chain A</option>
+            </select>
+          </div>
+
+          <button id="interopSendBtn">Send Message</button>
+        </div>
+
+        <div id="interop-progress" class="hidden alert alert-info">
+          <strong id="interopProgressTitle">⏳ Sending message...</strong>
+          <div id="interopProgressSteps"></div>
+        </div>
+
+        <div id="interop-success" class="hidden alert alert-success">
+          <strong>✓ Interop Message Verified!</strong>
+          <div class="info-row">
+            <span class="info-label">Source Chain TX:</span>
+            <span class="info-value"><code id="interopTxHashSource"></code></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">L1 Batch:</span>
+            <span class="info-value"><code id="interopBatchNumber"></code></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Message Index:</span>
+            <span class="info-value"><code id="interopMessageIndex"></code></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Direction:</span>
+            <span class="info-value"><span id="interopMessageDirectionValue"></span></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Verified on Destination:</span>
+            <span class="info-value" style="color: #4caf50;">✓ Success</span>
+          </div>
+        </div>
+
+        <div id="interop-error" class="hidden alert alert-error"></div>
+      </div>
+
+      <!-- Token Transfer Section -->
+      <div class="card">
+        <div class="card-title">Cross-Chain Token Transfer</div>
+        <div class="card-subtitle">Transfer ERC20 tokens between Chain A and Chain B</div>
+
+        <!-- Token Info -->
+        <div id="token-info" class="alert-info">
+          <div class="info-row">
+            <span class="info-label">Token:</span>
+            <span class="info-value"><span id="tokenSymbol">-</span> (<span id="tokenName">-</span>)</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Address:</span>
+            <span class="info-value"><code id="tokenAddress">0xe441CF0795aF14DdB9f7984Da85CD36DB1B8790d</code></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Balance on Chain A:</span>
+            <span class="info-value"><span id="tokenBalanceA">-</span> <span id="tokenSymbolA"></span></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Balance on Chain B:</span>
+            <span class="info-value"><span id="tokenBalanceB">-</span> <span id="tokenSymbolB"></span></span>
+          </div>
+          <button id="refreshTokenBalancesBtn" style="margin-top: 12px;">Refresh Token Balances</button>
+        </div>
+
+        <!-- Transfer Form -->
+        <div id="token-transfer-form">
+          <div class="form-group">
+            <label for="tokenTransferAmount">Amount to Transfer</label>
+            <input type="number" id="tokenTransferAmount" placeholder="100" value="100" step="0.01" min="0">
+          </div>
+
+          <div class="form-group">
+            <label for="tokenTransferDirection">Transfer Direction</label>
+            <select id="tokenTransferDirection" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="a-to-b">Chain A → Chain B</option>
+              <option value="b-to-a">Chain B → Chain A</option>
+            </select>
+          </div>
+
+          <button id="tokenTransferBtn">Transfer Tokens</button>
+        </div>
+
+        <div id="token-transfer-progress" class="hidden alert alert-info">
+          <strong id="tokenTransferProgressTitle">⏳ Transferring tokens...</strong>
+          <div id="tokenTransferProgressSteps"></div>
+        </div>
+
+        <div id="token-transfer-success" class="hidden alert alert-success">
+          <strong>✓ Token Transfer Complete!</strong>
+          <div class="info-row">
+            <span class="info-label">Source Chain TX:</span>
+            <span class="info-value"><code id="tokenTransferTxHashSource"></code></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Destination Chain TX:</span>
+            <span class="info-value"><code id="tokenTransferTxHashDest"></code></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Amount:</span>
+            <span class="info-value"><span id="tokenTransferAmountValue"></span> <span id="tokenTransferSymbol"></span></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Direction:</span>
+            <span class="info-value"><span id="tokenTransferDirectionValue"></span></span>
+          </div>
+        </div>
+
+        <div id="token-transfer-error" class="hidden alert alert-error"></div>
+      </div>
+    </div>
+
     <!-- Activity Tab -->
     <div class="tab-content" id="activity-tab">
       <div class="card">
@@ -580,6 +726,14 @@
         // Update active content
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
         document.getElementById(`${tabName}-tab`).classList.add('active');
+
+        // Auto-load token balances when switching to interop tab
+        if (tabName === 'interop') {
+          // Trigger refresh if handler is defined
+          if (window.handleRefreshTokenBalances) {
+            window.handleRefreshTokenBalances();
+          }
+        }
       });
     });
 
