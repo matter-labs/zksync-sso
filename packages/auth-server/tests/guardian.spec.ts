@@ -409,7 +409,8 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
   await page.waitForTimeout(3000);
 
   // Look for the guardian in the active guardians list
-  const guardiansList = page.locator(`text=${guardianAddressText.slice(0, 8)}`);
+  // Use a more specific selector to avoid matching the URL in "Confirm Later" flow
+  const guardiansList = page.getByRole("main").locator(`text=${guardianAddressText.slice(0, 8)}`).first();
   if (await guardiansList.isVisible({ timeout: 5000 })) {
     console.log("✅ Guardian found in active guardians list");
   } else {
