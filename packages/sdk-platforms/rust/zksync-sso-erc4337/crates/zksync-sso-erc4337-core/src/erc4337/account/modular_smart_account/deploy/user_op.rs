@@ -155,10 +155,11 @@ mod tests {
         )
         .await?;
 
+        let paymaster_fund_amount = U256::from(1_000_000_000_000_000_000u64);
         let signer_address = provider.default_signer_address();
         let signer_balance = provider.get_balance(signer_address).await?;
         eyre::ensure!(
-            signer_balance > U256::ZERO,
+            signer_balance > paymaster_fund_amount,
             "Signer wallet not funded: {signer_address} (balance {signer_balance})"
         );
 
@@ -178,7 +179,7 @@ mod tests {
 
         let (mock_paymaster, paymaster_address) =
             deploy_mock_paymaster_and_deposit_amount(
-                U256::from(1_000_000_000_000_000_000u64),
+                paymaster_fund_amount,
                 provider.clone(),
             )
             .await?;
