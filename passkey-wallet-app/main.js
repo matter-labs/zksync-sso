@@ -149,6 +149,12 @@ document.addEventListener("DOMContentLoaded", () => {
     transport: http("https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU"),
   });
 
+  // Set network name in header
+  const networkNameEl = document.getElementById("headerNetwork");
+  if (networkNameEl) {
+    networkNameEl.textContent = zksyncOsTestnet.name;
+  }
+
   setupEventListeners();
   loadExistingPasskey();
 });
@@ -159,6 +165,7 @@ function setupEventListeners() {
   document.getElementById("refreshBalanceBtn").addEventListener("click", handleRefreshBalance);
   document.getElementById("faucetBtn").addEventListener("click", handleFaucet);
   document.getElementById("transferBtn").addEventListener("click", handleTransfer);
+  document.getElementById("sendMaxBtn").addEventListener("click", handleSendMax);
   document.getElementById("resetPasskeyBtn").addEventListener("click", handleResetPasskey);
   document.getElementById("resetPasskeyMainBtn").addEventListener("click", handleResetPasskey);
   document.getElementById("aaveDepositBtn").addEventListener("click", handleAaveDeposit);
@@ -430,6 +437,7 @@ function loadExistingPasskey() {
 
       // Enable transfer
       document.getElementById("transferBtn").disabled = false;
+      document.getElementById("sendMaxBtn").disabled = false;
 
       // Enable Aave buttons
       const aaveDepositBtn = document.getElementById("aaveDepositBtn");
@@ -707,6 +715,7 @@ async function handleDeployAccount() {
 
     // Enable transfer
     document.getElementById("transferBtn").disabled = false;
+    document.getElementById("sendMaxBtn").disabled = false;
 
     // Enable Aave buttons
     const aaveDepositBtn = document.getElementById("aaveDepositBtn");
@@ -914,6 +923,26 @@ async function ensureAccountInitialized() {
     }
     console.error("Failed to check passkey registration:", error);
     throw new Error("Failed to verify passkey registration: " + error.message);
+  }
+}
+
+// Send maximum balance (entire balance can be sent since gas is paid via ERC-4337)
+async function handleSendMax() {
+  try {
+    if (!accountAddress) {
+      alert("Please deploy your account first");
+      return;
+    }
+
+    const balance = await publicClient.getBalance({ address: accountAddress });
+    const maxEth = formatEther(balance);
+
+    document.getElementById("transferAmount").value = maxEth;
+    document.getElementById("max-amount-info").textContent =
+      `Sending entire balance: ${maxEth} ETH (gas paid via ERC-4337)`;
+  } catch (error) {
+    console.error("Failed to get balance:", error);
+    alert("Failed to get balance");
   }
 }
 
@@ -1191,6 +1220,11 @@ async function handleTransfer() {
       // Update UI
       document.getElementById("transfer-success").classList.remove("hidden");
       document.getElementById("txHashDisplay").textContent = receipt.receipt.transactionHash;
+
+      // Set explorer link
+      const txLink = document.getElementById("transfer-tx-link");
+      txLink.href = `${L2_EXPLORER_BASE}${receipt.receipt.transactionHash}`;
+
 
       // Refresh balance
       await handleRefreshBalance();
@@ -1984,7 +2018,18 @@ async function handleInteropSend() {
 }
 
 // Token transfer functionality
-const TOKEN_ADDRESS = "0xe441CF0795aF14DdB9f7984Da85CD36DB1B8790d";
+// Can be set via VITE_TOKEN_ADDRESS environment variable (set automatically by deploy-usd.sh)
+const TOKEN_ADDRESS = import.meta.env?.VITE_TOKEN_ADDRESS || "0xe441CF0795aF14DdB9f7984Da85CD36DB1B8790d";
+
+// Update HTML with token address
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const tokenAddressEl = document.getElementById('tokenAddress');
+    if (tokenAddressEl && TOKEN_ADDRESS) {
+      tokenAddressEl.textContent = TOKEN_ADDRESS;
+    }
+  });
+}
 
 // Refresh token balances
 async function handleRefreshTokenBalances() {
@@ -2039,11 +2084,17 @@ async function handleRefreshTokenBalances() {
     }
 
     console.log("✅ Token balances refreshed");
+    // Hide warning on success
+    document.getElementById("interop-connection-warning").classList.add("hidden");
+    enableInteropForms();
   } catch (error) {
     console.error("Failed to refresh token balances:", error);
+    // Show warning instead of alert
+    showInteropWarning(error.message);
+    disableInteropForms();
     // Only alert if triggered manually by button
     if (btn) {
-      alert("Failed to refresh token balances: " + error.message);
+      // Don't alert, warning is already shown
     }
   } finally {
     if (btn) {
@@ -2051,6 +2102,36 @@ async function handleRefreshTokenBalances() {
       btn.textContent = "Refresh Token Balances";
     }
   }
+}
+
+// Show warning for interop connection issues
+function showInteropWarning(message) {
+  const warning = document.getElementById("interop-connection-warning");
+  const messageEl = document.getElementById("interop-warning-message");
+  messageEl.textContent = message;
+  warning.classList.remove("hidden");
+}
+
+// Disable interop forms
+function disableInteropForms() {
+  document.getElementById("interopSendBtn").disabled = true;
+  document.getElementById("tokenTransferBtn").disabled = true;
+  document.getElementById("refreshTokenBalancesBtn").disabled = true;
+  document.getElementById("interopMessage").disabled = true;
+  document.getElementById("interopMessageDirection").disabled = true;
+  document.getElementById("tokenTransferAmount").disabled = true;
+  document.getElementById("tokenTransferDirection").disabled = true;
+}
+
+// Enable interop forms
+function enableInteropForms() {
+  document.getElementById("interopSendBtn").disabled = false;
+  document.getElementById("tokenTransferBtn").disabled = false;
+  document.getElementById("refreshTokenBalancesBtn").disabled = false;
+  document.getElementById("interopMessage").disabled = false;
+  document.getElementById("interopMessageDirection").disabled = false;
+  document.getElementById("tokenTransferAmount").disabled = false;
+  document.getElementById("tokenTransferDirection").disabled = false;
 }
 
 // Export to window for tab switch to access

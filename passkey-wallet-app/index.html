@@ -35,6 +35,26 @@
       letter-spacing: -0.5px;
     }
 
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .header-network {
+      font-size: 13px;
+      color: #6c7378;
+      padding: 6px 12px;
+      background: #f5f7fa;
+      border-radius: 16px;
+      border: 1px solid #cbd2d9;
+    }
+
+    .header-network strong {
+      color: #2c2e2f;
+      font-weight: 600;
+    }
+
     .header-balance {
       font-size: 14px;
       color: #2c2e2f;
@@ -342,8 +362,13 @@
   <!-- PayPal Header -->
   <div class="paypal-header">
     <div class="paypal-logo">PayPal</div>
-    <div class="header-balance">
-      Balance: <strong><span id="headerBalance">--</span> ETH</strong>
+    <div class="header-right">
+      <div class="header-network">
+        Network: <strong><span id="headerNetwork">--</span></strong>
+      </div>
+      <div class="header-balance">
+        Balance: <strong><span id="headerBalance">--</span> ETH</strong>
+      </div>
     </div>
   </div>
 
@@ -460,7 +485,11 @@
 
           <div class="form-group">
             <label for="transferAmount">Amount (ETH)</label>
-            <input type="number" id="transferAmount" step="0.001" placeholder="0.01">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="number" id="transferAmount" step="0.001" placeholder="0.01" style="flex: 4;">
+              <button id="sendMaxBtn" type="button" style="flex: 1; padding: 8px; white-space: nowrap; font-size: 13px;" disabled>Max</button>
+            </div>
+            <div id="max-amount-info" style="font-size: 12px; color: #6c7378; margin-top: 4px;"></div>
           </div>
 
           <button id="transferBtn" disabled>Send ETH</button>
@@ -470,7 +499,11 @@
           <strong>✓ Transaction Sent!</strong>
           <div class="info-row">
             <span class="info-label">Transaction:</span>
-            <span class="info-value"><code id="txHashDisplay"></code></span>
+            <span class="info-value">
+              <a id="transfer-tx-link" href="#" target="_blank" style="color: #0070ba; text-decoration: underline;">
+                <code id="txHashDisplay"></code>
+              </a>
+            </span>
           </div>
         </div>
 
@@ -569,6 +602,21 @@
         </div>
       </div>
 
+      <!-- Connection Warning -->
+      <div id="interop-connection-warning" class="card hidden">
+        <div class="alert alert-error">
+          <strong>⚠️ Connection Issue</strong>
+          <div id="interop-warning-message"></div>
+          <div style="margin-top: 8px; font-size: 14px;">
+            Please check that:
+            <ul style="margin: 4px 0 0 20px;">
+              <li>Both local chains are running (ports 3050 & 3051)</li>
+              <li>The token is deployed on Chain A</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">Send Interop Message</div>
         <div id="interop-form">
@@ -633,7 +681,7 @@
           </div>
           <div class="info-row">
             <span class="info-label">Address:</span>
-            <span class="info-value"><code id="tokenAddress">0xe441CF0795aF14DdB9f7984Da85CD36DB1B8790d</code></span>
+            <span class="info-value"><code id="tokenAddress">Loading...</code></span>
           </div>
           <div class="info-row">
             <span class="info-label">Balance on Chain A:</span>

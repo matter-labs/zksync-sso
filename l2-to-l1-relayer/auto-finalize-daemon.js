@@ -311,14 +311,14 @@ async function finalizeTx(txHash) {
 
       if (status.phase === "FINALIZED") {
         console.log(`✅ Withdrawal already finalized for ${txHash}`);
-        // Don't return - continue to check L2InteropCenter message
+        // Continue to check if there's an L2InteropCenter message to finalize
       } else if (status.phase === "READY_TO_FINALIZE") {
         // Ready to finalize - execute now
         console.log(`🚀 Withdrawal is ready - finalizing now...`);
         await sdk.withdrawals.tryFinalize(txHash);
         await sdk.withdrawals.wait(txHash, { for: "finalized" });
         console.log(`✅ Withdrawal finalized for ${txHash}`);
-        // Don't return - continue to check L2InteropCenter message
+        // Continue to check if there's an L2InteropCenter message to finalize
       } else {
         // Not ready yet - return and try again later
         console.log(`⏳ Withdrawal not ready yet (phase: ${status.phase}) - will retry later`);
@@ -493,72 +493,86 @@ async function finalizeTx(txHash) {
   }
 }
 
+// Lock to prevent concurrent processing
+let isProcessing = false;
+
 async function processQueue() {
-  console.log(`\n${"=".repeat(80)}`);
-  console.log(`🔄 Processing queue... ${new Date().toLocaleTimeString()}`);
-  console.log("=".repeat(80));
-
-  await scanNewBlocks();
-
-  const pendingTxs = loadPendingTxs();
-  const finalizedTxs = loadFinalizedTxs();
-
-  if (pendingTxs.length === 0) {
-    console.log("ℹ️  No pending transactions to process");
+  // Skip if already processing
+  if (isProcessing) {
+    console.log(`⏭️  Skipping queue processing - already in progress`);
     return;
   }
 
-  console.log(`📋 Found ${pendingTxs.length} pending transaction(s)`);
+  isProcessing = true;
+  try {
+    console.log(`\n${"=".repeat(80)}`);
+    console.log(`🔄 Processing queue... ${new Date().toLocaleTimeString()}`);
+    console.log("=".repeat(80));
 
-  const stillPending = [];
+    await scanNewBlocks();
 
-  for (const tx of pendingTxs) {
-    // Backfill metadata for old transactions that don't have it
-    if (!tx.action || !tx.amount) {
-      try {
-        const receipt = await client.zks.getReceiptWithL2ToL1(tx.hash);
-        if (receipt) {
-          const metadata = await extractTxMetadata(receipt);
-          tx.action = metadata.action;
-          tx.amount = metadata.amount;
-          console.log(`📝 Backfilled metadata for ${tx.hash}: ${metadata.action} ${metadata.amount} ETH`);
+    const pendingTxs = loadPendingTxs();
+    const finalizedTxs = loadFinalizedTxs();
+
+    if (pendingTxs.length === 0) {
+      console.log("ℹ️  No pending transactions to process");
+      return;
+    }
+
+    console.log(`📋 Found ${pendingTxs.length} pending transaction(s)`);
+
+    const stillPending = [];
+
+    for (const tx of pendingTxs) {
+      // Backfill metadata for old transactions that don't have it
+      if (!tx.action || !tx.amount) {
+        try {
+          const receipt = await client.zks.getReceiptWithL2ToL1(tx.hash);
+          if (receipt) {
+            const metadata = await extractTxMetadata(receipt);
+            tx.action = metadata.action;
+            tx.amount = metadata.amount;
+            console.log(`📝 Backfilled metadata for ${tx.hash}: ${metadata.action} ${metadata.amount} ETH`);
+          }
+        } catch {
+          // If we can't get metadata, set defaults
+          tx.action = tx.action || "Unknown";
+          tx.amount = tx.amount || "0";
         }
-      } catch {
-        // If we can't get metadata, set defaults
-        tx.action = tx.action || "Unknown";
-        tx.amount = tx.amount || "0";
       }
+
+      const result = await finalizeTx(tx.hash);
+
+      if (result.success) {
+        console.log(`✅ Removed from queue: ${tx.hash}`);
+        finalizedTxs.unshift({
+          l2TxHash: tx.hash,
+          l1FinalizeTxHash: result.txHash,
+          finalizedAt: new Date().toISOString(),
+          action: tx.action,
+          amount: tx.amount,
+        });
+      } else if (result.reason === "proof_not_ready" || result.reason === "l1_pending" || result.reason === "withdrawal_not_ready") {
+        console.log(`⏳ Still pending: ${tx.hash}`);
+        stillPending.push({
+          ...tx,
+          lastFinalizeHash: result.txHash || tx.lastFinalizeHash,
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        console.log(`❌ Failed permanently: ${tx.hash} (${result.reason})`);
+      }
+
+      // Small delay between transactions
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
-    const result = await finalizeTx(tx.hash);
-
-    if (result.success) {
-      console.log(`✅ Removed from queue: ${tx.hash}`);
-      finalizedTxs.unshift({
-        l2TxHash: tx.hash,
-        l1FinalizeTxHash: result.txHash,
-        finalizedAt: new Date().toISOString(),
-        action: tx.action,
-        amount: tx.amount,
-      });
-    } else if (result.reason === "proof_not_ready" || result.reason === "l1_pending" || result.reason === "withdrawal_not_ready") {
-      console.log(`⏳ Still pending: ${tx.hash}`);
-      stillPending.push({
-        ...tx,
-        lastFinalizeHash: result.txHash || tx.lastFinalizeHash,
-        updatedAt: new Date().toISOString(),
-      });
-    } else {
-      console.log(`❌ Failed permanently: ${tx.hash} (${result.reason})`);
-    }
-
-    // Small delay between transactions
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    savePendingTxs(stillPending);
+    saveFinalizedTxs(finalizedTxs.slice(0, 50));
+    console.log(`\n📊 Queue updated: ${stillPending.length} remaining`);
+  } finally {
+    isProcessing = false;
   }
-
-  savePendingTxs(stillPending);
-  saveFinalizedTxs(finalizedTxs.slice(0, 50));
-  console.log(`\n📊 Queue updated: ${stillPending.length} remaining`);
 }
 
 function startStatusServer() {
