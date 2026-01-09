@@ -14,7 +14,7 @@ ERC-4337 bundler service with CORS proxy for ZKsync SSO. Built on
 
 - **4337**: Bundler CORS proxy (browser -> Alto)
 - **4338**: Alto bundler API (internal)
-- **4339**: RPC CORS proxy (browser -> zkSync OS RPC)
+- **4339**: RPC CORS proxy (browser -> ZKsync OS RPC)
 
 ## Quick Start
 
