@@ -288,7 +288,14 @@ const confirmGuardianAction = async () => {
     if (isConnectedSsoGuardian.value) {
       // User is logged in as the guardian SSO account - use SSO client with paymaster
       confirmationState.value = "getting_sso_client";
-      client = (await getConfigurableAccount({ address: guardianAddress.value, usePaymaster: true }))!;
+
+      // Add timeout to prevent hanging in CI environments (30s to account for slower RPC)
+      const clientPromise = getConfigurableAccount({ address: guardianAddress.value, usePaymaster: true });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout getting SSO client after 30 seconds")), 30000),
+      );
+
+      client = (await Promise.race([clientPromise, timeoutPromise]))!;
       confirmationState.value = "got_sso_client";
     } else {
       // User needs to connect with wallet (either not logged in or using different account)
