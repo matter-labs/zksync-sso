@@ -2653,9 +2653,7 @@ pub fn encode_deploy_account_call_data(
             }
             Some(parsed_addresses)
         }
-        None => {
-            None
-        }
+        None => None,
     };
 
     // Create init data using the same logic as deploy.rs
