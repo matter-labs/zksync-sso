@@ -17,12 +17,14 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000
+Open <http://localhost:3000>
 
 ## How It Works
 
 ### 1. Create Passkey
+
 Uses `registerNewPasskey` from `zksync-sso/client/passkey`:
+
 ```js
 const result = await registerNewPasskey({
   userName: 'alice',
@@ -31,11 +33,14 @@ const result = await registerNewPasskey({
 ```
 
 Returns:
+
 - `credentialId`: Unique passkey identifier
 - `credentialPublicKey`: P-256 public key bytes
 
 ### 2. Deploy Account
+
 Uses `deployModularAccount` from `zksync-sso/client`:
+
 ```js
 const result = await deployModularAccount(deployerClient, {
   accountFactory: CONTRACTS.accountFactory,
@@ -53,11 +58,14 @@ const result = await deployModularAccount(deployerClient, {
 ```
 
 Deploys a modular smart account with:
+
 - WebAuthn validator module (passkey auth)
 - Session key validator module (for future sessions)
 
 ### 3. Transfer ETH
+
 Uses `createZksyncPasskeyClient` to create a viem-compatible wallet client:
+
 ```js
 const passkeyClient = createZksyncPasskeyClient({
   address: accountAddress,
@@ -81,6 +89,7 @@ When signing, the user is prompted for passkey authentication (Touch ID, Face ID
 ## Configuration
 
 ### Contract Addresses (Sepolia)
+
 ```js
 const CONTRACTS = {
   passkey: "0xAbcB5AB6eBb69F4F5F8cf1a493F56Ad3d28562bd",
@@ -91,13 +100,16 @@ const CONTRACTS = {
 ```
 
 ### Deployer Private Key
+
 The app uses a hardcoded private key for deploying accounts. In production, you should:
+
 - Remove the private key from the code
 - Use environment variables
 - Use a dedicated deployment service
 - Or let users fund their accounts and deploy via bundler
 
 Current deployer:
+
 ```js
 const DEPLOYER_PRIVATE_KEY = '0xef506537558847aa991149381c4fedee8fe1252cf868986ac1692336530ec85c';
 ```
@@ -163,22 +175,25 @@ Compared to the previous manual implementation:
 
 1. Create a passkey (uses your device biometrics)
 2. Deploy account (uses provided deployer key)
-3. Fund account from faucet: https://sepoliafaucet.com/
+3. Fund account from faucet: <https://sepoliafaucet.com/>
 4. Transfer ETH to another address
 5. Verify transaction on Etherscan
 
 ## Troubleshooting
 
 ### "Can't identify expectedOrigin"
+
 - Make sure you're running on localhost:3000
 - Or manually provide `expectedOrigin: 'http://localhost:3000'`
 
 ### "Deployment failed"
+
 - Check deployer account has ETH
 - Verify contract addresses are correct
 - Check Sepolia RPC is responding
 
 ### "Passkey authentication failed"
+
 - Ensure biometric auth is enabled on your device
 - Try using a different browser
 - Check browser console for detailed errors

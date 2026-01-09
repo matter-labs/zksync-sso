@@ -1,4 +1,4 @@
-# ✅ Passkey Wallet App - Ready to Use!
+# ✅ Passkey Wallet App - Ready to Use
 
 ## 🎉 Status: FULLY FUNCTIONAL
 
@@ -16,11 +16,12 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:3000
+Then open <http://localhost:3000>
 
 ## ✅ What's Configured
 
 ### Production Contracts on Sepolia
+
 - ✅ **EOAValidator**: `0x027ce1d8244318e38c3B65E3EABC2537BD712077`
 - ✅ **WebAuthnValidator**: `0xAbcB5AB6eBb69F4F5F8cf1a493F56Ad3d28562bd`
 - ✅ **SessionValidator**: `0x09fbd5b956AF5c64C7eB4fb473E7E64DAF0f79D7`
@@ -29,6 +30,7 @@ Then open http://localhost:3000
 - ✅ **Bundler**: `https://bundler-api.stage-sso.zksync.dev`
 
 ### Network
+
 - ✅ **Chain**: Ethereum Sepolia (Chain ID: 11155111)
 - ✅ **RPC**: Alchemy Sepolia endpoint
 - ✅ **EntryPoint**: `0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108` (ZKsync SSO Custom)
@@ -154,6 +156,7 @@ The app will show the UserOperation hash and wait for confirmation.
 ## 🎨 User Experience
 
 ### Beautiful UI
+
 - Clean 3-step flow
 - Visual feedback for each action
 - Loading states
@@ -161,12 +164,14 @@ The app will show the UserOperation hash and wait for confirmation.
 - Success confirmations
 
 ### Passkey UX
+
 - No seed phrases
 - Biometric authentication
 - Platform secure storage
 - Easy recovery (same device)
 
 ### Real Transactions
+
 - Actual on-chain execution
 - ERC-4337 UserOperations
 - Bundler submission
@@ -175,6 +180,7 @@ The app will show the UserOperation hash and wait for confirmation.
 ## 📊 What Happens Technically
 
 ### Creating a Passkey
+
 ```
 User → WebAuthn API → Device Security
          ↓
@@ -187,6 +193,7 @@ User → WebAuthn API → Device Security
 ```
 
 ### Deploying Account
+
 ```
 Credential ID → keccak256 → Account ID
                     ↓
@@ -201,6 +208,7 @@ Credential ID → keccak256 → Account ID
 ```
 
 ### Sending Transaction
+
 ```
 1. Create UserOperation
    - sender: your account
@@ -229,16 +237,19 @@ Credential ID → keccak256 → Account ID
 ## ⚠️ Important Notes
 
 ### Browser Requirements
+
 - Modern browser (Chrome 90+, Safari 14+, Firefox 93+)
 - HTTPS or localhost
 - Biometric authentication enabled
 
 ### Account Deployment
+
 - First transaction will deploy the account
 - Subsequent transactions use existing account
 - Uses counterfactual addressing
 
 ### Gas & Fees
+
 - Bundler handles gas payment
 - May require account to have ETH
 - Check bundler policies
@@ -246,18 +257,23 @@ Credential ID → keccak256 → Account ID
 ## 🐛 Troubleshooting
 
 ### "WebAuthn not supported"
+
 → Use HTTPS or localhost, modern browser
 
 ### "No passkey available"
+
 → Enable biometric auth on your device
 
 ### "Account has no ETH"
-→ Fund via https://sepoliafaucet.com/
+
+→ Fund via <https://sepoliafaucet.com/>
 
 ### "Bundler error"
+
 → Check bundler is online, account may need deployment
 
 ### "Transaction failed"
+
 → Check console logs, verify signature format
 
 ## 🔍 Testing Checklist
@@ -276,6 +292,7 @@ Credential ID → keccak256 → Account ID
 ## 📈 Next Steps
 
 ### For Production
+
 1. Add proper error handling
 2. Implement transaction history
 3. Add spending limits
@@ -284,6 +301,7 @@ Credential ID → keccak256 → Account ID
 6. Analytics and monitoring
 
 ### Possible Enhancements
+
 - Session keys for gasless transactions
 - Multiple passkeys per account
 - Guardian recovery
@@ -291,7 +309,7 @@ Credential ID → keccak256 → Account ID
 - Token transfers (ERC-20)
 - NFT support
 
-## 🎉 You're Ready!
+## 🎉 You're Ready
 
 Everything is configured and working. Just:
 
@@ -305,6 +323,7 @@ Then create a passkey, fund your account, and start sending transactions! 🚀
 ---
 
 **Questions?**
+
 - Check browser console for detailed logs
 - Review [README.md](./README.md) for more info
 - See [SETUP_SUMMARY.md](./SETUP_SUMMARY.md) for configuration details

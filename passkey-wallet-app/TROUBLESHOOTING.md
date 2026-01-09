@@ -16,6 +16,7 @@
 **Cause**: WebAuthn requires user gesture or secure context
 
 **Solutions**:
+
 - Make sure you're on `http://localhost:3000` (not `http://127.0.0.1:3000`)
 - Try using `localhost` instead of `127.0.0.1`
 - Ensure you clicked the button (not automated/script)
@@ -26,6 +27,7 @@
 **Cause**: Browser doesn't support WebAuthn
 
 **Solutions**:
+
 - Update your browser to latest version
 - Use Chrome 90+, Safari 14+, or Firefox 93+
 - Enable experimental features if on older browser
@@ -35,6 +37,7 @@
 **Cause**: No biometric device or security key available
 
 **Solutions**:
+
 - **Mac**: Enable Touch ID in System Preferences
 - **Windows**: Set up Windows Hello
 - **iPhone/iPad**: Enable Face ID or Touch ID
@@ -46,6 +49,7 @@
 **Cause**: You already created a passkey for this app
 
 **Solutions**:
+
 - The passkey already exists - this is actually OK!
 - Go to your browser's password manager and delete the old passkey if you want to start fresh
 - **Chrome**: Settings → Password Manager → Passkeys
@@ -56,6 +60,7 @@
 **Cause**: Platform authenticator is having issues
 
 **Solutions**:
+
 - Restart your browser
 - Restart your computer
 - Try a different browser
@@ -101,16 +106,19 @@ if (window.PublicKeyCredential) {
 ### Step 4: Browser-Specific Issues
 
 #### Chrome/Edge
+
 - Make sure you're on version 90+
 - Enable flags if needed: `chrome://flags/#enable-web-authentication-api`
 - Check: Settings → Privacy and security → Site settings → Permissions → Passkeys
 
 #### Safari (Mac)
+
 - macOS 13+ (Ventura or later) recommended
 - Enable Touch ID: System Preferences → Touch ID & Password
 - Allow website to use Touch ID when prompted
 
 #### Firefox
+
 - Version 93+ required
 - May need to enable: `about:config` → `security.webauthn.enable_uv_token` → true
 - Some features may be limited compared to Chrome/Safari
@@ -122,6 +130,7 @@ If the issue persists, check the detailed console logs:
 1. Open Console (F12)
 2. Click "Create Passkey"
 3. You should see:
+
    ```
    Creating passkey...
    User name: YourName
@@ -169,22 +178,28 @@ Then access via the HTTPS URL provided.
 
 Look for these patterns:
 
-**Pattern 1: Permission Denied**
+#### Pattern 1: Permission Denied
+
 ```
 NotAllowedError: The user denied permission
 ```
+
 → You clicked "Cancel" on the biometric prompt. Try again and approve it.
 
-**Pattern 2: Timeout**
+#### Pattern 2: Timeout
+
 ```
 NotAllowedError: Timeout
 ```
+
 → Biometric prompt timed out. Try again and respond faster.
 
-**Pattern 3: No Support**
+#### Pattern 3: No Support
+
 ```
 undefined is not an object (evaluating 'navigator.credentials.create')
 ```
+
 → Browser too old or WebAuthn disabled.
 
 ### Test with Simple Example
@@ -250,6 +265,7 @@ export default defineConfig({
 ### Issue: Antivirus/Firewall blocking
 
 Some security software blocks WebAuthn. Try:
+
 - Temporarily disable antivirus
 - Add localhost to whitelist
 - Check browser's site permissions

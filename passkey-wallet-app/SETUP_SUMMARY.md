@@ -32,7 +32,8 @@ ZKSync-SSO/
 You need to deploy the ZKsync SSO contracts to Sepolia. This is **required** for the app to work.
 
 #### 1.1 Get Sepolia ETH
-- Visit https://sepoliafaucet.com/
+
+- Visit <https://sepoliafaucet.com/>
 - Request at least **0.5 Sepolia ETH** to your wallet
 - This will cover deployment gas costs
 
@@ -52,6 +53,7 @@ node extract-addresses.js
 ```
 
 This will deploy:
+
 - ✅ EOAKeyValidator
 - ✅ SessionKeyValidator
 - ✅ WebAuthnValidator
@@ -71,6 +73,7 @@ cd /Users/ra/Work/ZkSync/ZKSync-SSO/passkey-wallet-app
 ```
 
 Replace:
+
 ```javascript
 const SEPOLIA_CONTRACTS = {
   webauthnValidator: "0x0000000000000000000000000000000000000000", // PLACEHOLDER
@@ -80,6 +83,7 @@ const SEPOLIA_CONTRACTS = {
 ```
 
 With your deployed addresses from `sepolia-addresses.json`:
+
 ```javascript
 const SEPOLIA_CONTRACTS = {
   webauthnValidator: "0xYOUR_WEBAUTHN_ADDRESS",
@@ -92,20 +96,24 @@ const SEPOLIA_CONTRACTS = {
 
 You need an ERC-4337 bundler to submit transactions. Update `main.js`:
 
-**Option A: Pimlico (Recommended - Free tier available)**
+#### Option A: Pimlico (Recommended - Free tier available)
+
 ```javascript
 const BUNDLER_URL = 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_API_KEY';
 ```
-- Sign up: https://dashboard.pimlico.io/
+
+- Sign up: <https://dashboard.pimlico.io/>
 - Create API key
 - Copy to code
 
-**Option B: Alchemy (If you have Alchemy account)**
+#### Option B: Alchemy (If you have Alchemy account)
+
 ```javascript
 const BUNDLER_URL = 'https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY';
 ```
 
-**Option C: Stackup (Public endpoint)**
+#### Option C: Stackup (Public endpoint)
+
 ```javascript
 const BUNDLER_URL = 'https://api.stackup.sh/v1/node/sepolia';
 ```
@@ -135,7 +143,7 @@ App opens at `http://localhost:3000` 🎉
    - Copy your smart account address
 
 3. **Fund Account**
-   - Go to https://sepoliafaucet.com/
+   - Go to <https://sepoliafaucet.com/>
    - Send Sepolia ETH to your smart account address
    - Click "Refresh Balance" in app
 
@@ -149,22 +157,26 @@ App opens at `http://localhost:3000` 🎉
 ## 📋 Complete Checklist
 
 ### Pre-Deployment
+
 - [ ] You have a wallet with 0.5+ Sepolia ETH
 - [ ] Foundry is installed (already ✅)
 - [ ] Contracts repository cloned (already ✅)
 
 ### Deployment
+
 - [ ] Run `./deploy-sepolia.sh`
 - [ ] Run `node extract-addresses.js`
 - [ ] Copy `sepolia-addresses.json` addresses
 
 ### App Configuration
+
 - [ ] Update contract addresses in `main.js`
 - [ ] Configure bundler URL
 - [ ] Run `npm install`
 - [ ] Run `npm run dev`
 
 ### Testing
+
 - [ ] Create a passkey
 - [ ] Deploy smart account
 - [ ] Fund account with Sepolia ETH
@@ -174,12 +186,14 @@ App opens at `http://localhost:3000` 🎉
 ## 🎨 What the App Does
 
 ### Current Features (✅ Working)
+
 - **Passkey Creation**: Uses WebAuthn to create secure passkeys
 - **Passkey Authentication**: Biometric/PIN authentication for transactions
 - **Beautiful UI**: Clean 3-step flow with visual feedback
 - **Network Connection**: Connected to Sepolia via Alchemy RPC
 
 ### After Deployment (🔧 Requires Your Setup)
+
 - **Smart Account Deployment**: Deploy ERC-7579 modular accounts
 - **Transaction Signing**: Sign UserOperations with passkeys
 - **ETH Transfers**: Send transactions via ERC-4337 bundler
@@ -216,16 +230,19 @@ Ethereum Sepolia → Executes Transactions
 ## 🆘 Need Help?
 
 ### Deployment Issues
+
 - See: [DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md)
 - Check: Foundry installation, private key, Sepolia ETH balance
 
 ### App Issues
+
 - See: [passkey-wallet-app/README.md](./README.md)
 - Check: Browser compatibility, HTTPS/localhost, biometric setup
 
 ### Contract Questions
-- Repo: https://github.com/matter-labs/zksync-sso-contracts
-- Docs: https://github.com/matter-labs/zksync-sso
+
+- Repo: <https://github.com/matter-labs/zksync-sso-contracts>
+- Docs: <https://github.com/matter-labs/zksync-sso>
 
 ## 🎉 What's Next?
 
