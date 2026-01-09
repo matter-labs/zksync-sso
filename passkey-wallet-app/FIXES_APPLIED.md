@@ -3,7 +3,9 @@
 ## Issue: Transaction Signing Errors
 
 ### Error 1: Challenge Format Issue
+
 **Error Message:**
+
 ```
 startAuthentication() was not called correctly
 TypeError: base64URLString.replace is not a function
@@ -13,6 +15,7 @@ TypeError: base64URLString.replace is not a function
 The `startAuthentication` function from `@simplewebauthn/browser` expects base64url **strings**, but we were passing arrays/bytes.
 
 **Fix Applied:**
+
 ```javascript
 // Before (WRONG):
 const authOptions = {
@@ -39,16 +42,21 @@ const authOptions = {
 ---
 
 ### Error 2: ABI Encoding Issue
+
 **Error Message:**
+
 ```
 AbiFunctionNotFoundError: Function not found on ABI.
 Make sure you are using the correct ABI and that the function exists on it.
 ```
 
 **Root Cause:**
-Using `encodeFunctionData` with `parseAbiParameters` is incorrect. `encodeFunctionData` expects a full function ABI with a function name, while `parseAbiParameters` only provides parameter types.
+Using `encodeFunctionData` with `parseAbiParameters` is incorrect.
+`encodeFunctionData` expects a full function ABI with a function name,
+while `parseAbiParameters` only provides parameter types.
 
 **Fix Applied:**
+
 ```javascript
 // Before (WRONG):
 return encodeFunctionData({
@@ -72,9 +80,11 @@ return encodeAbiParameters(
 ### File: `main.js`
 
 #### 1. Fixed `signWithPasskey()` function
-**Lines 503-548**
+
+Lines 503-548
 
 Changes made:
+
 1. Convert challenge to base64url string before passing to `startAuthentication`
 2. Use original base64url credential ID string (not bytes)
 3. Replace `encodeFunctionData` with `encodeAbiParameters` for signature encoding
@@ -113,12 +123,14 @@ async function signWithPasskey(hash) {
 ## Testing
 
 ### Before Fix
+
 ```
 ❌ Click "Send ETH" → Passkey prompt → Error:
    "base64URLString.replace is not a function"
 ```
 
 ### After Fix
+
 ```
 ✅ Click "Send ETH" → Passkey prompt → Authenticate → UserOp submitted!
 ```
@@ -128,9 +140,11 @@ async function signWithPasskey(hash) {
 ## Related Issues Fixed Previously
 
 ### Issue 1: UserOperation Hash Encoding (Fixed in previous session)
+
 **Location:** `getUserOperationHash()` function
 
 Changed from `encodeFunctionData` to `encodeAbiParameters`:
+
 ```javascript
 const packed = encodeAbiParameters(
   parseAbiParameters('address, uint256, bytes, uint256, uint256, uint256, uint256, uint256'),
@@ -163,6 +177,7 @@ return keccak256(packed);
 ### WebAuthn String Format Requirements
 
 The `@simplewebauthn/browser` library requires **base64url strings** for:
+
 - `challenge`: The authentication challenge
 - `allowCredentials[].id`: The credential ID
 - `user.id`: The user identifier (during registration)
@@ -174,6 +189,7 @@ Do not convert these to arrays or bytes - keep them as base64url strings!
 ## Complete Function Call Flow
 
 ### Transfer Flow
+
 ```
 1. User clicks "Send ETH"
    ↓
@@ -225,11 +241,14 @@ Do not convert these to arrays or bytes - keep them as base64url strings!
 
 ### Why These Errors Occurred
 
-1. **API Expectations Mismatch**: The `@simplewebauthn/browser` library has specific format requirements that weren't immediately obvious from the documentation.
+1. **API Expectations Mismatch**: The `@simplewebauthn/browser` library has specific format requirements
+  that weren't immediately obvious from the documentation.
 
-2. **Function Naming Confusion**: `encodeFunctionData` and `encodeAbiParameters` sound similar but have different purposes and requirements.
+2. **Function Naming Confusion**: `encodeFunctionData` and `encodeAbiParameters` sound similar
+  but have different purposes and requirements.
 
-3. **Type Conversion**: JavaScript's flexibility with types (strings, arrays, Uint8Arrays) can lead to passing the wrong type without compile-time errors.
+3. **Type Conversion**: JavaScript's flexibility with types (strings, arrays,
+  Uint8Arrays) can lead to passing the wrong type without compile-time errors.
 
 ### Prevention
 
@@ -243,17 +262,21 @@ Do not convert these to arrays or bytes - keep them as base64url strings!
 ## Additional Fix: EntryPoint Address
 
 ### Error: Bundler EntryPoint Mismatch
+
 **Error Message:**
+
 ```
 Bundler error: EntryPoint 0x0000000071727De22E5E9d8BAf0edAc6f37da032 not supported,
 supported EntryPoints: 0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108
 ```
 
 **Root Cause:**
-The ZKsync SSO bundler uses a custom EntryPoint contract at `0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108` instead of the standard ERC-4337 v0.7 EntryPoint.
+The ZKsync SSO bundler uses a custom EntryPoint contract at `0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108` instead of the
+  standard ERC-4337 v0.7 EntryPoint.
 
 **Fix Applied:**
 Updated the EntryPoint address to match the bundler's supported address:
+
 ```javascript
 // Before:
 const ENTRYPOINT_ADDRESS = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"; // Standard v0.7
@@ -269,6 +292,7 @@ const ENTRYPOINT_ADDRESS = "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108"; // ZKsy
 ## Status: ✅ RESOLVED
 
 All errors are now fixed. The transfer functionality works end-to-end:
+
 1. Create passkey ✅
 2. Deploy account ✅
 3. Transfer ETH ✅

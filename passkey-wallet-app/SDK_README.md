@@ -163,7 +163,7 @@ Compared to the previous manual implementation:
 ## Differences from Previous Version
 
 | Feature | Old Version | SDK Version |
-|---------|-------------|-------------|
+| ------- | ----------- | ----------- |
 | Passkey creation | Manual `startRegistration` | `registerNewPasskey()` |
 | Public key extraction | Manual COSE parsing | Handled by SDK |
 | Account deployment | Manual factory call | `deployModularAccount()` |
