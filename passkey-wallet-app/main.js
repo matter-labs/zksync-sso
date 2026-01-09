@@ -34,6 +34,7 @@ import {
   getWrappedTokenAddress,
   transferTokensInterop,
 } from "./token-interop.js";
+import setupTranslation from "./translation.js";
 
 // ZKsync OS configuration
 const zksyncOsTestnet = defineChain({
@@ -99,6 +100,7 @@ let sepoliaClient = null;
 let shadowAccount = null;
 let balanceRefreshInterval = null;
 let aaveBalanceRefreshInterval = null;
+let activeLanguage = "en";
 
 // LocalStorage keys
 const STORAGE_KEY_PASSKEY = "zksync_sso_passkey";
@@ -135,7 +137,16 @@ const sepolia = defineChain({
 });
 
 // Initialize
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // setup translation
+  async function setLanguage(lang) {
+    activeLanguage = lang;
+    await setupTranslation(lang);
+  }
+  const select = document.getElementById("lang");
+  select.addEventListener("change", async () => setLanguage(select.value));
+  await setupTranslation(activeLanguage);
+
   // Setup public client for balance checks FIRST
   publicClient = createPublicClient({
     chain: zksyncOsTestnet,

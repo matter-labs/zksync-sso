@@ -117,6 +117,15 @@
         border-bottom: 3px solid #0070ba;
       }
 
+      .nav-left {
+        display: flex;
+        gap: 12px;
+      }
+
+      .lang-label {
+        margin: auto;
+      }
+
       /* Content Sections */
       .tab-content {
         display: none;
@@ -382,13 +391,22 @@
   <body>
     <!-- PayPal Header -->
     <div class="paypal-header">
-      <div class="paypal-logo">PayPal</div>
+      <div class="nav-left">
+        <div class="paypal-logo">PayPal</div>
+        <label class="lang-label">
+          <select id="lang">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="pt">Português (BR)</option>
+          </select>
+        </label>
+      </div>
       <div class="header-right">
         <div class="header-network">
-          Network: <strong><span id="headerNetwork">--</span></strong>
+          <span id="topbar-network"></span>: <strong><span id="headerNetwork">--</span></strong>
         </div>
         <div class="header-balance">
-          Balance: <strong><span id="headerBalance">--</span> ETH</strong>
+          <span id="topbar-balance"></span>: <strong><span id="headerBalance">--</span> ETH</strong>
         </div>
       </div>
     </div>
@@ -399,33 +417,28 @@
         <button
           class="nav-tab active"
           data-tab="home"
-        >
-          Home
-        </button>
+          id="nav-home"
+        ></button>
         <button
           class="nav-tab"
           data-tab="send"
-        >
-          Send
-        </button>
+          id="nav-send"
+        ></button>
         <button
           class="nav-tab"
           data-tab="earn"
-        >
-          Earn
-        </button>
+          id="nav-earn"
+        ></button>
         <button
           class="nav-tab"
           data-tab="interop"
-        >
-          Interop
-        </button>
+          id="nav-interop"
+        ></button>
         <button
           class="nav-tab"
           data-tab="activity"
-        >
-          Activity
-        </button>
+          id="nav-activity"
+        ></button>
       </div>
 
       <!-- Home Tab -->
@@ -436,8 +449,16 @@
         <!-- Setup Steps (shown if not fully set up) -->
         <div id="setup-section">
           <div class="card">
-            <div class="card-title">Get Started</div>
-            <div class="card-subtitle">Set up your secure PayPal wallet to start sending and receiving money</div>
+            <div
+              id="home-get-started"
+              class="card-title"
+            ></div>
+            <div
+              id="home-setup-wallet"
+              class="card-subtitle"
+            >
+              Set up your secure PayPal wallet to start sending and receiving money
+            </div>
           </div>
 
           <!-- Step 1: Create Passkey -->
@@ -452,36 +473,43 @@
               >
                 1
               </div>
-              <div class="step-title">Create Security Key</div>
+              <div
+                id="home-create-key"
+                class="step-title"
+              ></div>
             </div>
 
             <div id="passkey-input">
               <div class="form-group">
-                <label for="userName">Your Name</label>
+                <label
+                  id="home-user-name"
+                  for="userName"
+                ></label>
                 <input
                   type="text"
                   id="userName"
                   placeholder="Enter your name"
                 />
               </div>
-              <button id="createPasskeyBtn">Create Secure Wallet</button>
+              <button id="createPasskeyBtn"></button>
             </div>
 
             <div
               id="passkey-success"
               class="hidden alert alert-success"
             >
-              <strong>✓ Security Key Created</strong>
+              <strong id="home-key-created"></strong>
               <div class="info-row">
-                <span class="info-label">Credential ID:</span>
+                <span
+                  id="home-credential-id"
+                  class="info-label"
+                ></span>
                 <span class="info-value"><code id="credentialIdDisplay"></code></span>
               </div>
               <button
                 id="resetPasskeyBtn"
                 class="secondary small"
-              >
-                Reset
-              </button>
+              ></button>
             </div>
 
             <div
@@ -502,34 +530,39 @@
               >
                 2
               </div>
-              <div class="step-title">Activate Your Wallet</div>
+              <div
+                id="home-activate-wallet"
+                class="step-title"
+              ></div>
             </div>
 
             <div id="deploy-button-container">
-              <p class="card-subtitle">Deploy your smart wallet on the blockchain to start managing your funds.</p>
+              <p
+                id="home-deploy-wallet"
+                class="card-subtitle"
+              ></p>
               <button
                 id="deployAccountBtn"
                 disabled
-              >
-                Activate Wallet
-              </button>
+              ></button>
             </div>
 
             <div
               id="deploy-success"
               class="hidden alert alert-success"
             >
-              <strong>✓ Wallet Activated!</strong>
+              <strong id="home-wallet-activated"></strong>
               <div class="info-row">
-                <span class="info-label">Address:</span>
+                <span
+                  id="home-wallet-address"
+                  class="info-label"
+                ></span>
                 <span class="info-value"><code id="accountAddressDisplay"></code></span>
               </div>
               <button
                 id="refreshBalanceBtn"
                 class="secondary small"
-              >
-                Refresh Balance
-              </button>
+              ></button>
             </div>
 
             <div
@@ -545,42 +578,48 @@
           class="hidden"
         >
           <div class="balance-display">
-            <div class="balance-label">Your Balance</div>
+            <div
+              id="home-wallet-balance"
+              class="balance-label"
+            ></div>
             <div class="balance-amount"><span id="balanceDisplay">0.00</span> ETH</div>
           </div>
 
           <div class="card">
-            <div class="card-title">Your Wallet</div>
+            <div
+              id="home-your-wallet"
+              class="card-title"
+            ></div>
             <div class="info-row">
-              <span class="info-label">Address:</span>
+              <span
+                id="home-wallet-address-2"
+                class="info-label"
+              ></span>
               <span class="info-value"><code id="walletAddressDisplay"></code></span>
             </div>
             <button
               id="resetPasskeyMainBtn"
               class="secondary small"
               style="margin-top: 12px"
-            >
-              Reset Passkey
-            </button>
+            ></button>
           </div>
 
           <div class="card">
-            <div class="card-title">Quick Actions</div>
-            <button id="quickSendBtn">Send Money</button>
+            <div
+              id="home-quick-actions"
+              class="card-title"
+            ></div>
+            <button id="quickSendBtn"></button>
             <button
               id="quickEarnBtn"
               class="secondary"
               style="margin-top: 12px"
-            >
-              Earn Interest
-            </button>
+            ></button>
             <button
               id="faucetBtn"
               class="secondary"
               style="margin-top: 12px"
-            >
-              Faucet for your wallet
-            </button>
+            ></button>
           </div>
         </div>
       </div>
@@ -591,11 +630,17 @@
         id="send-tab"
       >
         <div class="card">
-          <div class="card-title">Send Money</div>
+          <div
+            id="send-money"
+            class="card-title"
+          ></div>
 
           <div id="transfer-form">
             <div class="form-group">
-              <label for="recipientAddress">Recipient Address</label>
+              <label
+                id="send-recipient"
+                for="recipientAddress"
+              ></label>
               <input
                 type="text"
                 id="recipientAddress"
@@ -604,7 +649,10 @@
             </div>
 
             <div class="form-group">
-              <label for="transferAmount">Amount (ETH)</label>
+              <label
+                id="send-amount"
+                for="transferAmount"
+              ></label>
               <div style="display: flex; gap: 8px; align-items: center">
                 <input
                   type="number"
@@ -631,18 +679,19 @@
             <button
               id="transferBtn"
               disabled
-            >
-              Send ETH
-            </button>
+            ></button>
           </div>
 
           <div
             id="transfer-success"
             class="hidden alert alert-success"
           >
-            <strong>✓ Transaction Sent!</strong>
+            <strong id="send-tx-sent"></strong>
             <div class="info-row">
-              <span class="info-label">Transaction:</span>
+              <span
+                id="send-tx-label"
+                class="info-label"
+              ></span>
               <span class="info-value">
                 <a
                   id="transfer-tx-link"
@@ -669,10 +718,14 @@
         id="earn-tab"
       >
         <div class="card">
-          <div class="card-title">Earn Interest with Aave</div>
-          <div class="card-subtitle">
-            Deposit your ETH to earn interest through Aave lending protocol on Ethereum Layer 1.
-          </div>
+          <div
+            id="earn-title"
+            class="card-title"
+          ></div>
+          <div
+            id="earn-subtitle"
+            class="card-subtitle"
+          ></div>
         </div>
 
         <div
@@ -680,26 +733,37 @@
           class="card hidden"
         >
           <div class="info-row">
-            <span class="info-label">Shadow Account:</span>
+            <span
+              id="earn-shadow"
+              class="info-label"
+            ></span>
             <span class="info-value"><code id="shadowAccountDisplay"></code></span>
           </div>
           <div class="info-row">
-            <span class="info-label">Aave Deposits:</span>
+            <span
+              id="earn-deposits"
+              class="info-label"
+              >:</span
+            >
             <span class="info-value"><span id="aaveBalanceDisplay">0</span> aETH</span>
           </div>
           <button
             id="refreshAaveBalanceBtn"
             class="secondary small"
-          >
-            Refresh
-          </button>
+          ></button>
         </div>
 
         <div class="card">
-          <div class="card-title">Deposit</div>
+          <div
+            id="earn-deposit-label"
+            class="card-title"
+          ></div>
           <div id="aave-deposit-form">
             <div class="form-group">
-              <label for="aaveDepositAmount">Amount (ETH)</label>
+              <label
+                id="earn-deposit-amount"
+                for="aaveDepositAmount"
+              ></label>
               <input
                 type="number"
                 id="aaveDepositAmount"
@@ -710,26 +774,26 @@
             <button
               id="aaveDepositBtn"
               disabled
-            >
-              Deposit to Aave
-            </button>
+            ></button>
           </div>
 
           <div
             id="aave-deposit-success"
             class="hidden alert alert-success"
           >
-            <strong>✓ Deposit Initiated!</strong>
+            <strong id="earn-deposit-init"></strong>
             <div class="info-row">
-              <span class="info-label">Transaction:</span>
+              <span
+                id="earn-deposit-tx"
+                class="info-label"
+              ></span>
               <span class="info-value"><code id="aaveDepositTxHash"></code></span>
             </div>
             <div
+              id="earn-deposit-wait-msg"
               class="alert-info"
               style="margin-top: 12px; padding: 12px"
-            >
-              ⏳ Your deposit will be finalized in ~15 minutes
-            </div>
+            ></div>
           </div>
 
           <div
@@ -739,10 +803,16 @@
         </div>
 
         <div class="card">
-          <div class="card-title">Withdraw</div>
+          <div
+            id="earn-withdraw-label"
+            class="card-title"
+          ></div>
           <div id="aave-withdraw-form">
             <div class="form-group">
-              <label for="aaveWithdrawAmount">Amount (aETH)</label>
+              <label
+                id="earn-withdraw-amount"
+                for="aaveWithdrawAmount"
+              ></label>
               <input
                 type="number"
                 id="aaveWithdrawAmount"
@@ -753,26 +823,27 @@
             <button
               id="aaveWithdrawBtn"
               disabled
-            >
-              Withdraw from Aave
-            </button>
+            ></button>
           </div>
 
           <div
             id="aave-withdraw-success"
             class="hidden alert alert-success"
           >
-            <strong>✓ Withdrawal Initiated!</strong>
+            <strong id="earn-withdraw-init"></strong>
             <div class="info-row">
-              <span class="info-label">Transaction:</span>
+              <span
+                id="earn-withdraw-tx"
+                e
+                class="info-label"
+              ></span>
               <span class="info-value"><code id="aaveWithdrawTxHash"></code></span>
             </div>
             <div
+              id="earn-withdraw-wait-msg"
               class="alert-info"
               style="margin-top: 12px; padding: 12px"
-            >
-              ⏳ Your withdrawal will be finalized in ~15 minutes
-            </div>
+            ></div>
           </div>
 
           <div
@@ -788,20 +859,23 @@
         id="interop-tab"
       >
         <div class="card">
-          <div class="card-title">Cross-Chain Interop (Local)</div>
+          <div
+            id="interop-title"
+            class="card-title"
+          ></div>
           <div class="card-subtitle">
-            Send messages between two local ZKsync chains using L2-to-L2 interop messaging.
-            <br /><strong>Note:</strong> This feature connects to local chains only (ports 3050 & 3051).
+            <span id="interop-subtitle"></span>
+            <br /><strong><span id="interop-note-label"></span></strong> <span id="interop-note"></span>
           </div>
         </div>
 
         <div class="card">
           <div class="alert-info">
-            <strong>Setup Required</strong>
-            Make sure you have two local ZKsync chains running:
+            <strong id="interop-setup-warning"></strong>
+            <span id="interop-setup-msg"></span>
             <ul style="margin: 8px 0 0 20px">
-              <li>Chain A: http://localhost:3050</li>
-              <li>Chain B: http://localhost:3051</li>
+              <li><span id="interop-chain-a"></span> http://localhost:3050</li>
+              <li><span id="interop-chain-b"></span> http://localhost:3051</li>
             </ul>
           </div>
         </div>
@@ -812,23 +886,29 @@
           class="card hidden"
         >
           <div class="alert alert-error">
-            <strong>⚠️ Connection Issue</strong>
+            <strong>⚠️ <span id="interop-connection-issue"></span></strong>
             <div id="interop-warning-message"></div>
             <div style="margin-top: 8px; font-size: 14px">
-              Please check that:
+              <span id="interop-connection-msg"></span>
               <ul style="margin: 4px 0 0 20px">
-                <li>Both local chains are running (ports 3050 & 3051)</li>
-                <li>The token is deployed on Chain A</li>
+                <li id="interop-connection-check-1"></li>
+                <li id="interop-connection-check-2"></li>
               </ul>
             </div>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title">Send Interop Message</div>
+          <div
+            id="interop-send-msg-label"
+            class="card-title"
+          ></div>
           <div id="interop-form">
             <div class="form-group">
-              <label for="interopMessage">Message</label>
+              <label
+                id="interop-msg-label"
+                for="interopMessage"
+              ></label>
               <input
                 type="text"
                 id="interopMessage"
@@ -838,24 +918,33 @@
             </div>
 
             <div class="form-group">
-              <label for="interopMessageDirection">Message Direction</label>
+              <label
+                id="interop-msg-direction"
+                for="interopMessageDirection"
+              ></label>
               <select
                 id="interopMessageDirection"
                 style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px"
               >
-                <option value="a-to-b">Chain A → Chain B</option>
-                <option value="b-to-a">Chain B → Chain A</option>
+                <option
+                  id="interop-a-to-b"
+                  value="a-to-b"
+                ></option>
+                <option
+                  id="interop-b-to-a"
+                  value="b-to-a"
+                ></option>
               </select>
             </div>
 
-            <button id="interopSendBtn">Send Message</button>
+            <button id="interopSendBtn"></button>
           </div>
 
           <div
             id="interop-progress"
             class="hidden alert alert-info"
           >
-            <strong id="interopProgressTitle">⏳ Sending message...</strong>
+            <strong id="interopProgressTitle"></strong>
             <div id="interopProgressSteps"></div>
           </div>
 
@@ -863,30 +952,45 @@
             id="interop-success"
             class="hidden alert alert-success"
           >
-            <strong>✓ Interop Message Verified!</strong>
+            <strong id="interop-msg-verified"></strong>
             <div class="info-row">
-              <span class="info-label">Source Chain TX:</span>
+              <span
+                id="interop-src-chain-tx"
+                class="info-label"
+              ></span>
               <span class="info-value"><code id="interopTxHashSource"></code></span>
             </div>
             <div class="info-row">
-              <span class="info-label">L1 Batch:</span>
+              <span
+                id="interop-l1-batch"
+                class="info-label"
+              ></span>
               <span class="info-value"><code id="interopBatchNumber"></code></span>
             </div>
             <div class="info-row">
-              <span class="info-label">Message Index:</span>
+              <span
+                id="interop-msg-index"
+                class="info-label"
+              ></span>
               <span class="info-value"><code id="interopMessageIndex"></code></span>
             </div>
             <div class="info-row">
-              <span class="info-label">Direction:</span>
+              <span
+                id="interop-msg-final-direction"
+                class="info-label"
+              ></span>
               <span class="info-value"><span id="interopMessageDirectionValue"></span></span>
             </div>
             <div class="info-row">
-              <span class="info-label">Verified on Destination:</span>
               <span
+                id="interop-msg-verified-on-dest"
+                class="info-label"
+              ></span>
+              <span
+                id="interop-msg-success"
                 class="info-value"
                 style="color: #4caf50"
-                >✓ Success</span
-              >
+              ></span>
             </div>
           </div>
 
@@ -898,8 +1002,14 @@
 
         <!-- Token Transfer Section -->
         <div class="card">
-          <div class="card-title">Cross-Chain Token Transfer</div>
-          <div class="card-subtitle">Transfer ERC20 tokens between Chain A and Chain B</div>
+          <div
+            id="interop-token-transfer-title"
+            class="card-title"
+          ></div>
+          <div
+            id="interop-token-transfer-subtitle"
+            class="card-subtitle"
+          ></div>
 
           <!-- Token Info -->
           <div
@@ -907,33 +1017,46 @@
             class="alert-info"
           >
             <div class="info-row">
-              <span class="info-label">Token:</span>
+              <span
+                id="interop-token-label"
+                class="info-label"
+              ></span>
               <span class="info-value"><span id="tokenSymbol">-</span> (<span id="tokenName">-</span>)</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Address:</span>
+              <span
+                id="interop-token-address"
+                class="info-label"
+              ></span>
               <span class="info-value"><code id="tokenAddress">Loading...</code></span>
             </div>
             <div class="info-row">
-              <span class="info-label">Balance on Chain A:</span>
+              <span
+                id="interop-chain-a-balance"
+                class="info-label"
+              ></span>
               <span class="info-value"><span id="tokenBalanceA">-</span> <span id="tokenSymbolA"></span></span>
             </div>
             <div class="info-row">
-              <span class="info-label">Balance on Chain B:</span>
+              <span
+                id="interop-chain-b-balance"
+                class="info-label"
+              ></span>
               <span class="info-value"><span id="tokenBalanceB">-</span> <span id="tokenSymbolB"></span></span>
             </div>
             <button
               id="refreshTokenBalancesBtn"
               style="margin-top: 12px"
-            >
-              Refresh Token Balances
-            </button>
+            ></button>
           </div>
 
           <!-- Transfer Form -->
           <div id="token-transfer-form">
             <div class="form-group">
-              <label for="tokenTransferAmount">Amount to Transfer</label>
+              <label
+                id="interop-token-transfer-amount"
+                for="tokenTransferAmount"
+              ></label>
               <input
                 type="number"
                 id="tokenTransferAmount"
@@ -945,24 +1068,33 @@
             </div>
 
             <div class="form-group">
-              <label for="tokenTransferDirection">Transfer Direction</label>
+              <label
+                id="interop-transfer-direction"
+                for="tokenTransferDirection"
+              ></label>
               <select
                 id="tokenTransferDirection"
                 style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px"
               >
-                <option value="a-to-b">Chain A → Chain B</option>
-                <option value="b-to-a">Chain B → Chain A</option>
+                <option
+                  id="interop-transfer-token-a-to-b"
+                  value="a-to-b"
+                ></option>
+                <option
+                  id="interop-transfer-token-b-to-a"
+                  value="b-to-a"
+                ></option>
               </select>
             </div>
 
-            <button id="tokenTransferBtn">Transfer Tokens</button>
+            <button id="tokenTransferBtn"></button>
           </div>
 
           <div
             id="token-transfer-progress"
             class="hidden alert alert-info"
           >
-            <strong id="tokenTransferProgressTitle">⏳ Transferring tokens...</strong>
+            <strong id="tokenTransferProgressTitle"></strong>
             <div id="tokenTransferProgressSteps"></div>
           </div>
 
@@ -970,23 +1102,35 @@
             id="token-transfer-success"
             class="hidden alert alert-success"
           >
-            <strong>✓ Token Transfer Complete!</strong>
+            <strong id="interop-transfer-complete"></strong>
             <div class="info-row">
-              <span class="info-label">Source Chain TX:</span>
+              <span
+                id="interop-status-src-chain-tx"
+                class="info-label"
+              ></span>
               <span class="info-value"><code id="tokenTransferTxHashSource"></code></span>
             </div>
             <div class="info-row">
-              <span class="info-label">Destination Chain TX:</span>
+              <span
+                id="interop-destination-chain-tx"
+                class="info-label"
+              ></span>
               <span class="info-value"><code id="tokenTransferTxHashDest"></code></span>
             </div>
             <div class="info-row">
-              <span class="info-label">Amount:</span>
+              <span
+                id="interop-status-amount"
+                class="info-label"
+              ></span>
               <span class="info-value"
                 ><span id="tokenTransferAmountValue"></span> <span id="tokenTransferSymbol"></span
               ></span>
             </div>
             <div class="info-row">
-              <span class="info-label">Direction:</span>
+              <span
+                id="interop-status-direction"
+                class="info-label"
+              ></span>
               <span class="info-value"><span id="tokenTransferDirectionValue"></span></span>
             </div>
           </div>
@@ -1004,13 +1148,19 @@
         id="activity-tab"
       >
         <div class="card">
-          <div class="card-title">Recent Activity</div>
-          <div class="card-subtitle">Your transaction history will appear here</div>
+          <div
+            id="activity-title"
+            class="card-title"
+          ></div>
+          <div
+            id="activity-subtitle"
+            class="card-subtitle"
+          ></div>
           <div
             id="activity-empty"
             style="text-align: center; padding: 40px; color: #6c7378"
           >
-            <p>No recent transactions</p>
+            <p id="activity-no-txns"></p>
           </div>
           <div
             id="activity-list"
@@ -1021,11 +1171,15 @@
 
       <!-- Footer -->
       <div class="footer">
-        <strong>Network:</strong> ZKSync OS Testnet (Layer 2) • Ethereum Sepolia (Layer 1)<br />
-        Powered by ZKSync • Secured by Passkey Authentication
+        <strong><span id="footer-network"></span></strong> ZKSync OS Testnet (Layer 2) • Ethereum Sepolia (Layer 1)<br />
+        <span id="footer-powered-by-zk"></span> • <span id="footer-secured-by-passkeys"></span>
       </div>
     </div>
 
+    <script
+      type="module"
+      src="/translation.js"
+    ></script>
     <script
       type="module"
       src="/main.js"
