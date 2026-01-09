@@ -59,11 +59,6 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
 
     // Prepare deployment transaction
     const executorModulesToInstall = GUARDIAN_EXECUTOR_ADDRESS ? [GUARDIAN_EXECUTOR_ADDRESS as Address] : [];
-    console.log("🔧 Deployment params:", {
-      hasGuardianExecutor: !!GUARDIAN_EXECUTOR_ADDRESS,
-      guardianExecutorAddress: GUARDIAN_EXECUTOR_ADDRESS,
-      executorModules: executorModulesToInstall,
-    });
 
     const { transaction, accountId } = prepareDeploySmartAccount({
       contracts: {

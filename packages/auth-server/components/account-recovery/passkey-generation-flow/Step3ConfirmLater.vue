@@ -50,16 +50,6 @@ const recoveryUrl = computedAsync(async () => {
   // Serialize the public key as JSON since it's {x, y} format
   const credentialPublicKey = JSON.stringify(props.newPasskey.credentialPublicKey);
 
-  /* eslint-disable no-console */
-  console.log("🔧 URL GENERATION DEBUG");
-  console.log("================================");
-  console.log("Original values BEFORE URLSearchParams:");
-  console.log("  accountAddress:", props.accountAddress);
-  console.log("  credentialId:", credentialId);
-  console.log("  credentialPublicKey:", credentialPublicKey);
-  console.log("  credentialPublicKey (length):", credentialPublicKey.length);
-  console.log("  credentialPublicKey (first 20 chars):", credentialPublicKey.substring(0, 20));
-
   queryParams.set("credentialId", credentialId);
   queryParams.set("credentialPublicKey", credentialPublicKey);
   queryParams.set("accountAddress", props.accountAddress);
@@ -68,26 +58,14 @@ const recoveryUrl = computedAsync(async () => {
   // Normalize accountAddress to lowercase for consistent hashing
   const normalizedAddress = props.accountAddress.toLowerCase();
   const dataToHash = `${normalizedAddress}:${credentialId}:${credentialPublicKey}`;
-  console.log("\n🔐 Checksum generation:");
-  console.log("  Data to hash:", dataToHash);
-  console.log("  Data to hash (length):", dataToHash.length);
 
   const fullHash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(dataToHash)));
   const shortHash = fullHash.slice(0, 8); // Take first 8 bytes of the hash
   const checksum = uint8ArrayToHex(shortHash);
 
-  console.log("  Generated checksum:", checksum);
-
   queryParams.set("checksum", checksum);
 
   const finalUrl = new URL(`/recovery/guardian/confirm-recovery?${queryParams.toString()}`, window.location.origin).toString();
-
-  console.log("\n📋 URLSearchParams encoding:");
-  console.log("  credentialPublicKey (encoded):", queryParams.get("credentialPublicKey"));
-  console.log("  Full query string:", queryParams.toString());
-  console.log("\n🔗 Final URL:", finalUrl);
-  console.log("================================\n");
-  /* eslint-enable no-console */
 
   return finalUrl;
 });

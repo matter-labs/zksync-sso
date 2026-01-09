@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-4">
-    <!-- Progress Overview -->
+    <!--
     <div
       v-if="currentStep > 0"
       class="rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 p-4"
@@ -82,7 +82,6 @@
       </div>
     </div>
 
-    <!-- Error Display -->
     <div
       v-if="errorMessage"
       class="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4"
@@ -131,7 +130,6 @@
       </div>
     </div>
 
-    <!-- Success Message -->
     <div
       v-if="recoverySuccessful"
       class="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 text-center"
@@ -176,7 +174,6 @@
       </div>
     </div>
 
-    <!-- Start/Retry Button -->
     <ZkButton
       v-if="!recoverySuccessful"
       class="w-full"
@@ -186,17 +183,19 @@
       {{ errorMessage ? "Retry Recovery" : currentStep > 0 ? "Processing..." : "Start Recovery" }}
     </ZkButton>
 
-    <!-- Ready State Message -->
     <p
       v-if="notStarted && !recoverySuccessful && !errorMessage"
       class="text-center text-sm text-neutral-600 dark:text-neutral-400"
     >
       Everything is ready. Click the button above to begin account recovery.
     </p>
+
+  -->
   </div>
 </template>
 
 <script setup lang="ts">
+/*
 import { useAppKitAccount } from "@reown/appkit/vue";
 import type { Address, Hex } from "viem";
 import { bytesToBigInt, encodeAbiParameters, keccak256, pad, zeroAddress } from "viem";
@@ -681,4 +680,5 @@ async function go() {
     console.error("Full context:", debugContext);
   }
 }
+*/
 </script>

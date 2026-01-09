@@ -166,17 +166,6 @@ export function prepareDeploySmartAccount(
     );
   }
 
-  // Debug logging
-  console.log("🔍 encode_deploy_account_call_data params:", {
-    accountId,
-    eoaSigners: eoaSigners || [],
-    eoaValidator: contracts.eoaValidator || null,
-    hasPasskey: !!passkeyPayload,
-    webauthnValidator: contracts.webauthnValidator || null,
-    sessionValidator: (installSessionValidator && contracts.sessionValidator) || null,
-    executorModules: executorModules || [],
-  });
-
   const encodedCallData = encode_deploy_account_call_data(
     accountId,
     eoaSigners || [],
@@ -187,8 +176,6 @@ export function prepareDeploySmartAccount(
     (installSessionValidator && contracts.sessionValidator) || null,
     executorModules || [],
   ) as Hex;
-
-  console.log("✅ Encoded call data length:", encodedCallData.length);
 
   return {
     transaction: {

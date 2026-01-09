@@ -197,16 +197,6 @@ export const useRecoveryGuardian = () => {
       );
     }
 
-    // eslint-disable-next-line no-console
-    console.log("✅ GuardianExecutor module is installed");
-
-    // eslint-disable-next-line no-console
-    console.log("🔍 Proposing guardian:", {
-      guardianExecutor: contracts.guardianExecutor,
-      guardianAddress: address,
-      accountAddress,
-    });
-
     // Call GuardianExecutor.proposeGuardian() directly
     // The SDK will automatically wrap this in account.execute() via encode_execute_call_data
     const tx = await client.writeContract({
@@ -216,61 +206,12 @@ export const useRecoveryGuardian = () => {
       args: [address],
     });
 
-    // eslint-disable-next-line no-console
-    console.log("✅ Guardian proposal transaction sent:", tx);
-
     // Get the full transaction receipt for event parsing
     const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
-
-    // eslint-disable-next-line no-console
-    console.log("Guardian proposal transaction receipt:", {
-      hash: tx,
-      status: receipt.status,
-      gasUsed: receipt.gasUsed,
-      blockNumber: receipt.blockNumber,
-      logsCount: receipt.logs.length,
-    });
-
-    // eslint-disable-next-line no-console
-    console.log("🔍 All emitted events:");
-    receipt.logs.forEach((log, i) => {
-      // eslint-disable-next-line no-console
-      console.log(`  Event ${i + 1}:`, {
-        address: log.address,
-        topic0: log.topics[0],
-        topics: log.topics,
-        data: log.data,
-      });
-    });
 
     if (receipt.status != "success") {
       throw new Error(`Failed to propose guardian ${address} for account ${accountAddress}`);
     }
-
-    // Verify the guardian was actually proposed by checking for the GuardianProposed event
-    const guardianProposedEventTopic = "0xf1284770232ce131bb37044a576145e0b24fd6b24f5710624b11255d5ac61a81"; // keccak256("GuardianProposed(address,address)")
-    const proposalEvent = receipt.logs.find((log) =>
-      log.topics[0] === guardianProposedEventTopic
-      && log.topics[1]?.toLowerCase() === `0x000000000000000000000000${accountAddress.slice(2).toLowerCase()}`
-      && log.topics[2]?.toLowerCase() === `0x000000000000000000000000${address.slice(2).toLowerCase()}`,
-    );
-
-    if (!proposalEvent) {
-      // eslint-disable-next-line no-console
-      console.error("GuardianProposed event not found in transaction logs.");
-      // eslint-disable-next-line no-console
-      console.error("Expected event topic:", guardianProposedEventTopic);
-      // eslint-disable-next-line no-console
-      console.error("Expected account:", accountAddress);
-      // eslint-disable-next-line no-console
-      console.error("Expected guardian:", address);
-      // eslint-disable-next-line no-console
-      console.error("All event topics:", receipt.logs.map((l) => l.topics[0]));
-      throw new Error("Guardian proposal transaction succeeded but GuardianProposed event was not emitted.");
-    }
-
-    // eslint-disable-next-line no-console
-    console.log("✅ GuardianProposed event found, proposal successful");
 
     return receipt;
   });

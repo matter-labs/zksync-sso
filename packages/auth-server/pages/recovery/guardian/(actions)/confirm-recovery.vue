@@ -132,66 +132,14 @@ const RecoveryParamsSchema = z
   })
   .refine(
     async (data) => {
-      // Debug: Log raw parameter values
-      /* eslint-disable no-console */
-      console.log("🔍 CHECKSUM VALIDATION DEBUG");
-      console.log("================================");
-      console.log("Raw parameters received:");
-      console.log("  accountAddress:", data.accountAddress);
-      console.log("  credentialId:", data.credentialId);
-      console.log("  credentialPublicKey:", data.credentialPublicKey);
-      console.log("  checksum (provided):", data.checksum);
-
-      // Debug: Character-level inspection of credentialPublicKey
-      console.log("\n📝 CredentialPublicKey character analysis:");
-      console.log("  Length:", data.credentialPublicKey.length);
-      console.log("  First 20 chars:", data.credentialPublicKey.substring(0, 20));
-      console.log("  Character codes (first 20):",
-        Array.from(data.credentialPublicKey.substring(0, 20))
-          .map((c, _i) => `${c}=${c.charCodeAt(0)}`)
-          .join(", "),
-      );
-
-      // Debug: Try to parse as JSON
-      console.log("\n🧪 JSON parsing attempt:");
-      try {
-        const parsed = JSON.parse(data.credentialPublicKey);
-        console.log("  ✅ Successfully parsed as JSON:", parsed);
-      } catch (e) {
-        console.log("  ❌ Failed to parse as JSON:", (e as Error).message);
-      }
-
       // Calculate checksum
       // Normalize accountAddress to lowercase for consistent hashing
       const normalizedAddress = data.accountAddress.toLowerCase();
       const dataToHash = `${normalizedAddress}:${data.credentialId}:${data.credentialPublicKey}`;
-      console.log("\n🔐 Checksum calculation:");
-      console.log("  Data to hash:", dataToHash);
-      console.log("  Data to hash (length):", dataToHash.length);
 
       const calculatedChecksum = uint8ArrayToHex(
         new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(dataToHash))).slice(0, 8),
       );
-
-      console.log("  Calculated checksum:", calculatedChecksum);
-      console.log("  Provided checksum:", data.checksum);
-      console.log("  Match:", calculatedChecksum === data.checksum ? "✅ YES" : "❌ NO");
-
-      if (calculatedChecksum !== data.checksum) {
-        // Show character-by-character comparison
-        console.log("\n❌ MISMATCH DETECTED");
-        console.log("Comparing checksums character by character:");
-        const maxLen = Math.max(calculatedChecksum.length, data.checksum.length);
-        for (let _i = 0; _i < maxLen; _i++) {
-          const calc = calculatedChecksum[_i] || "∅";
-          const prov = data.checksum[_i] || "∅";
-          const match = calc === prov ? "✓" : "✗";
-          console.log(`  [${_i}] ${match} calc:'${calc}' prov:'${prov}'`);
-        }
-      }
-
-      console.log("================================\n");
-      /* eslint-enable no-console */
 
       return calculatedChecksum === data.checksum;
     },
@@ -212,30 +160,6 @@ const isConnectedWalletGuardian = computed(() => (
 
 const confirmGuardianErrorMessage = ref<string | null>(null);
 
-// Debug: Log what Nuxt's router receives
-/* eslint-disable no-console */
-console.log("🌐 NUXT ROUTE QUERY DEBUG");
-console.log("================================");
-console.log("route.query object:", route.query);
-console.log("Query parameters as received by Nuxt:");
-console.log("  accountAddress:", route.query.accountAddress);
-console.log("  credentialId:", route.query.credentialId);
-console.log("  credentialPublicKey:", route.query.credentialPublicKey);
-console.log("  checksum:", route.query.checksum);
-if (typeof route.query.credentialPublicKey === "string") {
-  console.log("\ncredentialPublicKey detailed analysis:");
-  console.log("  Type:", typeof route.query.credentialPublicKey);
-  console.log("  Length:", route.query.credentialPublicKey.length);
-  console.log("  First 50 chars:", route.query.credentialPublicKey.substring(0, 50));
-  console.log("  Character codes (first 20):",
-    Array.from(route.query.credentialPublicKey.substring(0, 20))
-      .map((c) => `${c}=${c.charCodeAt(0)}`)
-      .join(", "),
-  );
-}
-console.log("================================\n");
-/* eslint-enable no-console */
-
 const recoveryParams = computedAsync(async () => RecoveryParamsSchema.parseAsync({
   accountAddress: route.query.accountAddress,
   credentialId: route.query.credentialId,
@@ -249,23 +173,11 @@ const recoveryParams = computedAsync(async () => RecoveryParamsSchema.parseAsync
 
 const recoveryCompleted = computedAsync(async () => {
   // Force re-evaluation when trigger changes
-  const triggerValue = recoveryCheckTrigger.value;
-  // eslint-disable-next-line no-console
-  console.log("🔍 recoveryCompleted computed called, trigger:", triggerValue);
-
   if (!recoveryParams.value?.accountAddress || !recoveryParams.value?.credentialId || !recoveryParams.value?.credentialPublicKey) {
-    // eslint-disable-next-line no-console
-    console.log("❌ Missing required params, returning false");
     return false;
   }
 
-  // eslint-disable-next-line no-console
-  console.log("🔍 Checking recovery for account:", recoveryParams.value.accountAddress);
-  // eslint-disable-next-line no-console
-  console.log("🔍 Checking recovery for account:", recoveryParams.value.accountAddress);
   const result = await getRecovery(recoveryParams.value.accountAddress);
-  // eslint-disable-next-line no-console
-  console.log("🔍 getRecovery result:", result);
 
   // The smart contract stores keccak256(data) where data is the encoded recovery payload
   // We need to reconstruct the same data structure that was passed to initializeRecovery
@@ -286,14 +198,8 @@ const recoveryCompleted = computedAsync(async () => {
   );
 
   const expectedHashedData = keccak256(recoveryData);
-  // eslint-disable-next-line no-console
-  console.log("🔍 Expected hashedData:", expectedHashedData);
-  // eslint-disable-next-line no-console
-  console.log("🔍 Actual hashedData:", result?.hashedData);
 
   const isComplete = result?.hashedData === expectedHashedData;
-  // eslint-disable-next-line no-console
-  console.log("✅ Recovery completed:", isComplete);
 
   return isComplete;
 });
@@ -347,15 +253,6 @@ const handleConfirmRecovery = async () => {
     // Convert coordinates to proper COSE format expected by initRecovery
     const credentialPublicKeyBytes = getPasskeySignatureFromPublicKeyBytes([parsedPublicKey.x, parsedPublicKey.y]);
 
-    // eslint-disable-next-line no-console
-    console.log("🔍 About to call initRecovery with:");
-    // eslint-disable-next-line no-console
-    console.log("  credentialId:", recoveryParams.value.credentialId);
-    // eslint-disable-next-line no-console
-    console.log("  Hash of credentialId:", keccak256(toHex(base64urlToUint8Array(recoveryParams.value.credentialId))));
-    // eslint-disable-next-line no-console
-    console.log("  accountToRecover:", recoveryParams.value.accountAddress);
-
     await initRecovery({
       client,
       accountToRecover: recoveryParams.value.accountAddress,
@@ -365,14 +262,10 @@ const handleConfirmRecovery = async () => {
     confirmGuardianErrorMessage.value = null;
 
     // Wait a moment for the transaction to be processed
-    // eslint-disable-next-line no-console
-    console.log("⏳ Waiting for recovery transaction to process...");
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Trigger re-check of recoveryCompleted
     recoveryCheckTrigger.value++;
-    // eslint-disable-next-line no-console
-    console.log("✅ Recovery initiated successfully, trigger incremented to:", recoveryCheckTrigger.value);
   } catch (err) {
     confirmGuardianErrorMessage.value = "An error occurred while confirming the guardian. Please try again.";
     // eslint-disable-next-line no-console

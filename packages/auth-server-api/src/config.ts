@@ -71,10 +71,6 @@ if (!FACTORY_ADDRESS || !EOA_VALIDATOR_ADDRESS || !WEBAUTHN_VALIDATOR_ADDRESS ||
   process.exit(1);
 }
 
-if (GUARDIAN_EXECUTOR_ADDRESS) {
-  console.log("GuardianExecutor module will be installed during account deployment:", GUARDIAN_EXECUTOR_ADDRESS);
-}
-
 // Supported chains configuration
 const zksyncOsTestnet = defineChain({
   id: 8022833,

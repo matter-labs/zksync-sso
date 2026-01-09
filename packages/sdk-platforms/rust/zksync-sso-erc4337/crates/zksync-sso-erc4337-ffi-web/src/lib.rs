@@ -2637,21 +2637,10 @@ pub fn encode_deploy_account_call_data(
     // Parse executor modules if provided
     let executor_modules_core = match executor_modules {
         Some(addresses) => {
-            web_sys::console::log_1(
-                &format!(
-                    "🦀 Rust parsing {} executor modules",
-                    addresses.len()
-                )
-                .into(),
-            );
             let mut parsed_addresses = Vec::new();
             for addr_str in addresses {
                 match addr_str.parse::<Address>() {
                     Ok(addr) => {
-                        web_sys::console::log_1(
-                            &format!("🦀 Parsed executor module: {}", addr)
-                                .into(),
-                        );
                         parsed_addresses.push(addr);
                     }
                     Err(e) => {
@@ -2665,7 +2654,6 @@ pub fn encode_deploy_account_call_data(
             Some(parsed_addresses)
         }
         None => {
-            web_sys::console::log_1(&"🦀 No executor modules provided".into());
             None
         }
     };
@@ -2778,36 +2766,11 @@ fn create_init_data_for_deployment(
 
     // Add executor modules if provided (no initialization data needed)
     if let Some(executor_addrs) = executor_modules {
-        web_sys::console::log_1(
-            &format!(
-                "🦀 Adding {} executor modules to initializeAccount",
-                executor_addrs.len()
-            )
-            .into(),
-        );
         for executor_addr in executor_addrs {
-            web_sys::console::log_1(
-                &format!(
-                    "🦀 Adding executor module to modules array: {}",
-                    executor_addr
-                )
-                .into(),
-            );
             modules.push(executor_addr);
             data.push(Bytes::new()); // Empty bytes for executor modules
         }
-    } else {
-        web_sys::console::log_1(&"🦀 No executor modules to add".into());
     }
-
-    web_sys::console::log_1(
-        &format!(
-            "🦀 Final modules count: {}, data count: {}",
-            modules.len(),
-            data.len()
-        )
-        .into(),
-    );
 
     // Create initializeAccount call
 
