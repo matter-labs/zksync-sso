@@ -47,6 +47,11 @@ pub(crate) fn setup_zksync_os(
             if balance < FUND_AMOUNT_WEI {
                 fund_wallet_balance(l2_rpc_url, &address, print_logs)?;
             }
+            let new_balance = rpc_get_balance(l2_rpc_url, &address)?;
+            eyre::ensure!(
+                new_balance >= FUND_AMOUNT_WEI,
+                "failed to fund {address}: balance {new_balance} below {FUND_AMOUNT_WEI}"
+            );
         }
     }
 
