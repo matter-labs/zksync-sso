@@ -27,11 +27,10 @@ import {
   getAaveBalance,
   getShadowAccount,
 } from "./aave-utils.js";
-
 import { sendInteropMessage } from "./interop.js";
 import {
-  getTokenInfo,
   getTokenBalance,
+  getTokenInfo,
   getWrappedTokenAddress,
   transferTokensInterop,
 } from "./token-interop.js";
@@ -65,7 +64,7 @@ const zksyncOsTestnet = defineChain({
 
 const DEFAULT_ZKSYNC_OS_RPC_URL = "https://zksync-os-testnet-alpha.zksync.dev/";
 const LOCAL_RPC_PROXY_URL = "http://localhost:4339";
-const isBrowser = typeof window !== "undefined";
+// const isBrowser = typeof window !== "undefined";
 const shouldUseLocalRpcProxy = false; // Disabled - use direct RPC URL
 const ZKSYNC_OS_RPC_URL = shouldUseLocalRpcProxy ? LOCAL_RPC_PROXY_URL : DEFAULT_ZKSYNC_OS_RPC_URL;
 
@@ -181,24 +180,24 @@ let activityInterval = null;
 // Transaction metadata storage helpers
 function saveTxMetadata(txHash, action, amount) {
   try {
-    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || '{}');
+    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || "{}");
     metadata[txHash] = {
       action,
       amount,
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEY_TX_METADATA, JSON.stringify(metadata));
   } catch (error) {
-    console.error('Failed to save tx metadata:', error);
+    console.error("Failed to save tx metadata:", error);
   }
 }
 
 function getTxMetadata(txHash) {
   try {
-    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || '{}');
+    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || "{}");
     return metadata[txHash] || null;
   } catch (error) {
-    console.error('Failed to get tx metadata:', error);
+    console.error("Failed to get tx metadata:", error);
     return null;
   }
 }
@@ -216,9 +215,9 @@ function renderActivity(status) {
   // Load localStorage metadata to enrich timestamps
   let localStorageMetadata = {};
   try {
-    localStorageMetadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || '{}');
+    localStorageMetadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || "{}");
   } catch (error) {
-    console.error('Failed to load localStorage metadata:', error);
+    console.error("Failed to load localStorage metadata:", error);
   }
 
   // Only show transactions that belong to the current user (have metadata in localStorage)
@@ -251,8 +250,8 @@ function renderActivity(status) {
 
   // Add transactions from localStorage that aren't in the daemon's status yet
   const daemonTxHashes = new Set([
-    ...pending.map(tx => tx.hash),
-    ...finalized.map(tx => tx.l2TxHash)
+    ...pending.map((tx) => tx.hash),
+    ...finalized.map((tx) => tx.l2TxHash),
   ]);
 
   for (const [txHash, txMeta] of Object.entries(localStorageMetadata)) {
@@ -282,8 +281,8 @@ function renderActivity(status) {
     }
 
     // Tertiary: if timestamps are equal, use transaction hash as tiebreaker
-    const hashA = a.hash || a.l2TxHash || '';
-    const hashB = b.hash || b.l2TxHash || '';
+    const hashA = a.hash || a.l2TxHash || "";
+    const hashB = b.hash || b.l2TxHash || "";
     return hashB.localeCompare(hashA);
   });
 
@@ -333,9 +332,11 @@ function renderActivity(status) {
     l2Link.target = "_blank";
     l2Link.rel = "noreferrer";
 
-    const l2TxLabel = action === "Deposit" ? "L2 Deposit Tx" :
-                      action === "Withdrawal" ? "L2 Withdrawal Tx" :
-                      "L2 Tx";
+    const l2TxLabel = action === "Deposit"
+      ? "L2 Deposit Tx"
+      : action === "Withdrawal"
+        ? "L2 Withdrawal Tx"
+        : "L2 Tx";
     l2Link.textContent = `${l2TxLabel} ${truncateHash(txHash)}`;
 
     value.appendChild(l2Link);
@@ -743,7 +744,7 @@ async function autoRefreshBalance() {
   try {
     const balance = await publicClient.getBalance({
       address: accountAddress,
-      blockTag: 'latest', // Force fetching the latest block
+      blockTag: "latest", // Force fetching the latest block
     });
 
     const balanceInEth = formatEther(balance);
@@ -768,14 +769,14 @@ function startBalanceAutoRefresh() {
   console.log("✅ Balance auto-refresh started");
 }
 
-// Stop auto-refresh
-function stopBalanceAutoRefresh() {
-  if (balanceRefreshInterval) {
-    clearInterval(balanceRefreshInterval);
-    balanceRefreshInterval = null;
-    console.log("⏹️  Balance auto-refresh stopped");
-  }
-}
+// // Stop auto-refresh
+// function stopBalanceAutoRefresh() {
+//   if (balanceRefreshInterval) {
+//     clearInterval(balanceRefreshInterval);
+//     balanceRefreshInterval = null;
+//     console.log("⏹️  Balance auto-refresh stopped");
+//   }
+// }
 
 // Step 3: Refresh Balance (manual)
 async function handleRefreshBalance() {
@@ -938,8 +939,8 @@ async function handleSendMax() {
     const maxEth = formatEther(balance);
 
     document.getElementById("transferAmount").value = maxEth;
-    document.getElementById("max-amount-info").textContent =
-      `Sending entire balance: ${maxEth} ETH (gas paid via ERC-4337)`;
+    document.getElementById("max-amount-info").textContent
+      = `Sending entire balance: ${maxEth} ETH (gas paid via ERC-4337)`;
   } catch (error) {
     console.error("Failed to get balance:", error);
     alert("Failed to get balance");
@@ -1225,7 +1226,6 @@ async function handleTransfer() {
       const txLink = document.getElementById("transfer-tx-link");
       txLink.href = `${L2_EXPLORER_BASE}${receipt.receipt.transactionHash}`;
 
-
       // Refresh balance
       await handleRefreshBalance();
 
@@ -1305,14 +1305,14 @@ function startAaveBalanceAutoRefresh() {
   console.log("✅ Aave balance auto-refresh started");
 }
 
-// Stop Aave balance auto-refresh
-function stopAaveBalanceAutoRefresh() {
-  if (aaveBalanceRefreshInterval) {
-    clearInterval(aaveBalanceRefreshInterval);
-    aaveBalanceRefreshInterval = null;
-    console.log("⏹️  Aave balance auto-refresh stopped");
-  }
-}
+// // Stop Aave balance auto-refresh
+// function stopAaveBalanceAutoRefresh() {
+//   if (aaveBalanceRefreshInterval) {
+//     clearInterval(aaveBalanceRefreshInterval);
+//     aaveBalanceRefreshInterval = null;
+//     console.log("⏹️  Aave balance auto-refresh stopped");
+//   }
+// }
 
 // Refresh Aave balance (aToken balance on L1)
 async function refreshAaveBalance() {
@@ -2022,9 +2022,9 @@ async function handleInteropSend() {
 const TOKEN_ADDRESS = import.meta.env?.VITE_TOKEN_ADDRESS || "0xe441CF0795aF14DdB9f7984Da85CD36DB1B8790d";
 
 // Update HTML with token address
-if (typeof document !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    const tokenAddressEl = document.getElementById('tokenAddress');
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", () => {
+    const tokenAddressEl = document.getElementById("tokenAddress");
     if (tokenAddressEl && TOKEN_ADDRESS) {
       tokenAddressEl.textContent = TOKEN_ADDRESS;
     }
@@ -2210,9 +2210,9 @@ async function handleTokenTransfer() {
       INTEROP_PRIVATE_KEY,
       sourceProvider,
       destProvider,
-      TOKEN_ADDRESS,        // originalTokenAddress - always Chain A token
-      chainAId,             // originalChainId - always Chain A ID
-      addProgressStep
+      TOKEN_ADDRESS, // originalTokenAddress - always Chain A token
+      chainAId, // originalChainId - always Chain A ID
+      addProgressStep,
     );
 
     // Hide progress and show success
@@ -2232,7 +2232,6 @@ async function handleTokenTransfer() {
     setTimeout(() => {
       handleRefreshTokenBalances();
     }, 2000);
-
   } catch (error) {
     console.error("Token transfer failed:", error);
     document.getElementById("token-transfer-progress").classList.add("hidden");
