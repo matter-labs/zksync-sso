@@ -173,6 +173,8 @@ const recoveryParams = computedAsync(async () => RecoveryParamsSchema.parseAsync
 
 const recoveryCompleted = computedAsync(async () => {
   // Force re-evaluation when trigger changes
+  const _triggerValue = recoveryCheckTrigger.value;
+
   if (!recoveryParams.value?.accountAddress || !recoveryParams.value?.credentialId || !recoveryParams.value?.credentialPublicKey) {
     return false;
   }
