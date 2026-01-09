@@ -3,6 +3,7 @@
 !ZkSync
 // zkSync-related words
 sepolia
+unbundler
 Zeek
 zksync
 ZKsync

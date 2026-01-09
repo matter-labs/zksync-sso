@@ -8,7 +8,7 @@ SSO contracts on Sepolia!
 ## 🚀 Quick Start
 
 ```bash
-cd /Users/ra/Work/ZkSync/ZKSync-SSO/passkey-wallet-app
+cd /Users/ra/Work/zksync/zksync-SSO/passkey-wallet-app
 
 # Install dependencies
 npm install

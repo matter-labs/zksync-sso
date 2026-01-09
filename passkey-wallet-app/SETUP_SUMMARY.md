@@ -42,7 +42,7 @@ the app to work.
 #### 1.2 Run Deployment
 
 ```bash
-cd /Users/ra/Work/ZkSync/ZKSync-SSO/zksync-sso-contracts
+cd zksync-sso/zksync-sso-contracts
 
 # Set your private key
 export PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
@@ -69,7 +69,7 @@ This will deploy:
 After deployment, you'll have contract addresses. Update the app:
 
 ```bash
-cd /Users/ra/Work/ZkSync/ZKSync-SSO/passkey-wallet-app
+cd zksync-sso/passkey-wallet-app
 
 # Open main.js and update these lines (around line 20):
 ```

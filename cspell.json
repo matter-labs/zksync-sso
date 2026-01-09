@@ -33,7 +33,10 @@
     "**/*.zkey",
     "packages/circuits/**",
     "packages/examples/demo-app/cache/**",
-    "packages/auth-server/public/snarkjs.min.js"
+    "packages/auth-server/public/snarkjs.min.js",
+    "passkey-wallet-app/abis/**",
+    "passkey-wallet-app/token-deployment/**",
+    "l2-to-l1-relayer/abis/**"
   ],
   "caseSensitive": true,
   "dictionaries": [

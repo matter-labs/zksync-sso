@@ -39,7 +39,7 @@ The executor address needs Sepolia ETH to pay for gas:
 Once you have Sepolia ETH in the executor address, run:
 
 ```bash
-cd /Users/ra/Work/ZkSync/ZKSync-SSO/l2-to-l1-relayer
+cd zksync-sso/l2-to-l1-relayer
 node finalize-tx.js
 ```
 
