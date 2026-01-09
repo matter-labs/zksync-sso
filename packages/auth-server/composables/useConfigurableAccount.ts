@@ -9,7 +9,13 @@ export const useConfigurableAccount = () => {
     const webauthnValidatorAddress = contractsByChain[defaultChain.id].webauthnValidator;
 
     // Get current block to calculate safe fromBlock (avoid RPC block range limits)
-    const currentBlock = await publicClient.getBlockNumber();
+    // Add timeout to prevent hanging RPC calls in CI (4s to leave room for event queries)
+    const currentBlockPromise = publicClient.getBlockNumber();
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout getting block number after 4 seconds")), 4000),
+    );
+    const currentBlock = await Promise.race([currentBlockPromise, timeoutPromise]);
+
     // Query last 100k blocks or from genesis, whichever is more recent
     const fromBlock = currentBlock > 100000n ? currentBlock - 100000n : 0n;
 
