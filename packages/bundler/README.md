@@ -109,8 +109,8 @@ Send ERC-4337 user operations to: `http://localhost:4337`
 
 Send standard JSON-RPC calls (e.g. `eth_getBalance`) to: `http://localhost:4339`
 
-Both proxies automatically forward requests and add permissive CORS headers
-for browser compatibility.
+Both proxies automatically forward requests and add permissive CORS headers for
+browser compatibility.
 
 ## Development
 

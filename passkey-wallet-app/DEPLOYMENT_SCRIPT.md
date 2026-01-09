@@ -2,12 +2,13 @@
 
 ## Overview
 
-This script allows you to deploy a smart account using an EOA (Externally Owned Account) with Sepolia ETH,
-instead of relying on the bundler to deploy it.
+This script allows you to deploy a smart account using an EOA (Externally Owned
+Account) with Sepolia ETH, instead of relying on the bundler to deploy it.
 
 ## Why Use This?
 
-The bundler's counterfactual deployment can fail with `AA13 initCode failed or OOG` errors. Using this script, you can:
+The bundler's counterfactual deployment can fail with
+`AA13 initCode failed or OOG` errors. Using this script, you can:
 
 - Deploy the account from an EOA that you control
 - Verify the deployment succeeded
@@ -27,7 +28,8 @@ Edit `.env` and add your private key:
 DEPLOYER_PRIVATE_KEY=0x... # Your EOA private key (must have Sepolia ETH)
 ```
 
-**⚠️ Security Warning**: Never commit `.env` to git! It's already in `.gitignore`.
+**⚠️ Security Warning**: Never commit `.env` to git! It's already in
+`.gitignore`.
 
 ### 2. Get Your Passkey Data
 
@@ -130,21 +132,24 @@ Once deployed, you can:
 ## Important Notes
 
 1. **Origin Must Match**: The script uses `http://localhost:3000` as the origin.
-  If you're using a different origin in the app, update line 90 in `deploy-account.js`.
+   If you're using a different origin in the app, update line 90 in
+   `deploy-account.js`.
 
 2. **One-Time Operation**: You only need to deploy the account once. After that,
-  it exists on-chain forever (for that specific passkey).
+   it exists on-chain forever (for that specific passkey).
 
 3. **Gas Costs**: Deployment costs approximately 0.005-0.01 ETH on Sepolia.
 
-4. **Same Passkey = Same Account**: The account address is deterministic based on your credential ID.
-  Same passkey always generates the same account address.
+4. **Same Passkey = Same Account**: The account address is deterministic based
+   on your credential ID. Same passkey always generates the same account
+   address.
 
 ## Alternative: Deploy from App (Advanced)
 
-If you want to avoid using this script, you can also deploy programmatically by funding the account address BEFORE deployment,
-  then the first transaction will deploy it automatically.
-  However, this is more complex and requires careful gas estimation.
+If you want to avoid using this script, you can also deploy programmatically by
+funding the account address BEFORE deployment, then the first transaction will
+deploy it automatically. However, this is more complex and requires careful gas
+estimation.
 
 ## Security Best Practices
 

@@ -11,29 +11,34 @@ startAuthentication() was not called correctly
 TypeError: base64URLString.replace is not a function
 ```
 
-**Root Cause:**
-The `startAuthentication` function from `@simplewebauthn/browser` expects base64url **strings**, but we were passing arrays/bytes.
+**Root Cause:** The `startAuthentication` function from
+`@simplewebauthn/browser` expects base64url **strings**, but we were passing
+arrays/bytes.
 
 **Fix Applied:**
 
 ```javascript
 // Before (WRONG):
 const authOptions = {
-  challenge: Array.from(challenge),  // ❌ Array
-  allowCredentials: [{
-    id: base64UrlToBytes(passkeyData.credentialId),  // ❌ Bytes
-    type: 'public-key',
-  }],
+  challenge: Array.from(challenge), // ❌ Array
+  allowCredentials: [
+    {
+      id: base64UrlToBytes(passkeyData.credentialId), // ❌ Bytes
+      type: "public-key",
+    },
+  ],
 };
 
 // After (CORRECT):
-const challengeBase64 = bytesToBase64Url(challenge);  // Convert to base64url string
+const challengeBase64 = bytesToBase64Url(challenge); // Convert to base64url string
 const authOptions = {
-  challenge: challengeBase64,  // ✅ String
-  allowCredentials: [{
-    id: passkeyData.credentialId,  // ✅ String (already base64url)
-    type: 'public-key',
-  }],
+  challenge: challengeBase64, // ✅ String
+  allowCredentials: [
+    {
+      id: passkeyData.credentialId, // ✅ String (already base64url)
+      type: "public-key",
+    },
+  ],
 };
 ```
 
@@ -50,24 +55,23 @@ AbiFunctionNotFoundError: Function not found on ABI.
 Make sure you are using the correct ABI and that the function exists on it.
 ```
 
-**Root Cause:**
-Using `encodeFunctionData` with `parseAbiParameters` is incorrect.
-`encodeFunctionData` expects a full function ABI with a function name,
-while `parseAbiParameters` only provides parameter types.
+**Root Cause:** Using `encodeFunctionData` with `parseAbiParameters` is
+incorrect. `encodeFunctionData` expects a full function ABI with a function
+name, while `parseAbiParameters` only provides parameter types.
 
 **Fix Applied:**
 
 ```javascript
 // Before (WRONG):
 return encodeFunctionData({
-  abi: parseAbiParameters('bytes, string, uint256, uint256, bytes'),
+  abi: parseAbiParameters("bytes, string, uint256, uint256, bytes"),
   values: [authenticatorData, clientDataJSON, r, s, credentialId],
 });
 
 // After (CORRECT):
 return encodeAbiParameters(
-  parseAbiParameters('bytes, string, uint256, uint256, bytes'),
-  [authenticatorData, clientDataJSON, r, s, credentialId]
+  parseAbiParameters("bytes, string, uint256, uint256, bytes"),
+  [authenticatorData, clientDataJSON, r, s, credentialId],
 );
 ```
 
@@ -87,7 +91,8 @@ Changes made:
 
 1. Convert challenge to base64url string before passing to `startAuthentication`
 2. Use original base64url credential ID string (not bytes)
-3. Replace `encodeFunctionData` with `encodeAbiParameters` for signature encoding
+3. Replace `encodeFunctionData` with `encodeAbiParameters` for signature
+   encoding
 
 ```javascript
 async function signWithPasskey(hash) {
@@ -97,12 +102,14 @@ async function signWithPasskey(hash) {
   const challengeBase64 = bytesToBase64Url(challenge);
 
   const authOptions = {
-    challenge: challengeBase64,  // ✅ String format
-    allowCredentials: [{
-      id: passkeyData.credentialId,  // ✅ String format
-      type: 'public-key',
-    }],
-    userVerification: 'preferred',
+    challenge: challengeBase64, // ✅ String format
+    allowCredentials: [
+      {
+        id: passkeyData.credentialId, // ✅ String format
+        type: "public-key",
+      },
+    ],
+    userVerification: "preferred",
     timeout: 60000,
   };
 
@@ -112,8 +119,8 @@ async function signWithPasskey(hash) {
 
   // ✅ FIX 2: Use encodeAbiParameters instead of encodeFunctionData
   return encodeAbiParameters(
-    parseAbiParameters('bytes, string, uint256, uint256, bytes'),
-    [authenticatorDataHex, clientDataJSONString, r, s, credentialIdHex]
+    parseAbiParameters("bytes, string, uint256, uint256, bytes"),
+    [authenticatorDataHex, clientDataJSONString, r, s, credentialIdHex],
   );
 }
 ```
@@ -160,11 +167,13 @@ return keccak256(packed);
 ### When to Use Each Encoding Function
 
 1. **`encodeFunctionData`**
+
    - Use for: Encoding function calls with function name
    - Requires: Full function ABI with `name`, `inputs`, `outputs`
    - Example: `execute(address to, uint256 value, bytes data)`
 
 2. **`encodeAbiParameters`**
+
    - Use for: Encoding raw parameters without function name
    - Requires: Only parameter types via `parseAbiParameters`
    - Example: Encoding struct data, signature data, or raw parameters
@@ -241,14 +250,15 @@ Do not convert these to arrays or bytes - keep them as base64url strings!
 
 ### Why These Errors Occurred
 
-1. **API Expectations Mismatch**: The `@simplewebauthn/browser` library has specific format requirements
-  that weren't immediately obvious from the documentation.
+1. **API Expectations Mismatch**: The `@simplewebauthn/browser` library has
+   specific format requirements that weren't immediately obvious from the
+   documentation.
 
-2. **Function Naming Confusion**: `encodeFunctionData` and `encodeAbiParameters` sound similar
-  but have different purposes and requirements.
+2. **Function Naming Confusion**: `encodeFunctionData` and `encodeAbiParameters`
+   sound similar but have different purposes and requirements.
 
 3. **Type Conversion**: JavaScript's flexibility with types (strings, arrays,
-  Uint8Arrays) can lead to passing the wrong type without compile-time errors.
+   Uint8Arrays) can lead to passing the wrong type without compile-time errors.
 
 ### Prevention
 
@@ -270,12 +280,12 @@ Bundler error: EntryPoint 0x0000000071727De22E5E9d8BAf0edAc6f37da032 not support
 supported EntryPoints: 0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108
 ```
 
-**Root Cause:**
-The ZKsync SSO bundler uses a custom EntryPoint contract at `0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108` instead of the
-  standard ERC-4337 v0.7 EntryPoint.
+**Root Cause:** The ZKsync SSO bundler uses a custom EntryPoint contract at
+`0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108` instead of the standard ERC-4337
+v0.7 EntryPoint.
 
-**Fix Applied:**
-Updated the EntryPoint address to match the bundler's supported address:
+**Fix Applied:** Updated the EntryPoint address to match the bundler's supported
+address:
 
 ```javascript
 // Before:

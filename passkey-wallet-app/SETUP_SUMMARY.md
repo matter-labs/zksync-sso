@@ -2,7 +2,8 @@
 
 ## 🎯 What You Have
 
-I've created a complete passkey wallet application with deployment infrastructure for Ethereum Sepolia testnet.
+I've created a complete passkey wallet application with deployment
+infrastructure for Ethereum Sepolia testnet.
 
 ## 📁 File Structure
 
@@ -29,7 +30,8 @@ ZKSync-SSO/
 
 ### Step 1: Deploy Smart Contracts to Sepolia
 
-You need to deploy the ZKsync SSO contracts to Sepolia. This is **required** for the app to work.
+You need to deploy the ZKsync SSO contracts to Sepolia. This is **required** for
+the app to work.
 
 #### 1.1 Get Sepolia ETH
 
@@ -99,7 +101,7 @@ You need an ERC-4337 bundler to submit transactions. Update `main.js`:
 #### Option A: Pimlico (Recommended - Free tier available)
 
 ```javascript
-const BUNDLER_URL = 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_API_KEY';
+const BUNDLER_URL = "https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_API_KEY";
 ```
 
 - Sign up: <https://dashboard.pimlico.io/>
@@ -109,13 +111,13 @@ const BUNDLER_URL = 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_API_KEY';
 #### Option B: Alchemy (If you have Alchemy account)
 
 ```javascript
-const BUNDLER_URL = 'https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY';
+const BUNDLER_URL = "https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY";
 ```
 
 #### Option C: Stackup (Public endpoint)
 
 ```javascript
-const BUNDLER_URL = 'https://api.stackup.sh/v1/node/sepolia';
+const BUNDLER_URL = "https://api.stackup.sh/v1/node/sepolia";
 ```
 
 ### Step 4: Install and Run
@@ -133,16 +135,19 @@ App opens at `http://localhost:3000` 🎉
 ### Step 5: Test the Flow
 
 1. **Create Passkey**
+
    - Enter your name
    - Click "Create Passkey"
    - Authenticate with Touch ID / Face ID / PIN
 
 2. **Deploy Account**
+
    - Click "Deploy Account"
    - Wait ~15-30 seconds
    - Copy your smart account address
 
 3. **Fund Account**
+
    - Go to <https://sepoliafaucet.com/>
    - Send Sepolia ETH to your smart account address
    - Click "Refresh Balance" in app
@@ -202,7 +207,8 @@ App opens at `http://localhost:3000` 🎉
 
 All documentation is ready:
 
-1. **[DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md)** - Complete deployment instructions
+1. **[DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md)** - Complete deployment
+   instructions
 2. **[passkey-wallet-app/README.md](./README.md)** - App documentation
 3. **[This file]** - Quick summary
 

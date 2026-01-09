@@ -9,9 +9,12 @@
 - Extracts public key (x, y coordinates)
 - Stores credential ID
 - **Test Result**: Successfully created passkey for user "Raid"
-  - Credential ID: `0xd748b11b3a22f1d0615de02b03a9225005a94ee2dcb4aff6501f9ca381736f5c`
-  - Public Key X: `0x44adf115f2c6a670d535c8d2735e0c853688404ef8643b67e479fa3cd3531377`
-  - Public Key Y: `0xba0dbf4a6192e8f59de753a8218033b7bd957bf59c9408490bdcde780e641ace`
+  - Credential ID:
+    `0xd748b11b3a22f1d0615de02b03a9225005a94ee2dcb4aff6501f9ca381736f5c`
+  - Public Key X:
+    `0x44adf115f2c6a670d535c8d2735e0c853688404ef8643b67e479fa3cd3531377`
+  - Public Key Y:
+    `0xba0dbf4a6192e8f59de753a8218033b7bd957bf59c9408490bdcde780e641ace`
 
 ### ✅ Account Address Calculation
 
@@ -79,11 +82,7 @@ You need to manually call the factory contract with an EOA that has Sepolia ETH:
 ```javascript
 // From an EOA with Sepolia ETH:
 const accountId = keccak256(credentialIdHex);
-const initData = encodePasskeyInitData(
-  credentialIdHex,
-  publicKey,
-  origin
-);
+const initData = encodePasskeyInitData(credentialIdHex, publicKey, origin);
 
 await factoryContract.deployAccount(accountId, initData);
 // This will emit AccountCreated event with the deployed address
@@ -116,17 +115,14 @@ Use the existing auth server deployment flow:
 
 ### What You CAN Do Now
 
-✅ Create passkeys with device biometrics
-✅ Extract public keys from passkeys
-✅ Compute deterministic account addresses
-✅ See what your account address would be
-✅ Authenticate with passkey for transactions
+✅ Create passkeys with device biometrics ✅ Extract public keys from passkeys
+✅ Compute deterministic account addresses ✅ See what your account address
+would be ✅ Authenticate with passkey for transactions
 
 ### What You CANNOT Do Yet
 
-❌ Actually deploy the account on-chain
-❌ Send real transactions (no deployed account)
-❌ Use the bundler (account must exist first)
+❌ Actually deploy the account on-chain ❌ Send real transactions (no deployed
+account) ❌ Use the bundler (account must exist first)
 
 ## 🔍 Technical Details
 
@@ -148,7 +144,7 @@ Use the existing auth server deployment flow:
 ### Account ID Calculation
 
 ```javascript
-accountId = keccak256(credentialIdHex)
+accountId = keccak256(credentialIdHex);
 ```
 
 ### Address Calculation (Simplified)
@@ -161,11 +157,13 @@ accountId = keccak256(credentialIdHex)
 ## 🐛 Known Issues
 
 1. **Account Not Deployed**
+
    - **Issue**: Computed address has no code on-chain
    - **Fix**: Need to actually deploy via factory.deployAccount()
    - **Workaround**: Use address calculation for demo purposes
 
 2. **Missing CREATE2 InitCode Hash**
+
    - **Issue**: Using placeholder hash for address calculation
    - **Fix**: Get actual BeaconProxy initcode hash from deployed contracts
    - **Impact**: Computed address might not match real deployed address
@@ -262,5 +260,6 @@ The only missing piece is actual on-chain deployment, which requires:
 - Account deployment: ⚠️ NEEDS EOA/PAYMASTER
 - Transactions: 🔧 CODE READY, NEEDS DEPLOYED ACCOUNT
 
-You have a fully functional passkey wallet UI that creates real passkeys and computes account addresses.
-To send actual transactions, you just need to deploy the account on-chain first (via EOA or paymaster).
+You have a fully functional passkey wallet UI that creates real passkeys and
+computes account addresses. To send actual transactions, you just need to deploy
+the account on-chain first (via EOA or paymaster).

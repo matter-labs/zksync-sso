@@ -4,7 +4,8 @@
 
 Your transaction has been successfully verified and is ready for L1 execution!
 
-**L2 Transaction**: `0xb20b44bf8761c6592d3e367b0633ccbf038c123d7e40b9b623095abeb2273de4`
+**L2 Transaction**:
+`0xb20b44bf8761c6592d3e367b0633ccbf038c123d7e40b9b623095abeb2273de4`
 
 **Status**:
 
@@ -22,6 +23,7 @@ The executor address needs Sepolia ETH to pay for gas:
 ### Get Sepolia ETH
 
 1. **Alchemy Faucet** (Recommended):
+
    - Visit: <https://www.alchemy.com/faucets/ethereum-sepolia>
    - Enter address: `0x18ac402d33706c303cD559FA6B2F2f14Fae75307`
    - Receive ~0.1 ETH
@@ -79,15 +81,19 @@ You should see:
 
 When the transaction executes:
 
-1. **Shadow Account Deployment**: Your shadow account on L1 gets deployed (if first time)
+1. **Shadow Account Deployment**: Your shadow account on L1 gets deployed (if
+   first time)
+
    - Address: Deterministic based on your L2 account
 
 2. **Bundle Execution**: Shadow account executes the Aave deposit:
+
    - Calls Aave WETH Gateway
    - Deposits 0.01 ETH into Aave Pool
    - Receives aWETH tokens
 
-3. **Check Aave Balance**: After execution, check your aave balance in the wallet app
+3. **Check Aave Balance**: After execution, check your aave balance in the
+   wallet app
 
 ## 🔍 Monitoring
 
@@ -121,7 +127,8 @@ https://sepolia.etherscan.io/tx/0x...
 
 ### Error: "Could not get L2-to-L1 proof"
 
-**Cause**: Transaction not finalized yet (needs ~15 minutes from L2 transaction time)
+**Cause**: Transaction not finalized yet (needs ~15 minutes from L2 transaction
+time)
 
 **Solution**: Wait and try again later
 

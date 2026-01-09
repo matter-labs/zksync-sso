@@ -1,13 +1,16 @@
 # Passkey Wallet App
 
-A simple demonstration app for creating a passkey-based Ethereum wallet on Sepolia testnet using ZKsync SSO contracts.
+A simple demonstration app for creating a passkey-based Ethereum wallet on
+Sepolia testnet using ZKsync SSO contracts.
 
 ## Features
 
-1. **Create Passkey** - Generate a WebAuthn passkey credential stored on your device
+1. **Create Passkey** - Generate a WebAuthn passkey credential stored on your
+   device
 2. **Deploy Smart Account** - Deploy an ERC-4337 modular smart account
 3. **Transfer ETH** - Send ETH using passkey authentication via bundler
-4. **Passkey Reuse** - Automatically saves and reloads your passkey data across sessions (no need to fund multiple accounts!)
+4. **Passkey Reuse** - Automatically saves and reloads your passkey data across
+   sessions (no need to fund multiple accounts!)
 
 ## Quick Start
 
@@ -36,7 +39,8 @@ npm run dev
 
 ## 🚀 Complete Setup Guide
 
-To make this app fully functional, you need to deploy the ZKsync SSO contracts to Sepolia.
+To make this app fully functional, you need to deploy the ZKsync SSO contracts
+to Sepolia.
 
 ### Step 1: Deploy Contracts to Sepolia
 
@@ -83,7 +87,7 @@ Update the bundler URL in `main.js`:
 #### Option A: Pimlico (Recommended)
 
 ```javascript
-const BUNDLER_URL = 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_API_KEY';
+const BUNDLER_URL = "https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_API_KEY";
 ```
 
 Get API key: <https://dashboard.pimlico.io/>
@@ -91,13 +95,13 @@ Get API key: <https://dashboard.pimlico.io/>
 #### Option B: Alchemy
 
 ```javascript
-const BUNDLER_URL = 'https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY';
+const BUNDLER_URL = "https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY";
 ```
 
 #### Option C: Stackup
 
 ```javascript
-const BUNDLER_URL = 'https://api.stackup.sh/v1/node/sepolia';
+const BUNDLER_URL = "https://api.stackup.sh/v1/node/sepolia";
 ```
 
 ### Step 4: Run and Test
@@ -116,11 +120,13 @@ Then:
 
 ## Passkey Reuse
 
-**New Feature**: Your passkey and account data are automatically saved to browser localStorage!
+**New Feature**: Your passkey and account data are automatically saved to
+browser localStorage!
 
 ### Benefits
 
-- ✅ **No need to create a new passkey every time** - Your passkey data persists across sessions
+- ✅ **No need to create a new passkey every time** - Your passkey data persists
+  across sessions
 - ✅ **Same account, same funds** - Reuse the same smart account address
 - ✅ **Instant ready** - Open the app and your wallet is immediately available
 
@@ -131,7 +137,8 @@ Then:
 
 ### Reset Passkey
 
-If you want to start fresh, click the **"Reset Passkey"** button to clear your data and create a new passkey.
+If you want to start fresh, click the **"Reset Passkey"** button to clear your
+data and create a new passkey.
 
 📖 **[Read more about Passkey Reuse →](./PASSKEY_REUSE.md)**
 
@@ -195,7 +202,8 @@ Sends transactions via ERC-4337:
 
 To make fully functional, you need to:
 
-1. ✅ Deploy ZKsync SSO contracts (see [DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md))
+1. ✅ Deploy ZKsync SSO contracts (see
+   [DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md))
 2. ✅ Update contract addresses in code
 3. ✅ Configure bundler endpoint
 
@@ -205,17 +213,18 @@ Replace the simulated functions in `main.js`:
 
 ```javascript
 // Replace simulated deployment with:
-import { prepareDeploySmartAccount } from 'zksync-sso-4337/client';
+import { prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
 // Replace simulated transfer with:
-import { createPasskeyClient } from 'zksync-sso-4337/client/passkey';
+import { createPasskeyClient } from "zksync-sso-4337/client/passkey";
 ```
 
 ## Network Configuration
 
 - **Network**: Ethereum Sepolia Testnet
 - **Chain ID**: 11155111
-- **RPC URL**: <https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU>
+- **RPC URL**:
+  <https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU>
 - **Bundler**: Configure based on provider
 
 ## Browser Compatibility
@@ -287,5 +296,7 @@ Before using the app:
 ## Support
 
 - Deployment issues? See [DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md)
-- Contract questions? Check [zksync-sso-contracts](https://github.com/matter-labs/zksync-sso-contracts)
-- General issues? [ZKsync SSO Issues](https://github.com/matter-labs/zksync-sso/issues)
+- Contract questions? Check
+  [zksync-sso-contracts](https://github.com/matter-labs/zksync-sso-contracts)
+- General issues?
+  [ZKsync SSO Issues](https://github.com/matter-labs/zksync-sso/issues)

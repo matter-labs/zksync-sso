@@ -1,6 +1,7 @@
 # ZKsync SSO Passkey Wallet (SDK Version)
 
-This is a rewritten version of the passkey wallet app using the official **zksync-sso SDK**.
+This is a rewritten version of the passkey wallet app using the official
+**zksync-sso SDK**.
 
 ## Features
 
@@ -27,8 +28,8 @@ Uses `registerNewPasskey` from `zksync-sso/client/passkey`:
 
 ```js
 const result = await registerNewPasskey({
-  userName: 'alice',
-  userDisplayName: 'Alice',
+  userName: "alice",
+  userDisplayName: "Alice",
 });
 ```
 
@@ -84,7 +85,8 @@ const hash = await passkeyClient.sendTransaction({
 });
 ```
 
-When signing, the user is prompted for passkey authentication (Touch ID, Face ID, etc).
+When signing, the user is prompted for passkey authentication (Touch ID, Face
+ID, etc).
 
 ## Configuration
 
@@ -101,7 +103,8 @@ const CONTRACTS = {
 
 ### Deployer Private Key
 
-The app uses a hardcoded private key for deploying accounts. In production, you should:
+The app uses a hardcoded private key for deploying accounts. In production, you
+should:
 
 - Remove the private key from the code
 - Use environment variables
@@ -111,7 +114,8 @@ The app uses a hardcoded private key for deploying accounts. In production, you 
 Current deployer:
 
 ```js
-const DEPLOYER_PRIVATE_KEY = '0xef506537558847aa991149381c4fedee8fe1252cf868986ac1692336530ec85c';
+const DEPLOYER_PRIVATE_KEY =
+  "0xef506537558847aa991149381c4fedee8fe1252cf868986ac1692336530ec85c";
 ```
 
 ## SDK Benefits
@@ -162,14 +166,14 @@ Compared to the previous manual implementation:
 
 ## Differences from Previous Version
 
-| Feature | Old Version | SDK Version |
-| ------- | ----------- | ----------- |
-| Passkey creation | Manual `startRegistration` | `registerNewPasskey()` |
-| Public key extraction | Manual COSE parsing | Handled by SDK |
-| Account deployment | Manual factory call | `deployModularAccount()` |
-| Signature format | Manual encoding | Handled by SDK |
-| Transaction signing | Manual UserOp creation | `passkeyClient.sendTransaction()` |
-| Bundler calls | Manual fetch to bundler | Handled by SDK |
+| Feature               | Old Version                | SDK Version                       |
+| --------------------- | -------------------------- | --------------------------------- |
+| Passkey creation      | Manual `startRegistration` | `registerNewPasskey()`            |
+| Public key extraction | Manual COSE parsing        | Handled by SDK                    |
+| Account deployment    | Manual factory call        | `deployModularAccount()`          |
+| Signature format      | Manual encoding            | Handled by SDK                    |
+| Transaction signing   | Manual UserOp creation     | `passkeyClient.sendTransaction()` |
+| Bundler calls         | Manual fetch to bundler    | Handled by SDK                    |
 
 ## Testing
 

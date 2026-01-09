@@ -51,7 +51,8 @@
 **Solutions**:
 
 - The passkey already exists - this is actually OK!
-- Go to your browser's password manager and delete the old passkey if you want to start fresh
+- Go to your browser's password manager and delete the old passkey if you want
+  to start fresh
 - **Chrome**: Settings → Password Manager → Passkeys
 - **Safari**: Settings → Passwords → [Your Site] → Delete Passkey
 
@@ -72,34 +73,34 @@
 
 ```javascript
 // Run this in browser console
-console.log('Protocol:', window.location.protocol); // Should be "http:" or "https:"
-console.log('Hostname:', window.location.hostname); // Should be "localhost"
-console.log('Port:', window.location.port);         // Should be "3000"
+console.log("Protocol:", window.location.protocol); // Should be "http:" or "https:"
+console.log("Hostname:", window.location.hostname); // Should be "localhost"
+console.log("Port:", window.location.port); // Should be "3000"
 ```
 
-✅ Good: `http://localhost:3000`
-❌ Bad: `http://127.0.0.1:3000` (might not work on some browsers)
-❌ Bad: `http://192.168.1.x:3000` (won't work - needs HTTPS)
+✅ Good: `http://localhost:3000` ❌ Bad: `http://127.0.0.1:3000` (might not work
+on some browsers) ❌ Bad: `http://192.168.1.x:3000` (won't work - needs HTTPS)
 
 #### Check WebAuthn Support
 
 ```javascript
 // Run this in browser console
 if (window.PublicKeyCredential) {
-  console.log('✅ WebAuthn is supported!');
+  console.log("✅ WebAuthn is supported!");
 
-  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-    .then(available => {
+  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(
+    (available) => {
       if (available) {
-        console.log('✅ Platform authenticator (biometrics) available!');
+        console.log("✅ Platform authenticator (biometrics) available!");
       } else {
-        console.log('❌ No platform authenticator found');
-        console.log('   → Enable Touch ID / Face ID / Windows Hello');
+        console.log("❌ No platform authenticator found");
+        console.log("   → Enable Touch ID / Face ID / Windows Hello");
       }
-    });
+    },
+  );
 } else {
-  console.log('❌ WebAuthn NOT supported in this browser');
-  console.log('   → Update your browser or try Chrome/Safari');
+  console.log("❌ WebAuthn NOT supported in this browser");
+  console.log("   → Update your browser or try Chrome/Safari");
 }
 ```
 
@@ -109,7 +110,8 @@ if (window.PublicKeyCredential) {
 
 - Make sure you're on version 90+
 - Enable flags if needed: `chrome://flags/#enable-web-authentication-api`
-- Check: Settings → Privacy and security → Site settings → Permissions → Passkeys
+- Check: Settings → Privacy and security → Site settings → Permissions →
+  Passkeys
 
 #### Safari (Mac)
 
@@ -120,7 +122,8 @@ if (window.PublicKeyCredential) {
 #### Firefox
 
 - Version 93+ required
-- May need to enable: `about:config` → `security.webauthn.enable_uv_token` → true
+- May need to enable: `about:config` → `security.webauthn.enable_uv_token` →
+  true
 - Some features may be limited compared to Chrome/Safari
 
 ### Step 5: Debug Mode
@@ -207,23 +210,26 @@ undefined is not an object (evaluating 'navigator.credentials.create')
 Try this minimal test in the browser console:
 
 ```javascript
-navigator.credentials.create({
-  publicKey: {
-    challenge: new Uint8Array(32),
-    rp: { name: "Test" },
-    user: {
-      id: new Uint8Array(16),
-      name: "test",
-      displayName: "Test User"
+navigator.credentials
+  .create({
+    publicKey: {
+      challenge: new Uint8Array(32),
+      rp: { name: "Test" },
+      user: {
+        id: new Uint8Array(16),
+        name: "test",
+        displayName: "Test User",
+      },
+      pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+      timeout: 60000,
     },
-    pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-    timeout: 60000,
-  }
-}).then(cred => {
-  console.log('✅ SUCCESS! WebAuthn works!', cred);
-}).catch(err => {
-  console.error('❌ ERROR:', err.name, err.message);
-});
+  })
+  .then((cred) => {
+    console.log("✅ SUCCESS! WebAuthn works!", cred);
+  })
+  .catch((err) => {
+    console.error("❌ ERROR:", err.name, err.message);
+  });
 ```
 
 If this works, the app should work too.
@@ -255,9 +261,9 @@ Some browsers are strict. Try adding to vite.config.js:
 ```javascript
 export default defineConfig({
   server: {
-    host: 'localhost',  // Explicitly set to localhost
+    host: "localhost", // Explicitly set to localhost
     port: 3000,
-    https: false,       // Don't need HTTPS for localhost
+    https: false, // Don't need HTTPS for localhost
   },
 });
 ```

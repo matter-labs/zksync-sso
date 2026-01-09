@@ -2,7 +2,8 @@
 
 ## 🎉 Status: FULLY FUNCTIONAL
 
-Your passkey wallet app is now **fully integrated** with the production ZKsync SSO contracts on Sepolia!
+Your passkey wallet app is now **fully integrated** with the production ZKsync
+SSO contracts on Sepolia!
 
 ## 🚀 Quick Start
 
@@ -33,25 +34,29 @@ Then open <http://localhost:3000>
 
 - ✅ **Chain**: Ethereum Sepolia (Chain ID: 11155111)
 - ✅ **RPC**: Alchemy Sepolia endpoint
-- ✅ **EntryPoint**: `0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108` (ZKsync SSO Custom)
+- ✅ **EntryPoint**: `0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108` (ZKsync SSO
+  Custom)
 
 ## 🎯 Complete Feature List
 
 ### ✅ Implemented Features
 
 1. **Passkey Creation**
+
    - WebAuthn credential registration
    - Platform authenticator (Touch ID, Face ID, Windows Hello)
    - Extracts public key coordinates (x, y)
    - Generates credential ID
 
 2. **Smart Account Deployment**
+
    - Deterministic address calculation
    - Checks if account already exists
    - Uses MSAFactory for deployment
    - Counterfactual deployment support
 
 3. **ETH Transfers**
+
    - Creates ERC-4337 UserOperations
    - Signs with passkey authentication
    - Submits to bundler
@@ -79,7 +84,8 @@ Then open <http://localhost:3000>
 3. The app checks if it's already deployed
 4. ✅ Account address displayed!
 
-**Note**: The account is deployed counterfactually. First transaction will actually deploy it.
+**Note**: The account is deployed counterfactually. First transaction will
+actually deploy it.
 
 ### Step 3: Fund Your Account
 
@@ -130,17 +136,20 @@ The app will show the UserOperation hash and wait for confirmation.
 ### Key Functions
 
 1. **`handleCreatePasskey()`**
+
    - Registers WebAuthn credential
    - Extracts public key (x, y coordinates)
    - Stores credential ID
 
 2. **`handleDeployAccount()`**
+
    - Generates accountId = keccak256(credentialId)
    - Calls factory.getAccountAddress(accountId)
    - Checks if already deployed
    - Prepares init data for WebAuthn module
 
 3. **`handleTransfer()`**
+
    - Creates UserOperation with execute() call
    - Gets nonce from EntryPoint
    - Signs with passkey authentication

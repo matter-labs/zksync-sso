@@ -2,14 +2,16 @@
 
 ## Overview
 
-The app now saves your passkey and account data to browser localStorage,
-so you can reuse the same passkey and account across browser sessions without having to create a new one each time.
+The app now saves your passkey and account data to browser localStorage, so you
+can reuse the same passkey and account across browser sessions without having to
+create a new one each time.
 
 ## How It Works
 
 ### Automatic Save
 
-When you create a passkey or deploy an account, the data is automatically saved to your browser's localStorage:
+When you create a passkey or deploy an account, the data is automatically saved
+to your browser's localStorage:
 
 ```javascript
 localStorage:
@@ -27,6 +29,7 @@ When you open the app, it automatically checks for saved passkey data:
 ### What Gets Saved
 
 1. **Passkey Data**:
+
    - Credential ID (base64url and hex formats)
    - Public key coordinates (x, y)
    - Username
@@ -36,8 +39,9 @@ When you open the app, it automatically checks for saved passkey data:
 
 ### What Doesn't Get Saved
 
-- **Private Key**: NEVER leaves your device! The private key is stored securely in your device's authenticator
-(Touch ID, Face ID, Windows Hello, etc.) and is never exposed to the app.
+- **Private Key**: NEVER leaves your device! The private key is stored securely
+  in your device's authenticator (Touch ID, Face ID, Windows Hello, etc.) and is
+  never exposed to the app.
 
 ## Benefits
 
@@ -49,7 +53,8 @@ When you open the app, it automatically checks for saved passkey data:
 
 ### Same Account, Same Funds
 
-Since your account address is deterministic (based on the credential ID), you'll always get the same address:
+Since your account address is deterministic (based on the credential ID), you'll
+always get the same address:
 
 - Same passkey → Same credential ID → Same account address
 - Your funds stay in the same account
@@ -80,7 +85,8 @@ If you want to start over with a new passkey:
 3. Your stored data is cleared
 4. You can now create a new passkey
 
-**Note**: Resetting only clears the app's stored data. Your original passkey still exists in your browser's password manager.
+**Note**: Resetting only clears the app's stored data. Your original passkey
+still exists in your browser's password manager.
 
 ## Browser Passkey Storage
 
@@ -116,7 +122,8 @@ This allows the app to:
 - Account address
 - Username
 
-These are not secret values and cannot be used to access your account without the actual passkey authentication.
+These are not secret values and cannot be used to access your account without
+the actual passkey authentication.
 
 ### 🔒 Never Stored
 
@@ -154,7 +161,8 @@ These are not secret values and cannot be used to access your account without th
 - Passkeys are device-bound by default
 - You'd need to:
   1. Create a new passkey on the new device (will generate a different account)
-  2. Or use a passkey provider that syncs across devices (e.g., iCloud Keychain, Google Password Manager)
+  2. Or use a passkey provider that syncs across devices (e.g., iCloud Keychain,
+     Google Password Manager)
 
 ## Technical Details
 
@@ -178,8 +186,8 @@ These are not secret values and cannot be used to access your account without th
 The account address is deterministically calculated from the credential ID:
 
 ```javascript
-accountId = keccak256(credentialIdHex)
-accountAddress = CREATE2(factory, accountId, initCodeHash)
+accountId = keccak256(credentialIdHex);
+accountAddress = CREATE2(factory, accountId, initCodeHash);
 ```
 
 This means:
@@ -206,8 +214,8 @@ The private key never leaves your device's secure authenticator.
 
 ### Q: What if I clear my browser data?
 
-**A**: The app's stored data is cleared, but your passkey still exists in your browser's password manager.
-Just authenticate again when prompted.
+**A**: The app's stored data is cleared, but your passkey still exists in your
+browser's password manager. Just authenticate again when prompted.
 
 ### Q: Can I use the same passkey on multiple devices?
 
@@ -273,8 +281,8 @@ No need to recreate passkey or refund account!
 - Or manually clear localStorage:
 
   ```javascript
-  localStorage.removeItem('zksync_passkey_data');
-  localStorage.removeItem('zksync_account_address');
+  localStorage.removeItem("zksync_passkey_data");
+  localStorage.removeItem("zksync_account_address");
   ```
 
 ## Summary

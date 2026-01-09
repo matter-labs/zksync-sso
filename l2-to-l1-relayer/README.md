@@ -1,14 +1,17 @@
 # L2-to-L1 Relayer Service
 
-Automated relayer service that monitors L2 `sendBundleToL1` transactions and executes them on L1 Sepolia after finalization.
+Automated relayer service that monitors L2 `sendBundleToL1` transactions and
+executes them on L1 Sepolia after finalization.
 
 ## Overview
 
 When users deposit/withdraw via Aave on the passkey wallet app:
 
-1. **L2 Transaction**: User signs transaction calling `L2InteropCenter.sendBundleToL1()`
+1. **L2 Transaction**: User signs transaction calling
+   `L2InteropCenter.sendBundleToL1()`
 2. **~15 min wait**: L2-to-L1 message gets proven/finalized on L1
-3. **L1 Execution**: This relayer automatically calls `L1InteropHandler.receiveInteropFromL2()` to execute the bundle
+3. **L1 Execution**: This relayer automatically calls
+   `L1InteropHandler.receiveInteropFromL2()` to execute the bundle
 
 ## Architecture
 
@@ -56,13 +59,15 @@ npm install
 
 The `.env` file is already configured with:
 
-- Executor private key: `0x1cfcab2cf5ad255cb3387f7fdca2651a61377b334a2a3daa4af86eb476369105`
+- Executor private key:
+  `0x1cfcab2cf5ad255cb3387f7fdca2651a61377b334a2a3daa4af86eb476369105`
 - L2 RPC: ZKSync OS Testnet
 - L1 RPC: Sepolia
 - L2InteropCenter: `0xc64315efbdcD90B71B0687E37ea741DE0E6cEFac`
 - L1InteropHandler: `0xB0dD4151fdcCaAC990F473533C15BcF8CE10b1de`
 
-**Important**: Make sure the executor address has ETH on **L1 Sepolia** to pay gas fees!
+**Important**: Make sure the executor address has ETH on **L1 Sepolia** to pay
+gas fees!
 
 ### 3. Fund the Executor
 
@@ -194,7 +199,8 @@ The relayer automatically retries after 5 minutes.
 
 For production, consider:
 
-1. **Persistent Storage**: Store pending messages in a database (Redis, PostgreSQL)
+1. **Persistent Storage**: Store pending messages in a database (Redis,
+   PostgreSQL)
 2. **Multiple Relayers**: Run multiple instances for redundancy
 3. **Better RPC**: Use paid RPC providers (Alchemy, Infura) for reliability
 4. **Monitoring**: Add Prometheus metrics and alerting
