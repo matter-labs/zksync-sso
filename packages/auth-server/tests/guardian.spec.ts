@@ -833,8 +833,9 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
       break;
     }
 
-    // If stuck in getting state for more than 6 seconds, that's the issue
-    if (i >= 3 && currentState?.includes("getting")) {
+    // If stuck in getting state for more than 16 seconds, that's the issue
+    // (Allows 5s for getBlockNumber + 10s for event queries + buffer)
+    if (i >= 8 && currentState?.includes("getting")) {
       console.log(`⚠️ Stuck in ${currentState} for ${i * 2} seconds`);
       await guardianPage.screenshot({ path: "test-results/stuck-getting-client-debug.png" });
       const bodyText = await guardianPage.locator("body").textContent();

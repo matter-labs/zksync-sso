@@ -9,20 +9,24 @@ export const useConfigurableAccount = () => {
     const webauthnValidatorAddress = contractsByChain[defaultChain.id].webauthnValidator;
 
     // Get current block to calculate safe fromBlock (avoid RPC block range limits)
-    // Add timeout to prevent hanging RPC calls in CI (4s to leave room for event queries)
+    // Add timeout to prevent hanging RPC calls (5s should be sufficient)
     const currentBlockPromise = publicClient.getBlockNumber();
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout getting block number after 4 seconds")), 4000),
+    const blockTimeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout getting block number after 5 seconds")), 5000),
     );
-    const currentBlock = await Promise.race([currentBlockPromise, timeoutPromise]);
+    const currentBlock = await Promise.race([currentBlockPromise, blockTimeoutPromise]);
 
-    // Query last 100k blocks or from genesis, whichever is more recent
-    const fromBlock = currentBlock > 100000n ? currentBlock - 100000n : 0n;
+    // Use smaller block range for faster queries (10k blocks should cover recent activity)
+    // This significantly improves performance - 100k blocks was causing 10s+ query times
+    const blockRange = 10000n;
+    const fromBlock = currentBlock > blockRange ? currentBlock - blockRange : 0n;
 
     // FIXME: events should be scoped to the origin domain
     // As well, this doesn't seem to be a reliable way of retrieving a `credentialId`
     // but works for now.
-    const [events, removedEvents] = await Promise.all([
+
+    // Add timeout to event queries to prevent hanging (10s to handle multiple accounts in test environments)
+    const eventsPromise = Promise.all([
       publicClient.getContractEvents({
         address: webauthnValidatorAddress,
         abi: WebAuthnValidatorAbi,
@@ -44,6 +48,12 @@ export const useConfigurableAccount = () => {
         strict: true,
       }),
     ]);
+
+    const eventsTimeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout querying PasskeyCreated/PasskeyRemoved events after 10 seconds")), 10000),
+    );
+
+    const [events, removedEvents] = await Promise.race([eventsPromise, eventsTimeoutPromise]);
 
     if (!events || events.length === 0) {
       throw new Error("Account not found");
