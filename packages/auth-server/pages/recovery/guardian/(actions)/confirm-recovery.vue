@@ -195,8 +195,8 @@ const recoveryCompleted = computedAsync(async () => {
   const credentialPublicKeyBytes = getPasskeySignatureFromPublicKeyBytes([parsedPublicKey.x, parsedPublicKey.y]);
   const publicKeyBytes = getPublicKeyBytesFromPasskeySignature(credentialPublicKeyBytes);
   const publicKeyHex = [
-    pad(`0x${publicKeyBytes[0].toString("hex")}`),
-    pad(`0x${publicKeyBytes[1].toString("hex")}`),
+    pad(toHex(publicKeyBytes[0]), { size: 32 }),
+    pad(toHex(publicKeyBytes[1]), { size: 32 }),
   ] as const;
 
   const recoveryData = encodeAbiParameters(

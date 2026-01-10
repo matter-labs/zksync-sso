@@ -334,9 +334,10 @@ export const useRecoveryGuardian = () => {
         throw new Error("Invalid public key coordinates: must be 32 bytes each");
       }
 
+      // Convert Buffer to hex and pad to 32 bytes (bytes32 type)
       const publicKeyHex = [
-        pad(`0x${publicKeyBytes[0].toString("hex")}`),
-        pad(`0x${publicKeyBytes[1].toString("hex")}`),
+        pad(toHex(publicKeyBytes[0]), { size: 32 }),
+        pad(toHex(publicKeyBytes[1]), { size: 32 }),
       ] as const;
 
       // Encode the recovery data for WebAuthn

@@ -953,10 +953,18 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
 
   await guardianPage.waitForTimeout(1000);
 
-  // Capture console logs from guardian page
+  // Capture console logs and errors from guardian page
   const guardianConsoleMessages: string[] = [];
   guardianPage.on("console", (msg) => {
-    guardianConsoleMessages.push(`[${msg.type()}] ${msg.text()}`);
+    const logMsg = `[${msg.type()}] ${msg.text()}`;
+    guardianConsoleMessages.push(logMsg);
+    console.log(`Guardian console: ${logMsg}`);
+  });
+
+  guardianPage.on("pageerror", (error) => {
+    const errorMsg = `Page error: ${error.message}`;
+    console.error(`Guardian ${errorMsg}`);
+    guardianConsoleMessages.push(errorMsg);
   });
 
   // Click Confirm Recovery button
@@ -967,8 +975,8 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
 
   console.log("Clicked Confirm Recovery, waiting for success message...");
 
-  // Wait a bit to see console logs
-  await guardianPage.waitForTimeout(5000);
+  // Wait longer for recovery confirmation and polling to complete
+  await guardianPage.waitForTimeout(20000);
 
   // Print captured console messages
   if (guardianConsoleMessages.length > 0) {
@@ -978,6 +986,16 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
     });
   } else {
     console.log("\n⚠️ No console messages captured from guardian page");
+  }
+
+  // Check for error messages on the page before checking for success
+  const errorElement = guardianPage.locator("text=/error/i").first();
+  const hasError = await errorElement.isVisible({ timeout: 2000 }).catch(() => false);
+  if (hasError) {
+    const errorText = await errorElement.textContent();
+    console.error(`❌ Error message on page: ${errorText}`);
+    await guardianPage.screenshot({ path: "test-results/confirm-recovery-error.png" });
+    throw new Error(`Recovery confirmation failed: ${errorText}`);
   }
 
   // Verify recovery was initiated - look for success message
