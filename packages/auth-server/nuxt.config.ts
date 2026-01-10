@@ -90,6 +90,7 @@ export default defineNuxtConfig({
       prividium: {
         clientId: process.env.PRIVIDIUM_CLIENT_ID || "",
         proxyBaseUrl: process.env.PRIVIDIUM_RPC_PROXY_BASE_URL || "",
+        rpcUrl: process.env.PRIVIDIUM_RPC_PROXY_BASE_URL ? `${process.env.PRIVIDIUM_RPC_PROXY_BASE_URL}/rpc` : "",
         authBaseUrl: process.env.PRIVIDIUM_AUTH_BASE_URL || "",
         permissionsApiBaseUrl: process.env.PRIVIDIUM_PERMISSIONS_BASE_URL || "",
       },

@@ -70,6 +70,7 @@ fi
 
 echo ""
 echo "✅ Deployment complete!"
+echo "  MockPaymaster: $PAYMASTER"
 echo "  EOAKeyValidator: $EOA_VALIDATOR"
 echo "  SessionKeyValidator: $SESSION_VALIDATOR"
 echo "  WebAuthnValidator: $WEBAUTHN_VALIDATOR"
@@ -77,7 +78,6 @@ echo "  GuardianExecutor: $GUARDIAN_EXECUTOR"
 echo "  ModularSmartAccount impl: $ACCOUNT_IMPL"
 echo "  UpgradeableBeacon: $BEACON"
 echo "  MSAFactory: $FACTORY"
-echo "  MockPaymaster: $PAYMASTER"
 
 # Create contracts-anvil.json
 echo ""

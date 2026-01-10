@@ -1,8 +1,10 @@
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 
-import { env } from "./config.js";
+import { env, prividiumConfig } from "./config.js";
 import { deployAccountHandler } from "./handlers/deploy-account.js";
+import { prividiumAuthMiddleware } from "./middleware/prividium-auth.js";
+import { deployLimiter } from "./middleware/rate-limit.js";
 
 // Initialize Express app
 const app = express();
@@ -33,8 +35,8 @@ app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Deploy account endpoint
-app.post("/api/deploy-account", deployAccountHandler);
+// Deploy account endpoint (rate limiting first, then auth, then handler)
+app.post("/api/deploy-account", deployLimiter, prividiumAuthMiddleware(prividiumConfig), deployAccountHandler);
 
 // Global error handler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
