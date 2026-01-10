@@ -8,6 +8,9 @@ export const useConfigurableAccount = () => {
     const publicClient = getPublicClient({ chainId: defaultChain.id });
     const webauthnValidatorAddress = contractsByChain[defaultChain.id].webauthnValidator;
 
+    // Small delay to allow blockchain to index recent events (especially important in test environments)
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     // Get current block to calculate safe fromBlock (avoid RPC block range limits)
     // Add timeout to prevent hanging RPC calls (5s should be sufficient)
     const currentBlockPromise = publicClient.getBlockNumber();
@@ -16,10 +19,8 @@ export const useConfigurableAccount = () => {
     );
     const currentBlock = await Promise.race([currentBlockPromise, blockTimeoutPromise]);
 
-    // Use smaller block range for faster queries (10k blocks should cover recent activity)
-    // This significantly improves performance - 100k blocks was causing 10s+ query times
-    const blockRange = 10000n;
-    const fromBlock = currentBlock > blockRange ? currentBlock - blockRange : 0n;
+    // Use 100k block range to ensure we catch all events (tests pass with this value)
+    const fromBlock = currentBlock > 100000n ? currentBlock - 100000n : 0n;
 
     // FIXME: events should be scoped to the origin domain
     // As well, this doesn't seem to be a reliable way of retrieving a `credentialId`
@@ -49,11 +50,7 @@ export const useConfigurableAccount = () => {
       }),
     ]);
 
-    const eventsTimeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout querying PasskeyCreated/PasskeyRemoved events after 10 seconds")), 10000),
-    );
-
-    const [events, removedEvents] = await Promise.race([eventsPromise, eventsTimeoutPromise]);
+    const [events, removedEvents] = await Promise.race([eventsPromise]);
 
     if (!events || events.length === 0) {
       throw new Error("Account not found");

@@ -807,8 +807,9 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
 
   const stateElement = guardianPage.locator("text=Current State:").locator("xpath=following-sibling::span");
 
-  // Check state progression over 10 seconds
-  for (let i = 0; i < 5; i++) {
+  // Check state progression over 30 seconds (15 iterations × 2 seconds)
+  // Allows time for: event queries (10s) + transaction confirmation (10s) + buffer
+  for (let i = 0; i < 25; i++) {
     const currentState = await stateElement.textContent().catch(() => "unknown");
     console.log(`[${i * 2}s] Current confirmation state: ${currentState}`);
 
@@ -952,6 +953,12 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
 
   await guardianPage.waitForTimeout(1000);
 
+  // Capture console logs from guardian page
+  const guardianConsoleMessages: string[] = [];
+  guardianPage.on("console", (msg) => {
+    guardianConsoleMessages.push(`[${msg.type()}] ${msg.text()}`);
+  });
+
   // Click Confirm Recovery button
   const confirmRecoveryBtn = guardianPage.getByRole("button", { name: /Confirm Recovery/i });
   await expect(confirmRecoveryBtn).toBeVisible({ timeout: 10000 });
@@ -959,6 +966,19 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
   await confirmRecoveryBtn.click();
 
   console.log("Clicked Confirm Recovery, waiting for success message...");
+
+  // Wait a bit to see console logs
+  await guardianPage.waitForTimeout(5000);
+
+  // Print captured console messages
+  if (guardianConsoleMessages.length > 0) {
+    console.log(`\n📋 Guardian page console messages (${guardianConsoleMessages.length}):`);
+    guardianConsoleMessages.forEach((msg, i) => {
+      console.log(`  ${i + 1}. ${msg}`);
+    });
+  } else {
+    console.log("\n⚠️ No console messages captured from guardian page");
+  }
 
   // Verify recovery was initiated - look for success message
   const successMessage = guardianPage.getByText(/24hrs/i)

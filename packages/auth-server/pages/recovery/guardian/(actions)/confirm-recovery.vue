@@ -175,11 +175,19 @@ const recoveryCompleted = computedAsync(async () => {
   // Force re-evaluation when trigger changes
   const _triggerValue = recoveryCheckTrigger.value;
 
+  // eslint-disable-next-line no-console
+  console.log("recoveryCompleted evaluating, trigger:", _triggerValue);
+
   if (!recoveryParams.value?.accountAddress || !recoveryParams.value?.credentialId || !recoveryParams.value?.credentialPublicKey) {
+    // eslint-disable-next-line no-console
+    console.log("recoveryCompleted: Missing params");
     return false;
   }
 
   const result = await getRecovery(recoveryParams.value.accountAddress);
+
+  // eslint-disable-next-line no-console
+  console.log("getRecovery result:", result);
 
   // The smart contract stores keccak256(data) where data is the encoded recovery payload
   // We need to reconstruct the same data structure that was passed to initializeRecovery
@@ -201,7 +209,15 @@ const recoveryCompleted = computedAsync(async () => {
 
   const expectedHashedData = keccak256(recoveryData);
 
+  // eslint-disable-next-line no-console
+  console.log("Expected hashedData:", expectedHashedData);
+  // eslint-disable-next-line no-console
+  console.log("Actual hashedData:", result?.hashedData);
+
   const isComplete = result?.hashedData === expectedHashedData;
+
+  // eslint-disable-next-line no-console
+  console.log("Recovery complete:", isComplete);
 
   return isComplete;
 });
@@ -263,11 +279,34 @@ const handleConfirmRecovery = async () => {
     });
     confirmGuardianErrorMessage.value = null;
 
-    // Wait a moment for the transaction to be processed
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Poll for recovery completion instead of waiting once
+    // The contract state might take a few seconds to update after transaction confirmation
+    const maxRetries = 10;
+    const retryDelay = 1000; // 1 second between checks
 
-    // Trigger re-check of recoveryCompleted
-    recoveryCheckTrigger.value++;
+    // eslint-disable-next-line no-console
+    console.log("Starting recovery completion polling...");
+
+    for (let i = 0; i < maxRetries; i++) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      recoveryCheckTrigger.value++;
+
+      // Wait a bit for computedAsync to evaluate
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // eslint-disable-next-line no-console
+      console.log(`Polling attempt ${i + 1}/${maxRetries}: recoveryCompleted =`, recoveryCompleted.value);
+
+      // Check if recovery is complete
+      if (recoveryCompleted.value === true) {
+        // eslint-disable-next-line no-console
+        console.log("Recovery confirmed as complete!");
+        break;
+      }
+    }
+
+    // eslint-disable-next-line no-console
+    console.log("Finished polling. Final recoveryCompleted:", recoveryCompleted.value);
   } catch (err) {
     confirmGuardianErrorMessage.value = "An error occurred while confirming the guardian. Please try again.";
     // eslint-disable-next-line no-console
