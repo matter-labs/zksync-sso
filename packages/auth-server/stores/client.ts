@@ -1,7 +1,7 @@
 import { useAppKitProvider } from "@reown/appkit/vue";
 import { type Address, createPublicClient, createWalletClient, custom, defineChain, type Hex, http, publicActions, walletActions } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-import { /* generatePrivateKey, */ privateKeyToAccount } from "viem/accounts";
+import { /* generatePrivateKey, */ generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { localhost } from "viem/chains";
 import { createPasskeyClient } from "zksync-sso-4337/client";
 
@@ -27,16 +27,32 @@ const zksyncOsTestnet = defineChain({
     },
   },
 });
+const zksyncOsLocal = defineChain({
+  id: 6565,
+  name: "ZKsyncOS Local",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["http://localhost:3050"],
+    },
+  },
+});
 
-export const supportedChains = [localhost, zksyncOsTestnet];
+export const supportedChains = [localhost, zksyncOsTestnet, zksyncOsLocal];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
   [localhost.id]: "http://localhost:3010",
   [zksyncOsTestnet.id]: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
+  [zksyncOsLocal.id]: "",
 };
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
   [localhost.id]: "http://localhost:3020",
   [zksyncOsTestnet.id]: "https://block-explorer-api.zksync-os-testnet-alpha.zksync.dev/api",
+  [zksyncOsLocal.id]: "",
 };
 
 type ChainContracts = {
@@ -54,6 +70,7 @@ type ChainContracts = {
 
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [localhost.id]: localChainData as ChainContracts,
+  [zksyncOsLocal.id]: localChainData as ChainContracts,
   [zksyncOsTestnet.id]: {
     eoaValidator: "0x3497392f9662Da3de1EC2AfE8724CdBF6b884088",
     webauthnValidator: "0xa5C2c5C723239C0cD11a5691954CdAC4369C874b",
@@ -66,6 +83,9 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
 
 export const chainParameters: Record<SupportedChainId, { blockTime: number }> = {
   [localhost.id]: {
+    blockTime: 1,
+  },
+  [zksyncOsLocal.id]: {
     blockTime: 1,
   },
   [zksyncOsTestnet.id]: {
@@ -209,10 +229,7 @@ export const useClientStore = defineStore("client", () => {
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
 
     const throwAwayClient = createWalletClient({
-      account: privateKeyToAccount(
-        // generatePrivateKey()
-        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Anvil Rich account // TODO: Implement paymaster instead of relying on rich account
-      ),
+      account: privateKeyToAccount(generatePrivateKey()),
       chain,
       transport: createTransport(),
     })

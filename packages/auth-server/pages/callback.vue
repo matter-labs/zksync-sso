@@ -52,6 +52,8 @@
 </template>
 
 <script setup lang="ts">
+import { handleAuthCallback } from "prividium";
+
 const runtimeConfig = useRuntimeConfig();
 
 const processing = ref(true);
@@ -63,10 +65,12 @@ const processCallback = async () => {
     error.value = null;
 
     if (runtimeConfig.public.prividiumMode) {
-      // Prividium SDK uses popup-based authentication, not redirects
-      // This page shouldn't be reached in Prividium mode
-      error.value = "Invalid authentication flow. Please try again.";
-      processing.value = false;
+      handleAuthCallback((errorMessage) => {
+        if (errorMessage) {
+          error.value = errorMessage;
+        }
+        processing.value = false;
+      });
       return;
     }
 
