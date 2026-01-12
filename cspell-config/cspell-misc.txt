@@ -61,3 +61,5 @@ abis
 USEROP
 YubiKey
 pkill
+Português
+tlsv
