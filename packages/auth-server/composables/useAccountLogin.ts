@@ -36,11 +36,6 @@ export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
       });
       return { success: true } as const;
     } catch (error) {
-      // TODO: Guardian recovery not yet available in sdk-4337
-      // Recovery fallback logic commented out
-      // const { checkRecoveryRequest, executeRecovery, getRecovery } = useRecoveryGuardian();
-      // ...recovery logic...
-
       // eslint-disable-next-line no-console
       console.warn("Login failed", error);
       throw new Error("Account not found");

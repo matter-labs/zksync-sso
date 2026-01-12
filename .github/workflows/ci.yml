@@ -116,6 +116,19 @@ jobs:
           path: examples/demo-app/playwright-report/
           retention-days: 3
 
+      # Run Guardian E2E tests (reuses same Anvil + bundler setup)
+      - name: Install Playwright Chromium Browser for Guardian tests
+        run: pnpm exec playwright install chromium
+        working-directory: packages/auth-server
+      - name: Run Guardian e2e tests
+        run: pnpm nx e2e:guardian auth-server
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: auth-server-guardian-playwright-report
+          path: packages/auth-server/playwright-report/
+          retention-days: 3
+
   # e2e-nft-quest:
   #   runs-on: ubuntu-latest
   #   defaults:

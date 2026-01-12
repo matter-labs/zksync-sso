@@ -4,7 +4,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
-import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, prividiumConfig, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
+import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, GUARDIAN_EXECUTOR_ADDRESS, prividiumConfig, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
 import { deployAccountSchema } from "../schemas.js";
 import { addAddressToUser, createProxyTransport, getAdminAuthService, whitelistContract } from "../services/prividium/index.js";
 
@@ -79,6 +79,8 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     }
 
     // Prepare deployment transaction
+    const executorModulesToInstall = GUARDIAN_EXECUTOR_ADDRESS ? [GUARDIAN_EXECUTOR_ADDRESS as Address] : [];
+
     const { transaction, accountId } = prepareDeploySmartAccount({
       contracts: {
         factory: FACTORY_ADDRESS as Address,
@@ -96,6 +98,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       eoaSigners: body.eoaSigners,
       userId: body.userId,
       installSessionValidator: true,
+      executorModules: executorModulesToInstall,
     });
 
     console.log("Deploying account with ID:", accountId);

@@ -2,17 +2,20 @@
   <p class="text-center text-neutral-700 dark:text-neutral-300">
     Log in with google to start the recover process
   </p>
+  <!--
   <ZkButton
     class="w-full"
     @click="findAddressUsingGoogleData"
   >
     Log in
   </ZkButton>
+  -->
 </template>
 
 <script setup lang="ts">
+/*
 import { type Address, bytesToHex } from "viem";
-import { OidcRecoveryValidatorAbi } from "zksync-sso/abi";
+import { OidcRecoveryValidatorAbi } from "zksync-sso-4337/abi";
 import type { OidcDigest } from "zksync-sso-circuits";
 
 const { startGoogleOauth } = useGoogleOauth();
@@ -48,4 +51,5 @@ async function findAddressUsingGoogleData() {
   }) as Address;
   emit("done", addressToRecover, digest, jwt.sub);
 }
+*/
 </script>

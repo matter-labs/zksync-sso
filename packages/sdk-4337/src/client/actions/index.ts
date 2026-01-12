@@ -21,10 +21,19 @@ export { getAccountAddressFromLogs, prepareDeploySmartAccount } from "./deploy.j
 export type {
   AddPasskeyParams,
   AddPasskeyResult,
+  FetchAccountParams,
+  FetchAccountResult,
   FindAddressesByPasskeyParams,
   FindAddressesByPasskeyResult,
 } from "./passkey.js";
-export { addPasskey, findAddressesByPasskey } from "./passkey.js";
+export { addPasskey, fetchAccount, findAddressesByPasskey } from "./passkey.js";
+
+// Module management exports
+export type {
+  IsModuleInstalledParams,
+  IsModuleInstalledResult,
+} from "./modules.js";
+export { isGuardianModuleInstalled, isModuleInstalled, ModuleType } from "./modules.js";
 
 // Utilities
 export { generateAccountId } from "./utils.js";

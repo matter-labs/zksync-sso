@@ -6,6 +6,7 @@
   <ZkButton
     type="primary"
     class="w-full md:max-w-48 mt-4"
+    data-testid="continue-recovery-method"
     @click="emit('next')"
   >
     Continue
@@ -13,6 +14,7 @@
   <ZkButton
     type="secondary"
     class="w-full md:max-w-48"
+    data-testid="back-recovery-method"
     @click="$emit('back')"
   >
     Back
