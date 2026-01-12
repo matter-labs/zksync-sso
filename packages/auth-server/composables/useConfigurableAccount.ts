@@ -13,11 +13,7 @@ export const useConfigurableAccount = () => {
 
     // Get current block to calculate safe fromBlock (avoid RPC block range limits)
     // Add timeout to prevent hanging RPC calls (5s should be sufficient)
-    const currentBlockPromise = publicClient.getBlockNumber();
-    const blockTimeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout getting block number after 5 seconds")), 5000),
-    );
-    const currentBlock = await Promise.race([currentBlockPromise, blockTimeoutPromise]);
+    const currentBlock = await publicClient.getBlockNumber();
 
     // Use 100k block range to ensure we catch all events (tests pass with this value)
     const fromBlock = currentBlock > 100000n ? currentBlock - 100000n : 0n;
@@ -27,7 +23,7 @@ export const useConfigurableAccount = () => {
     // but works for now.
 
     // Add timeout to event queries to prevent hanging (10s to handle multiple accounts in test environments)
-    const eventsPromise = Promise.all([
+    const [events, removedEvents] = await Promise.all([
       publicClient.getContractEvents({
         address: webauthnValidatorAddress,
         abi: WebAuthnValidatorAbi,
@@ -49,8 +45,6 @@ export const useConfigurableAccount = () => {
         strict: true,
       }),
     ]);
-
-    const [events, removedEvents] = await Promise.race([eventsPromise]);
 
     if (!events || events.length === 0) {
       throw new Error("Account not found");

@@ -179,15 +179,10 @@ const recoveryCompleted = computedAsync(async () => {
   console.log("recoveryCompleted evaluating, trigger:", _triggerValue);
 
   if (!recoveryParams.value?.accountAddress || !recoveryParams.value?.credentialId || !recoveryParams.value?.credentialPublicKey) {
-    // eslint-disable-next-line no-console
-    console.log("recoveryCompleted: Missing params");
     return false;
   }
 
   const result = await getRecovery(recoveryParams.value.accountAddress);
-
-  // eslint-disable-next-line no-console
-  console.log("getRecovery result:", result);
 
   // The smart contract stores keccak256(data) where data is the encoded recovery payload
   // We need to reconstruct the same data structure that was passed to initializeRecovery
@@ -209,15 +204,7 @@ const recoveryCompleted = computedAsync(async () => {
 
   const expectedHashedData = keccak256(recoveryData);
 
-  // eslint-disable-next-line no-console
-  console.log("Expected hashedData:", expectedHashedData);
-  // eslint-disable-next-line no-console
-  console.log("Actual hashedData:", result?.hashedData);
-
   const isComplete = result?.hashedData === expectedHashedData;
-
-  // eslint-disable-next-line no-console
-  console.log("Recovery complete:", isComplete);
 
   return isComplete;
 });
@@ -284,9 +271,6 @@ const handleConfirmRecovery = async () => {
     const maxRetries = 10;
     const retryDelay = 1000; // 1 second between checks
 
-    // eslint-disable-next-line no-console
-    console.log("Starting recovery completion polling...");
-
     for (let i = 0; i < maxRetries; i++) {
       await new Promise((resolve) => setTimeout(resolve, retryDelay));
       recoveryCheckTrigger.value++;
@@ -304,9 +288,6 @@ const handleConfirmRecovery = async () => {
         break;
       }
     }
-
-    // eslint-disable-next-line no-console
-    console.log("Finished polling. Final recoveryCompleted:", recoveryCompleted.value);
   } catch (err) {
     confirmGuardianErrorMessage.value = "An error occurred while confirming the guardian. Please try again.";
     // eslint-disable-next-line no-console
