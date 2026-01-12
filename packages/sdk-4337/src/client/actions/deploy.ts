@@ -38,6 +38,9 @@ export type PrepareDeploySmartAccountParams = {
   /** Optional: Install session validator module during deployment */
   installSessionValidator?: boolean;
 
+  /** Optional array of executor module addresses to install during deployment */
+  executorModules?: Address[];
+
   /** Optional user ID for deterministic account deployment. If provided, generates deterministic accountId from userId */
   userId?: string;
 
@@ -103,6 +106,7 @@ export function prepareDeploySmartAccount(
     userId,
     accountId: customAccountId,
     installSessionValidator,
+    executorModules,
   } = params;
 
   // Validation: Check that required validators are provided
@@ -170,6 +174,7 @@ export function prepareDeploySmartAccount(
     passkeyPayload as any,
     contracts.webauthnValidator || null,
     (installSessionValidator && contracts.sessionValidator) || null,
+    executorModules || [],
   ) as Hex;
 
   return {

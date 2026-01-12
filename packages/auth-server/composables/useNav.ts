@@ -11,16 +11,6 @@ export function useNav() {
       icon: "settings",
     },
     {
-      href: "/dashboard/history",
-      name: "History",
-      icon: "description",
-    },
-    {
-      href: "/dashboard/marketplace",
-      name: "Marketplace",
-      icon: "grid_view",
-    },
-    {
       href: "/dashboard/sessions",
       name: "Sessions",
       icon: "link",

@@ -75,12 +75,12 @@
               >
                 Confirm Recovery
               </ZkButton>
-              <!-- <CommonConnectButton
+              <CommonConnectButton
                 v-if="!selectedGuardianInfo?.isSsoAccount"
                 type="primary"
                 class="w-full max-w-56"
                 :disabled="initRecoveryInProgress || getConfigurableAccountInProgress"
-              /> -->
+              />
             </div>
             <p
               v-if="!selectedGuardianInfo?.isSsoAccount && accountData.isConnected && !isConnectedWalletGuardian"
@@ -105,8 +105,8 @@
 
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
-import { type Address, hexToBytes, isAddressEqual, keccak256, toHex } from "viem";
-// import { base64UrlToUint8Array } from "zksync-sso/utils";
+import { type Address, encodeAbiParameters, isAddressEqual, keccak256, pad, parseAbiParameters, toHex } from "viem";
+import { base64urlToUint8Array, getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
 import { z } from "zod";
 
 import { uint8ArrayToHex } from "@/utils/formatters";
@@ -132,10 +132,15 @@ const RecoveryParamsSchema = z
   })
   .refine(
     async (data) => {
-      const dataToHash = `${data.accountAddress}:${data.credentialId}:${data.credentialPublicKey}`;
+      // Calculate checksum
+      // Normalize accountAddress to lowercase for consistent hashing
+      const normalizedAddress = data.accountAddress.toLowerCase();
+      const dataToHash = `${normalizedAddress}:${data.credentialId}:${data.credentialPublicKey}`;
+
       const calculatedChecksum = uint8ArrayToHex(
         new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(dataToHash))).slice(0, 8),
       );
+
       return calculatedChecksum === data.checksum;
     },
     {
@@ -144,6 +149,7 @@ const RecoveryParamsSchema = z
   );
 
 const generalError = ref<string | null>(null);
+const recoveryCheckTrigger = ref(0);
 
 const isLoadingGuardians = ref(false);
 const loadingGuardiansError = ref<string | null>(null);
@@ -166,9 +172,41 @@ const recoveryParams = computedAsync(async () => RecoveryParamsSchema.parseAsync
 }));
 
 const recoveryCompleted = computedAsync(async () => {
-  if (!recoveryParams.value?.accountAddress) return false;
+  // Force re-evaluation when trigger changes
+  const _triggerValue = recoveryCheckTrigger.value;
+
+  // eslint-disable-next-line no-console
+  console.log("recoveryCompleted evaluating, trigger:", _triggerValue);
+
+  if (!recoveryParams.value?.accountAddress || !recoveryParams.value?.credentialId || !recoveryParams.value?.credentialPublicKey) {
+    return false;
+  }
+
   const result = await getRecovery(recoveryParams.value.accountAddress);
-  return result?.hashedCredentialId === keccak256(toHex(base64UrlToUint8Array(recoveryParams.value.credentialId)));
+
+  // The smart contract stores keccak256(data) where data is the encoded recovery payload
+  // We need to reconstruct the same data structure that was passed to initializeRecovery
+  const parsedPublicKey = JSON.parse(recoveryParams.value.credentialPublicKey);
+  const credentialPublicKeyBytes = getPasskeySignatureFromPublicKeyBytes([parsedPublicKey.x, parsedPublicKey.y]);
+  const publicKeyBytes = getPublicKeyBytesFromPasskeySignature(credentialPublicKeyBytes);
+  const publicKeyHex = [
+    pad(toHex(publicKeyBytes[0]), { size: 32 }),
+    pad(toHex(publicKeyBytes[1]), { size: 32 }),
+  ] as const;
+
+  const recoveryData = encodeAbiParameters(
+    parseAbiParameters("bytes32 credentialIdHash, bytes32[2] publicKey"),
+    [
+      keccak256(toHex(base64urlToUint8Array(recoveryParams.value.credentialId))),
+      publicKeyHex,
+    ],
+  );
+
+  const expectedHashedData = keccak256(recoveryData);
+
+  const isComplete = result?.hashedData === expectedHashedData;
+
+  return isComplete;
 });
 
 const guardians = computedAsync(async () => {
@@ -215,13 +253,41 @@ const handleConfirmRecovery = async () => {
 
     if (!recoveryParams.value) return;
 
+    // Parse the credentialPublicKey JSON string to get x,y coordinates
+    const parsedPublicKey = JSON.parse(recoveryParams.value.credentialPublicKey);
+    // Convert coordinates to proper COSE format expected by initRecovery
+    const credentialPublicKeyBytes = getPasskeySignatureFromPublicKeyBytes([parsedPublicKey.x, parsedPublicKey.y]);
+
     await initRecovery({
       client,
       accountToRecover: recoveryParams.value.accountAddress,
-      credentialPublicKey: hexToBytes(`0x${recoveryParams.value.credentialPublicKey}`),
-      accountId: recoveryParams.value.credentialId,
+      credentialPublicKey: credentialPublicKeyBytes,
+      credentialId: recoveryParams.value.credentialId,
     });
     confirmGuardianErrorMessage.value = null;
+
+    // Poll for recovery completion instead of waiting once
+    // The contract state might take a few seconds to update after transaction confirmation
+    const maxRetries = 10;
+    const retryDelay = 1000; // 1 second between checks
+
+    for (let i = 0; i < maxRetries; i++) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      recoveryCheckTrigger.value++;
+
+      // Wait a bit for computedAsync to evaluate
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // eslint-disable-next-line no-console
+      console.log(`Polling attempt ${i + 1}/${maxRetries}: recoveryCompleted =`, recoveryCompleted.value);
+
+      // Check if recovery is complete
+      if (recoveryCompleted.value === true) {
+        // eslint-disable-next-line no-console
+        console.log("Recovery confirmed as complete!");
+        break;
+      }
+    }
   } catch (err) {
     confirmGuardianErrorMessage.value = "An error occurred while confirming the guardian. Please try again.";
     // eslint-disable-next-line no-console

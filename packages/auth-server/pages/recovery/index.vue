@@ -46,5 +46,6 @@
 </template>
 
 <script setup lang="ts">
-const { enabled: oidcEnabled } = useOidcConfig();
+// const { enabled: oidcEnabled } = useOidcConfig();
+const oidcEnabled = false;
 </script>

@@ -2519,6 +2519,7 @@ pub fn encode_deploy_account_call_data(
     passkey_payload: Option<PasskeyPayload>,
     webauthn_validator_address: Option<String>,
     session_validator_address: Option<String>,
+    executor_modules: Option<Vec<String>>,
 ) -> Result<String, JsValue> {
     use zksync_sso_erc4337_core::erc4337::account::modular_smart_account::{
         deploy::{
@@ -2633,11 +2634,34 @@ pub fn encode_deploy_account_call_data(
         None => None,
     };
 
+    // Parse executor modules if provided
+    let executor_modules_core = match executor_modules {
+        Some(addresses) => {
+            let mut parsed_addresses = Vec::new();
+            for addr_str in addresses {
+                match addr_str.parse::<Address>() {
+                    Ok(addr) => {
+                        parsed_addresses.push(addr);
+                    }
+                    Err(e) => {
+                        return Err(JsValue::from_str(&format!(
+                            "Invalid executor module address '{}': {}",
+                            addr_str, e
+                        )));
+                    }
+                }
+            }
+            Some(parsed_addresses)
+        }
+        None => None,
+    };
+
     // Create init data using the same logic as deploy.rs
     let init_data = create_init_data_for_deployment(
         eoa_signers_core,
         webauthn_signer_core,
         session_validator_core,
+        executor_modules_core,
     );
 
     // Encode the call
@@ -2704,6 +2728,7 @@ fn create_init_data_for_deployment(
     eoa_signers: Option<CoreEOASigners>,
     webauthn_signer: Option<CoreWebauthNSigner>,
     session_validator: Option<Address>,
+    executor_modules: Option<Vec<Address>>,
 ) -> Bytes {
     sol! {
         struct SignersParams {
@@ -2735,6 +2760,14 @@ fn create_init_data_for_deployment(
     if let Some(session_val_addr) = session_validator {
         modules.push(session_val_addr);
         data.push(Bytes::new()); // Empty bytes for session validator
+    }
+
+    // Add executor modules if provided (no initialization data needed)
+    if let Some(executor_addrs) = executor_modules {
+        for executor_addr in executor_addrs {
+            modules.push(executor_addr);
+            data.push(Bytes::new()); // Empty bytes for executor modules
+        }
     }
 
     // Create initializeAccount call

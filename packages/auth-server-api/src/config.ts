@@ -17,6 +17,7 @@ let contractsFromFile: {
   eoaValidator?: string;
   webauthnValidator?: string;
   sessionValidator?: string;
+  guardianExecutor?: string;
 } = {};
 
 try {
@@ -38,6 +39,7 @@ const envSchema = z.object({
   EOA_VALIDATOR_ADDRESS: z.string().optional(),
   WEBAUTHN_VALIDATOR_ADDRESS: z.string().optional(),
   SESSION_VALIDATOR_ADDRESS: z.string().optional(),
+  GUARDIAN_EXECUTOR_ADDRESS: z.string().optional(),
   // Prividium Mode Configuration
   PRIVIDIUM_MODE: z.string().transform((v) => v === "true").default("false"),
   PRIVIDIUM_PERMISSIONS_BASE_URL: z.string().optional(),
@@ -79,6 +81,7 @@ const FACTORY_ADDRESS = env.FACTORY_ADDRESS || contractsFromFile.factory;
 const EOA_VALIDATOR_ADDRESS = env.EOA_VALIDATOR_ADDRESS || contractsFromFile.eoaValidator;
 const WEBAUTHN_VALIDATOR_ADDRESS = env.WEBAUTHN_VALIDATOR_ADDRESS || contractsFromFile.webauthnValidator;
 const SESSION_VALIDATOR_ADDRESS = env.SESSION_VALIDATOR_ADDRESS || contractsFromFile.sessionValidator;
+const GUARDIAN_EXECUTOR_ADDRESS = env.GUARDIAN_EXECUTOR_ADDRESS || contractsFromFile.guardianExecutor;
 
 // Validate that we have all required contract addresses
 if (!FACTORY_ADDRESS || !EOA_VALIDATOR_ADDRESS || !WEBAUTHN_VALIDATOR_ADDRESS || !SESSION_VALIDATOR_ADDRESS) {
@@ -162,4 +165,4 @@ const rateLimitConfig = {
   deployWindowMs: parseInt(env.RATE_LIMIT_DEPLOY_WINDOW_MS, 10),
 };
 
-export { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, prividiumConfig, rateLimitConfig, SESSION_VALIDATOR_ADDRESS, SUPPORTED_CHAINS, WEBAUTHN_VALIDATOR_ADDRESS };
+export { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, GUARDIAN_EXECUTOR_ADDRESS, prividiumConfig, rateLimitConfig, SESSION_VALIDATOR_ADDRESS, SUPPORTED_CHAINS, WEBAUTHN_VALIDATOR_ADDRESS };

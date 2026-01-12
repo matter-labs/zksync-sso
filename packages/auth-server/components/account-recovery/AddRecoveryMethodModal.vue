@@ -10,6 +10,7 @@
     <template #trigger>
       <slot name="trigger">
         <Button
+          data-testid="add-recovery-method-modal"
           class="w-full lg:w-auto"
           type="primary"
         >
@@ -44,6 +45,7 @@
         <div class="flex flex-col gap-5 w-full max-w-xs">
           <Button
             class="w-full"
+            data-testid="add-guardian-method"
             @click="selectMethod('guardian')"
           >
             Recover with Guardian
@@ -81,7 +83,8 @@ import GuardianFlow from "~/components/account-recovery/guardian-flow/Root.vue";
 import Button from "~/components/zk/button.vue";
 import Dialog from "~/components/zk/dialog.vue";
 
-const { enabled: oidcEnabled } = useOidcConfig();
+// const { enabled: oidcEnabled } = useOidcConfig();
+const oidcEnabled = false;
 
 type Step = "select-method" | "guardian" | "google";
 const currentStep = ref<Step>("select-method");
