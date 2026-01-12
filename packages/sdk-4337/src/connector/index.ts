@@ -8,6 +8,9 @@ import {
 } from "@wagmi/core";
 import type { Compute } from "@wagmi/core/internal";
 import {
+  type Abi,
+  type AbiFunction,
+  type AbiStateMutability,
   type Address,
   type Client,
   getAddress,
@@ -18,7 +21,7 @@ import {
 import type { BundlerClient } from "viem/account-abstraction";
 
 import type { PaymasterConfig } from "../actions/sendUserOperation.js";
-import type { SessionClient, SessionPreferences } from "../client/index.js";
+import type { PartialCallPolicy, SessionClient, SessionPreferences } from "../client/index.js";
 import type { ProviderInterface } from "../client-auth-server/index.js";
 import { WalletProvider } from "../client-auth-server/WalletProvider.js";
 import type { AppMetadata, Communicator } from "../communicator/interface.js";
@@ -41,6 +44,30 @@ export type ZksyncSsoConnectorOptions = {
   connectorMetadata?: ConnectorMetadata;
   paymaster?: Address | PaymasterConfig;
 };
+
+function filterContractCallsAbi(contractCalls: PartialCallPolicy[]): PartialCallPolicy[] {
+  const allowedStateMutability: AbiStateMutability[] = ["nonpayable", "payable"];
+
+  return contractCalls.map((call) => {
+    const matchingFunction = (call.abi as Abi).find(
+      (item): item is AbiFunction =>
+        item.type === "function"
+        && item.name === call.functionName
+        && allowedStateMutability.includes(item.stateMutability),
+    );
+
+    if (!matchingFunction) {
+      throw new Error(
+        `Function "${call.functionName}" not found in ABI for contract ${call.address}. Only nonpayable/payable functions are allowed.`,
+      );
+    }
+
+    return {
+      ...call,
+      abi: [matchingFunction],
+    };
+  });
+}
 
 export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
   let walletProvider: ProviderInterface | undefined;
@@ -160,6 +187,29 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
           }
         }
 
+        // Process session to filter ABI to only the specified function
+        let processedSession = parameters.session;
+        if (parameters.session) {
+          if (typeof parameters.session === "function") {
+            const originalSessionFn = parameters.session;
+            processedSession = async () => {
+              const sessionConfig = await originalSessionFn();
+              if (sessionConfig.contractCalls) {
+                return {
+                  ...sessionConfig,
+                  contractCalls: filterContractCallsAbi(sessionConfig.contractCalls),
+                };
+              }
+              return sessionConfig;
+            };
+          } else if (parameters.session.contractCalls) {
+            processedSession = {
+              ...parameters.session,
+              contractCalls: filterContractCallsAbi(parameters.session.contractCalls),
+            };
+          }
+        }
+
         walletProvider = parameters.provider ?? new WalletProvider({
           metadata: {
             name: parameters.metadata?.name,
@@ -167,7 +217,7 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
             configData: parameters.metadata?.configData,
           },
           authServerUrl: parameters.authServerUrl,
-          session: parameters.session,
+          session: processedSession,
           transports: config.transports,
           bundlerClients: parameters.bundlerClients,
           chains: config.chains,
@@ -257,11 +307,13 @@ export const isSsoSessionClientConnected = async<
 
   try {
     // Check if this is a ZKsync SSO connector with our custom _getClient method
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (connection.connector as any)._getClient !== "function") {
       return false;
     }
 
     // Use the custom _getClient method to get our custom client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = await (connection.connector as any)._getClient(parameters);
     return isSsoSessionClient(client);
   } catch {
@@ -284,10 +336,12 @@ export const getConnectedSsoSessionClient = async<
   }
 
   // Check if this is a ZKsync SSO connector with our custom _getClient method
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof (connection.connector as any)._getClient !== "function") {
     throw new Error("Connector does not support getClient method. Make sure you're using the ZKsync SSO connector.");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const client = await (connection.connector as any)._getClient(parameters);
 
   if (!isSsoSessionClient(client)) {
@@ -297,3 +351,6 @@ export const getConnectedSsoSessionClient = async<
   const sessionClient = client as unknown as GetConnectedSsoClientReturnType<config, chainId>;
   return sessionClient;
 };
+
+// Re-export callPolicy utility for convenient access
+export { callPolicy } from "../client/index.js";

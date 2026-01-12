@@ -56,12 +56,18 @@ const { respond, deny } = useRequestsStore();
 const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { address } = storeToRefs(useAccountStore());
 const { getClient } = useClientStore();
+const runtimeConfig = useRuntimeConfig();
 
 const confirmConnection = () => {
   respond(async () => {
     const client = getClient({ chainId: requestChain.value!.id });
     return {
-      result: constructReturn(client.account.address, client.chain.id),
+      result: constructReturn({
+        address: client.account.address,
+        chainId: client.chain.id,
+        prividiumMode: runtimeConfig.public.prividiumMode,
+        prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
+      }),
     };
   });
 };

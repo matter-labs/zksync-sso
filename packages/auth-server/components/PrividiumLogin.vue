@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col justify-center px-4">
     <div class="max-w-md mx-auto w-full">
-      <AppAccountLogo class="dark:text-neutral-100 h-16 md:h-20 mb-14" />
+      <AppAccountLogo class="dark:text-neutral-100 h-16 md:h-20 mb-14 mx-auto" />
       <!-- Error display -->
       <CommonHeightTransition :opened="!!error">
         <p class="pb-3 text-sm text-error-300 text-center">

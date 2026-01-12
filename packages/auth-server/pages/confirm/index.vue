@@ -26,9 +26,16 @@
       key="sign-typed-data"
     />
     <ViewsConfirmationSend
-      v-else
+      v-else-if="requestMethod === 'eth_sendTransaction'"
       key="confirmation"
     />
+    <div
+      v-else
+      key="unsupported-method"
+      class="flex h-full items-center justify-center"
+    >
+      <p>Unsupported request method.</p>
+    </div>
   </TransitionGroup>
 </template>
 

@@ -44,7 +44,8 @@ FACTORY=$(echo "$DEPLOY_OUTPUT" | grep "MSAFactory:" | awk '{print $2}')
 echo ""
 echo "📦 Deploying MockPaymaster..."
 cd "$CONTRACTS_DIR"
-PAYMASTER_OUTPUT=$(forge create test/mocks/MockPaymaster.sol:MockPaymaster --rpc-url "$RPC_URL" --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6 --broadcast 2>&1)
+ANVIL_ACCOUNT_0_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+PAYMASTER_OUTPUT=$(forge create test/mocks/MockPaymaster.sol:MockPaymaster --rpc-url "$RPC_URL" --private-key "$ANVIL_ACCOUNT_0_KEY" --broadcast 2>&1)
 echo "$PAYMASTER_OUTPUT"
 PAYMASTER=$(echo "$PAYMASTER_OUTPUT" | grep "Deployed to:" | awk '{print $3}')
 
@@ -53,7 +54,6 @@ echo "MockPaymaster deployed to: $PAYMASTER"
 # Fund the paymaster with ETH from Anvil account #0 (has plenty of ETH)
 echo ""
 echo "💰 Funding paymaster with 10 ETH..."
-ANVIL_ACCOUNT_0_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 cast send "$PAYMASTER" --value 10ether --private-key "$ANVIL_ACCOUNT_0_KEY" --rpc-url "$RPC_URL" 2>&1 || echo "Fund transfer initiated"
 
 # Deposit the paymaster's ETH into the EntryPoint

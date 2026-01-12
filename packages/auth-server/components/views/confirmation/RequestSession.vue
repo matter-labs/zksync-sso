@@ -148,6 +148,7 @@ const { responseInProgress, requestChainId } = storeToRefs(useRequestsStore());
 const { createAccount } = useAccountCreate(requestChainId);
 const { respond, deny } = useRequestsStore();
 const { getClient } = useClientStore();
+const runtimeConfig = useRuntimeConfig();
 
 const defaults = {
   expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
@@ -287,14 +288,16 @@ const confirmConnection = async () => {
       });
 
       response = {
-        result: constructReturn(
-          accountData!.address,
-          accountData!.chainId,
-          {
+        result: constructReturn({
+          address: accountData!.address,
+          chainId: accountData!.chainId,
+          session: {
             sessionConfig: accountData!.sessionConfig!,
             sessionKey: accountData!.sessionKey!,
           },
-        ),
+          prividiumMode: runtimeConfig.public.prividiumMode,
+          prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
+        }),
       };
     } else {
       // create a new session for the existing account
@@ -329,11 +332,13 @@ const confirmConnection = async () => {
       });
 
       response = {
-        result: constructReturn(
-          client.account.address,
-          client.chain.id,
+        result: constructReturn({
+          address: client.account.address,
+          chainId: client.chain.id,
           session,
-        ),
+          prividiumMode: runtimeConfig.public.prividiumMode,
+          prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
+        }),
       };
     }
   } catch (error) {

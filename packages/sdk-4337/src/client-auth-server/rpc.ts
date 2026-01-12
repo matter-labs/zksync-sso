@@ -28,7 +28,8 @@ export type AuthServerRpcSchema = [
         id: Chain["id"];
         capabilities: Record<string, unknown>;
         contracts: SessionRequiredContracts;
-        bundlerUrl?: string;
+        bundlerUrl: string;
+        prividiumMode: boolean;
       }[];
     };
   },
