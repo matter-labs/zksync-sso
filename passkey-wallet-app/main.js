@@ -106,6 +106,7 @@ let activeLanguage = "en";
 const STORAGE_KEY_PASSKEY = "zksync_sso_passkey";
 const STORAGE_KEY_ACCOUNT = "zksync_sso_account";
 const STORAGE_KEY_TX_METADATA = "zksync_sso_tx_metadata";
+const STORAGE_KEY_LANGUAGE = "zksync-interop-demo-language";
 
 // Auto-refresh interval (in milliseconds)
 const BALANCE_REFRESH_INTERVAL = 5000; // 5 seconds
@@ -150,13 +151,7 @@ const translatedText = () => {
 // Initialize
 document.addEventListener("DOMContentLoaded", async () => {
   // setup translation
-  async function setLanguage(lang) {
-    activeLanguage = lang;
-    await updateTranslation(lang);
-  }
-  const select = document.getElementById("lang");
-  select.addEventListener("change", async () => setLanguage(select.value));
-  await initTranslation(activeLanguage);
+  await setupTranslation();
 
   // Setup public client for balance checks FIRST
   publicClient = createPublicClient({
@@ -179,6 +174,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupEventListeners();
   loadExistingPasskey();
 });
+
+async function setupTranslation() {
+  const select = document.getElementById("lang");
+  select.addEventListener("change", async () => {
+    activeLanguage = select.value;
+    localStorage.setItem(STORAGE_KEY_LANGUAGE, select.value);
+    await updateTranslation(select.value);
+  });
+  const savedLanguage = localStorage.getItem(STORAGE_KEY_LANGUAGE);
+  if (savedLanguage) {
+    activeLanguage = savedLanguage;
+    select.value = savedLanguage;
+  }
+  await initTranslation(activeLanguage);
+}
 
 function setupEventListeners() {
   document.getElementById("createPasskeyBtn").addEventListener("click", handleCreatePasskey);
