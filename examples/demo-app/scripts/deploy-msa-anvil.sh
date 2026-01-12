@@ -8,7 +8,7 @@ WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Configuration
 DEPLOYER_ADDRESS="0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"  # Anvil account #9
-RPC_URL="http://localhost:5050"
+RPC_URL="http://localhost:8545"
 CHAIN_ID=1337
 CONTRACTS_DIR="$WORKSPACE_ROOT/packages/erc4337-contracts"
 

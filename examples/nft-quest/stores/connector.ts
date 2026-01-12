@@ -1,7 +1,7 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
 import { zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "@wagmi/core/chains";
 import type { Address, Hash } from "viem";
-import { zksyncSsoConnector } from "zksync-sso/connector";
+import { callPolicy, zksyncSsoConnector } from "zksync-sso/connector";
 
 import { ZeekNftQuestAbi } from "@/abi/ZeekNFTQuest";
 
