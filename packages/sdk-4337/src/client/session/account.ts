@@ -86,15 +86,16 @@ export async function toSessionSmartAccount<
       // Encode the getNonce call with the session's nonce key
       const calldata = encode_get_nonce_call_data(sender, nonceKeyDecimal) as Hex;
 
-      // Call EntryPoint
-      const result = await client.call({
-        to: epAddress,
-        data: calldata,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      const result = await client.request({
+        method: "eth_call",
+        params: [{
+          from: sender,
+          to: epAddress,
+          data: calldata,
+        }],
+      });
 
-      // Decode result
-      const nonceStr = decode_nonce_result(result.data!);
+      const nonceStr = decode_nonce_result(result);
       return BigInt(nonceStr as string);
     },
 
