@@ -34,7 +34,7 @@ import {
   getWrappedTokenAddress,
   transferTokensInterop,
 } from "./token-interop.js";
-import setupTranslation from "./translation.js";
+import { initTranslation, updateTranslation } from "./translation.js";
 
 // ZKsync OS configuration
 const zksyncOsTestnet = defineChain({
@@ -141,11 +141,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   // setup translation
   async function setLanguage(lang) {
     activeLanguage = lang;
-    await setupTranslation(lang);
+    await updateTranslation(lang);
   }
   const select = document.getElementById("lang");
   select.addEventListener("change", async () => setLanguage(select.value));
-  await setupTranslation(activeLanguage);
+  await initTranslation(activeLanguage);
 
   // Setup public client for balance checks FIRST
   publicClient = createPublicClient({
