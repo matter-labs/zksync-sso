@@ -68,19 +68,17 @@ export async function toPasskeySmartAccount<
     },
     async getNonce() {
       const sender = await this.getAddress();
-
-      // Encode the getNonce call
       const calldata = encode_get_nonce_call_data(sender, "0") as Hex;
+      const result = await client.request({
+        method: "eth_call",
+        params: [{
+          from: sender,
+          to: epAddress,
+          data: calldata,
+        }],
+      });
 
-      // Viem makes the network call
-      const result = await client.call({
-        to: epAddress,
-        data: calldata,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
-
-      // Decode the result
-      const nonceStr = decode_nonce_result(result.data!);
+      const nonceStr = decode_nonce_result(result);
       return BigInt(nonceStr as string);
     },
 
