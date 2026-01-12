@@ -48,10 +48,10 @@ L1_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_ACTUAL_ALCHEMY_KEY_HERE
 
 ## What Gets Started
 
-| Service | Port | URL |
-|---------|------|-----|
-| Wallet App | 3000 | <http://localhost:3000> |
-| Bundler | 4337 | <http://localhost:4337> |
+| Service        | Port | URL                            |
+| -------------- | ---- | ------------------------------ |
+| Wallet App     | 3000 | <http://localhost:3000>        |
+| Bundler        | 4337 | <http://localhost:4337>        |
 | Relayer Status | 4340 | <http://localhost:4340/status> |
 
 ## Common Commands
@@ -84,11 +84,13 @@ cd passkey-wallet-app && ./deploy-usd.sh
 
 The app includes an **Interop** tab for cross-chain token transfers. To use it:
 
-1. **Set up local chains** - See [INTEROP_SETUP.md](INTEROP_SETUP.md) for detailed instructions
+1. **Set up local chains** - See [INTEROP_SETUP.md](INTEROP_SETUP.md) for
+   detailed instructions
 2. **Deploy token**: `./start-passkey-wallet-app.sh --deploy-token`
 3. **Use Interop tab** in the wallet UI
 
-**Note**: Interop features require local ZKsync chains running on ports 3050 & 3051.
+**Note**: Interop features require local ZKsync chains running on ports 3050
+& 3051.
 
 ## Need Help?
 

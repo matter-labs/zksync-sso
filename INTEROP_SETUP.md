@@ -1,6 +1,7 @@
 # Interop Testing - Local Chain Setup
 
-This guide explains how to set up local ZKsync chains for testing cross-chain (interop) functionality.
+This guide explains how to set up local ZKsync chains for testing cross-chain
+(interop) functionality.
 
 ## Overview
 
@@ -46,7 +47,8 @@ git checkout kl/interop-type-b
 
 ### Step 2: Start Local Chains
 
-You need **3 separate terminal windows**, all in the `zksync-os-server` directory:
+You need **3 separate terminal windows**, all in the `zksync-os-server`
+directory:
 
 #### Terminal 1: Start L1 (Anvil)
 
@@ -89,10 +91,12 @@ cargo run -- --config ./local-chains/v31/multiple-chains/chain2.json
 
 ### Step 3: Start Interop Watcher (Optional)
 
-The interop watcher synchronizes interop roots between chains, enabling cross-chain message verification.
+The interop watcher synchronizes interop roots between chains, enabling
+cross-chain message verification.
 
-**Note:** The passkey wallet app already includes watcher functionality, so this step is optional for
-basic testing. Use it if you want to inspect how the synchronization works.
+**Note:** The passkey wallet app already includes watcher functionality, so this
+step is optional for basic testing. Use it if you want to inspect how the
+synchronization works.
 
 ```bash
 # In a separate directory (not in zksync-os-server)
@@ -196,7 +200,8 @@ This is Anvil's default rich account #1.
 
 ### Interop transfers timing out
 
-- Make sure the watcher is running (or the wallet app is handling root synchronization)
+- Make sure the watcher is running (or the wallet app is handling root
+  synchronization)
 - Wait for batches to be created on both chains (~10-30 seconds)
 - Check that both chains are producing blocks
 
@@ -230,4 +235,6 @@ pkill -f "cargo run"
 
 - See [SETUP.md](SETUP.md) for full application setup
 - See [QUICKSTART.md](QUICKSTART.md) for quick start guide
-- See [passkey-wallet-app/INTEROP_TESTING.md](passkey-wallet-app/INTEROP_TESTING.md) for detailed interop testing guide
+- See
+  [passkey-wallet-app/INTEROP_TESTING.md](passkey-wallet-app/INTEROP_TESTING.md)
+  for detailed interop testing guide

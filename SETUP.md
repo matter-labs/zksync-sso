@@ -1,6 +1,7 @@
 # ZKsync SSO Demo - Setup Guide
 
-This guide provides instructions for setting up and running the ZKsync SSO Demo application.
+This guide provides instructions for setting up and running the ZKsync SSO Demo
+application.
 
 ## Table of Contents
 
@@ -57,6 +58,7 @@ That's it! The wallet app will be available at <http://localhost:3000>
 1. **Private Key with Funds**
 
    - You need a private key with ETH on:
+
      - **L1 (Sepolia)** - for L2-to-L1 finalization
      - **L2 (ZKsync OS Testnet)** - for bundler operations
 
@@ -275,9 +277,11 @@ The deployed token address will be automatically saved to both:
 
 ## Interop Testing
 
-The interop features allow you to test cross-chain token transfers between two local ZKsync chains.
+The interop features allow you to test cross-chain token transfers between two
+local ZKsync chains.
 
-> **📖 For detailed local chain setup, see [INTEROP_SETUP.md](INTEROP_SETUP.md)**
+> **📖 For detailed local chain setup, see
+> [INTEROP_SETUP.md](INTEROP_SETUP.md)**
 
 ### Prerequisites
 
@@ -334,7 +338,8 @@ cargo run -- --config ./local-chains/v31/multiple-chains/chain2.json
 
 #### Step 3: Start Interop Watcher (Optional)
 
-The watcher synchronizes interop roots between chains. If you want to inspect how it works:
+The watcher synchronizes interop roots between chains. If you want to inspect
+how it works:
 
 ```bash
 # In a separate directory
@@ -346,7 +351,8 @@ git checkout deniallugo-create-2-chains
 ./start-watcher.sh
 ```
 
-**Note:** The UI already includes the same watcher code, so this step is optional for basic testing.
+**Note:** The UI already includes the same watcher code, so this step is
+optional for basic testing.
 
 ### Setup
 
@@ -384,7 +390,8 @@ git checkout deniallugo-create-2-chains
 4. Use **Transfer Tokens** to test cross-chain token transfers
 5. Monitor the **Activity** tab to see L2-to-L1 finalization progress
 
-> **📖 For detailed interop setup and troubleshooting, see [INTEROP_SETUP.md](INTEROP_SETUP.md)**
+> **📖 For detailed interop setup and troubleshooting, see
+> [INTEROP_SETUP.md](INTEROP_SETUP.md)**
 
 ## Troubleshooting
 
@@ -444,8 +451,7 @@ git checkout deniallugo-create-2-chains
 
 **Problem**: Service fails to start due to port already in use
 
-**Solution**:
-Edit `.env` and change the conflicting port:
+**Solution**: Edit `.env` and change the conflicting port:
 
 ```bash
 BUNDLER_PORT=4337        # Change to another port like 4338
