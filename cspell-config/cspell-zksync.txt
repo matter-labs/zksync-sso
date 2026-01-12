@@ -2,9 +2,11 @@
 !zkSync
 !ZkSync
 // zkSync-related words
+deniallugo
 sepolia
 unbundler
 Zeek
+zkos
 zksync
 ZKsync
 Prividium

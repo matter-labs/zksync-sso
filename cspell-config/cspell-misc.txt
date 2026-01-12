@@ -60,3 +60,4 @@ weth
 abis
 USEROP
 YubiKey
+pkill

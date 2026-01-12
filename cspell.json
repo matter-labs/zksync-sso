@@ -36,6 +36,7 @@
     "packages/auth-server/public/snarkjs.min.js",
     "passkey-wallet-app/abis/**",
     "passkey-wallet-app/token-deployment/**",
+    "passkey-wallet-app/translation.js",
     "l2-to-l1-relayer/abis/**"
   ],
   "caseSensitive": true,
