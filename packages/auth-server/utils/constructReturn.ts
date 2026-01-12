@@ -1,7 +1,21 @@
 import type { SessionSpec } from "zksync-sso-4337/client";
 import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso-4337/client-auth-server";
 
-export const constructReturn = (address: `0x${string}`, chainId: number, session?: { sessionKey: `0x${string}`; sessionConfig: SessionSpec }): ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> => {
+type ConstructReturnOptions = {
+  address: `0x${string}`;
+  chainId: number;
+  session?: { sessionKey: `0x${string}`; sessionConfig: SessionSpec };
+  prividiumMode: boolean;
+  prividiumProxyUrl: string;
+};
+
+export const constructReturn = ({
+  address,
+  chainId,
+  session,
+  prividiumMode,
+  prividiumProxyUrl,
+}: ConstructReturnOptions): ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> => {
   return {
     account: {
       address,
@@ -22,7 +36,10 @@ export const constructReturn = (address: `0x${string}`, chainId: number, session
         },
       },
       contracts: contractsByChain[chain.id],
-      bundlerUrl: contractsByChain[chain.id].bundlerUrl,
+      bundlerUrl: prividiumMode
+        ? prividiumProxyUrl
+        : contractsByChain[chain.id].bundlerUrl || "",
+      prividiumMode,
     })),
   };
 };

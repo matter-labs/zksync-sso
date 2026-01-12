@@ -134,10 +134,22 @@ export const useClientStore = defineStore("client", () => {
     const contracts = contractsByChain[chainId];
     const publicClient = getPublicClient({ chainId });
 
+    // In prividium mode, use prividium transport for bundler as well
+    // Get transport from existing prividium instance - it auto-routes bundler methods
+    const bundlerTransport = runtimeConfig.public.prividiumMode
+      ? (() => {
+          const prividiumTransport = prividiumAuthStore.getTransport();
+          if (!prividiumTransport) {
+            throw new Error("Prividium transport not available. User may need to authenticate.");
+          }
+          return prividiumTransport;
+        })()
+      : http(contracts.bundlerUrl || "http://localhost:4337");
+
     return createBundlerClient({
       client: publicClient,
       chain,
-      transport: http(contracts.bundlerUrl || "http://localhost:4337"),
+      transport: bundlerTransport,
       userOperation: {
         async estimateFeesPerGas() {
           const feesPerGas = await publicClient.estimateFeesPerGas();
@@ -160,7 +172,7 @@ export const useClientStore = defineStore("client", () => {
     const contracts = contractsByChain[chainId];
     const bundlerClient = getBundlerClient({ chainId });
 
-    const finalPaymasterAddress = paymasterAddress ?? (usePaymaster ? contracts.testPaymaster : undefined);
+    const finalPaymasterAddress = paymasterAddress as Address | undefined ?? (usePaymaster ? contracts.testPaymaster : undefined);
 
     const client = createPasskeyClient({
       account: {

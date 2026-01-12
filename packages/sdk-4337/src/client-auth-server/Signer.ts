@@ -1,4 +1,4 @@
-import { type Address, type Chain, createPublicClient, createWalletClient, custom, type Hash, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport, type WalletClient } from "viem";
+import { type Address, type Chain, createPublicClient, createWalletClient, custom, type Hash, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, toHex, type Transport, type WalletClient } from "viem";
 import { type BundlerClient, createBundlerClient } from "viem/account-abstraction";
 
 import type { PaymasterConfig } from "../actions/sendUserOperation.js";
@@ -143,14 +143,23 @@ export class Signer implements SignerInterface {
       return this.bundlerClients[chainId];
     }
 
-    // Try to create bundler client from chainsInfo if bundlerUrl is available
     const chainInfo = this.chainsInfo.find((c) => c.id === chainId);
-    if (!chainInfo?.bundlerUrl) {
+    if (!chainInfo) {
       return undefined;
     }
 
     const chain = this.chains.find((c) => c.id === chainId);
     if (!chain) {
+      return undefined;
+    }
+
+    // In prividium mode, use transport from constructor; otherwise use bundlerUrl
+    const bundlerTransport = chainInfo.prividiumMode
+      ? this.transports[chainId]
+      : http(chainInfo.bundlerUrl);
+
+    if (!bundlerTransport) {
+      console.error(`Prividium mode requires a transport for chain ${chainId}`);
       return undefined;
     }
 
@@ -162,7 +171,7 @@ export class Signer implements SignerInterface {
     this.bundlerClients[chain.id] = createBundlerClient({
       client: publicClient,
       chain,
-      transport: http(chainInfo.bundlerUrl),
+      transport: bundlerTransport,
       userOperation: {
         // Use fixed gas values matching old Rust SDK implementation
         // (old SDK used: 2M callGas, 2M verificationGas, 1M preVerificationGas)
@@ -332,6 +341,9 @@ export class Signer implements SignerInterface {
       }
       case "eth_accounts": {
         return this.accounts as ExtractReturnType<TMethod>;
+      }
+      case "eth_chainId": {
+        return toHex(this.chain.id) as ExtractReturnType<TMethod>;
       }
       default:
         return undefined;

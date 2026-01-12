@@ -26,7 +26,7 @@
       key="sign-typed-data"
     />
     <ViewsConfirmationSend
-      v-else
+      v-else-if="requestMethod === 'eth_sendTransaction'"
       key="confirmation"
     />
   </TransitionGroup>
