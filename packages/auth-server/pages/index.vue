@@ -31,13 +31,12 @@
           Log In
         </ZkButton>
 
-        <!-- TODO: uncomment when recovery will be enabled -->
-        <!-- <ZkLink
+        <ZkLink
           class="w-fit mx-auto mt-2"
           href="/recovery"
         >
           Recover your account
-        </ZkLink> -->
+        </ZkLink>
       </div>
 
       <CommonHeightTransition :opened="!!accountLoginError">

@@ -1,7 +1,5 @@
 <template>
-  <div />
-  <!-- TODO: Recovery methods not yet available in sdk-4337 -->
-  <!-- <div class="flex flex-col flex-1">
+  <div class="flex flex-col flex-1">
     <Card
       v-if="recoveryMethods.length === 0"
       class="border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600"
@@ -17,6 +15,7 @@
       >
         <template #trigger>
           <Button
+            data-testid="add-recovery-method"
             class="bg-yellow-500 hover:bg-yellow-600 text-white dark:bg-yellow-600 dark:hover:bg-yellow-700 focus:bg-yellow-600 active:bg-yellow-700 disabled:bg-yellow-500 disabled:text-yellow-300 disabled:dark:bg-yellow-600 disabled:dark:hover:bg-yellow-700 dark:focus:bg-yellow-700 dark:active:bg-yellow-800 focus:ring-yellow-400 dark:focus:ring-yellow-800"
           >
             Add Recovery Method
@@ -92,6 +91,7 @@
           </div>
         </Card>
 
+        <!--
         <Card
           v-for="method in activeOidc"
           :key="method.digest"
@@ -130,14 +130,15 @@
             </Button>
           </div>
         </Card>
+ -->
         <AddRecoveryMethodModal @closed="refreshGuardians" />
       </div>
     </div>
-  </div> -->
+  </div>
 </template>
 
 <script setup lang="ts">
-/* import { ShieldCheckIcon, SparklesIcon, WalletIcon } from "@heroicons/vue/24/solid";
+import { WalletIcon } from "@heroicons/vue/24/solid";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 
 import AddRecoveryMethodModal from "~/components/account-recovery/AddRecoveryMethodModal.vue";
@@ -156,17 +157,20 @@ const {
   removeGuardian,
   removeGuardianInProgress,
 } = useRecoveryGuardian();
+/*
 const {
   getOidcAccounts,
   oidcAccounts,
   getOidcAccountsInProgress,
   removeOidcAccount,
 } = useRecoveryOidc();
+*/
 
 const config = useRuntimeConfig();
 
 const appUrl = config.public.appUrl;
 
+/*
 const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
   return {
     method: "OIDC",
@@ -175,6 +179,7 @@ const activeOidc = computed(() => oidcAccounts.value.map((oidcData) => {
     addedOn: new Date(Number(oidcData.addedOn) * 1000),
   };
 }));
+*/
 
 const guardianMethods = computed(() => (getGuardiansData.value ?? []).map((guardian) => ({
   method: "Guardian",
@@ -185,25 +190,27 @@ const guardianMethods = computed(() => (getGuardiansData.value ?? []).map((guard
 
 const recoveryMethods = computed(() => [
   ...guardianMethods.value,
-  ...activeOidc.value,
+  // ...activeOidc.value,
 ]);
 
 const refreshGuardians = () => {
   if (accountAddress) {
     getGuardians(accountAddress);
-    getOidcAccounts(accountAddress);
+    // getOidcAccounts(accountAddress);
   }
 };
 
+/*
 async function removeOidc() {
   await removeOidcAccount();
   refreshGuardians();
 }
+*/
 
 watchEffect(async () => {
   if (accountAddress) {
     await getGuardians(accountAddress);
-    await getOidcAccounts(accountAddress);
+    // await getOidcAccounts(accountAddress);
   }
-}); */
+});
 </script>

@@ -63,12 +63,12 @@
       Confirm Guardian
     </ZkButton>
 
-    <!-- <CommonConnectButton
+    <CommonConnectButton
       v-if="!isSsoAccount"
       type="primary"
       class="w-full md:max-w-48 mt-4"
       :disabled="confirmGuardianInProgress || getConfigurableAccountInProgress"
-    /> -->
+    />
 
     <ZkButton
       type="secondary"
@@ -97,7 +97,7 @@ const { getWalletClient, defaultChain } = useClientStore();
 const { isSsoAccount: checkIsSsoAccount, isLoading, error: isSsoAccountError } = useIsSsoAccount();
 const { confirmGuardian, confirmGuardianInProgress } = useRecoveryGuardian();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
-const { address } = useAccountStore();
+const { address: currentSsoAddress } = useAccountStore();
 const accountData = useAppKitAccount();
 
 const confirmGuardianErrorMessage = ref<string | null>(null);
@@ -116,25 +116,38 @@ const handleCheck = async () => {
 
 const handleConfirmGuardian = async () => {
   try {
-    if (!address) {
+    if (!currentSsoAddress) {
       throw new Error("No account logged in");
     }
 
     let client: Parameters<typeof confirmGuardian>[0]["client"];
 
-    if (isSsoAccount.value) {
-      const configurableAccount = await getConfigurableAccount({ address: props.guardianAddress });
+    // Check if guardian is the currently connected SSO account
+    const isCurrentSsoGuardian = isSsoAccount.value
+      && currentSsoAddress
+      && props.guardianAddress.toLowerCase() === currentSsoAddress.toLowerCase();
+
+    if (isCurrentSsoGuardian) {
+      // Guardian is the current SSO account - use SSO client with paymaster
+      const configurableAccount = await getConfigurableAccount({
+        address: props.guardianAddress,
+        usePaymaster: true,
+      });
       if (!configurableAccount) {
         throw new Error("No configurable account found");
       }
       client = configurableAccount;
     } else {
+      // Guardian is a different account - use WalletConnect
+      if (!accountData.value.isConnected) {
+        throw new Error("Please connect your wallet first");
+      }
       client = await getWalletClient({ chainId: defaultChain.id });
     }
 
     await confirmGuardian({
       client,
-      accountToGuard: address,
+      accountToGuard: currentSsoAddress,
     });
     confirmGuardianErrorMessage.value = null;
     emit("next");

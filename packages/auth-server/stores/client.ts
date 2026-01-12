@@ -5,9 +5,6 @@ import { /* generatePrivateKey, */ generatePrivateKey, privateKeyToAccount } fro
 import { localhost } from "viem/chains";
 import { createPasskeyClient } from "zksync-sso-4337/client";
 
-// TODO: OIDC and guardian recovery are not yet available in sdk-4337
-// import { createZkSyncOidcClient, type ZkSyncSsoClient } from "zksync-sso/client/oidc";
-// import { createZksyncRecoveryGuardianClient } from "zksync-sso/client/recovery";
 import localChainData from "./local-node.json";
 
 const zksyncOsTestnet = defineChain({
@@ -66,6 +63,9 @@ type ChainContracts = {
   bundlerUrl?: string;
   beacon?: Address; // Optional, for deployment
   testPaymaster?: Address; // Optional, for paymaster sponsorship
+  recovery?: Address; // Recovery module (legacy SDK)
+  guardianExecutor?: Address; // Guardian executor module (ERC-4337)
+  accountPaymaster?: Address; // Paymaster for account operations
 };
 
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
@@ -191,22 +191,6 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
-  // TODO: Guardian recovery not yet available in sdk-4337
-  // const getRecoveryClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }) => {
-  //   const chain = supportedChains.find((chain) => chain.id === chainId);
-  //   if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
-  //   const contracts = contractsByChain[chainId];
-  //
-  //   const client = createZksyncRecoveryGuardianClient({
-  //     address,
-  //     contracts,
-  //     chain: chain,
-  //     transport: createTransport(),
-  //   });
-  //
-  //   return client;
-  // };
-
   // TODO: OIDC client not yet available in sdk-4337
   // const getOidcClient = ({ chainId, address }: { chainId: SupportedChainId; address: Address }): ZkSyncSsoClient => {
   //   const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -299,8 +283,8 @@ export const useClientStore = defineStore("client", () => {
     getClient,
     getThrowAwayClient,
     getWalletClient,
-    // getRecoveryClient, // TODO: Not available in sdk-4337
     getConfigurableClient,
+    contractsByChain,
     // getOidcClient, // TODO: Not available in sdk-4337
   };
 });

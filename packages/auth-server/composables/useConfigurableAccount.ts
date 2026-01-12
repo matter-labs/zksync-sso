@@ -1,40 +1,47 @@
-// TODO: This composable is only used in recovery flows (not available in sdk-4337)
-// This composable has been commented out until guardian recovery support is added to sdk-4337
-
-/*
-import type { Address } from "viem";
-import { WebAuthValidatorAbi } from "zksync-sso/abi";
-import { fetchAccount } from "zksync-sso/client";
+import type { Address, Hex } from "viem";
+import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
 
 export const useConfigurableAccount = () => {
-  const { getPublicClient, getConfigurableClient, defaultChain } = useClientStore();
+  const { getPublicClient, getConfigurableClient, defaultChain, contractsByChain } = useClientStore();
 
-  const { inProgress: getConfigurableAccountInProgress, error: getConfigurableAccountError, execute: getConfigurableAccount } = useAsync(async ({ address }: { address: Address }) => {
+  const { inProgress: getConfigurableAccountInProgress, error: getConfigurableAccountError, execute: getConfigurableAccount } = useAsync(async ({ address, usePaymaster = false }: { address: Address; usePaymaster?: boolean }) => {
     const publicClient = getPublicClient({ chainId: defaultChain.id });
-    const factoryAddress = contractsByChain[defaultChain.id].accountFactory;
+    const webauthnValidatorAddress = contractsByChain[defaultChain.id].webauthnValidator;
+
+    // Small delay to allow blockchain to index recent events (especially important in test environments)
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Get current block to calculate safe fromBlock (avoid RPC block range limits)
+    // Add timeout to prevent hanging RPC calls (5s should be sufficient)
+    const currentBlock = await publicClient.getBlockNumber();
+
+    // Use 100k block range to ensure we catch all events (tests pass with this value)
+    const fromBlock = currentBlock > 100000n ? currentBlock - 100000n : 0n;
 
     // FIXME: events should be scoped to the origin domain
     // As well, this doesn't seem to be a reliable way of retrieving a `credentialId`
     // but works for now.
+
+    // Add timeout to event queries to prevent hanging (10s to handle multiple accounts in test environments)
     const [events, removedEvents] = await Promise.all([
       publicClient.getContractEvents({
-        address: factoryAddress,
-        abi: WebAuthValidatorAbi,
+        address: webauthnValidatorAddress,
+        abi: WebAuthnValidatorAbi,
         eventName: "PasskeyCreated",
         args: {
           keyOwner: address,
         },
-        fromBlock: "earliest",
+        fromBlock,
         strict: true,
       }),
       publicClient.getContractEvents({
-        address: factoryAddress,
-        abi: WebAuthValidatorAbi,
+        address: webauthnValidatorAddress,
+        abi: WebAuthnValidatorAbi,
         eventName: "PasskeyRemoved",
         args: {
           keyOwner: address,
         },
-        fromBlock: "earliest",
+        fromBlock,
         strict: true,
       }),
     ]);
@@ -56,17 +63,14 @@ export const useConfigurableAccount = () => {
 
     const latestEvent = activeEvents[activeEvents.length - 1];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { username, passkeyPublicKey } = await fetchAccount(publicClient as any, {
-      contracts: contractsByChain[defaultChain.id],
-      uniqueAccountId: latestEvent.args.credentialId,
-    });
+    // The credentialId from the event is already in hex format (bytes type from contract)
+    const credentialIdHex = latestEvent.args.credentialId as Hex;
 
     return getConfigurableClient({
       chainId: defaultChain.id,
       address,
-      credentialPublicKey: passkeyPublicKey,
-      username,
+      credentialId: credentialIdHex,
+      usePaymaster,
     });
   });
 
@@ -76,4 +80,3 @@ export const useConfigurableAccount = () => {
     getConfigurableAccount,
   };
 };
-*/

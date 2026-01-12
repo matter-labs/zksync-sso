@@ -45,21 +45,28 @@ const props = defineProps<{
 const recoveryUrl = computedAsync(async () => {
   const queryParams = new URLSearchParams();
 
-  const credentialId = props.newPasskey.credentialId;
-  const credentialPublicKey = uint8ArrayToHex(props.newPasskey.credentialPublicKey);
+  // Use base64url format for credentialId (required by contract)
+  const credentialId = props.newPasskey.credentialIdBase64url;
+  // Serialize the public key as JSON since it's {x, y} format
+  const credentialPublicKey = JSON.stringify(props.newPasskey.credentialPublicKey);
 
   queryParams.set("credentialId", credentialId);
   queryParams.set("credentialPublicKey", credentialPublicKey);
   queryParams.set("accountAddress", props.accountAddress);
 
   // Create checksum from concatenated credential data
-  const dataToHash = `${props.accountAddress}:${credentialId}:${credentialPublicKey}`;
+  // Normalize accountAddress to lowercase for consistent hashing
+  const normalizedAddress = props.accountAddress.toLowerCase();
+  const dataToHash = `${normalizedAddress}:${credentialId}:${credentialPublicKey}`;
+
   const fullHash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(dataToHash)));
   const shortHash = fullHash.slice(0, 8); // Take first 8 bytes of the hash
   const checksum = uint8ArrayToHex(shortHash);
 
   queryParams.set("checksum", checksum);
 
-  return new URL(`/recovery/guardian/confirm-recovery?${queryParams.toString()}`, window.location.origin).toString();
+  const finalUrl = new URL(`/recovery/guardian/confirm-recovery?${queryParams.toString()}`, window.location.origin).toString();
+
+  return finalUrl;
 });
 </script>
