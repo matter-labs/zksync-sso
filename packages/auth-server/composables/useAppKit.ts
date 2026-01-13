@@ -5,11 +5,15 @@ export const useAppKit = () => {
   const { defaultChain } = useClientStore();
 
   const projectId = runtimeConfig.public.appKitProjectId;
+
+  // Use fallback for SSR/build time when window is not available
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://auth.zksync.dev";
+
   const metadata = {
     name: "ZKsync SSO Auth Server",
     description: "ZKsync SSO Auth Server",
-    url: window.location.origin,
-    icons: [new URL("/icon-512.png", window.location.origin).toString()],
+    url: origin,
+    icons: [new URL("/icon-512.png", origin).toString()],
   };
 
   const wagmiAdapter = new WagmiAdapter({
