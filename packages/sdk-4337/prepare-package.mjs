@@ -22,6 +22,9 @@ async function preparePackageJson() {
     // Set the new version
     packageJson.version = version;
 
+    // Set the package name for publishing
+    packageJson.name = "zksync-sso";
+
     // Write the updated package.json back to the file
     await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
