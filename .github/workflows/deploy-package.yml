@@ -69,6 +69,11 @@ jobs:
       - name: Build the web SDK package
         run: pnpm nx build web-sdk
 
+      - name: Remove .gitignore from WASM packages
+        run: |
+          rm -f packages/sdk-platforms/web/pkg-bundler/.gitignore
+          rm -f packages/sdk-platforms/web/pkg-node/.gitignore
+
       - name: Prepare package.json
         working-directory: packages/sdk-4337
         run: node prepare-package.mjs
