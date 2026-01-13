@@ -8,9 +8,16 @@ on:
         default: "1.0.0"
         required: true
 
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for npm OIDC trusted publishing
 
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +34,10 @@ jobs:
         with:
           node-version: lts/Iron
           cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Upgrade npm for OIDC support
+        run: npm install -g npm@11.7.0
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -58,6 +69,11 @@ jobs:
       - name: Build the web SDK package
         run: pnpm nx build web-sdk
 
+      - name: Remove .gitignore from WASM packages
+        run: |
+          rm -f packages/sdk-platforms/web/pkg-bundler/.gitignore
+          rm -f packages/sdk-platforms/web/pkg-node/.gitignore
+
       - name: Prepare package.json
         working-directory: packages/sdk-4337
         run: node prepare-package.mjs
@@ -69,9 +85,6 @@ jobs:
         run: node prepare-package.mjs
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
-
-      - name: Create .npmrc for NPM
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPMJS_NPM_MATTERLABS_AUTOMATION_TOKEN }}" > ~/.npmrc
 
       - name: Determine npm publish tag
         id: npm_tag
@@ -86,11 +99,11 @@ jobs:
 
       - name: Publish SDK to NPM
         working-directory: packages/sdk-4337
-        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
+        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }} --provenance
 
       - name: Publish web SDK to NPM
         working-directory: packages/sdk-platforms/web
-        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
+        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }} --provenance
 
       - name: Create .npmrc for GitHub Packages
         run: |

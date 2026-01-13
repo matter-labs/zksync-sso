@@ -22,6 +22,14 @@ async function preparePackageJson() {
     // Set the new version
     packageJson.version = version;
 
+    // Set the package name for publishing
+    packageJson.name = "zksync-sso";
+
+    // Replace workspace dependency with the published version
+    if (packageJson.dependencies?.["zksync-sso-web-sdk"]) {
+      packageJson.dependencies["zksync-sso-web-sdk"] = version;
+    }
+
     // Write the updated package.json back to the file
     await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
