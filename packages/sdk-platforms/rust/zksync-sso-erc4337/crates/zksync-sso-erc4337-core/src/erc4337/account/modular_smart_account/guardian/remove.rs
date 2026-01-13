@@ -107,6 +107,7 @@ mod tests {
             ethereum_wallet_from_private_key,
             test_utilities::{
                 config::TestInfraConfig,
+                node_backend::{TestNodeBackend, resolve_test_node_backend},
                 start_node_and_deploy_contracts_and_start_bundler_with_config,
             },
         },
@@ -114,8 +115,11 @@ mod tests {
     use alloy::{primitives::address, providers::ProviderBuilder};
 
     #[tokio::test]
-    #[ignore = "temporarily disabled"]
     async fn test_remove_guardian() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             node_url,
             anvil_instance,

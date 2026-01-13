@@ -112,6 +112,7 @@ mod tests {
         },
         utils::alloy_utilities::test_utilities::{
             config::TestInfraConfig,
+            node_backend::{TestNodeBackend, resolve_test_node_backend},
             start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
@@ -123,8 +124,11 @@ mod tests {
     use std::str::FromStr;
 
     #[tokio::test]
-    #[ignore = "temporarily disabled"]
     async fn test_revoke_session() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             _,
             anvil_instance,
@@ -305,8 +309,11 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "temporarily disabled"]
     async fn test_create_session_with_webauthn() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let config = TestInfraConfig::rich_wallet_9();
         let signer_private_key = config.signer_private_key.clone();
         let (

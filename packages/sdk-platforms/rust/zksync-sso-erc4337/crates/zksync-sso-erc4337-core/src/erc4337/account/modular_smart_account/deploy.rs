@@ -242,7 +242,9 @@ mod tests {
             signer::{Signer, create_eoa_signer},
         },
         utils::alloy_utilities::test_utilities::{
-            config::TestInfraConfig, start_node_and_deploy_contracts,
+            config::TestInfraConfig,
+            node_backend::{TestNodeBackend, resolve_test_node_backend},
+            start_node_and_deploy_contracts,
             start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
@@ -428,8 +430,11 @@ mod tests {
 
     /// Test comprehensive session flow: deploy with session validator, create session, and transact
     #[tokio::test]
-    #[ignore = "temporarily disabled"]
     async fn test_deploy_with_session_and_transact() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         // Start test infrastructure
         let (
             _,

@@ -93,6 +93,7 @@ pub mod tests {
         },
         utils::alloy_utilities::test_utilities::{
             config::TestInfraConfig,
+            node_backend::{TestNodeBackend, resolve_test_node_backend},
             start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
@@ -106,8 +107,11 @@ pub mod tests {
     use std::sync::Arc;
 
     #[tokio::test]
-    #[ignore = "temporarily disabled"]
     async fn test_send_transaction_webauthn() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             _,
             anvil_instance,
@@ -262,8 +266,11 @@ pub mod tests {
     /// 2. Sign hash with passkey (simulated)
     /// 3. Submit with signed UserOp
     #[tokio::test]
-    #[ignore = "temporarily disabled"]
     async fn test_send_transaction_webauthn_two_step() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             _,
             anvil_instance,

@@ -41,6 +41,7 @@ mod tests {
         },
         utils::alloy_utilities::test_utilities::{
             config::TestInfraConfig,
+            node_backend::{TestNodeBackend, resolve_test_node_backend},
             start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
@@ -74,8 +75,11 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "temporarily disabled"]
     async fn test_send_transaction_session() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             _,
             anvil_instance,
@@ -290,9 +294,12 @@ mod tests {
     /// yet supply the session-specific nonce key). We expect estimation or validation
     /// to revert (AA23) rather than succeeding, and we assert on the error surface.
     #[tokio::test]
-    #[ignore = "temporarily disabled"]
     async fn test_send_transaction_session_missing_keyed_nonce()
     -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             _,
             anvil_instance,

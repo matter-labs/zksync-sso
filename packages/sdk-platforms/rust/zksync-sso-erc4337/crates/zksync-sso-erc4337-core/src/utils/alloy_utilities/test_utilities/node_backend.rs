@@ -4,7 +4,6 @@ use std::{env, str::FromStr};
 pub enum TestNodeBackend {
     #[default]
     Anvil,
-    //#[default]
     ZkSyncOs,
 }
 
