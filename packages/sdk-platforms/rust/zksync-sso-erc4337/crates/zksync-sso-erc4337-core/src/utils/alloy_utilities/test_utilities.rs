@@ -1,5 +1,5 @@
 pub mod config;
-pub(crate) mod node_backend;
+pub mod node_backend;
 pub mod node_handle;
 
 use crate::{

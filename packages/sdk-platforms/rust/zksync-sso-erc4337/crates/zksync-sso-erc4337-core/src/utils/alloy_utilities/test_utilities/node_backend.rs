@@ -21,7 +21,7 @@ impl FromStr for TestNodeBackend {
     }
 }
 
-pub(crate) fn resolve_test_node_backend() -> TestNodeBackend {
+pub fn resolve_test_node_backend() -> TestNodeBackend {
     env::var("SSO_TEST_NODE_BACKEND")
         .ok()
         .and_then(|raw| TestNodeBackend::from_str(&raw).ok())

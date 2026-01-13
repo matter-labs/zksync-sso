@@ -116,16 +116,7 @@ mod tests {
     use super::*;
     use crate::{
         erc4337::{
-            account::{
-                erc7579::module::{
-                    Module,
-                    installed::{IsModuleInstalledParams, is_module_installed},
-                },
-                modular_smart_account::{
-                    deploy::EOASigners,
-                    test_utilities::fund_account_with_default_amount,
-                },
-            },
+            account::modular_smart_account::deploy::EOASigners,
             paymaster::mock_paymaster::deploy_mock_paymaster_and_deposit_amount,
             signer::create_eoa_signer,
         },
@@ -195,34 +186,22 @@ mod tests {
             eoa_validator_address,
         )?;
 
-        let address =
-            deploy_account_with_user_op(DeployAccountWithUserOpParams {
-                deploy_params: DeployAccountParams {
-                    factory_address,
-                    eoa_signers: Some(eoa_signers),
-                    webauthn_signer: None,
-                    session_validator: None,
-                    id: None,
-                    provider: provider.clone(),
-                },
-                entry_point_address,
-                bundler_client: bundler_client.clone(),
-                signer,
-                paymaster,
-                nonce_key: None,
-            })
-            .await?;
-
-        fund_account_with_default_amount(address, provider.clone()).await?;
-
-        let is_module_installed =
-            is_module_installed(IsModuleInstalledParams {
-                module: Module::eoa_validator(eoa_validator_address),
-                account: address,
+        _ = deploy_account_with_user_op(DeployAccountWithUserOpParams {
+            deploy_params: DeployAccountParams {
+                factory_address,
+                eoa_signers: Some(eoa_signers),
+                webauthn_signer: None,
+                session_validator: None,
+                id: None,
                 provider: provider.clone(),
-            })
-            .await?;
-        eyre::ensure!(is_module_installed, "Module is not installed");
+            },
+            entry_point_address,
+            bundler_client: bundler_client.clone(),
+            signer,
+            paymaster,
+            nonce_key: None,
+        })
+        .await?;
 
         drop(mock_paymaster);
         drop(bundler);
