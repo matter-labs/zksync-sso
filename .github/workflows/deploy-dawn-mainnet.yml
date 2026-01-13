@@ -1,181 +1,186 @@
 name: "Deploy Dawn Mainnet Contracts"
 
+permissions:
+  contents: read
+
 on:
-    workflow_dispatch:
-        inputs:
-            fund_amount:
-                description: "Amount of ETH to fund the paymaster (e.g., 0.1)"
-                required: false
-                default: "0"
-            deploy_bundler:
-                description: "Deploy bundler service"
-                type: boolean
-                required: false
-                default: false
-            deploy_auth_server:
-                description: "Deploy auth server"
-                type: boolean
-                required: false
-                default: false
+  workflow_dispatch:
+    inputs:
+      fund_amount:
+        description: "Amount of ETH to fund the paymaster (e.g., 0.1)"
+        required: false
+        default: "0"
+      deploy_bundler:
+        description: "Deploy bundler service"
+        type: boolean
+        required: false
+        default: false
+      deploy_auth_server:
+        description: "Deploy auth server"
+        type: boolean
+        required: false
+        default: false
 
 env:
-    HUSKY: 0
-    CI: true
+  HUSKY: 0
+  CI: true
 
 jobs:
-    deploy-contracts:
-        runs-on: ubuntu-latest
-        outputs:
-            contracts: ${{ steps.deploy.outputs.contracts }}
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                  submodules: recursive
+  deploy-contracts:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      contracts: ${{ steps.deploy.outputs.contracts }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-            - name: Setup pnpm
-              uses: pnpm/action-setup@v4
-              with:
-                  version: 9.11.0
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.11.0
 
-            - name: Use Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version: lts/Iron
-                  cache: "pnpm"
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/Iron
+          cache: "pnpm"
 
-            - name: Install dependencies
-              run: pnpm install -r --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
 
-            - name: Install contract dependencies
-              run: pnpm install -r --frozen-lockfile
-              working-directory: packages/contracts
+      - name: Install contract dependencies
+        run: pnpm install -r --frozen-lockfile
+        working-directory: packages/contracts
 
-            - name: Build contracts
-              run: pnpm build
-              working-directory: packages/contracts
+      - name: Build contracts
+        run: pnpm build
+        working-directory: packages/contracts
 
-            - name: Deploy contracts to Dawn Mainnet
-              id: deploy
-              env:
-                  WALLET_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_DEPLOYER_PRIVATE_KEY }}
-                  KEY_REGISTRY_OWNER_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_KEY_REGISTRY_OWNER_PRIVATE_KEY }}
-              run: |
-                  # Deploy all contracts
-                  pnpm hardhat deploy \
-                    --network dawnMainnet \
-                    --file ../auth-server/stores/dawn-mainnet.json \
-                    --fund ${{ github.event.inputs.fund_amount }} \
-                    --keyregistryowner $KEY_REGISTRY_OWNER_PRIVATE_KEY
+      - name: Deploy contracts to Dawn Mainnet
+        id: deploy
+        env:
+          WALLET_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_DEPLOYER_PRIVATE_KEY }}
+          KEY_REGISTRY_OWNER_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_KEY_REGISTRY_OWNER_PRIVATE_KEY }}
+        run: |
+          # Deploy all contracts
+          pnpm hardhat deploy \
+            --network dawnMainnet \
+            --file ../auth-server/stores/dawn-mainnet.json \
+            --fund ${{ github.event.inputs.fund_amount }} \
+            --keyregistryowner $KEY_REGISTRY_OWNER_PRIVATE_KEY
 
-                  # Read the deployed contracts
-                  echo "contracts=$(cat ../auth-server/stores/dawn-mainnet.json)" >> $GITHUB_OUTPUT
-              working-directory: packages/contracts
+          # Read the deployed contracts
+          echo "contracts=$(cat ../auth-server/stores/dawn-mainnet.json)" >> $GITHUB_OUTPUT
+        working-directory: packages/contracts
 
-            - name: Initialize OIDC Key Registry with Google keys
-              env:
-                  WALLET_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_KEY_REGISTRY_OWNER_PRIVATE_KEY }}
-              run: |
-                  pnpm hardhat run scripts/add-google-keys.ts --network dawnMainnet
-              working-directory: packages/contracts
+      - name: Initialize OIDC Key Registry with Google keys
+        env:
+          WALLET_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_KEY_REGISTRY_OWNER_PRIVATE_KEY }}
+        run: |
+          pnpm hardhat run scripts/add-google-keys.ts --network dawnMainnet
+        working-directory: packages/contracts
 
-            - name: Verify deployment
-              env:
-                  WALLET_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_DEPLOYER_PRIVATE_KEY }}
-              run: |
-                  node verify-dawn-deployment.js
-              working-directory: packages/contracts
+      - name: Verify deployment
+        env:
+          WALLET_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_DEPLOYER_PRIVATE_KEY }}
+        run: |
+          node verify-dawn-deployment.js
+        working-directory: packages/contracts
 
-            - name: Upload deployment artifacts
-              uses: actions/upload-artifact@v4
-              with:
-                  name: dawn-mainnet-deployment
-                  path: packages/auth-server/stores/dawn-mainnet.json
-                  retention-days: 90
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dawn-mainnet-deployment
+          path: packages/auth-server/stores/dawn-mainnet.json
+          retention-days: 90
 
-            - name: Comment deployment info on commit
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      const contracts = JSON.parse('${{ steps.deploy.outputs.contracts }}');
-                      const comment = `
-                      ## 🚀 Dawn Mainnet Deployment Complete
+      - name: Comment deployment info on commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const contracts = JSON.parse('${{ steps.deploy.outputs.contracts }}');
+            const comment = `
+            ## 🚀 Dawn Mainnet Deployment Complete
 
-                      **Network:** Dawn Mainnet (Chain ID: 30715)
-                      **RPC URL:** https://zksync-os-mainnet-dawn.zksync.io
-                      **Block Explorer:** https://zksync-os-mainnet-dawn.staging-scan-v2.zksync.dev
+            **Network:** Dawn Mainnet (Chain ID: 30715)
+            **RPC URL:** https://zksync-os-mainnet-dawn.zksync.io
+            **Block Explorer:** https://zksync-os-mainnet-dawn.staging-scan-v2.zksync.dev
 
-                      ### Deployed Contracts
+            ### Deployed Contracts
 
-                      | Contract | Address |
-                      |----------|---------|
-                      | Factory | \`${contracts.accountFactory}\` |
-                      | WebAuthn Validator | \`${contracts.passkey}\` |
-                      | Session Validator | \`${contracts.session}\` |
-                      | Beacon | \`${contracts.beacon}\` |
-                      | Guardian Recovery | \`${contracts.recovery}\` |
-                      | OIDC Recovery | \`${contracts.recoveryOidc}\` |
-                      | OIDC Key Registry | \`${contracts.oidcKeyRegistry}\` |
-                      | Paymaster | \`${contracts.accountPaymaster}\` |
+            | Contract | Address |
+            |----------|---------|
+            | Factory | \`${contracts.accountFactory}\` |
+            | WebAuthn Validator | \`${contracts.passkey}\` |
+            | Session Validator | \`${contracts.session}\` |
+            | Beacon | \`${contracts.beacon}\` |
+            | Guardian Recovery | \`${contracts.recovery}\` |
+            | OIDC Recovery | \`${contracts.recoveryOidc}\` |
+            | OIDC Key Registry | \`${contracts.oidcKeyRegistry}\` |
+            | Paymaster | \`${contracts.accountPaymaster}\` |
 
-                      ### Next Steps
-                      1. Add these addresses to \`packages/auth-server/stores/client.ts\`
-                      2. Update bundler configuration if deploying bundler service
-                      3. Deploy auth-server if needed
-                      4. Test account creation and transactions
-                      `;
+            ### Next Steps
+            1. Add these addresses to \`packages/auth-server/stores/client.ts\`
+            2. Update bundler configuration if deploying bundler service
+            3. Deploy auth-server if needed
+            4. Test account creation and transactions
+            `;
 
-                      github.rest.repos.createCommitComment({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        commit_sha: context.sha,
-                        body: comment
-                      });
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: comment
+            });
 
-    deploy-bundler:
-        needs: deploy-contracts
-        if: ${{ github.event.inputs.deploy_bundler == 'true' }}
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+  deploy-bundler:
+    needs: deploy-contracts
+    if: ${{ github.event.inputs.deploy_bundler == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Deploy Bundler Service
-              run: |
-                  echo "Bundler deployment would happen here"
-                  # TODO: Add bundler deployment steps when ready
+      - name: Deploy Bundler Service
+        run: |
+          echo "Bundler deployment would happen here"
+          # TODO: Add bundler deployment steps when ready
 
-    deploy-auth-server:
-        needs: deploy-contracts
-        if: ${{ github.event.inputs.deploy_auth_server == 'true' }}
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+  deploy-auth-server:
+    needs: deploy-contracts
+    if: ${{ github.event.inputs.deploy_auth_server == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Setup pnpm
-              uses: pnpm/action-setup@v4
-              with:
-                  version: 9.11.0
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.11.0
 
-            - name: Use Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version: lts/Iron
-                  cache: "pnpm"
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/Iron
+          cache: "pnpm"
 
-            - name: Download deployment artifacts
-              uses: actions/download-artifact@v4
-              with:
-                  name: dawn-mainnet-deployment
-                  path: packages/auth-server/stores/
+      - name: Download deployment artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dawn-mainnet-deployment
+          path: packages/auth-server/stores/
 
-            - name: Install dependencies
-              run: pnpm install -r --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
 
-            - name: Build auth server
-              run: pnpm nx build auth-server
-              env:
-                  NUXT_PUBLIC_CHAIN_ID: 30715
+      - name: Build auth server
+        run: pnpm nx build auth-server
+        env:
+          NUXT_PUBLIC_CHAIN_ID: 30715
 
-            - name: Deploy to Firebase (or other hosting)
-              run: |
-                  echo "Auth server deployment would happen here"
-                  # TODO: Configure Firebase or other hosting for Dawn Mainnet
+      - name: Deploy to Firebase (or other hosting)
+        run: |
+          echo "Auth server deployment would happen here"
+          # TODO: Configure Firebase or other hosting for Dawn Mainnet
