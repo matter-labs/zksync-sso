@@ -10,11 +10,14 @@ import { createAppKit } from "@reown/appkit/vue";
 const { defaultChain } = useClientStore();
 const { metadata, projectId, wagmiAdapter } = useAppKit();
 
-createAppKit({
-  adapters: [wagmiAdapter],
-  networks: [defaultChain],
-  projectId,
-  metadata,
+// Defer AppKit initialization until after mount to avoid SSR/initialization issues
+onMounted(() => {
+  createAppKit({
+    adapters: [wagmiAdapter],
+    networks: [defaultChain],
+    projectId,
+    metadata,
+  });
 });
 
 // BigInt polyfill

@@ -42,17 +42,40 @@ const zksyncOsLocal = defineChain({
   },
 });
 
-export const supportedChains = [localhost, zksyncOsTestnet, zksyncOsLocal];
+const dawnMainnet = defineChain({
+  id: 30715,
+  name: "Dawn Mainnet",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-os-mainnet-dawn.zksync.io"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Dawn Mainnet Explorer",
+      url: "https://zksync-os-mainnet-dawn.staging-scan-v2.zksync.dev",
+    },
+  },
+});
+
+export const supportedChains = [localhost, zksyncOsTestnet, zksyncOsLocal, dawnMainnet];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
   [localhost.id]: "http://localhost:3010",
   [zksyncOsTestnet.id]: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
   [zksyncOsLocal.id]: "",
+  [dawnMainnet.id]: "https://zksync-os-mainnet-dawn.staging-scan-v2.zksync.dev",
 };
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
   [localhost.id]: "http://localhost:3020",
   [zksyncOsTestnet.id]: "https://block-explorer-api.zksync-os-testnet-alpha.zksync.dev/api",
   [zksyncOsLocal.id]: "",
+  [dawnMainnet.id]: "https://block-explorer-api.zksync-os-mainnet-dawn.zksync.io",
 };
 
 type ChainContracts = {
@@ -79,6 +102,16 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     bundlerUrl: "https://bundler-api.stage-sso.zksync.dev",
     beacon: "0x1D779D791B55a093dE60da664C3F301a87f96C62",
   },
+  [dawnMainnet.id]: {
+    eoaValidator: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    webauthnValidator: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    sessionValidator: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    factory: "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+    bundlerUrl: "https://bundler-api.dawn-mainnet.zksync.io", // Update with actual bundler URL when available
+    beacon: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    guardianExecutor: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+    accountPaymaster: "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1", // MockPaymaster
+  },
 };
 
 export const chainParameters: Record<SupportedChainId, { blockTime: number }> = {
@@ -89,6 +122,9 @@ export const chainParameters: Record<SupportedChainId, { blockTime: number }> = 
     blockTime: 1,
   },
   [zksyncOsTestnet.id]: {
+    blockTime: 1,
+  },
+  [dawnMainnet.id]: {
     blockTime: 1,
   },
 };
