@@ -22,6 +22,8 @@
   },
   "files": [
     "dist/",
+    "pkg-bundler/",
+    "pkg-node/",
     "README.md",
     "LICENSE"
   ],
