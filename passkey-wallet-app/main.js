@@ -853,7 +853,7 @@ async function handleFaucet() {
       transport: http(ZKSYNC_OS_RPC_URL),
     });
 
-    const FAUCET_AMOUNT = parseEther("0.03");
+    const FAUCET_AMOUNT = parseEther("0.1");
 
     // Transaction 1: Deposit to EntryPoint
     console.log("📥 Depositing to EntryPoint...");
@@ -895,7 +895,7 @@ async function handleFaucet() {
       transport: http("https://eth-sepolia.g.alchemy.com/v2/Oa5oz2Y9QWGrxv8_0tqabXz_RFc0tqLU"),
     });
 
-    const SHADOW_AMOUNT = parseEther("0.01");
+    const SHADOW_AMOUNT = parseEther("0.03");
     const shadowTransferHash = await sepoliaDeployerWallet.sendTransaction({
       to: shadowAccount,
       value: SHADOW_AMOUNT,
@@ -904,7 +904,7 @@ async function handleFaucet() {
     console.log(`✅ Shadow account funding tx: ${shadowTransferHash}`);
     await waitForTransactionReceipt(sepoliaClient, { hash: shadowTransferHash });
 
-    console.log("🎉 Faucet complete! Funded with 0.07 ETH total (0.06 on L2 + 0.01 on Sepolia shadow account)");
+    console.log("🎉 Faucet complete! Funded with 0.23 ETH total (0.2 on L2 + 0.03 on Sepolia shadow account)");
 
     // Refresh balance
     await autoRefreshBalance();
