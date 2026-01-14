@@ -76,19 +76,20 @@ jobs:
           echo "contracts=$(cat ../auth-server/stores/dawn-mainnet.json)" >> $GITHUB_OUTPUT
         working-directory: packages/contracts
 
-      - name: Initialize OIDC Key Registry with Google keys
+      - name: Verify contracts on block explorer
         env:
-          WALLET_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_KEY_REGISTRY_OWNER_PRIVATE_KEY }}
+          WALLET_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_DEPLOYER_PRIVATE_KEY }}
         run: |
-          pnpm hardhat run scripts/add-google-keys.ts --network dawnMainnet
+          # Verify all deployed contracts on the block explorer
+          echo "🔍 Verifying contracts on Dawn Mainnet block explorer..."
+          pnpm hardhat verify-all --network dawnMainnet --file ../auth-server/stores/dawn-mainnet.json || echo "⚠️ Verification failed or already verified"
         working-directory: packages/contracts
 
       - name: Verify deployment
         env:
           WALLET_PRIVATE_KEY: ${{ secrets.DAWN_MAINNET_DEPLOYER_PRIVATE_KEY }}
         run: |
-          node verify-dawn-deployment.js
-        working-directory: packages/contracts
+          node scripts/verify-dawn-deployment.js
 
       - name: Upload deployment artifacts
         uses: actions/upload-artifact@v4
@@ -113,14 +114,14 @@ jobs:
 
             | Contract | Address |
             |----------|---------|
-            | Factory | \`${contracts.accountFactory}\` |
-            | WebAuthn Validator | \`${contracts.passkey}\` |
-            | Session Validator | \`${contracts.session}\` |
+            | Factory | \`${contracts.factory}\` |
+            | WebAuthn Validator | \`${contracts.webauthnValidator}\` |
+            | Session Validator | \`${contracts.sessionValidator}\` |
+            | EOA Validator | \`${contracts.eoaValidator}\` |
+            | Guardian Executor | \`${contracts.guardianExecutor}\` |
             | Beacon | \`${contracts.beacon}\` |
-            | Guardian Recovery | \`${contracts.recovery}\` |
-            | OIDC Recovery | \`${contracts.recoveryOidc}\` |
-            | OIDC Key Registry | \`${contracts.oidcKeyRegistry}\` |
-            | Paymaster | \`${contracts.accountPaymaster}\` |
+            | Account Implementation | \`${contracts.accountImplementation}\` |
+            | Entry Point | \`${contracts.entryPoint}\` |
 
             ### Next Steps
             1. Add these addresses to \`packages/auth-server/stores/client.ts\`
@@ -140,6 +141,8 @@ jobs:
     needs: deploy-contracts
     if: ${{ github.event.inputs.deploy_bundler == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -152,6 +155,8 @@ jobs:
     needs: deploy-contracts
     if: ${{ github.event.inputs.deploy_auth_server == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 

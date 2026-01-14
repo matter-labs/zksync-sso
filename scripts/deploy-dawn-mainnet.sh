@@ -68,15 +68,6 @@ pnpm hardhat deploy \
 echo "✅ Contracts deployed"
 echo ""
 
-# Initialize OIDC Key Registry
-echo "🔑 Initializing OIDC Key Registry with Google keys..."
-ORIGINAL_WALLET=$WALLET_PRIVATE_KEY
-export WALLET_PRIVATE_KEY=$KEY_REGISTRY_OWNER_PRIVATE_KEY
-pnpm hardhat run scripts/add-google-keys.ts --network dawnMainnet
-export WALLET_PRIVATE_KEY=$ORIGINAL_WALLET
-echo "✅ OIDC Key Registry initialized"
-echo ""
-
 # Verify deployment
 echo "🔍 Verifying deployment..."
 export WALLET_PRIVATE_KEY=$ORIGINAL_WALLET
