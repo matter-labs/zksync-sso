@@ -6,11 +6,25 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
-    <title>PayPal Wallet - Powered by ZKsync</title>
+    <title>Passkey Wallet - Powered by ZKsync</title>
     <link
       rel="icon"
       type="image/svg+xml"
       href="/favicon.svg"
+    />
+
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
     />
     <link
       rel="stylesheet"
@@ -18,10 +32,13 @@
     />
   </head>
   <body>
-    <!-- PayPal Header -->
-    <div class="paypal-header">
+    <!-- App Header -->
+    <div class="app-header">
       <div class="nav-left">
-        <div class="paypal-logo">PayPal</div>
+        <div class="app-logo">
+          <img src="logo.svg" />
+          <span>Passkey Wallet</span>
+        </div>
         <label class="lang-label">
           <select id="lang">
             <option value="en">English</option>
@@ -326,7 +343,7 @@
                   id="transfer-tx-link"
                   href="#"
                   target="_blank"
-                  style="color: #0070ba; text-decoration: underline"
+                  style="color: #070ea0; text-decoration: underline"
                 >
                   <code id="txHashDisplay"></code>
                 </a>

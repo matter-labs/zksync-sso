@@ -15,7 +15,7 @@ export const ENGLISH = {
     },
     home: {
       getStarted: "Get Started",
-      setupWallet: "Set up your secure PayPal wallet to start sending and receiving money",
+      setupWallet: "Set up your secure wallet to start sending and receiving money",
       createKey: "Create Security Key",
       userName: "Your Name",
       createPasskeyBtn: "Create Secure Wallet",
@@ -134,7 +134,7 @@ export const ENGLISH = {
     refreshing: "Refreshing...",
     refreshBalance: "Refresh Balance",
     funding: "Funding...",
-    faucetSuccess: "Success! Your wallet has been funded with:\n• 0.03 ETH to EntryPoint\n• 0.03 ETH direct to wallet\n• 0.01 ETH to your shadow account on Sepolia",
+    faucetSuccess: "Success! Your wallet has been funded with:\n• 0.01 ETH to EntryPoint\n• 0.01 ETH direct to wallet\n• 0.03 ETH to your shadow account on Sepolia",
     faucetFailed: "Faucet failed:",
     faucet: "Faucet for your wallet",
     transferring: "Transferring...",
@@ -183,7 +183,7 @@ export const SPANISH = {
     home: {
       getStarted: "Empezar",
       setupWallet:
-        "Configura tu billetera segura de PayPal para empezar a enviar y recibir dinero",
+        "Configura tu billetera segura para empezar a enviar y recibir dinero",
       createKey: "Crear clave de seguridad",
       userName: "Tu nombre",
       createPasskeyBtn: "Crear billetera segura",
@@ -306,7 +306,7 @@ export const SPANISH = {
     refreshBalance: "Actualizar saldo",
     funding: "Financiando...",
     faucetSuccess:
-    "¡Éxito! Tu billetera ha sido financiada con:\n• 0.03 ETH al EntryPoint\n• 0.03 ETH directamente a la billetera\n• 0.01 ETH a tu cuenta sombra en Sepolia",
+    "¡Éxito! Tu billetera ha sido financiada con:\n• 0.01 ETH al EntryPoint\n• 0.01 ETH directamente a la billetera\n• 0.03 ETH a tu cuenta sombra en Sepolia",
     faucetFailed: "Error del faucet:",
     faucet: "Faucet para tu billetera",
     transferring: "Transfiriendo...",
@@ -355,7 +355,7 @@ export const PORTUGUESE_BR = {
     home: {
       getStarted: "Começar",
       setupWallet:
-        "Configure sua carteira segura PayPal para começar a enviar e receber dinheiro",
+        "Configure sua carteira segura para começar a enviar e receber dinheiro",
       createKey: "Criar chave de segurança",
       userName: "Seu nome",
       createPasskeyBtn: "Criar carteira segura",
@@ -478,7 +478,7 @@ export const PORTUGUESE_BR = {
     refreshBalance: "Atualizar saldo",
     funding: "Financiando...",
     faucetSuccess:
-    "Sucesso! Sua carteira foi financiada com:\n• 0.03 ETH para o EntryPoint\n• 0.03 ETH diretamente para a carteira\n• 0.01 ETH para sua conta sombra na Sepolia",
+    "Sucesso! Sua carteira foi financiada com:\n• 0.01 ETH para o EntryPoint\n• 0.01 ETH diretamente para a carteira\n• 0.03 ETH para sua conta sombra na Sepolia",
     faucetFailed: "Falha no faucet:",
     faucet: "Faucet para sua carteira",
     transferring: "Transferindo...",
