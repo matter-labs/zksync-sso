@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PayPal Wallet - Powered by ZKsync</title>
+  <title>Passkey Wallet - Powered by ZKsync</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -13,26 +16,35 @@
     }
 
     body {
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      background: #f5f7fa;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #ffffff;
       min-height: 100vh;
     }
 
-    /* PayPal Header */
-    .paypal-header {
+    /* App Header */
+    .app-header {
       background: #ffffff;
-      border-bottom: 1px solid #cbd2d9;
+      border-bottom: 1px solid #eff2f7;
       padding: 16px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
 
-    .paypal-logo {
-      font-size: 24px;
-      font-weight: bold;
-      color: #0070ba;
-      letter-spacing: -0.5px;
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #262b33;
+      letter-spacing: -0.3px;
+    }
+
+    .app-logo svg {
+      height: 28px;
+      width: auto;
     }
 
     .header-right {
@@ -43,15 +55,15 @@
 
     .header-network {
       font-size: 13px;
-      color: #6c7378;
+      color: #555a66;
       padding: 6px 12px;
-      background: #f5f7fa;
-      border-radius: 16px;
-      border: 1px solid #cbd2d9;
+      background: #eff2f7;
+      border-radius: 8px;
+      border: 1px solid #eff2f7;
     }
 
     .header-network strong {
-      color: #2c2e2f;
+      color: #262b33;
       font-weight: 600;
     }
 
@@ -61,7 +73,7 @@
     }
 
     .header-balance strong {
-      color: #0070ba;
+      color: #070ea0;
       font-size: 18px;
     }
 
@@ -75,24 +87,24 @@
     /* Navigation Tabs */
     .nav-tabs {
       display: flex;
-      background: white;
-      border-radius: 8px;
+      background: #eff2f7;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      padding: 4px;
       margin-bottom: 24px;
     }
 
     .nav-tab {
       flex: 1;
-      padding: 16px;
+      padding: 12px 16px;
       text-align: center;
-      background: white;
+      background: transparent;
       border: none;
-      border-right: 1px solid #cbd2d9;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
       font-weight: 500;
-      color: #6c7378;
+      color: #555a66;
       transition: all 0.2s;
     }
 
@@ -101,13 +113,14 @@
     }
 
     .nav-tab:hover {
-      background: #f5f7fa;
+      background: rgba(7, 14, 160, 0.05);
+      color: #070ea0;
     }
 
     .nav-tab.active {
-      color: #0070ba;
-      background: #f5f7fa;
-      border-bottom: 3px solid #0070ba;
+      color: #070ea0;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
     /* Content Sections */
@@ -122,24 +135,25 @@
     /* Card Styling */
     .card {
       background: white;
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 24px;
       margin-bottom: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      border: 1px solid #eff2f7;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
 
     .card-title {
       font-size: 20px;
-      font-weight: 500;
-      color: #2c2e2f;
+      font-weight: 600;
+      color: #262b33;
       margin-bottom: 16px;
     }
 
     .card-subtitle {
       font-size: 14px;
-      color: #6c7378;
+      color: #555a66;
       margin-bottom: 20px;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
     /* Form Elements */
@@ -152,57 +166,65 @@
       margin-bottom: 8px;
       font-size: 14px;
       font-weight: 500;
-      color: #2c2e2f;
+      color: #262b33;
     }
 
     input {
       width: 100%;
       padding: 14px 16px;
-      border: 1px solid #cbd2d9;
-      border-radius: 4px;
+      border: 1px solid #eff2f7;
+      border-radius: 8px;
       font-size: 15px;
-      color: #2c2e2f;
-      transition: border-color 0.2s;
+      font-family: 'Inter', sans-serif;
+      color: #262b33;
+      background: #ffffff;
+      transition: all 0.2s;
     }
 
     input:focus {
       outline: none;
-      border-color: #0070ba;
-      box-shadow: 0 0 0 2px rgba(0, 112, 186, 0.1);
+      border-color: #070ea0;
+      box-shadow: 0 0 0 3px rgba(7, 14, 160, 0.1);
     }
 
-    /* PayPal Button Styles */
+    /* Button Styles */
     button {
       width: 100%;
       padding: 14px 24px;
-      background: #0070ba;
+      background: #070ea0;
       color: white;
       border: none;
-      border-radius: 24px;
+      border-radius: 8px;
       font-size: 15px;
-      font-weight: 500;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
     }
 
     button:hover:not(:disabled) {
-      background: #005ea6;
+      background: #050a70;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(7, 14, 160, 0.2);
     }
 
     button:disabled {
-      background: #cbd2d9;
+      background: #eff2f7;
+      color: #555a66;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     button.secondary {
       background: white;
-      color: #0070ba;
-      border: 1px solid #cbd2d9;
+      color: #070ea0;
+      border: 1px solid #eff2f7;
     }
 
     button.secondary:hover:not(:disabled) {
-      background: #f5f7fa;
-      border-color: #0070ba;
+      background: #eff2f7;
+      border-color: #070ea0;
     }
 
     button.small {
@@ -235,7 +257,7 @@
 
     .alert-info {
       background: #e3f2fd;
-      border-left: 4px solid #0070ba;
+      border-left: 4px solid #070ea0;
       color: #1565c0;
     }
 
@@ -250,7 +272,7 @@
       display: flex;
       justify-content: space-between;
       padding: 12px 0;
-      border-bottom: 1px solid #f5f7fa;
+      border-bottom: 1px solid #eff2f7;
       font-size: 14px;
     }
 
@@ -259,23 +281,24 @@
     }
 
     .info-label {
-      color: #6c7378;
+      color: #555a66;
     }
 
     .info-value {
-      color: #2c2e2f;
+      color: #262b33;
       font-weight: 500;
-      font-family: monospace;
+      font-family: 'SF Mono', 'Roboto Mono', monospace;
       font-size: 13px;
     }
 
     .balance-display {
       text-align: center;
-      padding: 32px;
-      background: linear-gradient(135deg, #0070ba 0%, #005ea6 100%);
+      padding: 40px;
+      background: linear-gradient(135deg, #070ea0 0%, #050a70 100%);
       color: white;
-      border-radius: 8px;
+      border-radius: 16px;
       margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(7, 14, 160, 0.2);
     }
 
     .balance-label {
@@ -285,17 +308,18 @@
     }
 
     .balance-amount {
-      font-size: 36px;
-      font-weight: 300;
-      letter-spacing: -1px;
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
     }
 
     code {
-      background: #f5f7fa;
-      padding: 3px 6px;
-      border-radius: 3px;
-      font-family: 'Courier New', monospace;
+      background: #eff2f7;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Roboto Mono', 'Courier New', monospace;
       font-size: 12px;
+      color: #262b33;
       word-break: break-all;
     }
 
@@ -308,8 +332,8 @@
       text-align: center;
       padding: 24px;
       font-size: 12px;
-      color: #6c7378;
-      border-top: 1px solid #cbd2d9;
+      color: #555a66;
+      border-top: 1px solid #eff2f7;
       margin-top: 32px;
     }
 
@@ -317,13 +341,14 @@
     .setup-step {
       padding: 24px;
       background: white;
-      border-radius: 8px;
+      border-radius: 12px;
       margin-bottom: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      border: 1px solid #eff2f7;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
 
     .setup-step.completed {
-      background: #f5f7fa;
+      background: #eff2f7;
       border-left: 4px solid #4caf50;
     }
 
@@ -337,7 +362,7 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: #0070ba;
+      background: #070ea0;
       color: white;
       display: flex;
       align-items: center;
@@ -353,15 +378,34 @@
 
     .step-title {
       font-size: 16px;
-      font-weight: 500;
-      color: #2c2e2f;
+      font-weight: 600;
+      color: #262b33;
     }
   </style>
 </head>
 <body>
-  <!-- PayPal Header -->
-  <div class="paypal-header">
-    <div class="paypal-logo">PayPal</div>
+  <!-- App Header -->
+  <div class="app-header">
+    <div class="app-logo">
+      <svg width="130" height="32" viewBox="0 0 130 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#clip0_22_1573)">
+          <path d="M0 16L9.14286 6.85715V11.4286H18.2857L9.14286 18.2857V25.1429L0 16Z" fill="#070ea0"/>
+          <path d="M32 16L22.8571 25.1429V20.5714H13.7143L22.8571 13.7143V6.85715L32 16Z" fill="#070ea0"/>
+        </g>
+        <path d="M59.5216 26.1622V5.90714H64.4172V14.472H64.6843L71.3799 5.90714H77.1458L69.9656 14.9467L77.2744 26.1622H71.4194L66.3755 18.2006L64.4172 20.6731V26.1622H59.5216Z" fill="#262b33"/>
+        <path d="M42.1664 26.1622V23.3731L52.0071 9.88298H42.1763V5.90714H58.1984V8.69616L48.3577 22.1863H58.1885V26.1622H42.1664Z" fill="#262b33"/>
+        <path d="M123.967 26.4786C122.608 26.4786 121.425 26.1391 120.416 25.46C119.414 24.7808 118.636 23.8512 118.082 22.6709C117.528 21.4907 117.251 20.1456 117.251 18.6357C117.251 17.1127 117.531 15.7577 118.092 14.5709C118.659 13.3841 119.443 12.4544 120.446 11.7819C121.448 11.1027 122.612 10.7632 123.937 10.7632C124.952 10.7632 125.872 10.961 126.696 11.3566C127.52 11.7456 128.2 12.2962 128.734 13.0082C129.274 13.7137 129.614 14.5379 129.752 15.4808H127.972C127.787 14.6236 127.342 13.8918 126.637 13.2852C125.938 12.672 125.048 12.3654 123.967 12.3654C122.997 12.3654 122.14 12.6291 121.395 13.1566C120.65 13.6775 120.066 14.4061 119.645 15.3423C119.229 16.272 119.021 17.35 119.021 18.5764C119.021 19.8094 119.226 20.9006 119.635 21.85C120.043 22.7929 120.617 23.5314 121.356 24.0654C122.101 24.5995 122.971 24.8665 123.967 24.8665C124.639 24.8665 125.252 24.7413 125.806 24.4907C126.367 24.2336 126.835 23.8709 127.21 23.4028C127.593 22.9347 127.85 22.3775 127.982 21.7314H129.762C129.63 22.6479 129.304 23.4654 128.783 24.1841C128.269 24.8962 127.599 25.4567 126.775 25.8655C125.958 26.2742 125.021 26.4786 123.967 26.4786Z" fill="#262b33"/>
+        <path d="M105.614 16.6676V26.1622H103.854V10.9709H105.565V13.3544H105.723C106.079 12.5764 106.633 11.9533 107.384 11.4852C108.143 11.0104 109.079 10.7731 110.193 10.7731C111.215 10.7731 112.112 10.9874 112.883 11.4159C113.661 11.8379 114.265 12.461 114.693 13.2852C115.128 14.1094 115.346 15.1214 115.346 16.3214V26.1622H113.586V16.4302C113.586 15.1841 113.236 14.1984 112.537 13.4731C111.845 12.7478 110.915 12.3852 109.748 12.3852C108.95 12.3852 108.242 12.5566 107.622 12.8995C107.002 13.2423 106.511 13.7368 106.148 14.383C105.792 15.0225 105.614 15.7841 105.614 16.6676Z" fill="#262b33"/>
+        <path d="M91.8259 31.8589C91.4764 31.8589 91.1501 31.8259 90.8468 31.76C90.5435 31.6941 90.3028 31.6215 90.1248 31.5424L90.5995 29.9897C91.1995 30.1743 91.7336 30.2402 92.2017 30.1875C92.6699 30.1413 93.0852 29.9303 93.4479 29.5545C93.8105 29.1853 94.1336 28.6182 94.4171 27.8534L94.971 26.3105L89.383 10.9709H91.2918L95.8017 23.838H95.9402L100.45 10.9709H102.359L95.9303 28.5655C95.66 29.2973 95.327 29.9072 94.9314 30.3952C94.5358 30.8897 94.0776 31.2556 93.5567 31.493C93.0424 31.7369 92.4655 31.8589 91.8259 31.8589Z" fill="#262b33"/>
+        <path d="M88.4768 14.3039L86.8647 14.7588C86.7064 14.3039 86.4823 13.8918 86.1922 13.5225C85.902 13.1533 85.5229 12.8599 85.0548 12.6423C84.5932 12.4247 84.0196 12.3159 83.3339 12.3159C82.3053 12.3159 81.4614 12.5599 80.802 13.0478C80.1427 13.5357 79.813 14.1654 79.813 14.9368C79.813 15.5896 80.0372 16.1204 80.4855 16.5291C80.9405 16.9313 81.6394 17.2511 82.5822 17.4885L84.8768 18.0522C86.1493 18.3621 87.102 18.8533 87.735 19.5259C88.3746 20.1984 88.6944 21.0424 88.6944 22.0577C88.6944 22.9149 88.457 23.6764 87.9823 24.3424C87.5075 25.0083 86.8449 25.5325 85.9944 25.9149C85.1504 26.2907 84.1713 26.4786 83.057 26.4786C81.5735 26.4786 80.3504 26.1457 79.3877 25.4797C78.4251 24.8072 77.8086 23.838 77.5383 22.572L79.2295 22.1566C79.4471 23.0599 79.8723 23.7424 80.5053 24.2039C81.1449 24.6654 81.9855 24.8962 83.0273 24.8962C84.1943 24.8962 85.1273 24.6358 85.8262 24.1149C86.5251 23.5874 86.8746 22.9281 86.8746 22.1369C86.8746 21.5237 86.6702 21.0094 86.2614 20.594C85.8526 20.172 85.2328 19.8621 84.402 19.6643L81.9196 19.0709C80.6009 18.7544 79.6251 18.2533 78.9921 17.5676C78.3592 16.8819 78.0427 16.0313 78.0427 15.016C78.0427 14.1786 78.2701 13.4434 78.7251 12.8104C79.18 12.1709 79.8064 11.6698 80.6042 11.3071C81.402 10.9445 82.3119 10.7632 83.3339 10.7632C84.7251 10.7632 85.8361 11.0797 86.6669 11.7126C87.5042 12.339 88.1075 13.2028 88.4768 14.3039Z" fill="#262b33"/>
+        <defs>
+          <clipPath id="clip0_22_1573">
+            <rect width="32" height="32" fill="white"/>
+          </clipPath>
+        </defs>
+      </svg>
+      <span>Passkey Wallet</span>
+    </div>
     <div class="header-right">
       <div class="header-network">
         Network: <strong><span id="headerNetwork">--</span></strong>
@@ -388,7 +432,7 @@
       <div id="setup-section">
         <div class="card">
           <div class="card-title">Get Started</div>
-          <div class="card-subtitle">Set up your secure PayPal wallet to start sending and receiving money</div>
+          <div class="card-subtitle">Set up your secure wallet to start sending and receiving money</div>
         </div>
 
         <!-- Step 1: Create Passkey -->
@@ -500,7 +544,7 @@
           <div class="info-row">
             <span class="info-label">Transaction:</span>
             <span class="info-value">
-              <a id="transfer-tx-link" href="#" target="_blank" style="color: #0070ba; text-decoration: underline;">
+              <a id="transfer-tx-link" href="#" target="_blank" style="color: #070ea0; text-decoration: underline;">
                 <code id="txHashDisplay"></code>
               </a>
             </span>
