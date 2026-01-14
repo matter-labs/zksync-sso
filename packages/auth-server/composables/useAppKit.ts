@@ -5,9 +5,7 @@ export const useAppKit = () => {
   const { defaultChain } = useClientStore();
 
   const projectId = runtimeConfig.public.appKitProjectId;
-
-  // Use fallback for SSR/build time when window is not available
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://auth.zksync.dev";
+  const origin = runtimeConfig.public.appUrl;
 
   const metadata = {
     name: "ZKsync SSO Auth Server",
