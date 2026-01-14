@@ -14,6 +14,7 @@
     "@wagmi/core": "^2.22.1",
     "dotenv": "^16.4.5",
     "ethers": "^6.16.0",
+    "i18next": "^25.7.4",
     "viem": "^2.30.0",
     "zksync-ethers": "^6.21.0",
     "zksync-sso": "^0.4.3"

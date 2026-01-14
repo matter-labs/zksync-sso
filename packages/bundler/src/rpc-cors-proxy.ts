@@ -1,6 +1,6 @@
 /**
  * Simple CORS proxy that forwards requests to the configured RPC URL.
- * Used so browser-based apps can hit the zkSync OS RPC without CORS issues.
+ * Used so browser-based apps can hit the ZKsync OS RPC without CORS issues.
  */
 
 import http from "http";

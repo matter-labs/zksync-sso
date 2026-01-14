@@ -49,3 +49,17 @@ debian
 
 // packages/bundler
 pimlico
+
+// passkey-wallet-app
+Aave
+aave
+gwei
+IWETH
+Weth
+weth
+abis
+USEROP
+YubiKey
+pkill
+Português
+tlsv

@@ -52,3 +52,6 @@ out/
 
 # IDEs
 .idea
+
+# passkey-wallet-app
+.env

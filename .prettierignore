@@ -37,3 +37,4 @@ packages/sdk-platforms/*
 packages/contracts/test/**/*
 # contract JSON test files are not properly formatted
 packages/contracts/test/json-files/*
+passkey-wallet-app/token-deployment/*

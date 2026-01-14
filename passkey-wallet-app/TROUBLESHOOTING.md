@@ -16,6 +16,7 @@
 **Cause**: WebAuthn requires user gesture or secure context
 
 **Solutions**:
+
 - Make sure you're on `http://localhost:3000` (not `http://127.0.0.1:3000`)
 - Try using `localhost` instead of `127.0.0.1`
 - Ensure you clicked the button (not automated/script)
@@ -26,6 +27,7 @@
 **Cause**: Browser doesn't support WebAuthn
 
 **Solutions**:
+
 - Update your browser to latest version
 - Use Chrome 90+, Safari 14+, or Firefox 93+
 - Enable experimental features if on older browser
@@ -35,6 +37,7 @@
 **Cause**: No biometric device or security key available
 
 **Solutions**:
+
 - **Mac**: Enable Touch ID in System Preferences
 - **Windows**: Set up Windows Hello
 - **iPhone/iPad**: Enable Face ID or Touch ID
@@ -46,8 +49,10 @@
 **Cause**: You already created a passkey for this app
 
 **Solutions**:
+
 - The passkey already exists - this is actually OK!
-- Go to your browser's password manager and delete the old passkey if you want to start fresh
+- Go to your browser's password manager and delete the old passkey if you want
+  to start fresh
 - **Chrome**: Settings → Password Manager → Passkeys
 - **Safari**: Settings → Passwords → [Your Site] → Delete Passkey
 
@@ -56,6 +61,7 @@
 **Cause**: Platform authenticator is having issues
 
 **Solutions**:
+
 - Restart your browser
 - Restart your computer
 - Try a different browser
@@ -67,52 +73,57 @@
 
 ```javascript
 // Run this in browser console
-console.log('Protocol:', window.location.protocol); // Should be "http:" or "https:"
-console.log('Hostname:', window.location.hostname); // Should be "localhost"
-console.log('Port:', window.location.port);         // Should be "3000"
+console.log("Protocol:", window.location.protocol); // Should be "http:" or "https:"
+console.log("Hostname:", window.location.hostname); // Should be "localhost"
+console.log("Port:", window.location.port); // Should be "3000"
 ```
 
-✅ Good: `http://localhost:3000`
-❌ Bad: `http://127.0.0.1:3000` (might not work on some browsers)
-❌ Bad: `http://192.168.1.x:3000` (won't work - needs HTTPS)
+✅ Good: `http://localhost:3000` ❌ Bad: `http://127.0.0.1:3000` (might not work
+on some browsers) ❌ Bad: `http://192.168.1.x:3000` (won't work - needs HTTPS)
 
 #### Check WebAuthn Support
 
 ```javascript
 // Run this in browser console
 if (window.PublicKeyCredential) {
-  console.log('✅ WebAuthn is supported!');
+  console.log("✅ WebAuthn is supported!");
 
-  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-    .then(available => {
+  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(
+    (available) => {
       if (available) {
-        console.log('✅ Platform authenticator (biometrics) available!');
+        console.log("✅ Platform authenticator (biometrics) available!");
       } else {
-        console.log('❌ No platform authenticator found');
-        console.log('   → Enable Touch ID / Face ID / Windows Hello');
+        console.log("❌ No platform authenticator found");
+        console.log("   → Enable Touch ID / Face ID / Windows Hello");
       }
-    });
+    },
+  );
 } else {
-  console.log('❌ WebAuthn NOT supported in this browser');
-  console.log('   → Update your browser or try Chrome/Safari');
+  console.log("❌ WebAuthn NOT supported in this browser");
+  console.log("   → Update your browser or try Chrome/Safari");
 }
 ```
 
 ### Step 4: Browser-Specific Issues
 
 #### Chrome/Edge
+
 - Make sure you're on version 90+
 - Enable flags if needed: `chrome://flags/#enable-web-authentication-api`
-- Check: Settings → Privacy and security → Site settings → Permissions → Passkeys
+- Check: Settings → Privacy and security → Site settings → Permissions →
+  Passkeys
 
 #### Safari (Mac)
+
 - macOS 13+ (Ventura or later) recommended
 - Enable Touch ID: System Preferences → Touch ID & Password
 - Allow website to use Touch ID when prompted
 
 #### Firefox
+
 - Version 93+ required
-- May need to enable: `about:config` → `security.webauthn.enable_uv_token` → true
+- May need to enable: `about:config` → `security.webauthn.enable_uv_token` →
+  true
 - Some features may be limited compared to Chrome/Safari
 
 ### Step 5: Debug Mode
@@ -122,6 +133,7 @@ If the issue persists, check the detailed console logs:
 1. Open Console (F12)
 2. Click "Create Passkey"
 3. You should see:
+
    ```
    Creating passkey...
    User name: YourName
@@ -169,22 +181,28 @@ Then access via the HTTPS URL provided.
 
 Look for these patterns:
 
-**Pattern 1: Permission Denied**
+#### Pattern 1: Permission Denied
+
 ```
 NotAllowedError: The user denied permission
 ```
+
 → You clicked "Cancel" on the biometric prompt. Try again and approve it.
 
-**Pattern 2: Timeout**
+#### Pattern 2: Timeout
+
 ```
 NotAllowedError: Timeout
 ```
+
 → Biometric prompt timed out. Try again and respond faster.
 
-**Pattern 3: No Support**
+#### Pattern 3: No Support
+
 ```
 undefined is not an object (evaluating 'navigator.credentials.create')
 ```
+
 → Browser too old or WebAuthn disabled.
 
 ### Test with Simple Example
@@ -192,23 +210,26 @@ undefined is not an object (evaluating 'navigator.credentials.create')
 Try this minimal test in the browser console:
 
 ```javascript
-navigator.credentials.create({
-  publicKey: {
-    challenge: new Uint8Array(32),
-    rp: { name: "Test" },
-    user: {
-      id: new Uint8Array(16),
-      name: "test",
-      displayName: "Test User"
+navigator.credentials
+  .create({
+    publicKey: {
+      challenge: new Uint8Array(32),
+      rp: { name: "Test" },
+      user: {
+        id: new Uint8Array(16),
+        name: "test",
+        displayName: "Test User",
+      },
+      pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+      timeout: 60000,
     },
-    pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-    timeout: 60000,
-  }
-}).then(cred => {
-  console.log('✅ SUCCESS! WebAuthn works!', cred);
-}).catch(err => {
-  console.error('❌ ERROR:', err.name, err.message);
-});
+  })
+  .then((cred) => {
+    console.log("✅ SUCCESS! WebAuthn works!", cred);
+  })
+  .catch((err) => {
+    console.error("❌ ERROR:", err.name, err.message);
+  });
 ```
 
 If this works, the app should work too.
@@ -240,9 +261,9 @@ Some browsers are strict. Try adding to vite.config.js:
 ```javascript
 export default defineConfig({
   server: {
-    host: 'localhost',  // Explicitly set to localhost
+    host: "localhost", // Explicitly set to localhost
     port: 3000,
-    https: false,       // Don't need HTTPS for localhost
+    https: false, // Don't need HTTPS for localhost
   },
 });
 ```
@@ -250,6 +271,7 @@ export default defineConfig({
 ### Issue: Antivirus/Firewall blocking
 
 Some security software blocks WebAuthn. Try:
+
 - Temporarily disable antivirus
 - Add localhost to whitelist
 - Check browser's site permissions

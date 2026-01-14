@@ -27,14 +27,14 @@ import {
   getAaveBalance,
   getShadowAccount,
 } from "./aave-utils.js";
-
 import { sendInteropMessage } from "./interop.js";
 import {
-  getTokenInfo,
   getTokenBalance,
+  getTokenInfo,
   getWrappedTokenAddress,
   transferTokensInterop,
 } from "./token-interop.js";
+import { ENGLISH, initTranslation, PORTUGUESE_BR, SPANISH, updateTranslation } from "./translation.js";
 
 // ZKsync OS configuration
 const zksyncOsTestnet = defineChain({
@@ -65,7 +65,7 @@ const zksyncOsTestnet = defineChain({
 
 const DEFAULT_ZKSYNC_OS_RPC_URL = "https://zksync-os-testnet-alpha.zksync.dev/";
 const LOCAL_RPC_PROXY_URL = "http://localhost:4339";
-const isBrowser = typeof window !== "undefined";
+// const isBrowser = typeof window !== "undefined";
 const shouldUseLocalRpcProxy = false; // Disabled - use direct RPC URL
 const ZKSYNC_OS_RPC_URL = shouldUseLocalRpcProxy ? LOCAL_RPC_PROXY_URL : DEFAULT_ZKSYNC_OS_RPC_URL;
 
@@ -100,11 +100,13 @@ let sepoliaClient = null;
 let shadowAccount = null;
 let balanceRefreshInterval = null;
 let aaveBalanceRefreshInterval = null;
+let activeLanguage = "en";
 
 // LocalStorage keys
 const STORAGE_KEY_PASSKEY = "zksync_sso_passkey";
 const STORAGE_KEY_ACCOUNT = "zksync_sso_account";
 const STORAGE_KEY_TX_METADATA = "zksync_sso_tx_metadata";
+const STORAGE_KEY_LANGUAGE = "zksync-interop-demo-language";
 
 // Auto-refresh interval (in milliseconds)
 const BALANCE_REFRESH_INTERVAL = 5000; // 5 seconds
@@ -135,8 +137,22 @@ const sepolia = defineChain({
   },
 });
 
+const translatedText = () => {
+  switch (activeLanguage) {
+    case "es":
+      return SPANISH.dynamic;
+    case "pt":
+      return PORTUGUESE_BR.dynamic;
+    default:
+      return ENGLISH.dynamic;
+  }
+};
+
 // Initialize
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // setup translation
+  await setupTranslation();
+
   // Setup public client for balance checks FIRST
   publicClient = createPublicClient({
     chain: zksyncOsTestnet,
@@ -158,6 +174,21 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   loadExistingPasskey();
 });
+
+async function setupTranslation() {
+  const select = document.getElementById("lang");
+  select.addEventListener("change", async () => {
+    activeLanguage = select.value;
+    localStorage.setItem(STORAGE_KEY_LANGUAGE, select.value);
+    await updateTranslation(select.value);
+  });
+  const savedLanguage = localStorage.getItem(STORAGE_KEY_LANGUAGE);
+  if (savedLanguage) {
+    activeLanguage = savedLanguage;
+    select.value = savedLanguage;
+  }
+  await initTranslation(activeLanguage);
+}
 
 function setupEventListeners() {
   document.getElementById("createPasskeyBtn").addEventListener("click", handleCreatePasskey);
@@ -181,24 +212,24 @@ let activityInterval = null;
 // Transaction metadata storage helpers
 function saveTxMetadata(txHash, action, amount) {
   try {
-    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || '{}');
+    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || "{}");
     metadata[txHash] = {
       action,
       amount,
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEY_TX_METADATA, JSON.stringify(metadata));
   } catch (error) {
-    console.error('Failed to save tx metadata:', error);
+    console.error("Failed to save tx metadata:", error);
   }
 }
 
 function getTxMetadata(txHash) {
   try {
-    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || '{}');
+    const metadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || "{}");
     return metadata[txHash] || null;
   } catch (error) {
-    console.error('Failed to get tx metadata:', error);
+    console.error("Failed to get tx metadata:", error);
     return null;
   }
 }
@@ -216,9 +247,9 @@ function renderActivity(status) {
   // Load localStorage metadata to enrich timestamps
   let localStorageMetadata = {};
   try {
-    localStorageMetadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || '{}');
+    localStorageMetadata = JSON.parse(localStorage.getItem(STORAGE_KEY_TX_METADATA) || "{}");
   } catch (error) {
-    console.error('Failed to load localStorage metadata:', error);
+    console.error("Failed to load localStorage metadata:", error);
   }
 
   // Only show transactions that belong to the current user (have metadata in localStorage)
@@ -251,8 +282,8 @@ function renderActivity(status) {
 
   // Add transactions from localStorage that aren't in the daemon's status yet
   const daemonTxHashes = new Set([
-    ...pending.map(tx => tx.hash),
-    ...finalized.map(tx => tx.l2TxHash)
+    ...pending.map((tx) => tx.hash),
+    ...finalized.map((tx) => tx.l2TxHash),
   ]);
 
   for (const [txHash, txMeta] of Object.entries(localStorageMetadata)) {
@@ -282,8 +313,8 @@ function renderActivity(status) {
     }
 
     // Tertiary: if timestamps are equal, use transaction hash as tiebreaker
-    const hashA = a.hash || a.l2TxHash || '';
-    const hashB = b.hash || b.l2TxHash || '';
+    const hashA = a.hash || a.l2TxHash || "";
+    const hashB = b.hash || b.l2TxHash || "";
     return hashB.localeCompare(hashA);
   });
 
@@ -310,7 +341,7 @@ function renderActivity(status) {
     // Use stored metadata if available, fallback to tx data
     let action = storedMetadata?.action || tx.action || "Unknown";
     let amount = storedMetadata?.amount || tx.amount || "0";
-    const statusText = tx.type === "pending" ? "Pending" : "Finalized";
+    const statusText = tx.type === "pending" ? text.pending : text.finalized;
 
     if (action !== "Unknown" && amount !== "0") {
       label.textContent = `${amount} ETH (${statusText})`;
@@ -333,9 +364,13 @@ function renderActivity(status) {
     l2Link.target = "_blank";
     l2Link.rel = "noreferrer";
 
-    const l2TxLabel = action === "Deposit" ? "L2 Deposit Tx" :
-                      action === "Withdrawal" ? "L2 Withdrawal Tx" :
-                      "L2 Tx";
+    const text = translatedText();
+
+    const l2TxLabel = action === "Deposit"
+      ? text.l2DepsitTx
+      : action === "Withdrawal"
+        ? text.l2WithdrawTx
+        : "L2 Tx";
     l2Link.textContent = `${l2TxLabel} ${truncateHash(txHash)}`;
 
     value.appendChild(l2Link);
@@ -347,7 +382,7 @@ function renderActivity(status) {
       l1Link.href = `${L1_EXPLORER_BASE}${tx.l1FinalizeTxHash}`;
       l1Link.target = "_blank";
       l1Link.rel = "noreferrer";
-      l1Link.textContent = `L1 Finalization Tx ${truncateHash(tx.l1FinalizeTxHash)}`;
+      l1Link.textContent = `${text.l1FinalizationTx} ${truncateHash(tx.l1FinalizeTxHash)}`;
       value.appendChild(l1Link);
     }
 
@@ -477,14 +512,15 @@ function handleResetPasskey() {
 // Step 1: Create Passkey
 async function handleCreatePasskey() {
   const userName = document.getElementById("userName").value.trim();
+  const text = translatedText();
   if (!userName) {
-    alert("Please enter your name");
+    alert(text.enterUserName);
     return;
   }
 
   const btn = document.getElementById("createPasskeyBtn");
   btn.disabled = true;
-  btn.textContent = "Creating...";
+  btn.textContent = text.creating;
 
   try {
     console.log("🔐 Creating passkey...");
@@ -526,19 +562,20 @@ async function handleCreatePasskey() {
     document.getElementById("deployAccountBtn").disabled = false;
   } catch (error) {
     console.error("Passkey creation failed:", error);
-    document.getElementById("passkey-error").textContent = "Failed to create passkey: " + error.message;
+    document.getElementById("passkey-error").textContent = `${text.failedToCreateKey} ${error.message}`;
     document.getElementById("passkey-error").classList.remove("hidden");
   } finally {
     btn.disabled = false;
-    btn.textContent = "Create Passkey";
+    btn.textContent = text.createKey;
   }
 }
 
 // Step 2: Deploy Account
 async function handleDeployAccount() {
   const btn = document.getElementById("deployAccountBtn");
+  const text = translatedText();
   btn.disabled = true;
-  btn.textContent = "Deploying...";
+  btn.textContent = text.deploying;
 
   try {
     console.log("🚀 Deploying smart account...");
@@ -728,11 +765,11 @@ async function handleDeployAccount() {
     startActivityPoll();
   } catch (error) {
     console.error("Deployment failed:", error);
-    document.getElementById("deploy-error").textContent = "Deployment failed: " + error.message;
+    document.getElementById("deploy-error").textContent = `${text.deployFailed} ${error.message}`;
     document.getElementById("deploy-error").classList.remove("hidden");
   } finally {
     btn.disabled = false;
-    btn.textContent = "Deploy Account";
+    btn.textContent = text.deployAccount;
   }
 }
 
@@ -743,7 +780,7 @@ async function autoRefreshBalance() {
   try {
     const balance = await publicClient.getBalance({
       address: accountAddress,
-      blockTag: 'latest', // Force fetching the latest block
+      blockTag: "latest", // Force fetching the latest block
     });
 
     const balanceInEth = formatEther(balance);
@@ -768,22 +805,23 @@ function startBalanceAutoRefresh() {
   console.log("✅ Balance auto-refresh started");
 }
 
-// Stop auto-refresh
-function stopBalanceAutoRefresh() {
-  if (balanceRefreshInterval) {
-    clearInterval(balanceRefreshInterval);
-    balanceRefreshInterval = null;
-    console.log("⏹️  Balance auto-refresh stopped");
-  }
-}
+// // Stop auto-refresh
+// function stopBalanceAutoRefresh() {
+//   if (balanceRefreshInterval) {
+//     clearInterval(balanceRefreshInterval);
+//     balanceRefreshInterval = null;
+//     console.log("⏹️  Balance auto-refresh stopped");
+//   }
+// }
 
 // Step 3: Refresh Balance (manual)
 async function handleRefreshBalance() {
   if (!accountAddress) return;
 
+  const text = translatedText();
   const btn = document.getElementById("refreshBalanceBtn");
   btn.disabled = true;
-  btn.textContent = "Refreshing...";
+  btn.textContent = text.refreshing;
 
   try {
     await autoRefreshBalance();
@@ -791,7 +829,7 @@ async function handleRefreshBalance() {
     console.error("Balance fetch failed:", error);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Refresh Balance";
+    btn.textContent = text.refreshBalance;
   }
 }
 
@@ -799,9 +837,10 @@ async function handleRefreshBalance() {
 async function handleFaucet() {
   if (!accountAddress) return;
 
+  const text = translatedText();
   const btn = document.getElementById("faucetBtn");
   btn.disabled = true;
-  btn.textContent = "Funding...";
+  btn.textContent = text.funding;
 
   try {
     console.log("🚰 Starting faucet for account:", accountAddress);
@@ -870,13 +909,13 @@ async function handleFaucet() {
     // Refresh balance
     await autoRefreshBalance();
 
-    alert("Success! Your wallet has been funded with:\n• 0.1 ETH to EntryPoint\n• 0.1 ETH direct to wallet\n• 0.03 ETH to shadow account on Sepolia");
+    alert(text.faucetSuccess);
   } catch (error) {
     console.error("Faucet failed:", error);
-    alert("Faucet failed: " + error.message);
+    alert(`${text.faucetFailed} ${error.message}`);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Faucet for your wallet";
+    btn.textContent = text.faucet;
   }
 }
 
@@ -928,9 +967,10 @@ async function ensureAccountInitialized() {
 
 // Send maximum balance (entire balance can be sent since gas is paid via ERC-4337)
 async function handleSendMax() {
+  const text = translatedText();
   try {
     if (!accountAddress) {
-      alert("Please deploy your account first");
+      alert(text.deployAccountAlert);
       return;
     }
 
@@ -938,11 +978,11 @@ async function handleSendMax() {
     const maxEth = formatEther(balance);
 
     document.getElementById("transferAmount").value = maxEth;
-    document.getElementById("max-amount-info").textContent =
-      `Sending entire balance: ${maxEth} ETH (gas paid via ERC-4337)`;
+    document.getElementById("max-amount-info").textContent
+      = `${text.sendingBalance} ${maxEth} ETH (${text.gasPaid})`;
   } catch (error) {
     console.error("Failed to get balance:", error);
-    alert("Failed to get balance");
+    alert(text.balanceFailed);
   }
 }
 
@@ -950,15 +990,16 @@ async function handleSendMax() {
 async function handleTransfer() {
   const recipient = document.getElementById("recipientAddress").value.trim();
   const amount = document.getElementById("transferAmount").value.trim();
+  const text = translatedText();
 
   if (!recipient || !amount) {
-    alert("Please enter recipient address and amount");
+    alert(text.inputError);
     return;
   }
 
   const btn = document.getElementById("transferBtn");
   btn.disabled = true;
-  btn.textContent = "Transferring...";
+  btn.textContent = text.transferring;
 
   // Hide previous results
   document.getElementById("transfer-success").classList.add("hidden");
@@ -1225,7 +1266,6 @@ async function handleTransfer() {
       const txLink = document.getElementById("transfer-tx-link");
       txLink.href = `${L2_EXPLORER_BASE}${receipt.receipt.transactionHash}`;
 
-
       // Refresh balance
       await handleRefreshBalance();
 
@@ -1237,11 +1277,11 @@ async function handleTransfer() {
     }
   } catch (error) {
     console.error("Transfer failed:", error);
-    document.getElementById("transfer-error").textContent = "Transfer failed: " + error.message;
+    document.getElementById("transfer-error").textContent = `${text.transferFailed} ${error.message}`;
     document.getElementById("transfer-error").classList.remove("hidden");
   } finally {
     btn.disabled = false;
-    btn.textContent = "Send ETH";
+    btn.textContent = text.sendETH;
   }
 }
 
@@ -1305,23 +1345,24 @@ function startAaveBalanceAutoRefresh() {
   console.log("✅ Aave balance auto-refresh started");
 }
 
-// Stop Aave balance auto-refresh
-function stopAaveBalanceAutoRefresh() {
-  if (aaveBalanceRefreshInterval) {
-    clearInterval(aaveBalanceRefreshInterval);
-    aaveBalanceRefreshInterval = null;
-    console.log("⏹️  Aave balance auto-refresh stopped");
-  }
-}
+// // Stop Aave balance auto-refresh
+// function stopAaveBalanceAutoRefresh() {
+//   if (aaveBalanceRefreshInterval) {
+//     clearInterval(aaveBalanceRefreshInterval);
+//     aaveBalanceRefreshInterval = null;
+//     console.log("⏹️  Aave balance auto-refresh stopped");
+//   }
+// }
 
 // Refresh Aave balance (aToken balance on L1)
 async function refreshAaveBalance() {
   if (!shadowAccount) return;
 
+  const text = translatedText();
   const btn = document.getElementById("refreshAaveBalanceBtn");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Refreshing...";
+    btn.textContent = text.refreshing;
   }
 
   try {
@@ -1334,11 +1375,11 @@ async function refreshAaveBalance() {
     document.getElementById("aaveBalanceDisplay").textContent = formatEther(balance);
   } catch (error) {
     console.error("Failed to refresh Aave balance:", error);
-    document.getElementById("aaveBalanceDisplay").textContent = "Error loading balance";
+    document.getElementById("aaveBalanceDisplay").textContent = text.balanceError;
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "Refresh Balance";
+      btn.textContent = text.refreshBalance;
     }
   }
 }
@@ -1348,8 +1389,9 @@ async function handleAaveDeposit() {
   if (!accountAddress || !shadowAccount) return;
 
   const btn = document.getElementById("aaveDepositBtn");
+  const text = translatedText();
   btn.disabled = true;
-  btn.textContent = "Depositing...";
+  btn.textContent = text.depositing;
 
   // Hide previous messages
   document.getElementById("aave-deposit-success").classList.add("hidden");
@@ -1642,11 +1684,11 @@ async function handleAaveDeposit() {
     }
   } catch (error) {
     console.error("Aave deposit failed:", error);
-    document.getElementById("aave-deposit-error").textContent = "Deposit failed: " + error.message;
+    document.getElementById("aave-deposit-error").textContent = `${text.depositFailed} ${error.message}`;
     document.getElementById("aave-deposit-error").classList.remove("hidden");
   } finally {
     btn.disabled = false;
-    btn.textContent = "Deposit to Aave";
+    btn.textContent = text.depositToAave;
   }
 }
 
@@ -1655,8 +1697,9 @@ async function handleAaveWithdraw() {
   if (!accountAddress || !shadowAccount) return;
 
   const btn = document.getElementById("aaveWithdrawBtn");
+  const text = translatedText();
   btn.disabled = true;
-  btn.textContent = "Withdrawing...";
+  btn.textContent = text.withdrawing;
 
   // Hide previous messages
   document.getElementById("aave-withdraw-success").classList.add("hidden");
@@ -1948,11 +1991,11 @@ async function handleAaveWithdraw() {
     }
   } catch (error) {
     console.error("Aave withdrawal failed:", error);
-    document.getElementById("aave-withdraw-error").textContent = "Withdrawal failed: " + error.message;
+    document.getElementById("aave-withdraw-error").textContent = `${text.withdrawFailed} ${error.message}`;
     document.getElementById("aave-withdraw-error").classList.remove("hidden");
   } finally {
     btn.disabled = false;
-    btn.textContent = "Withdraw from Aave";
+    btn.textContent = text.withdrawFromAave;
   }
 }
 
@@ -1971,8 +2014,10 @@ async function handleInteropSend() {
   document.getElementById("interop-error").classList.add("hidden");
   document.getElementById("interop-progress").classList.remove("hidden");
 
+  const text = translatedText();
+
   btn.disabled = true;
-  btn.textContent = "Sending...";
+  btn.textContent = text.sending;
 
   const progressSteps = document.getElementById("interopProgressSteps");
   progressSteps.innerHTML = "";
@@ -2009,11 +2054,11 @@ async function handleInteropSend() {
   } catch (error) {
     console.error("Interop failed:", error);
     document.getElementById("interop-progress").classList.add("hidden");
-    document.getElementById("interop-error").textContent = "Interop failed: " + error.message;
+    document.getElementById("interop-error").textContent = `${text.interopFailed} ${error.message}`;
     document.getElementById("interop-error").classList.remove("hidden");
   } finally {
     btn.disabled = false;
-    btn.textContent = "Send Message";
+    btn.textContent = text.sendMessage;
   }
 }
 
@@ -2022,9 +2067,9 @@ async function handleInteropSend() {
 const TOKEN_ADDRESS = import.meta.env?.VITE_TOKEN_ADDRESS || "0xe441CF0795aF14DdB9f7984Da85CD36DB1B8790d";
 
 // Update HTML with token address
-if (typeof document !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    const tokenAddressEl = document.getElementById('tokenAddress');
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", () => {
+    const tokenAddressEl = document.getElementById("tokenAddress");
     if (tokenAddressEl && TOKEN_ADDRESS) {
       tokenAddressEl.textContent = TOKEN_ADDRESS;
     }
@@ -2034,11 +2079,12 @@ if (typeof document !== 'undefined') {
 // Refresh token balances
 async function handleRefreshTokenBalances() {
   const btn = document.getElementById("refreshTokenBalancesBtn");
+  const text = translatedText();
 
   // Don't disable button if it doesn't exist (called from tab switch)
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Refreshing...";
+    btn.textContent = text.refreshing;
   }
 
   try {
@@ -2079,7 +2125,7 @@ async function handleRefreshTokenBalances() {
       document.getElementById("tokenBalanceB").textContent = formattedBalanceB;
       console.log("Balance on Chain B:", formattedBalanceB, tokenInfo.symbol);
     } else {
-      document.getElementById("tokenBalanceB").textContent = "0 (not bridged yet)";
+      document.getElementById("tokenBalanceB").textContent = `0 (${text.notBridgedYet})`;
       console.log("Token not yet bridged to Chain B");
     }
 
@@ -2099,7 +2145,7 @@ async function handleRefreshTokenBalances() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "Refresh Token Balances";
+      btn.textContent = text.refreshTokenBalances;
     }
   }
 }
@@ -2144,9 +2190,10 @@ async function handleTokenTransfer() {
   const directionSelect = document.getElementById("tokenTransferDirection");
   const amount = amountInput.value;
   const direction = directionSelect.value;
+  const text = translatedText();
 
   if (!amount || parseFloat(amount) <= 0) {
-    alert("Please enter a valid amount");
+    alert(text.amountError);
     return;
   }
 
@@ -2156,7 +2203,7 @@ async function handleTokenTransfer() {
   document.getElementById("token-transfer-progress").classList.remove("hidden");
 
   btn.disabled = true;
-  btn.textContent = "Transferring...";
+  btn.textContent = text.transferring;
 
   const progressSteps = document.getElementById("tokenTransferProgressSteps");
   progressSteps.innerHTML = "";
@@ -2210,9 +2257,9 @@ async function handleTokenTransfer() {
       INTEROP_PRIVATE_KEY,
       sourceProvider,
       destProvider,
-      TOKEN_ADDRESS,        // originalTokenAddress - always Chain A token
-      chainAId,             // originalChainId - always Chain A ID
-      addProgressStep
+      TOKEN_ADDRESS, // originalTokenAddress - always Chain A token
+      chainAId, // originalChainId - always Chain A ID
+      addProgressStep,
     );
 
     // Hide progress and show success
@@ -2224,7 +2271,7 @@ async function handleTokenTransfer() {
     document.getElementById("tokenTransferTxHashDest").textContent = result.executeTxHash;
     document.getElementById("tokenTransferAmountValue").textContent = amount;
     document.getElementById("tokenTransferSymbol").textContent = tokenInfo.symbol;
-    document.getElementById("tokenTransferDirectionValue").textContent = isAtoB ? "Chain A → Chain B" : "Chain B → Chain A";
+    document.getElementById("tokenTransferDirectionValue").textContent = isAtoB ? text.aToB : text.bToA;
 
     console.log("✅ Token transfer successful!");
 
@@ -2232,14 +2279,13 @@ async function handleTokenTransfer() {
     setTimeout(() => {
       handleRefreshTokenBalances();
     }, 2000);
-
   } catch (error) {
     console.error("Token transfer failed:", error);
     document.getElementById("token-transfer-progress").classList.add("hidden");
-    document.getElementById("token-transfer-error").textContent = "Token transfer failed: " + error.message;
+    document.getElementById("token-transfer-error").textContent = `${text.tokenTransferFailed} ${error.message}`;
     document.getElementById("token-transfer-error").classList.remove("hidden");
   } finally {
     btn.disabled = false;
-    btn.textContent = "Transfer Tokens";
+    btn.textContent = text.transferTokens;
   }
 }
