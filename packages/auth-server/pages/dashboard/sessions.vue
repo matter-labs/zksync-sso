@@ -36,10 +36,29 @@
       </template>
     </CommonAlert>
 
+    <CommonAlert
+      v-if="sessionsFetchError"
+      class="mb-4"
+      type="error"
+    >
+      <template #icon>
+        <InformationCircleIcon aria-hidden="true" />
+      </template>
+      <template #default>
+        <p class="text-sm font-semibold">
+          Failed to load sessions
+        </p>
+        <p class="text-xs mt-1">
+          {{ sessionsFetchError.message }}
+        </p>
+      </template>
+    </CommonAlert>
+
     <span
-      v-if="!sessions?.length && !sessionsInProgress"
-      class="font-thin block text-2xl text-neutral-500 text-center"
-    >No sessions yet...</span>
+      v-if="!sessions?.length && !sessionsInProgress && !sessionsFetchError"
+      data-testid="empty-sessions-message"
+      class="font-thin block text 2xl text-neutral-500 text-center"
+    >No active sessions...</span>
     <div
       v-else
       class="border rounded-3xl divide-y bg-white border-neutral-200 divide-neutral-200 dark:bg-neutral-950 dark:border-neutral-900 dark:divide-neutral-900"
@@ -52,76 +71,54 @@
       </template>
       <template v-else>
         <SessionRow
-          v-for="(item, index) in (sessions || [])"
-          :key="item.sessionId"
-          :index="((sessions?.length || 0) - index)"
-          :session-id="item.sessionId"
-          :session="item.session"
-          :transaction-hash="item.transactionHash"
-          :block-number="item.blockNumber"
-          :timestamp="item.timestamp"
+          v-for="item in (sessions || [])"
+          :key="item.sessionHash"
+          :session-hash="item.sessionHash"
+          :session-spec="item.sessionSpec"
         />
       </template>
     </div>
-
-    <CommonAlert
-      v-if="defaultChain.id === localhost.id && sessions?.length"
-      class="mt-4"
-    >
-      <template #icon>
-        <InformationCircleIcon aria-hidden="true" />
-      </template>
-      <template #default>
-        <p class="text-sm">
-          Timestamps on {{ localhost.name }} start from 0 and incremented by 1 with each block. Therefore session time isn't accurate.
-        </p>
-      </template>
-    </CommonAlert>
   </div>
 </template>
 
 <script setup lang="ts">
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
 import type { Hex } from "viem";
-import { localhost } from "viem/chains";
-import { SessionKeyValidatorAbi } from "zksync-sso-4337/abi";
+import { listActiveSessions } from "zksync-sso-4337";
 import type { SessionConfig } from "zksync-sso-4337/client";
 
-const { defaultChain, getPublicClient } = useClientStore();
+const { defaultChain } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
 
 const {
   result: sessions,
   inProgress: sessionsInProgress,
-  // error: sessionsFetchError,
+  error: sessionsFetchError,
   execute: sessionsFetch,
 } = useAsync(async () => {
   const contracts = contractsByChain[defaultChain.id];
-  const publicClient = getPublicClient({ chainId: defaultChain.id });
-  const logs = await publicClient.getContractEvents({
-    abi: SessionKeyValidatorAbi,
-    address: contracts.session,
-    eventName: "SessionCreated",
-    args: {
-      account: address.value,
+
+  // Get RPC URL from the chain configuration
+  const rpcUrl = defaultChain.rpcUrls.default.http[0];
+
+  // Use the new listActiveSessions function from the SDK
+  const { sessions: activeSessions } = await listActiveSessions({
+    account: address.value,
+    rpcUrl,
+    contracts: {
+      sessionValidator: contracts.sessionValidator,
+      entryPoint: "0x0000000071727De22E5E9d8BAf0edAc6f37da032", // Standard EntryPoint v0.8
+      accountFactory: contracts.factory,
+      webauthnValidator: contracts.webauthnValidator,
+      eoaValidator: contracts.eoaValidator,
+      guardianExecutor: contracts.guardianExecutor || "0x0000000000000000000000000000000000000000",
     },
-    fromBlock: 0n,
   });
-  const data = logs
-    .filter((log) => log.args.sessionSpec && log.args.sessionHash)
-    .map((log) => ({
-      session: log.args.sessionSpec! as SessionConfig,
-      sessionId: log.args.sessionHash!,
-      transactionHash: log.transactionHash,
-      blockNumber: log.blockNumber,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      timestamp: new Date(parseInt((log as any).blockTimestamp as Hex, 16) * 1000).getTime(),
-    })).sort((a, b) => {
-      if (a.blockNumber < b.blockNumber) return 1;
-      if (a.blockNumber > b.blockNumber) return -1;
-      return 0;
-    });
-  return data;
+
+  return activeSessions.map((item: { sessionHash: Hex; sessionSpec: SessionConfig }) => ({
+    sessionHash: item.sessionHash,
+    sessionSpec: item.sessionSpec,
+  }));
 });
 
 sessionsFetch();
