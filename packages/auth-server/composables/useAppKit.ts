@@ -5,56 +5,44 @@ import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 let initializationPromise: Promise<void> | null = null;
 let wagmiAdapterInstance: WagmiAdapter | null = null;
 
-// Cached metadata and chain configuration
-let cachedMetadata: ReturnType<typeof createMetadata> | null = null;
-let cachedPlainChain: ReturnType<typeof createPlainChain> | null = null;
-
 /**
  * Creates metadata configuration for AppKit.
- * Cached to avoid recreation on every call.
  */
 function createMetadata(origin: string) {
-  if (!cachedMetadata) {
-    cachedMetadata = {
-      name: "ZKsync SSO Auth Server",
-      description: "ZKsync SSO Auth Server",
-      url: origin,
-      icons: [`${origin}/icon-512.png`],
-    };
-  }
-  return cachedMetadata;
+  return {
+    name: "ZKsync SSO Auth Server",
+    description: "ZKsync SSO Auth Server",
+    url: origin,
+    icons: [`${origin}/icon-512.png`],
+  };
 }
 
 /**
  * Creates plain chain object to avoid Viem Proxy serialization issues.
- * Cached to avoid recreation and unnecessary property access on defaultChain.
  */
 function createPlainChain(defaultChain: ReturnType<typeof useClientStore>["defaultChain"]) {
-  if (!cachedPlainChain) {
-    cachedPlainChain = {
-      id: defaultChain.id,
-      name: defaultChain.name,
-      nativeCurrency: {
-        name: defaultChain.nativeCurrency.name,
-        symbol: defaultChain.nativeCurrency.symbol,
-        decimals: defaultChain.nativeCurrency.decimals,
+  return {
+    id: defaultChain.id,
+    name: defaultChain.name,
+    nativeCurrency: {
+      name: defaultChain.nativeCurrency.name,
+      symbol: defaultChain.nativeCurrency.symbol,
+      decimals: defaultChain.nativeCurrency.decimals,
+    },
+    rpcUrls: {
+      default: {
+        http: [...defaultChain.rpcUrls.default.http],
       },
-      rpcUrls: {
-        default: {
-          http: [...defaultChain.rpcUrls.default.http],
-        },
-      },
-      blockExplorers: defaultChain.blockExplorers
-        ? {
-            default: {
-              name: defaultChain.blockExplorers.default.name,
-              url: defaultChain.blockExplorers.default.url,
-            },
-          }
-        : undefined,
-    };
-  }
-  return cachedPlainChain;
+    },
+    blockExplorers: defaultChain.blockExplorers
+      ? {
+          default: {
+            name: defaultChain.blockExplorers.default.name,
+            url: defaultChain.blockExplorers.default.url,
+          },
+        }
+      : undefined,
+  };
 }
 
 /**
@@ -107,15 +95,24 @@ async function initializeAppKit(
  * Composable for accessing AppKit functionality.
  * Implements lazy initialization on first call to avoid SSR issues.
  *
- * Note: wagmiConfig and wagmiAdapter may be null/undefined during SSR or before
- * the first client-side call. Consuming code should handle these cases.
+ * IMPORTANT: Due to lazy 'fire-and-forget' initialization:
+ * - wagmiConfig and wagmiAdapter will be null/undefined during SSR
+ * - They will also be null/undefined on the first client-side call
+ * - They will only be available after async initialization completes
+ * - All consuming components MUST handle null values gracefully
+ * - Components should reactively watch these values or check for null before use
  */
 export const useAppKit = () => {
   const runtimeConfig = useRuntimeConfig();
   const { defaultChain } = useClientStore();
 
   const projectId = runtimeConfig.public.appKitProjectId;
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://auth.zksync.dev";
+  const origin
+    = typeof window !== "undefined"
+      ? window.location.origin
+      : runtimeConfig.public?.authServerOrigin
+        ?? process.env.NUXT_PUBLIC_AUTH_SERVER_ORIGIN
+        ?? "https://auth.zksync.dev";
 
   const metadata = createMetadata(origin);
   const plainChain = createPlainChain(defaultChain);
@@ -143,7 +140,5 @@ if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     initializationPromise = null;
     wagmiAdapterInstance = null;
-    cachedMetadata = null;
-    cachedPlainChain = null;
   });
 }
