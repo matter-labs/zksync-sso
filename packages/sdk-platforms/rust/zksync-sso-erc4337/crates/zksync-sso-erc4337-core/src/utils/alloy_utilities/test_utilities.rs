@@ -4,6 +4,7 @@ pub mod node_handle;
 
 use crate::{
     config::contracts::Contracts,
+    erc4337::utils::check_deployed::{Contract, check_contract_deployed},
     erc4337::{
         bundler::pimlico::client::BundlerClient,
         utils::{
@@ -65,10 +66,22 @@ pub async fn start_node_and_deploy_contracts()
 pub async fn start_node_and_deploy_contracts_with_config(
     config: &TestInfraConfig,
 ) -> eyre::Result<(Url, TestNodeHandle, AlloyProvider, Contracts, String)> {
-    match resolve_test_node_backend() {
-        TestNodeBackend::Anvil => start_anvil_backend(config).await,
-        TestNodeBackend::ZkSyncOs => start_zksync_os_backend(config).await,
-    }
+    let (node_url, test_node, provider, contracts, signer_private_key) =
+        match resolve_test_node_backend() {
+            TestNodeBackend::Anvil => start_anvil_backend(config).await,
+            TestNodeBackend::ZkSyncOs => start_zksync_os_backend(config).await,
+        }?;
+
+    // check_contract_deployed(
+    //     &Contract {
+    //         address: contracts.entry_point,
+    //         name: "EntryPoint".to_string(),
+    //     },
+    //     provider.clone(),
+    // )
+    // .await?;
+
+    Ok((node_url, test_node, provider, contracts, signer_private_key))
 }
 
 async fn start_anvil_backend(
@@ -167,9 +180,13 @@ pub async fn start_node_and_deploy_contracts_and_start_bundler_with_config(
         start_node_and_deploy_contracts_with_config(config).await?;
 
     let mut alto = {
-        let alto_cfg = AltoTestHelperConfig {
-            node_url: node_url.clone(),
-            ..Default::default()
+        let alto_cfg = match test_node {
+            TestNodeHandle::ZkSyncOs(_) => {
+                AltoTestHelperConfig::default_zksyncos()
+            }
+            TestNodeHandle::Anvil(_) => {
+                AltoTestHelperConfig::default_ethereum()
+            }
         };
         AltoTestHelper::new(alto_cfg)
     };

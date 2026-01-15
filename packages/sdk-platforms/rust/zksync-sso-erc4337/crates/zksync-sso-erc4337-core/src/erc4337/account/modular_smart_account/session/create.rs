@@ -167,7 +167,7 @@ mod tests {
         };
 
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         let session_key_module = contracts.session_validator;
         let eoa_validator_address = contracts.eoa_validator;
@@ -326,7 +326,7 @@ mod tests {
         let factory_address = contracts.account_factory;
         let webauthn_validator_address = contracts.webauthn_validator;
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         let credential_id = bytes!("0x2868baa08431052f6c7541392a458f64");
         let passkey = [

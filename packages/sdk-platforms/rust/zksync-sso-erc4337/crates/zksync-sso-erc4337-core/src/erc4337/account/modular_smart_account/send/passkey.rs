@@ -132,7 +132,7 @@ pub mod tests {
         let eoa_validator_address = contracts.eoa_validator;
 
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         let eoa_signer_address =
             address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
@@ -291,7 +291,7 @@ pub mod tests {
         let eoa_validator_address = contracts.eoa_validator;
 
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         let eoa_signer_address =
             address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");

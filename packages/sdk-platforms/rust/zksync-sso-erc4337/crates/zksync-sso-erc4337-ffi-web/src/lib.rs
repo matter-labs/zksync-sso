@@ -2948,9 +2948,7 @@ impl Client {
 mod tests {
     use super::*;
     use alloy::{
-        primitives::{
-            Bytes, FixedBytes, U256, Uint, address, bytes, fixed_bytes,
-        },
+        primitives::{Bytes, FixedBytes, U256, Uint, bytes, fixed_bytes},
         rpc::types::PackedUserOperation as AlloyPackedUserOperation,
     };
     use zksync_sso_erc4337_core::{
@@ -3012,7 +3010,7 @@ mod tests {
 
         let factory_address = contracts.account_factory;
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
         let webauthn_module = contracts.webauthn_validator;
 
         // Define passkey credentials (same as used in core tests)

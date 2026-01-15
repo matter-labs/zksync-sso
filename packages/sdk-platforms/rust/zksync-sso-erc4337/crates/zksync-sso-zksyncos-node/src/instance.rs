@@ -6,7 +6,7 @@ use crate::{
     config::SpawnConfig,
     instance::{
         anvil::spawn_l1_anvil,
-        setup::setup_zksync_os,
+        setup::{ENTRYPOINT_ADDRESS, rpc_has_code, setup_zksync_os},
         zksync_os_server::{
             build_repo, ensure_binary_exists, ensure_repo,
             spawn_server_process, wait_for_server,
@@ -91,6 +91,12 @@ impl ZkSyncOsInstance {
             fund_wallet,
             deploy_test_contracts,
         )?;
+        let entrypoint_ready = rpc_has_code(&l2_rpc_url, ENTRYPOINT_ADDRESS)?;
+        eyre::ensure!(
+            entrypoint_ready,
+            "EntryPoint not deployed at {}",
+            ENTRYPOINT_ADDRESS
+        );
 
         Ok(Self {
             rpc_url: l2_rpc_url,

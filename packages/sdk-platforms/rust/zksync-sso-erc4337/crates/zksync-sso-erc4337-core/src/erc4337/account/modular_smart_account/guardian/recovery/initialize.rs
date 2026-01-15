@@ -100,7 +100,7 @@ mod tests {
         };
 
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;

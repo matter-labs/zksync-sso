@@ -10,7 +10,8 @@ use url::Url;
 const ACCOUNT_ABSTRACTION_REPO: &str =
     "https://github.com/eth-infinitism/account-abstraction";
 const ACCOUNT_ABSTRACTION_TAG: &str = "v0.8.0";
-const ENTRYPOINT_ADDRESS: &str = "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
+pub(crate) const ENTRYPOINT_ADDRESS: &str =
+    "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";
 const FUNDER_PRIVATE_KEY: &str =
     "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110";
 const FUNDED_WALLET_9: &str = "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720";
@@ -25,12 +26,18 @@ pub(crate) fn setup_zksync_os(
     fund_wallet: bool,
     deploy_test_contracts: bool,
 ) -> Result<()> {
+    assert!(deploy_entrypoint, "deploy_entrypoint must be true");
+    assert!(fund_wallet, "fund_wallet must be true");
     if !deploy_entrypoint && !fund_wallet && !deploy_test_contracts {
         return Ok(());
     }
 
     if deploy_entrypoint {
         let entrypoint_deployed = rpc_has_code(l2_rpc_url, ENTRYPOINT_ADDRESS)?;
+        assert!(
+            !entrypoint_deployed,
+            "EntryPoint should not be deployed at this stage"
+        );
         if !entrypoint_deployed {
             let account_abstraction_dir =
                 resolve_account_abstraction_dir(checkout_dir);
@@ -40,6 +47,8 @@ pub(crate) fn setup_zksync_os(
             deploy_entrypoint_contract(&account_abstraction_dir, print_logs)?;
         }
     }
+    let entrypoint_deployed = rpc_has_code(l2_rpc_url, ENTRYPOINT_ADDRESS)?;
+    assert!(entrypoint_deployed, "EntryPoint should be deployed");
 
     if fund_wallet {
         for address in resolve_fund_targets() {
@@ -283,7 +292,7 @@ fn run_command(mut cmd: Command, print_logs: bool, label: &str) -> Result<()> {
     Ok(())
 }
 
-fn rpc_has_code(rpc_url: &Url, address: &str) -> Result<bool> {
+pub(crate) fn rpc_has_code(rpc_url: &Url, address: &str) -> Result<bool> {
     let result = rpc_call(rpc_url, "eth_getCode", json!([address, "latest"]))?;
     let code = result
         .as_str()

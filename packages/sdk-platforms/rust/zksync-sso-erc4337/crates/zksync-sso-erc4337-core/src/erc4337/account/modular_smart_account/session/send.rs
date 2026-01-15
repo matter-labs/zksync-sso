@@ -100,7 +100,7 @@ mod tests {
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         let session_key_hex = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
         println!("\n\n\nsession_key_hex: {}", session_key_hex);
@@ -320,7 +320,7 @@ mod tests {
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         // Deterministic session key used purely for testing.
         let session_key_hex = "0xb1da23908ba44fb1c6147ac1b32a1dbc6e7704ba94ec495e588d1e3cdc7ca6f9";
