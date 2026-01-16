@@ -2,12 +2,16 @@
   <div class="session-row">
     <div class="session-id-container">
       <div
+        v-if="sessionHash"
         :title="sessionHash"
         class="truncate"
       >
         {{ sessionHash.slice(0, 10) }}...{{ sessionHash.slice(-8) }}
       </div>
-      <div class="session-signer text-xs text-neutral-500">
+      <div
+        v-if="sessionSpec?.signer"
+        class="session-signer text-xs text-neutral-500"
+      >
         Signer: {{ sessionSpec.signer.slice(0, 6) }}...{{ sessionSpec.signer.slice(-4) }}
       </div>
     </div>
@@ -91,7 +95,7 @@ const {
 } = useAsync(async () => {
   const client = getPublicClient({ chainId: defaultChain.id });
   const res = await client.readContract({
-    address: contractsByChain[defaultChain.id].session,
+    address: contractsByChain[defaultChain.id].sessionValidator,
     abi: SessionKeyValidatorAbi,
     functionName: "sessionState",
     args: [address.value!, props.sessionSpec],

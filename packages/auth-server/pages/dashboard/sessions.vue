@@ -83,12 +83,89 @@
 
 <script setup lang="ts">
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
-import type { Hex } from "viem";
+import type { Address, Hex } from "viem";
 import { listActiveSessions } from "zksync-sso-4337";
-import type { SessionConfig } from "zksync-sso-4337/client";
+import { LimitType, type SessionConfig } from "zksync-sso-4337/client";
 
 const { defaultChain } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
+
+// Types for WASM-returned session data (snake_case with string values)
+interface WasmUsageLimit {
+  limitType: string;
+  limit: string;
+  period: string;
+}
+
+interface WasmConstraint {
+  condition: string;
+  index: string;
+  refValue: Hex;
+  limit: WasmUsageLimit;
+}
+
+interface WasmCallPolicy {
+  target: Address;
+  selector: Hex;
+  maxValuePerUse: string;
+  valueLimit: WasmUsageLimit;
+  constraints?: WasmConstraint[];
+}
+
+interface WasmTransferPolicy {
+  target: Address;
+  maxValuePerUse: string;
+  valueLimit: WasmUsageLimit;
+}
+
+interface WasmSessionSpec {
+  signer: Address;
+  expiresAt: string;
+  feeLimit: WasmUsageLimit;
+  callPolicies?: WasmCallPolicy[];
+  transferPolicies?: WasmTransferPolicy[];
+}
+
+// Helper to convert WASM session spec format to proper TypeScript types
+const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionConfig => {
+  const convertLimit = (limit: WasmUsageLimit) => {
+    // Map string limitType to enum value
+    let limitType: LimitType;
+    if (limit.limitType === "Unlimited") limitType = LimitType.Unlimited;
+    else if (limit.limitType === "Lifetime") limitType = LimitType.Lifetime;
+    else if (limit.limitType === "Allowance") limitType = LimitType.Allowance;
+    else limitType = Number(limit.limitType) as LimitType;
+
+    return {
+      limitType,
+      limit: BigInt(limit.limit),
+      period: BigInt(limit.period),
+    };
+  };
+
+  return {
+    signer: wasmSpec.signer,
+    expiresAt: BigInt(wasmSpec.expiresAt),
+    feeLimit: convertLimit(wasmSpec.feeLimit),
+    callPolicies: (wasmSpec.callPolicies || []).map((policy: WasmCallPolicy) => ({
+      target: policy.target,
+      selector: policy.selector,
+      maxValuePerUse: BigInt(policy.maxValuePerUse),
+      valueLimit: convertLimit(policy.valueLimit),
+      constraints: (policy.constraints || []).map((constraint: WasmConstraint) => ({
+        condition: constraint.condition,
+        index: BigInt(constraint.index),
+        refValue: constraint.refValue,
+        limit: convertLimit(constraint.limit),
+      })),
+    })),
+    transferPolicies: (wasmSpec.transferPolicies || []).map((policy: WasmTransferPolicy) => ({
+      target: policy.target,
+      maxValuePerUse: BigInt(policy.maxValuePerUse),
+      valueLimit: convertLimit(policy.valueLimit),
+    })),
+  };
+};
 
 const {
   result: sessions,
@@ -115,10 +192,22 @@ const {
     },
   });
 
-  return activeSessions.map((item: { sessionHash: Hex; sessionSpec: SessionConfig }) => ({
-    sessionHash: item.sessionHash,
-    sessionSpec: item.sessionSpec,
-  }));
+  // Map snake_case properties from WASM to camelCase and convert types
+  const filtered = activeSessions
+    .filter((item: { session_hash?: Hex; session_spec?: WasmSessionSpec }) => {
+      const isValid = item?.session_hash && item?.session_spec && item?.session_spec?.signer;
+      if (!isValid) {
+        // eslint-disable-next-line no-console
+        console.warn("[sessions.vue] Filtering out invalid session:", item);
+      }
+      return isValid;
+    })
+    .map((item: { session_hash: Hex; session_spec: WasmSessionSpec }) => ({
+      sessionHash: item.session_hash,
+      sessionSpec: convertSessionSpec(item.session_spec),
+    }));
+
+  return filtered;
 });
 
 sessionsFetch();
