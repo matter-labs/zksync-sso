@@ -497,7 +497,12 @@ test("Create session and verify it appears in auth-server sessions list", async 
   await popup.getByTestId("connect").click();
   await page.waitForTimeout(2000);
   await expect(page.getByText("Disconnect")).toBeVisible();
-  console.log("✓ Account created");
+
+  // Capture the account address from the page
+  const demoPageContent = await page.textContent("body");
+  const accountMatch = demoPageContent?.match(/0x[a-fA-F0-9]{40}/);
+  const demoAccountAddress = accountMatch ? accountMatch[0] : "unknown";
+  console.log(`✓ Account created: ${demoAccountAddress}`);
 
   // Step 2: Create session
   console.log("\nStep 2: Creating session...");
@@ -576,20 +581,45 @@ test("Create session and verify it appears in auth-server sessions list", async 
   // Navigate to sessions page
   await authPage.goto("http://localhost:3002/dashboard/sessions");
   await authPage.waitForLoadState("domcontentloaded");
-  await authPage.waitForTimeout(3000);
+
+  // Listen for console logs from the sessions page
+  authPage.on("console", (msg) => {
+    if (msg.text().includes("[sessions.vue]")) {
+      console.log(`  Auth-server: ${msg.text()}`);
+    }
+  });
+
   console.log("✓ Navigated to sessions page");
+  console.log(`  Demo account (created session): ${demoAccountAddress}`);
 
   // Verify sessions page content
   const header = authPage.locator("header").getByText("Sessions");
   await expect(header).toBeVisible();
   console.log("✓ Sessions page loaded");
 
+  // Wait for sessions data to load - look for either session rows or the table/list container
+  // The sessions are loaded via WASM asynchronously, so we need to wait
+  try {
+    // Wait for the sessions list container or session rows to appear
+    await authPage.waitForSelector("table tbody tr, [role='list'] > div, [data-testid*='session']", {
+      timeout: 15000,
+      state: "attached",
+    });
+    console.log("✓ Sessions data container loaded");
+  } catch (e) {
+    console.log("⚠ No sessions container appeared within 15s", e);
+  }
+
+  // Additional wait to ensure console logs are captured
+  await authPage.waitForTimeout(2000);
+
   // Log page content for debugging
   const pageContent = await authPage.locator("main").textContent();
   console.log(`Page content: ${pageContent?.substring(0, 500)}`);
 
   // Verify at least one session is displayed
-  const sessionRows = authPage.locator("[data-testid*='session']");
+  // The session rows use class="session-row" in the SessionRow component
+  const sessionRows = authPage.locator(".session-row");
   const sessionCount = await sessionRows.count();
   console.log(`Found ${sessionCount} session row(s)`);
 

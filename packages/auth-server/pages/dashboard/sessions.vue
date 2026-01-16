@@ -4,37 +4,7 @@
       <template #default>
         Sessions
       </template>
-      <template #aside>
-        <!-- <transition v-bind="TransitionOpacity">
-          <ZkButton
-            v-if="sessions?.length"
-            type="danger"
-          >
-            <template #prefix>
-              <HandRaisedIcon
-                class="h-5 w-5 mr-1"
-                aria-hidden="true"
-              />
-            </template>
-            <span class="leading-tight">End all sessions</span>
-          </ZkButton>
-        </transition> -->
-      </template>
     </layout-header>
-
-    <CommonAlert
-      v-if="sessions?.length"
-      class="mb-4"
-    >
-      <template #icon>
-        <InformationCircleIcon aria-hidden="true" />
-      </template>
-      <template #default>
-        <p class="text-sm">
-          ZKsync SSO is still under development. The displayed spending amounts may not always be accurate.
-        </p>
-      </template>
-    </CommonAlert>
 
     <CommonAlert
       v-if="sessionsFetchError"
@@ -85,7 +55,7 @@
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
 import type { Address, Hex } from "viem";
 import { listActiveSessions } from "zksync-sso-4337";
-import { LimitType, type SessionConfig } from "zksync-sso-4337/client";
+import { LimitType, type SessionSpec } from "zksync-sso-4337/client";
 
 const { defaultChain } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
@@ -127,7 +97,7 @@ interface WasmSessionSpec {
 }
 
 // Helper to convert WASM session spec format to proper TypeScript types
-const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionConfig => {
+const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionSpec => {
   const convertLimit = (limit: WasmUsageLimit) => {
     // Map string limitType to enum value
     let limitType: LimitType;
@@ -178,13 +148,16 @@ const {
   // Get RPC URL from the chain configuration
   const rpcUrl = defaultChain.rpcUrls.default.http[0];
 
+  if (address.value === null) {
+    throw new Error("Account address is null");
+  }
   // Use the new listActiveSessions function from the SDK
   const { sessions: activeSessions } = await listActiveSessions({
     account: address.value,
     rpcUrl,
     contracts: {
       sessionValidator: contracts.sessionValidator,
-      entryPoint: "0x0000000071727De22E5E9d8BAf0edAc6f37da032", // Standard EntryPoint v0.8
+      entryPoint: contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
       accountFactory: contracts.factory,
       webauthnValidator: contracts.webauthnValidator,
       eoaValidator: contracts.eoaValidator,
