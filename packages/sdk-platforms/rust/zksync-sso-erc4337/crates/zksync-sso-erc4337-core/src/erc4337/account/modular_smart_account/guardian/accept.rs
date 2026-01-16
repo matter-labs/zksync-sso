@@ -56,8 +56,9 @@ mod tests {
         utils::alloy_utilities::{
             ethereum_wallet_from_private_key,
             test_utilities::{
-                TestInfraConfig,
-                start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+                config::TestInfraConfig,
+                node_backend::{TestNodeBackend, resolve_test_node_backend},
+                start_node_and_deploy_contracts_and_start_bundler_with_config,
             },
         },
     };
@@ -65,6 +66,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_accept_guardian() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             node_url,
             anvil_instance,
@@ -74,18 +79,15 @@ mod tests {
             bundler,
             bundler_client,
         ) = {
-            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-            let config = TestInfraConfig {
-                signer_private_key: signer_private_key.clone(),
-            };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            let config = TestInfraConfig::rich_wallet_9();
+            start_node_and_deploy_contracts_and_start_bundler_with_config(
                 &config,
             )
             .await?
         };
 
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;

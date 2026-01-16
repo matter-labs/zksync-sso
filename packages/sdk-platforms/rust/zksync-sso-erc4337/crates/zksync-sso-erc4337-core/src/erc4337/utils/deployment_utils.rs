@@ -1,6 +1,8 @@
 use crate::{
     config::contracts::Contracts,
-    erc4337::utils::check_deployed::check_contracts_deployed,
+    erc4337::utils::check_deployed::{
+        Contract, check_contract_deployed, check_contracts_deployed,
+    },
 };
 use alloy::{
     primitives::{Address, address},
@@ -86,6 +88,22 @@ pub async fn deploy_contracts(
 
     println!("Running pnpm deploy from {contracts_dir:?}");
 
+    let provider = {
+        let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+        let signer = PrivateKeySigner::from_str(signer_private_key)?;
+        let ethereum_wallet = alloy::network::EthereumWallet::new(signer);
+
+        ProviderBuilder::new()
+            .wallet(ethereum_wallet)
+            .connect_http(node_url.clone())
+    };
+
+    check_contract_deployed(
+        &Contract { address: entry_point, name: "EntryPoint".to_string() },
+        provider.clone(),
+    )
+    .await?;
+
     let rpc_url_string = node_url.to_string();
     let output = Command::new("forge")
         .current_dir(&contracts_dir)
@@ -130,18 +148,6 @@ pub async fn deploy_contracts(
         account_factory,
         entry_point,
         guardian_executor,
-    };
-
-    let provider = {
-        let signer_private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-        let signer = PrivateKeySigner::from_str(signer_private_key)?;
-        let alloy_signer = signer.clone();
-        let ethereum_wallet =
-            alloy::network::EthereumWallet::new(alloy_signer.clone());
-
-        ProviderBuilder::new()
-            .wallet(ethereum_wallet.clone())
-            .connect_http(node_url.clone())
     };
 
     check_contracts_deployed(&contracts, provider).await?;

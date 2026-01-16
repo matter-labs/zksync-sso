@@ -24,3 +24,23 @@ fix:
 # Run tests
 test:
     cargo nextest run
+
+# Run tests with ZkSyncOS backend
+test-zksyncos:
+    SSO_TEST_NODE_BACKEND=zksyncos cargo nextest run
+
+# Run the deploy account test with ZkSyncOS backend
+test-zksyncos-deploy-account:
+    env SSO_TEST_NODE_BACKEND=zksyncos cargo nextest run -p zksync-sso-erc4337-core test_deploy_account --no-capture
+
+# Run zksync OS node tests
+test-node:
+    cargo test -p zksync-sso-zksyncos-node --test spawn
+
+# Run zksync OS node tests with nextest
+test-node-nextest:
+    cargo nextest run -p zksync-sso-zksyncos-node --test spawn
+
+# Prepare environment and start zksync OS server like CI
+start-node-server:
+    ./scripts/run_node_server.sh

@@ -92,8 +92,9 @@ pub mod tests {
             user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point,
         },
         utils::alloy_utilities::test_utilities::{
-            TestInfraConfig,
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+            config::TestInfraConfig,
+            node_backend::{TestNodeBackend, resolve_test_node_backend},
+            start_node_and_deploy_contracts_and_start_bundler_with_config,
         },
     };
     use alloy::{
@@ -107,6 +108,10 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_send_transaction_webauthn() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             _,
             anvil_instance,
@@ -116,11 +121,8 @@ pub mod tests {
             bundler,
             bundler_client,
         ) = {
-            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-            let config = TestInfraConfig {
-                signer_private_key: signer_private_key.clone(),
-            };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            let config = TestInfraConfig::rich_wallet_9();
+            start_node_and_deploy_contracts_and_start_bundler_with_config(
                 &config,
             )
             .await?
@@ -130,7 +132,7 @@ pub mod tests {
         let eoa_validator_address = contracts.eoa_validator;
 
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         let eoa_signer_address =
             address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
@@ -265,6 +267,10 @@ pub mod tests {
     /// 3. Submit with signed UserOp
     #[tokio::test]
     async fn test_send_transaction_webauthn_two_step() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             _,
             anvil_instance,
@@ -274,11 +280,8 @@ pub mod tests {
             bundler,
             bundler_client,
         ) = {
-            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-            let config = TestInfraConfig {
-                signer_private_key: signer_private_key.clone(),
-            };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            let config = TestInfraConfig::rich_wallet_9();
+            start_node_and_deploy_contracts_and_start_bundler_with_config(
                 &config,
             )
             .await?
@@ -288,7 +291,7 @@ pub mod tests {
         let eoa_validator_address = contracts.eoa_validator;
 
         let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+            contracts.entry_point;
 
         let eoa_signer_address =
             address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
