@@ -20,6 +20,10 @@
         v-if="sessionState"
         :status="sessionState.status"
         :is-expired="isExpired"
+        <!-- TODO: created-at is hardcoded to 0 because the current session data
+             does not include a creation timestamp. Update this when a real
+             created-at value is available or when SessionRowExpiry is changed
+             to not rely on created-at for active sessions. -->
         :created-at="0"
         :expires-at="expiresAt"
         :now="now"

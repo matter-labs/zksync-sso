@@ -14,7 +14,7 @@ use zksync_sso_erc4337_core::{
 /// # Parameters
 /// * `rpc_url` - RPC URL for the blockchain network
 /// * `account_address` - Address of the smart account
-/// * `contracts_json` - JSON string containing contract addresses (sessionValidator, entryPoint, accountFactory)
+/// * `contracts_json` - JSON string containing contract addresses (entryPoint, accountFactory, webauthnValidator, eoaValidator, sessionValidator, guardianExecutor)
 ///
 /// # Returns
 /// Promise that resolves to a JSON array of active sessions with session_hash and session_spec

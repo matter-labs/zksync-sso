@@ -27,7 +27,7 @@
     <span
       v-if="!sessions?.length && !sessionsInProgress && !sessionsFetchError"
       data-testid="empty-sessions-message"
-      class="font-thin block text 2xl text-neutral-500 text-center"
+      class="font-thin block text-2xl text-neutral-500 text-center"
     >No active sessions...</span>
     <div
       v-else
@@ -104,7 +104,19 @@ const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionSpec => {
     if (limit.limitType === "Unlimited") limitType = LimitType.Unlimited;
     else if (limit.limitType === "Lifetime") limitType = LimitType.Lifetime;
     else if (limit.limitType === "Allowance") limitType = LimitType.Allowance;
-    else limitType = Number(limit.limitType) as LimitType;
+    else {
+      const numericLimitType = Number(limit.limitType);
+      if (Number.isNaN(numericLimitType)) {
+        console.warn(
+          "Unexpected limitType value received from WASM:",
+          limit.limitType,
+        );
+        // Fallback to a safe default to avoid propagating an invalid enum value
+        limitType = LimitType.Unlimited;
+      } else {
+        limitType = numericLimitType as LimitType;
+      }
+    }
 
     return {
       limitType,
@@ -157,7 +169,7 @@ const {
     rpcUrl,
     contracts: {
       sessionValidator: contracts.sessionValidator,
-      entryPoint: contracts.entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
+      entryPoint: (contracts as any).entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
       accountFactory: contracts.factory,
       webauthnValidator: contracts.webauthnValidator,
       eoaValidator: contracts.eoaValidator,

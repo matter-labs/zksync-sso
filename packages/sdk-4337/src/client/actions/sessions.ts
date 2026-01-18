@@ -542,6 +542,9 @@ export type ListActiveSessionsReturnType = {
  *   rpcUrl: "https://sepolia.era.zksync.dev",
  *   contracts: {
  *     sessionValidator: "0x...",
+ *     webauthnValidator: "0x...",
+ *     eoaValidator: "0x...",
+ *     guardianExecutor: "0x...",
  *     entryPoint: "0x...",
  *     accountFactory: "0x...",
  *   },
