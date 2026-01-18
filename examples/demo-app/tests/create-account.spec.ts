@@ -460,3 +460,178 @@ test("Create account with session, create session via paymaster, and send ETH", 
 
   console.log("Session created successfully with balance:", sessionStartBalance, "ETH");
 });
+
+test("Create session and verify it appears in auth-server sessions list", async ({ page }) => {
+  test.setTimeout(120000);
+  console.log("\n=== Session Display in Sessions List Test ===\n");
+
+  // Step 1: Create account
+  console.log("Step 1: Creating account...");
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await page.waitForTimeout(2000);
+
+  const popup = page.context().pages()[1];
+  await expect(popup.getByText("Connect to")).toBeVisible();
+
+  // Setup WebAuthn
+  const client = await popup.context().newCDPSession(popup);
+  await client.send("WebAuthn.enable");
+  let newCredential: WebAuthnCredential | null = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    newCredential = credentialAdded.credential;
+  });
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+
+  // Complete signup
+  await popup.getByTestId("signup").click();
+  await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
+  await popup.getByTestId("connect").click();
+  await page.waitForTimeout(2000);
+  await expect(page.getByText("Disconnect")).toBeVisible();
+
+  // Capture the account address from the page
+  const demoPageContent = await page.textContent("body");
+  const accountMatch = demoPageContent?.match(/0x[a-fA-F0-9]{40}/);
+  const demoAccountAddress = accountMatch ? accountMatch[0] : "unknown";
+  console.log(`✓ Account created: ${demoAccountAddress}`);
+
+  // Step 2: Create session
+  console.log("\nStep 2: Creating session...");
+  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Connect with Session", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
+  await page.waitForTimeout(2000);
+
+  const sessionPopup = page.context().pages()[1];
+  await expect(sessionPopup.getByText("Act on your behalf")).toBeVisible();
+
+  // Setup WebAuthn with existing credential
+  const sessionClient = await sessionPopup.context().newCDPSession(sessionPopup);
+  await sessionClient.send("WebAuthn.enable");
+  const sessionAuthenticator = await sessionClient.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+  await expect(newCredential).not.toBeNull();
+  await sessionClient.send("WebAuthn.addCredential", {
+    authenticatorId: sessionAuthenticator.authenticatorId,
+    credential: newCredential!,
+  });
+
+  // Authorize session
+  await expect(sessionPopup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
+  await sessionPopup.getByTestId("connect").click();
+  await page.waitForTimeout(3000);
+  await expect(page.getByText("Disconnect")).toBeVisible();
+  console.log("✓ Session created");
+
+  // Step 3: Navigate to auth-server sessions page to verify
+  console.log("\nStep 3: Verifying session appears in auth-server...");
+
+  const authPage = await page.context().newPage();
+  await authPage.goto("http://localhost:3002");
+  await authPage.waitForTimeout(1000);
+
+  // Check if logged in
+  const isLoggedIn = await authPage.locator("[data-testid='account-address']").isVisible({ timeout: 2000 }).catch(() => false);
+
+  if (!isLoggedIn) {
+    console.log("Logging into auth-server...");
+    // Already on auth-server homepage, just click login
+    await authPage.getByTestId("login").click();
+    await authPage.waitForTimeout(1000);
+
+    // Setup WebAuthn for login
+    const authClient = await authPage.context().newCDPSession(authPage);
+    await authClient.send("WebAuthn.enable");
+    const authAuthenticator = await authClient.send("WebAuthn.addVirtualAuthenticator", {
+      options: {
+        protocol: "ctap2",
+        transport: "usb",
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        automaticPresenceSimulation: true,
+      },
+    });
+    await authClient.send("WebAuthn.addCredential", {
+      authenticatorId: authAuthenticator.authenticatorId,
+      credential: newCredential!,
+    });
+
+    await authPage.waitForURL("**/dashboard", { timeout: 15000 });
+    console.log("✓ Logged into auth-server");
+  }
+
+  // Navigate to sessions page
+  await authPage.goto("http://localhost:3002/dashboard/sessions");
+  await authPage.waitForLoadState("domcontentloaded");
+
+  // Listen for console logs from the sessions page
+  authPage.on("console", (msg) => {
+    if (msg.text().includes("[sessions.vue]")) {
+      console.log(`  Auth-server: ${msg.text()}`);
+    }
+  });
+
+  console.log("✓ Navigated to sessions page");
+  console.log(`  Demo account (created session): ${demoAccountAddress}`);
+
+  // Verify sessions page content
+  const header = authPage.locator("header").getByText("Sessions");
+  await expect(header).toBeVisible();
+  console.log("✓ Sessions page loaded");
+
+  // Wait for sessions data to load - look for either session rows or the table/list container
+  // The sessions are loaded via WASM asynchronously, so we need to wait
+  try {
+    // Wait for the sessions list container or session rows to appear
+    await authPage.waitForSelector("table tbody tr, [role='list'] > div, [data-testid*='session']", {
+      timeout: 15000,
+      state: "attached",
+    });
+    console.log("✓ Sessions data container loaded");
+  } catch (e) {
+    console.log("⚠ No sessions container appeared within 15s", e);
+  }
+
+  // Additional wait to ensure console logs are captured
+  await authPage.waitForTimeout(2000);
+
+  // Log page content for debugging
+  const pageContent = await authPage.locator("main").textContent();
+  console.log(`Page content: ${pageContent?.substring(0, 500)}`);
+
+  // Verify at least one session is displayed
+  // The session rows use class="session-row" in the SessionRow component
+  const sessionRows = authPage.locator(".session-row");
+  const sessionCount = await sessionRows.count();
+  console.log(`Found ${sessionCount} session row(s)`);
+
+  expect(sessionCount, "At least one session should be displayed").toBeGreaterThan(0);
+  console.log(`✓ Found ${sessionCount} session(s) displayed`);
+
+  // Verify empty state message is NOT shown
+  const emptyState = authPage.getByText(/no active sessions/i);
+  const emptyVisible = await emptyState.isVisible({ timeout: 1000 }).catch(() => false);
+  expect(emptyVisible, "Empty state should NOT be visible when sessions exist").toBe(false);
+  console.log("✓ Empty state correctly hidden");
+
+  await authPage.close();
+  console.log("\n=== Session Display Test Complete ===\n");
+});

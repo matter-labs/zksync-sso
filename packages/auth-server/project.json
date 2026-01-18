@@ -93,6 +93,14 @@
         "command": "PW_TEST_HTML_REPORT_OPEN=never pnpm exec playwright test guardian.spec.ts --config playwright.config.ts"
       },
       "dependsOn": ["build:local"]
+    },
+    "e2e:session": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "PW_TEST_HTML_REPORT_OPEN=never pnpm exec playwright test sessions.spec.ts --config playwright.config.ts"
+      },
+      "dependsOn": ["build:local"]
     }
   }
 }

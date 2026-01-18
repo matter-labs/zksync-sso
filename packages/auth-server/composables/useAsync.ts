@@ -16,11 +16,12 @@ export function useAsync<T extends any[], U>(asyncFunction: AsyncFunction<T, U>)
       result.value = response;
       return response;
     } catch (e) {
-      const err = e instanceof Error ? e : new Error("An unexpected error occurred.");
+      // Preserve the original error message and stack trace
+      const err = e instanceof Error ? e : new Error(String(e) || "An unexpected error occurred.");
       error.value = err;
-      if (err) {
-        throw err;
-      }
+      // Log the error for debugging
+      console.error("[useAsync] Error in async function:", err);
+      throw err;
     } finally {
       inProgress.value = false;
     }
