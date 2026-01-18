@@ -37,15 +37,16 @@ pub fn get_active_sessions_wasm(
         };
 
         // Parse contracts JSON
-        let contracts: CoreContracts = match serde_json::from_str(&contracts_json) {
-            Ok(c) => c,
-            Err(e) => {
-                return Err(JsValue::from_str(&format!(
-                    "Invalid contracts JSON: {}",
-                    e
-                )));
-            }
-        };
+        let contracts: CoreContracts =
+            match serde_json::from_str(&contracts_json) {
+                Ok(c) => c,
+                Err(e) => {
+                    return Err(JsValue::from_str(&format!(
+                        "Invalid contracts JSON: {}",
+                        e
+                    )));
+                }
+            };
 
         // Create transport and provider
         let transport = WasmHttpTransport::new(rpc_url);
