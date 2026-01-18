@@ -1,6 +1,5 @@
 use crate::wasm_transport::WasmHttpTransport;
-use alloy::primitives::Address;
-use alloy::providers::ProviderBuilder;
+use alloy::{primitives::Address, providers::ProviderBuilder};
 use alloy_rpc_client::RpcClient;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
