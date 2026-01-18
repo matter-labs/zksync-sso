@@ -2977,6 +2977,9 @@ impl Client {
     }
 }
 
+// Re-export session functions from account module
+pub use account::modular_smart_account::session::list::get_active_sessions_wasm;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3336,6 +3339,3 @@ mod tests {
         }
     }
 }
-
-// Re-export session functions from account module
-pub use account::modular_smart_account::session::list::get_active_sessions_wasm;
