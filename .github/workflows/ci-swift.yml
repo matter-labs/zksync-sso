@@ -5,16 +5,16 @@ permissions:
 on:
   push:
     paths:
-      - 'packages/contracts/**'
-      - 'packages/sdk-platforms/rust/**'
-      - 'packages/sdk-platforms/swift/**'
-      - '.github/workflows/ci-swift.yml'
+      - "packages/contracts/**"
+      - "packages/sdk-platforms/rust/**"
+      - "packages/sdk-platforms/swift/**"
+      - ".github/workflows/ci-swift.yml"
   pull_request:
     paths:
-      - 'packages/contracts/**'
-      - 'packages/sdk-platforms/rust/**'
-      - 'packages/sdk-platforms/swift/**'
-      - '.github/workflows/ci-swift.yml'
+      - "packages/contracts/**"
+      - "packages/sdk-platforms/rust/**"
+      - "packages/sdk-platforms/swift/**"
+      - ".github/workflows/ci-swift.yml"
 
 jobs:
   swift-sdk:
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-        
+
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
 
@@ -85,20 +85,21 @@ jobs:
 
       - name: Select Simulator
         run: |
-          UDID=$(xcrun simctl list devices | awk '/-- iOS 18.4 --/{flag=1; next} /--/{flag=0} flag' | grep "iPhone 16 Pro" | awk -F '[()]' '{print $2}' | head -1)
+          # Get any available iPhone simulator (preferably newer models)
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone (1[6-9]|[2-9][0-9])" | head -1 | grep -o '[0-9A-F]\{8\}-[0-9A-F]\{4\}-[0-9A-F]\{4\}-[0-9A-F]\{4\}-[0-9A-F]\{12\}')
           if [ -z "$UDID" ]; then
-            echo "Simulator not found!" >&2
+            echo "No suitable iPhone simulator found!" >&2
             exit 1
           fi
           echo "Simulator UDID: $UDID"
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
-        
+
       - name: Install swiftformat
         run: brew install swiftformat
 
       - name: Build bindings
         run: sh packages/sdk-platforms/rust/zksync-sso/crates/ffi/build-swift-framework-ios-ci.sh
-        
+
       - name: Build & test Swift SDK
         run: |
           xcodebuild test \
