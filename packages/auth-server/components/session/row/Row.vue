@@ -16,17 +16,13 @@
       </div>
     </div>
     <div class="session-expiry-container">
-      <!-- TODO: created-at is hardcoded to 0 because the current session data
-           does not include a creation timestamp. Update this when a real
-           created-at value is available or when SessionRowExpiry is changed
-           to not rely on created-at for active sessions. -->
       <SessionRowExpiry
         v-if="sessionState"
         :status="sessionState.status"
         :is-expired="isExpired"
-        :created-at="0"
         :expires-at="expiresAt"
         :now="now"
+        :max-expires-at="maxExpiresAt"
       />
     </div>
     <div class="session-spend-limit-container">
@@ -67,6 +63,7 @@ import { type SessionConfig, type SessionState, SessionStatus } from "zksync-sso
 const props = defineProps<{
   sessionHash: Hex;
   sessionSpec: SessionConfig;
+  maxExpiresAt: number;
 }>();
 
 const _now = useNow({ interval: 1000 });

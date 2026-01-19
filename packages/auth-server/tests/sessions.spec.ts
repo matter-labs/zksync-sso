@@ -99,52 +99,33 @@ test("Session list: verify sessions page loads and displays correctly", async ({
 
   console.log("Page loaded, checking content...");
 
-  // Log any errors that occurred
-  if (pageErrors.length > 0) {
-    console.log(`⚠️ Page errors detected: ${pageErrors.join(", ")}`);
-  }
-
-  // Check what's actually on the page
-  const bodyText = await page.locator("body").textContent();
-  console.log(`Page content (first 500 chars): ${bodyText?.substring(0, 500)}`);
+  // Assert no page errors occurred
+  expect(pageErrors, "No page errors should occur during load").toHaveLength(0);
 
   // Step 3: Verify sessions page UI
   console.log("\nStep 3: Verifying sessions page UI...");
 
-  // Check for main content
-  const mainVisible = await page.locator("main").isVisible({ timeout: 5000 }).catch(() => false);
-  console.log(`Main content visible: ${mainVisible}`);
+  // Assert main content is visible
+  const main = page.locator("main");
+  await expect(main).toBeVisible({ timeout: 5000 });
 
-  // Look for sessions heading (in header)
+  // Assert sessions heading is present
   const header = page.locator("header").getByText("Sessions");
-  const headerVisible = await header.isVisible({ timeout: 5000 }).catch(() => false);
-  console.log(`Sessions header visible: ${headerVisible}`);
+  await expect(header).toBeVisible({ timeout: 5000 });
 
-  if (headerVisible) {
-    console.log("✓ Sessions header found");
-  } else {
-    console.log("❌ Sessions header NOT found");
-    // Check what's in the header
-    const headerText = await page.locator("header").textContent().catch(() => "");
-    console.log(`Header content: ${headerText}`);
-  }
-
-  // Look for empty state or error message
+  // Assert empty state is visible (since we haven't created any sessions yet)
   const emptyStateText = page.getByText(/no active sessions/i);
-  const emptyVisible = await emptyStateText.isVisible({ timeout: 3000 }).catch(() => false);
-  console.log(`Empty state visible: ${emptyVisible}`);
+  await expect(emptyStateText).toBeVisible({ timeout: 3000 });
 
+  // Assert no error alerts are shown
   const errorAlert = page.locator("[role='alert']");
-  const errorVisible = await errorAlert.isVisible({ timeout: 1000 }).catch(() => false);
-  if (errorVisible) {
-    const errorText = await errorAlert.textContent();
-    console.log(`⚠️ Error alert: ${errorText}`);
-  }
+  await expect(errorAlert).not.toBeVisible({ timeout: 1000 });
 
-  // Check for session rows
-  const sessionRows = page.locator("[data-testid*='session-row'], .session-item");
+  // Assert no session rows are displayed (empty state)
+  const sessionRows = page.locator(".session-row");
   const count = await sessionRows.count();
-  console.log(`Session rows found: ${count}`);
+  expect(count, "No sessions should be displayed in empty state").toBe(0);
 
+  console.log("✓ All assertions passed");
   console.log("\n=== Session List UI Test Complete ===\n");
 });

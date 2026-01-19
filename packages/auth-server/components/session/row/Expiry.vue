@@ -38,8 +38,8 @@ const props = defineProps<{
   status: SessionStatus;
   isExpired: boolean;
   now: number;
-  createdAt: number;
   expiresAt: number;
+  maxExpiresAt: number;
 }>();
 
 const expiresIn = useTimeAgo(props.expiresAt, { showSecond: true, updateInterval: 1000 });
@@ -54,7 +54,10 @@ const sessionExpiry = computed(() => {
   });
 });
 const timeLeft = computed<number>(() => Math.max(0, props.expiresAt - props.now));
-const timeTotal = computed<number>(() => Math.max(0, props.expiresAt - props.createdAt));
-const timeLeftPercentage = computed<number>(() => Math.min(100, (timeLeft.value / timeTotal.value) * 100));
+const maxTimeLeft = computed<number>(() => Math.max(0, props.maxExpiresAt - props.now));
+const timeLeftPercentage = computed<number>(() => {
+  if (maxTimeLeft.value === 0) return 0;
+  return Math.min(100, (timeLeft.value / maxTimeLeft.value) * 100);
+});
 const isRevoked = computed(() => props.status === SessionStatus.Closed);
 </script>

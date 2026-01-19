@@ -45,6 +45,7 @@
           :key="item.sessionHash"
           :session-hash="item.sessionHash"
           :session-spec="item.sessionSpec"
+          :max-expires-at="maxExpiresAt"
         />
       </template>
     </div>
@@ -55,7 +56,7 @@
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
 import type { Address, Hex } from "viem";
 import { listActiveSessions } from "zksync-sso-4337";
-import { type ConstraintCondition, LimitType, type SessionSpec } from "zksync-sso-4337/client";
+import { ConstraintCondition, LimitType, type SessionSpec } from "zksync-sso-4337/client";
 
 const { defaultChain } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
@@ -158,12 +159,37 @@ const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionSpec => {
       selector: policy.selector,
       maxValuePerUse: safeBigInt(policy.maxValuePerUse, "maxValuePerUse"),
       valueLimit: convertLimit(policy.valueLimit),
-      constraints: (policy.constraints || []).map((constraint: WasmConstraint) => ({
-        condition: constraint.condition as unknown as ConstraintCondition,
-        index: safeBigInt(constraint.index, "constraint.index"),
-        refValue: constraint.refValue,
-        limit: convertLimit(constraint.limit),
-      })),
+      constraints: (policy.constraints || []).map((constraint: WasmConstraint) => {
+        // Validate and convert constraint condition
+        let condition: ConstraintCondition;
+        const validConditions: Record<string, ConstraintCondition> = {
+          Unconstrained: ConstraintCondition.Unconstrained,
+          Equal: ConstraintCondition.Equal,
+          Greater: ConstraintCondition.Greater,
+          Less: ConstraintCondition.Less,
+          GreaterEqual: ConstraintCondition.GreaterEqual,
+          LessEqual: ConstraintCondition.LessEqual,
+          NotEqual: ConstraintCondition.NotEqual,
+        };
+
+        if (constraint.condition in validConditions) {
+          condition = validConditions[constraint.condition];
+        } else {
+          const error = new Error(
+            `Unexpected constraint condition value received from WASM: ${constraint.condition}`,
+          );
+          // eslint-disable-next-line no-console
+          console.error(error);
+          throw error;
+        }
+
+        return {
+          condition,
+          index: safeBigInt(constraint.index, "constraint.index"),
+          refValue: constraint.refValue,
+          limit: convertLimit(constraint.limit),
+        };
+      }),
     })),
     transferPolicies: (wasmSpec.transferPolicies || []).map((policy: WasmTransferPolicy) => ({
       target: policy.target,
@@ -204,7 +230,7 @@ const {
       accountFactory: contracts.factory,
       webauthnValidator: contracts.webauthnValidator,
       eoaValidator: contracts.eoaValidator,
-      guardianExecutor: contracts.guardianExecutor,
+      guardianExecutor: contracts.guardianExecutor as Address,
     },
   });
 
@@ -225,6 +251,12 @@ const {
     }));
 
   return filtered;
+});
+
+// Calculate the maximum expiration time across all sessions for progress bar scaling
+const maxExpiresAt = computed(() => {
+  if (!sessions.value || sessions.value.length === 0) return 0;
+  return Math.max(...sessions.value.map((s) => Number(s.sessionSpec.expiresAt)));
 });
 
 sessionsFetch();
