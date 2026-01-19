@@ -583,9 +583,19 @@ export async function listActiveSessions(
     contractsJson,
   );
 
-  // Parse the JSON result
-  const sessions = JSON.parse(resultJson as string);
+  // Parse the JSON result with basic validation
+  let parsedSessions: unknown;
+  try {
+    parsedSessions = JSON.parse(resultJson as string);
+  } catch (error) {
+    throw new Error("Failed to parse sessions JSON returned from WASM");
+  }
 
+  if (!Array.isArray(parsedSessions)) {
+    throw new Error("Invalid sessions format returned from WASM: expected an array");
+  }
+
+  const sessions = parsedSessions;
   return {
     sessions,
   };

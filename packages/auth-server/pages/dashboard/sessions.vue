@@ -105,18 +105,12 @@ const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionSpec => {
     else if (limit.limitType === "Lifetime") limitType = LimitType.Lifetime;
     else if (limit.limitType === "Allowance") limitType = LimitType.Allowance;
     else {
-      const numericLimitType = Number(limit.limitType);
-      if (Number.isNaN(numericLimitType)) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          "Unexpected limitType value received from WASM:",
-          limit.limitType,
-        );
-        // Fallback to a safe default to avoid propagating an invalid enum value
-        limitType = LimitType.Unlimited;
-      } else {
-        limitType = numericLimitType as LimitType;
-      }
+      const error = new Error(
+        `Unexpected limitType value received from WASM: ${limit.limitType}`,
+      );
+      // eslint-disable-next-line no-console
+      console.error(error);
+      throw error;
     }
 
     // Validate and convert BigInt values with try-catch
@@ -193,13 +187,20 @@ const {
   if (address.value === null) {
     throw new Error("Account address is null");
   }
+
+  // Ensure entryPoint is provided by the chain configuration
+  const { entryPoint } = contracts as { entryPoint?: Address };
+  if (!entryPoint) {
+    throw new Error(`EntryPoint address is not configured for chain ${defaultChain.id}`);
+  }
+
   // Use the new listActiveSessions function from the SDK
   const { sessions: activeSessions } = await listActiveSessions({
     account: address.value,
     rpcUrl,
     contracts: {
       sessionValidator: contracts.sessionValidator,
-      entryPoint: (contracts as { entryPoint?: Address }).entryPoint || "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
+      entryPoint: entryPoint as Address,
       accountFactory: contracts.factory,
       webauthnValidator: contracts.webauthnValidator,
       eoaValidator: contracts.eoaValidator,
