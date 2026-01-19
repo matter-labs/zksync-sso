@@ -83,15 +83,37 @@ jobs:
       - name: Select Xcode 16.3
         run: sudo xcode-select -s /Applications/Xcode_16.3.app
 
+      - name: Install iOS Simulator Runtime
+        run: |
+          # List available runtimes
+          echo "Available runtimes:"
+          xcrun simctl runtime list
+          # Check what iOS runtimes are available with Xcode 16.3
+          # Download and install iOS 18 runtime if not available
+          xcodebuild -downloadPlatform iOS || true
+
       - name: Select Simulator
         run: |
+          # List available simulators and boot one
+          xcrun simctl list devices available
+
           # Get any available iPhone simulator (preferably newer models)
           UDID=$(xcrun simctl list devices available | grep -E "iPhone (1[6-9]|[2-9][0-9])" | head -1 | grep -o '[0-9A-F]\{8\}-[0-9A-F]\{4\}-[0-9A-F]\{4\}-[0-9A-F]\{4\}-[0-9A-F]\{12\}')
           if [ -z "$UDID" ]; then
             echo "No suitable iPhone simulator found!" >&2
+            # Fallback:  try to get any iPhone simulator
+            UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | grep -o '[0-9A-F]\{8\}-[0-9A-F]\{4\}-[0-9A-F]\{4\}-[0-9A-F]\{4\}-[0-9A-F]\{12\}')
+          fi
+          if [ -z "$UDID" ]; then
+            echo "No iPhone simulator found at all!" >&2
             exit 1
           fi
           echo "Simulator UDID: $UDID"
+
+          # Boot the simulator
+          xcrun simctl boot "$UDID" || echo "Simulator may already be booted"
+          sleep 3
+
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
 
       - name: Install swiftformat
