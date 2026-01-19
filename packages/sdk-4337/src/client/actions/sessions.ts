@@ -588,7 +588,7 @@ export async function listActiveSessions(
   try {
     parsedSessions = JSON.parse(resultJson as string);
   } catch (error) {
-    throw new Error("Failed to parse sessions JSON returned from WASM");
+    throw new Error(`Failed to parse sessions JSON returned from WASM: ${error}`);
   }
 
   if (!Array.isArray(parsedSessions)) {

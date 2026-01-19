@@ -1,0 +1,11 @@
+{
+  "eoaValidator": "0xc6945fB9c35a5696E6FB0b23084B4409e2D945EA",
+  "webauthnValidator": "0xD52c9b1bA249f877C8492F64c096E37a8072982A",
+  "sessionValidator": "0x38Bf206f027B9c861643689CD516A3B00210586f",
+  "guardianExecutor": "0x4337768cB3eC57Dd2cb843eFb929B773B13322de",
+  "accountImplementation": "0x7235ea708874f733d70B604122BfC121468dFFF6",
+  "beacon": "0x1dEedcF23b6970C30B9d82e18F27B0844bF37838",
+  "factory": "0x121d7fB7D7B28eBcCf017A8175b8DD637C670BBc",
+  "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+  "bundlerUrl": "https://bundler-api.stage-sso.zksync.dev"
+}

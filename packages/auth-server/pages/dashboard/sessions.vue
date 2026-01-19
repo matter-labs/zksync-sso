@@ -204,7 +204,7 @@ const {
       accountFactory: contracts.factory,
       webauthnValidator: contracts.webauthnValidator,
       eoaValidator: contracts.eoaValidator,
-      guardianExecutor: contracts.guardianExecutor || "0x0000000000000000000000000000000000000000",
+      guardianExecutor: contracts.guardianExecutor,
     },
   });
 
