@@ -55,3 +55,4 @@ out/
 
 # passkey-wallet-app
 .env
+logs

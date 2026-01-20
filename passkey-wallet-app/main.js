@@ -337,6 +337,7 @@ function renderActivity(status) {
     // Get metadata from localStorage
     const txHash = tx.hash || tx.l2TxHash;
     const storedMetadata = getTxMetadata(txHash);
+    const text = translatedText();
 
     // Use stored metadata if available, fallback to tx data
     let action = storedMetadata?.action || tx.action || "Unknown";
@@ -363,8 +364,6 @@ function renderActivity(status) {
     l2Link.href = `${L2_EXPLORER_BASE}${txHash}`;
     l2Link.target = "_blank";
     l2Link.rel = "noreferrer";
-
-    const text = translatedText();
 
     const l2TxLabel = action === "Deposit"
       ? text.l2DepsitTx
