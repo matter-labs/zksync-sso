@@ -230,7 +230,7 @@ const {
       accountFactory: contracts.factory,
       webauthnValidator: contracts.webauthnValidator,
       eoaValidator: contracts.eoaValidator,
-      guardianExecutor: contracts.guardianExecutor as Address,
+      guardianExecutor: contracts.guardianExecutor,
     },
   });
 

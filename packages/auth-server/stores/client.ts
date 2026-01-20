@@ -59,12 +59,12 @@ type ChainContracts = {
   eoaValidator: Address;
   webauthnValidator: Address;
   sessionValidator: Address;
+  guardianExecutor: Address; // Guardian executor module (ERC-4337)
   factory: Address;
   bundlerUrl?: string;
   beacon?: Address; // Optional, for deployment
   testPaymaster?: Address; // Optional, for paymaster sponsorship
   recovery?: Address; // Recovery module (legacy SDK)
-  guardianExecutor?: Address; // Guardian executor module (ERC-4337)
   accountPaymaster?: Address; // Paymaster for account operations
 };
 
