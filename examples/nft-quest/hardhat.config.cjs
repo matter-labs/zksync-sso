@@ -1,45 +1,16 @@
-require("@matterlabs/hardhat-zksync");
+require("@nomicfoundation/hardhat-toolbox");
 
-// const { HardhatUserConfig } = require("hardhat/config");
-
+/** @type import('hardhat/config').HardhatUserConfig */
 const config = {
-  defaultNetwork: "inMemoryNode",
+  solidity: "0.8.17",
   networks: {
-    zkSyncSepoliaTestnet: {
-      url: "https://sepolia.era.zksync.dev",
-      ethNetwork: "sepolia",
-      zksync: true,
-      verifyURL: "https://explorer.sepolia.era.zksync.dev/contract_verification",
-    },
-    zkSyncMainnet: {
-      url: "https://mainnet.era.zksync.io",
-      ethNetwork: "mainnet",
-      zksync: true,
-      verifyURL: "https://zksync2-mainnet-explorer.zksync.io/contract_verification",
-    },
-    dockerizedNode: {
-      url: "http://localhost:3050",
-      ethNetwork: "http://localhost:8545",
-      zksync: true,
-    },
-    inMemoryNode: {
-      url: "http://127.0.0.1:8011",
-      ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
-      zksync: true,
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      chainId: 1337,
     },
     hardhat: {
-      zksync: true,
+      chainId: 1337,
     },
-  },
-  zksolc: {
-    version: "latest",
-    settings: {
-      // find all available options in the official documentation
-      // https://docs.zksync.io/build/tooling/hardhat/hardhat-zksync-solc#configuration
-    },
-  },
-  solidity: {
-    version: "0.8.17",
   },
 };
 

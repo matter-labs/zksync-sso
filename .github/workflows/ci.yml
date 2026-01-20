@@ -129,63 +129,94 @@ jobs:
           path: packages/auth-server/playwright-report/
           retention-days: 3
 
-  # e2e-nft-quest:
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: ./
-  #   steps:
-  #     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-  #       with:
-  #         submodules: recursive
+  # TODO: Consider sharing CI infrastructure between demo-app and nft-quest
+  # Currently duplicated for test isolation and independence
+  e2e-nft-quest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: ./
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          submodules: recursive
 
-  #     # Start node
-  #     - name: Era Test Node Action
-  #       uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.11.0
 
-  #     - name: Setup pnpm
-  #       uses: pnpm/action-setup@v4
-  #       with:
-  #         version: 9.11.0
+      - name: Use Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: lts/Iron
+          cache: pnpm
 
-  #     - name: Use Node.js
-  #       uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
-  #       with:
-  #         node-version: lts/Iron
-  #         cache: pnpm
+      # Install Foundry for Anvil and ERC-4337 contract deployment
+      - name: Install foundry
+        uses: foundry-rs/foundry-toolchain@v1.5.0
 
-  #     # Install dependencies for repo
-  #     - name: Install dependencies
-  #       run: pnpm install -r --frozen-lockfile
+      # Start Anvil for ERC-4337 (standard EVM on port 8545)
+      - name: Start Anvil
+        run: |
+          pnpm run anvil &
+          echo "Waiting for Anvil to be ready..."
+          timeout 30 bash -c 'until cast client --rpc-url http://localhost:8545 > /dev/null 2>&1; do sleep 1; done'
+          echo "Anvil is ready!"
+        working-directory: packages/erc4337-contracts
 
-  #     # Install dependencies for the submodule
-  #     - name: Install contract dependencies
-  #       run: pnpm install -r --frozen-lockfile
-  #       working-directory: packages/contracts
+      # Install dependencies for repo
+      - name: Install dependencies
+        run: pnpm install -r --frozen-lockfile
 
-  #     - name: Build contracts
-  #       run: pnpm build
-  #       working-directory: packages/contracts
+      # Install and build ERC-4337 contracts
+      - name: Install ERC-4337 contract dependencies
+        run: forge soldeer install
+        working-directory: packages/erc4337-contracts
 
-  #     - name: Deploy contracts
-  #       run: pnpm run deploy --file ../auth-server/stores/local-node.json
-  #       working-directory: packages/contracts
+      - name: Build ERC-4337 contracts
+        run: forge build
+        working-directory: packages/erc4337-contracts
 
-  #     - name: Build SDK
-  #       run: pnpm nx build sdk
+      # Build ERC-4337 SDK packages
+      - name: Build ERC-4337 related packages
+        run: |
+          pnpm nx build web-sdk
+          pnpm nx build sdk-4337
+          pnpm nx build:erc4337 demo-app
 
-  #     - name: Deploy NFT contracts
-  #       run: pnpm nx deploy:local nft-quest-contracts
+      # Deploy MSA Factory and infrastructure (nft-quest will read from contracts-anvil.json)
+      - name: Deploy Demo-App ERC-4337 contracts
+        continue-on-error: true
+        run: pnpm nx deploy-msa-factory demo-app
 
-  #     # Run E2E tests
-  #     - name: Install Playwright Chromium Browser
-  #       run: pnpm exec playwright install chromium
-  #       working-directory: examples/nft-quest
-  #     - name: Run e2e tests
-  #       run: pnpm nx e2e nft-quest
-  #     - uses: actions/upload-artifact@v4
-  #       if: ${{ !cancelled() }}
-  #       with:
-  #         name: nft-quest-playwright-report
-  #         path: examples/nft-quest/playwright-report/
-  #         retention-days: 3
+      # Start Alto bundler with CORS proxy
+      - name: Start Alto bundler with CORS proxy
+        run: |
+          pnpm run bundler:with-proxy &
+          BUNDLER_PID=$!
+          echo "BUNDLER_PID=$BUNDLER_PID" >> $GITHUB_ENV
+          echo "Waiting for bundler to be ready on port 4337..."
+          timeout 60 bash -c 'until curl -s http://localhost:4337 > /dev/null 2>&1; do sleep 1; done'
+          echo "Bundler is ready!"
+        working-directory: packages/erc4337-contracts
+
+      # Deploy NFT Quest contracts (reads MSA infrastructure from contracts-anvil.json)
+      - name: Deploy NFT contracts
+        run: pnpm nx deploy:local nft-quest-contracts
+
+      # Run E2E tests
+      - name: Install Playwright Chromium Browser
+        run: pnpm exec playwright install chromium
+        working-directory: examples/nft-quest
+      - name: Run e2e tests
+        run: pnpm nx e2e nft-quest
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: nft-quest-playwright-report
+          path: examples/nft-quest/playwright-report/
+          retention-days: 3

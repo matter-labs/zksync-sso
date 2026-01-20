@@ -6,14 +6,14 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/nft-quest-contracts",
-        "command": "hardhat compile"
+        "command": "forge build"
       }
     },
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/nft-quest-contracts",
-        "command": "hardhat deploy-zksync --script deploy.ts"
+        "command": "echo 'Use deploy:local for local deployment or deploy contracts manually to production'"
       },
       "dependsOn": ["build"]
     },
@@ -21,9 +21,9 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/nft-quest-contracts",
-        "command": "WALLET_PRIVATE_KEY=0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110 hardhat deploy-zksync --script deploy.ts --network inMemoryNode"
+        "command": "./scripts/deploy-nft-anvil.sh"
       },
-      "dependsOn": ["build"]
+      "dependsOn": ["build", "demo-app:deploy-msa-factory"]
     },
     "test": {
       "executor": "nx:run-commands",

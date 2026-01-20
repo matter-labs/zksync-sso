@@ -1,5 +1,29 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import { defineChain } from "viem";
+import { localhost } from "viem/chains";
+import wasm from "vite-plugin-wasm";
+
+// TODO: Deploy NFT Quest to ZKsync OS Testnet and update contract addresses
+const zksyncOsTestnet = defineChain({
+  id: 8022833,
+  name: "ZKsyncOS Testnet",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://zksync-os-testnet-alpha.zksync.dev"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "ZKsyncOS Testnet Explorer",
+      url: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
+    },
+  },
+});
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -19,14 +43,17 @@ export default defineNuxtConfig({
   $production: {
     runtimeConfig: {
       public: {
-        chain: zksyncSepoliaTestnet,
+        chain: zksyncOsTestnet,
         contracts: {
-          nft: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
-          paymaster: "0x60eef092977DF2738480a6986e2aCD10236b1FA7",
+          // TODO: Deploy contracts to ZKsync OS Testnet
+          nft: "0x0000000000000000000000000000000000000000",
+          paymaster: "0x0000000000000000000000000000000000000000",
         },
+        bundlerUrl: "https://bundler-api.stage-sso.zksync.dev",
+        entryPoint: "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
         baseUrl: "https://nft.zksync.dev",
         authServerUrl: "https://auth-test.zksync.dev/confirm",
-        explorerUrl: "https://sepolia.explorer.zksync.io",
+        explorerUrl: "https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev",
       },
     },
   },
@@ -57,11 +84,13 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chain: zksyncInMemoryNode,
+      chain: localhost,
       contracts: {
         nft: "0xF4E1ee85f0645b5871B03bc40d151C174F0e86f6",
         paymaster: "0x25B89fa6e157937f845ec0Fb41733B29bc20A4d3",
       },
+      bundlerUrl: "http://localhost:4337",
+      entryPoint: "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
       baseUrl: "http://localhost:3006",
       authServerUrl: "http://localhost:3002/confirm",
       explorerUrl: "http://localhost:3010",
@@ -77,6 +106,10 @@ export default defineNuxtConfig({
     },
   },
   vite: {
+    plugins: [wasm()],
+    build: {
+      target: "esnext",
+    },
     css: {
       preprocessorOptions: {
         scss: {

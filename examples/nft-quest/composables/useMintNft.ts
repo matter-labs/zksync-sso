@@ -1,6 +1,5 @@
 import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import type { Address } from "viem";
-import { getGeneralPaymasterInput } from "viem/zksync";
 
 export const useMintNft = async (_address: MaybeRef<Address>) => {
   const address = toRef(_address);
@@ -10,13 +9,12 @@ export const useMintNft = async (_address: MaybeRef<Address>) => {
     const { wagmiConfig } = storeToRefs(useConnectorStore());
 
     const mintingForAddress = address.value;
+    // Paymaster is configured at connector level, no need to specify here
     const transactionHash = await writeContract(wagmiConfig.value, {
       address: runtimeConfig.public.contracts.nft as Address,
       abi: nftAbi,
       functionName: "mint",
       args: [mintingForAddress],
-      paymaster: runtimeConfig.public.contracts.paymaster as Address,
-      paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
     });
 
     const transactionReceipt = await waitForTransactionReceipt(wagmiConfig.value, { hash: transactionHash });
