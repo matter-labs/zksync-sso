@@ -85,21 +85,46 @@ jobs:
 
       - name: Create and Select Simulator
         run: |
-          # List available runtimes
-          echo "Available runtimes:"
+          # List available runtimes before installation
+          echo "Available runtimes before installation:"
+          xcrun simctl list runtimes
+
+          # Download iOS platform
+          echo "Downloading iOS platform..."
+          xcodebuild -downloadPlatform iOS
+
+          # Wait for download to complete
+          sleep 10
+
+          # List available runtimes after installation
+          echo "Available runtimes after installation:"
           xcrun simctl list runtimes
 
           # Get the latest iOS runtime
-          IOS_RUNTIME=$(xcrun simctl list runtimes | grep "iOS" | tail -1 | sed -E 's/.*\(([0-9]+\.[0-9]+).*\).*(com\.apple\.CoreSimulator\.SimRuntime\.[^)]+).*/\2/')
+          IOS_RUNTIME=$(xcrun simctl list runtimes | grep "iOS" | tail -1 | awk '{for(i=1;i<=NF;i++) if($i ~ /^com\.apple\.CoreSimulator\.SimRuntime/) print $i}' | tr -d ')')
+
+          if [ -z "$IOS_RUNTIME" ]; then
+            echo "ERROR: No iOS runtime found"
+            xcrun simctl list runtimes
+            exit 1
+          fi
+
           echo "Using iOS runtime: $IOS_RUNTIME"
 
+          # List available device types
+          echo "Available device types:"
+          xcrun simctl list devicetypes | grep iPhone
+
           # Create a new iPhone simulator
-          UDID=$(xcrun simctl create "iPhone-CI" "iPhone 15" "$IOS_RUNTIME")
+          UDID=$(xcrun simctl create "iPhone-CI" "com.apple.CoreSimulator.SimDeviceType.iPhone-15" "$IOS_RUNTIME")
           echo "Created simulator with UDID: $UDID"
 
           # Boot the simulator
           xcrun simctl boot "$UDID"
           echo "Booted simulator"
+
+          # Verify simulator is booted
+          xcrun simctl list devices | grep "$UDID"
 
           # Wait for simulator to be ready
           sleep 5
