@@ -18,13 +18,19 @@ export const useConnectorStore = defineStore("connector", () => {
     },
     authServerUrl: runtimeConfig.public.authServerUrl,
     session: {
-      feeLimit: "2000000000000000", // 0.002 ETH - sufficient for NFT mints
+      feeLimit: {
+        limitType: "lifetime",
+        limit: 2_000_000_000_000_000n, // 0.002 ETH - sufficient for NFT mints
+      },
       contractCalls: [
         {
           address: runtimeConfig.public.contracts.nft as Address,
           abi: ZeekNftQuestAbi,
           functionName: "mint",
-          valueLimit: "0", // No ETH transfers allowed
+          valueLimit: {
+            limitType: "lifetime",
+            limit: 0n, // No ETH transfers allowed
+          },
         },
       ],
     },

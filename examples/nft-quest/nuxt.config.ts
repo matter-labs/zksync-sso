@@ -3,6 +3,8 @@ import { defineChain } from "viem";
 import { localhost } from "viem/chains";
 import wasm from "vite-plugin-wasm";
 
+import contracts from "./public/contracts.json";
+
 // TODO: Deploy NFT Quest to ZKsync OS Testnet and update contract addresses
 const zksyncOsTestnet = defineChain({
   id: 8022833,
@@ -86,11 +88,11 @@ export default defineNuxtConfig({
     public: {
       chain: localhost,
       contracts: {
-        nft: "0xF4E1ee85f0645b5871B03bc40d151C174F0e86f6",
-        paymaster: "0x25B89fa6e157937f845ec0Fb41733B29bc20A4d3",
+        nft: contracts.nftContract,
+        paymaster: contracts.mockPaymaster,
       },
-      bundlerUrl: "http://localhost:4337",
-      entryPoint: "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+      bundlerUrl: contracts.bundlerUrl,
+      entryPoint: contracts.entryPoint,
       baseUrl: "http://localhost:3006",
       authServerUrl: "http://localhost:3002/confirm",
       explorerUrl: "http://localhost:3010",

@@ -107,7 +107,7 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
 
         return { accounts, chainId: walletChainId };
       } catch (error) {
-        console.error(`Error connecting to ${this.name}`, error);
+        console.error(`old Error connecting to ${this.name}`, error);
         if (
           /(user closed modal|accounts received is empty|user denied account|request rejected)/i.test(
             (error as Error).message,
