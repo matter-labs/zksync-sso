@@ -106,12 +106,9 @@ const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionSpec => {
     else if (limit.limitType === "Lifetime") limitType = LimitType.Lifetime;
     else if (limit.limitType === "Allowance") limitType = LimitType.Allowance;
     else {
-      const error = new Error(
+      throw new Error(
         `Unexpected limitType value received from WASM: ${limit.limitType}`,
       );
-      // eslint-disable-next-line no-console
-      console.error(error);
-      throw error;
     }
 
     // Validate and convert BigInt values with try-catch
@@ -120,16 +117,12 @@ const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionSpec => {
     try {
       limitValue = BigInt(limit.limit);
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn("Invalid limit value from WASM, defaulting to 0:", limit.limit, e);
-      limitValue = 0n;
+      throw new Error(`Invalid limit value from WASM: ${limit.limit} - ${e}`);
     }
     try {
       periodValue = BigInt(limit.period);
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn("Invalid period value from WASM, defaulting to 0:", limit.period, e);
-      periodValue = 0n;
+      throw new Error(`Invalid period value from WASM: ${limit.period} - ${e}`);
     }
 
     return {
@@ -144,9 +137,7 @@ const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionSpec => {
     try {
       return BigInt(value);
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn(`Invalid ${fieldName} value from WASM, defaulting to 0:`, value, e);
-      return 0n;
+      throw new Error(`Invalid ${fieldName} value from WASM: ${value} - ${e}`);
     }
   };
 
@@ -175,12 +166,9 @@ const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionSpec => {
         if (constraint.condition in validConditions) {
           condition = validConditions[constraint.condition];
         } else {
-          const error = new Error(
+          throw new Error(
             `Unexpected constraint condition value received from WASM: ${constraint.condition}`,
           );
-          // eslint-disable-next-line no-console
-          console.error(error);
-          throw error;
         }
 
         return {
