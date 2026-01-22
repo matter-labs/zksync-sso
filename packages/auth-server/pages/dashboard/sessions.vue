@@ -4,42 +4,31 @@
       <template #default>
         Sessions
       </template>
-      <template #aside>
-        <!-- <transition v-bind="TransitionOpacity">
-          <ZkButton
-            v-if="sessions?.length"
-            type="danger"
-          >
-            <template #prefix>
-              <HandRaisedIcon
-                class="h-5 w-5 mr-1"
-                aria-hidden="true"
-              />
-            </template>
-            <span class="leading-tight">End all sessions</span>
-          </ZkButton>
-        </transition> -->
-      </template>
     </layout-header>
 
     <CommonAlert
-      v-if="sessions?.length"
+      v-if="sessionsFetchError"
       class="mb-4"
+      type="error"
     >
       <template #icon>
         <InformationCircleIcon aria-hidden="true" />
       </template>
       <template #default>
-        <p class="text-sm">
-          ZKsync SSO is still under development. The displayed spending amounts may not always be accurate.
+        <p class="text-sm font-semibold">
+          Failed to load sessions
+        </p>
+        <p class="text-xs mt-1">
+          {{ sessionsFetchError.message }}
         </p>
       </template>
     </CommonAlert>
 
     <span
-      v-if="!sessions?.length && !sessionsInProgress"
+      v-if="!sessions?.length && !sessionsInProgress && !sessionsFetchError"
+      data-testid="empty-sessions-message"
       class="font-thin block text-2xl text-neutral-500 text-center"
-    >No sessions yet...</span>
+    >No active sessions...</span>
     <div
       v-else
       class="border rounded-3xl divide-y bg-white border-neutral-200 divide-neutral-200 dark:bg-neutral-950 dark:border-neutral-900 dark:divide-neutral-900"
@@ -52,76 +41,210 @@
       </template>
       <template v-else>
         <SessionRow
-          v-for="(item, index) in (sessions || [])"
-          :key="item.sessionId"
-          :index="((sessions?.length || 0) - index)"
-          :session-id="item.sessionId"
-          :session="item.session"
-          :transaction-hash="item.transactionHash"
-          :block-number="item.blockNumber"
-          :timestamp="item.timestamp"
+          v-for="item in (sessions || [])"
+          :key="item.sessionHash"
+          :session-hash="item.sessionHash"
+          :session-spec="item.sessionSpec"
+          :max-expires-at="maxExpiresAt"
         />
       </template>
     </div>
-
-    <CommonAlert
-      v-if="defaultChain.id === localhost.id && sessions?.length"
-      class="mt-4"
-    >
-      <template #icon>
-        <InformationCircleIcon aria-hidden="true" />
-      </template>
-      <template #default>
-        <p class="text-sm">
-          Timestamps on {{ localhost.name }} start from 0 and incremented by 1 with each block. Therefore session time isn't accurate.
-        </p>
-      </template>
-    </CommonAlert>
   </div>
 </template>
 
 <script setup lang="ts">
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
-import type { Hex } from "viem";
-import { localhost } from "viem/chains";
-import { SessionKeyValidatorAbi } from "zksync-sso-4337/abi";
-import type { SessionConfig } from "zksync-sso-4337/client";
+import type { Address, Hex } from "viem";
+import { listActiveSessions } from "zksync-sso-4337";
+import { ConstraintCondition, LimitType, type SessionSpec } from "zksync-sso-4337/client";
 
-const { defaultChain, getPublicClient } = useClientStore();
+const { defaultChain } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
+
+// Types for WASM-returned session data (snake_case with string values)
+interface WasmUsageLimit {
+  limitType: string;
+  limit: string;
+  period: string;
+}
+
+interface WasmConstraint {
+  condition: string; // Will be converted to ConstraintCondition enum
+  index: string;
+  refValue: Hex;
+  limit: WasmUsageLimit;
+}
+
+interface WasmCallPolicy {
+  target: Address;
+  selector: Hex;
+  maxValuePerUse: string;
+  valueLimit: WasmUsageLimit;
+  constraints?: WasmConstraint[];
+}
+
+interface WasmTransferPolicy {
+  target: Address;
+  maxValuePerUse: string;
+  valueLimit: WasmUsageLimit;
+}
+
+interface WasmSessionSpec {
+  signer: Address;
+  expiresAt: string;
+  feeLimit: WasmUsageLimit;
+  callPolicies?: WasmCallPolicy[];
+  transferPolicies?: WasmTransferPolicy[];
+}
+
+// Helper to convert WASM session spec format to proper TypeScript types
+const convertSessionSpec = (wasmSpec: WasmSessionSpec): SessionSpec => {
+  const convertLimit = (limit: WasmUsageLimit) => {
+    // Map string limitType to enum value
+    let limitType: LimitType;
+    if (limit.limitType === "Unlimited") limitType = LimitType.Unlimited;
+    else if (limit.limitType === "Lifetime") limitType = LimitType.Lifetime;
+    else if (limit.limitType === "Allowance") limitType = LimitType.Allowance;
+    else {
+      throw new Error(
+        `Unexpected limitType value received from WASM: ${limit.limitType}`,
+      );
+    }
+
+    // Validate and convert BigInt values with try-catch
+    let limitValue: bigint;
+    let periodValue: bigint;
+    try {
+      limitValue = BigInt(limit.limit);
+    } catch (e) {
+      throw new Error(`Invalid limit value from WASM: ${limit.limit} - ${e}`);
+    }
+    try {
+      periodValue = BigInt(limit.period);
+    } catch (e) {
+      throw new Error(`Invalid period value from WASM: ${limit.period} - ${e}`);
+    }
+
+    return {
+      limitType,
+      limit: limitValue,
+      period: periodValue,
+    };
+  };
+
+  // Helper to safely convert BigInt with validation
+  const safeBigInt = (value: string, fieldName: string): bigint => {
+    try {
+      return BigInt(value);
+    } catch (e) {
+      throw new Error(`Invalid ${fieldName} value from WASM: ${value} - ${e}`);
+    }
+  };
+
+  return {
+    signer: wasmSpec.signer,
+    expiresAt: safeBigInt(wasmSpec.expiresAt, "expiresAt"),
+    feeLimit: convertLimit(wasmSpec.feeLimit),
+    callPolicies: (wasmSpec.callPolicies || []).map((policy: WasmCallPolicy) => ({
+      target: policy.target,
+      selector: policy.selector,
+      maxValuePerUse: safeBigInt(policy.maxValuePerUse, "maxValuePerUse"),
+      valueLimit: convertLimit(policy.valueLimit),
+      constraints: (policy.constraints || []).map((constraint: WasmConstraint) => {
+        // Validate and convert constraint condition
+        let condition: ConstraintCondition;
+        const validConditions: Record<string, ConstraintCondition> = {
+          Unconstrained: ConstraintCondition.Unconstrained,
+          Equal: ConstraintCondition.Equal,
+          Greater: ConstraintCondition.Greater,
+          Less: ConstraintCondition.Less,
+          GreaterEqual: ConstraintCondition.GreaterEqual,
+          LessEqual: ConstraintCondition.LessEqual,
+          NotEqual: ConstraintCondition.NotEqual,
+        };
+
+        if (constraint.condition in validConditions) {
+          condition = validConditions[constraint.condition];
+        } else {
+          throw new Error(
+            `Unexpected constraint condition value received from WASM: ${constraint.condition}`,
+          );
+        }
+
+        return {
+          condition,
+          index: safeBigInt(constraint.index, "constraint.index"),
+          refValue: constraint.refValue,
+          limit: convertLimit(constraint.limit),
+        };
+      }),
+    })),
+    transferPolicies: (wasmSpec.transferPolicies || []).map((policy: WasmTransferPolicy) => ({
+      target: policy.target,
+      maxValuePerUse: safeBigInt(policy.maxValuePerUse, "transfer.maxValuePerUse"),
+      valueLimit: convertLimit(policy.valueLimit),
+    })),
+  };
+};
 
 const {
   result: sessions,
   inProgress: sessionsInProgress,
-  // error: sessionsFetchError,
+  error: sessionsFetchError,
   execute: sessionsFetch,
 } = useAsync(async () => {
   const contracts = contractsByChain[defaultChain.id];
-  const publicClient = getPublicClient({ chainId: defaultChain.id });
-  const logs = await publicClient.getContractEvents({
-    abi: SessionKeyValidatorAbi,
-    address: contracts.session,
-    eventName: "SessionCreated",
-    args: {
-      account: address.value,
+
+  // Get RPC URL from the chain configuration
+  const rpcUrl = defaultChain.rpcUrls.default.http[0];
+
+  if (address.value === null) {
+    throw new Error("Account address is null");
+  }
+
+  // Ensure entryPoint is provided by the chain configuration
+  const { entryPoint } = contracts as { entryPoint?: Address };
+  if (!entryPoint) {
+    throw new Error(`EntryPoint address is not configured for chain ${defaultChain.id}`);
+  }
+
+  // Use the new listActiveSessions function from the SDK
+  const { sessions: activeSessions } = await listActiveSessions({
+    account: address.value,
+    rpcUrl,
+    contracts: {
+      sessionValidator: contracts.sessionValidator,
+      entryPoint: entryPoint as Address,
+      accountFactory: contracts.factory,
+      webauthnValidator: contracts.webauthnValidator,
+      eoaValidator: contracts.eoaValidator,
+      guardianExecutor: contracts.guardianExecutor,
     },
-    fromBlock: 0n,
   });
-  const data = logs
-    .filter((log) => log.args.sessionSpec && log.args.sessionHash)
-    .map((log) => ({
-      session: log.args.sessionSpec! as SessionConfig,
-      sessionId: log.args.sessionHash!,
-      transactionHash: log.transactionHash,
-      blockNumber: log.blockNumber,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      timestamp: new Date(parseInt((log as any).blockTimestamp as Hex, 16) * 1000).getTime(),
-    })).sort((a, b) => {
-      if (a.blockNumber < b.blockNumber) return 1;
-      if (a.blockNumber > b.blockNumber) return -1;
-      return 0;
-    });
-  return data;
+
+  // Map snake_case properties from WASM to camelCase and convert types
+  type WasmSession = { session_hash: Hex; session_spec: WasmSessionSpec };
+  const filtered = (activeSessions as unknown as WasmSession[])
+    .filter((item) => {
+      const isValid = item?.session_hash && item?.session_spec && item?.session_spec?.signer;
+      if (!isValid) {
+        // eslint-disable-next-line no-console
+        console.warn("[sessions.vue] Filtering out invalid session:", item);
+      }
+      return isValid;
+    })
+    .map((item) => ({
+      sessionHash: item.session_hash,
+      sessionSpec: convertSessionSpec(item.session_spec),
+    }));
+
+  return filtered;
+});
+
+// Calculate the maximum expiration time across all sessions for progress bar scaling
+const maxExpiresAt = computed(() => {
+  if (!sessions.value || sessions.value.length === 0) return 0;
+  return Math.max(...sessions.value.map((s) => Number(s.sessionSpec.expiresAt)));
 });
 
 sessionsFetch();

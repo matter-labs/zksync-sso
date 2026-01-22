@@ -59,12 +59,12 @@ type ChainContracts = {
   eoaValidator: Address;
   webauthnValidator: Address;
   sessionValidator: Address;
+  guardianExecutor: Address; // Guardian executor module (ERC-4337)
   factory: Address;
   bundlerUrl?: string;
   beacon?: Address; // Optional, for deployment
   testPaymaster?: Address; // Optional, for paymaster sponsorship
   recovery?: Address; // Recovery module (legacy SDK)
-  guardianExecutor?: Address; // Guardian executor module (ERC-4337)
   accountPaymaster?: Address; // Paymaster for account operations
 };
 
@@ -75,6 +75,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     eoaValidator: "0x3497392f9662Da3de1EC2AfE8724CdBF6b884088",
     webauthnValidator: "0xa5C2c5C723239C0cD11a5691954CdAC4369C874b",
     sessionValidator: "0x2bF3B894aA2C13A1545C6982bBbee435B5168b52",
+    guardianExecutor: "0x4337768cB3eC57Dd2cb843eFb929B773B13322de",
     factory: "0x757b5c9854d327A6B76840c996dfAac0F6b3Dc1f",
     bundlerUrl: "https://bundler-api.stage-sso.zksync.dev",
     beacon: "0x1D779D791B55a093dE60da664C3F301a87f96C62",

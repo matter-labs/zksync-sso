@@ -69,6 +69,10 @@ export const {
   // Guardian encoding functions (for passkey-based accounts)
   encode_propose_guardian_call_data, // Encode propose guardian call (no signing)
   encode_remove_guardian_call_data, // Encode remove guardian call (no signing)
+
+  // ===== SESSION MANAGEMENT =====
+  // Functions for managing session keys
+  get_active_sessions_wasm, // Get list of active sessions for an account
 } = wasm;
 
 // Initialize WASM module

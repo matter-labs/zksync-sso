@@ -455,3 +455,148 @@ export type SessionStateEvent = {
  * Callback function for session state change events
  */
 export type SessionStateEventCallback = (event: SessionStateEvent) => void;
+
+// ============================================================================
+// List Active Sessions
+// ============================================================================
+
+/**
+ * Parameters for listing active sessions
+ */
+export type ListActiveSessionsParams = {
+  /**
+   * The smart account address to query sessions for
+   */
+  account: Address;
+
+  /**
+   * RPC URL for the blockchain network
+   */
+  rpcUrl: string;
+
+  /**
+   * Contract addresses
+   */
+  contracts: {
+    /**
+     * The SessionKeyValidator module address
+     */
+    sessionValidator: Address;
+    /**
+     * The EntryPoint contract address
+     */
+    entryPoint: Address;
+    /**
+     * The AccountFactory contract address
+     */
+    accountFactory: Address;
+    /**
+     * The WebAuthnValidator module address
+     */
+    webauthnValidator: Address;
+    /**
+     * The EOAValidator module address
+     */
+    eoaValidator: Address;
+    /**
+     * The GuardianExecutor module address
+     */
+    guardianExecutor: Address;
+  };
+};
+
+/**
+ * Return type for listActiveSessions action
+ */
+export type ListActiveSessionsReturnType = {
+  /**
+   * Array of active sessions
+   */
+  sessions: Array<{
+    /**
+     * The hash of the session
+     */
+    sessionHash: Hex;
+    /**
+     * The session specification
+     */
+    sessionSpec: SessionSpec;
+  }>;
+};
+
+/**
+ * List all active sessions for a smart account
+ *
+ * This action queries the SessionKeyValidator contract events to find all sessions
+ * that have been created but not yet revoked for a given account.
+ *
+ * @param params - Parameters including account address, RPC URL, and contract addresses
+ * @returns Promise resolving to an array of active sessions
+ *
+ * @example
+ * ```typescript
+ * import { listActiveSessions } from "@zksync-sso/sdk-4337";
+ *
+ * const { sessions } = await listActiveSessions({
+ *   account: "0x...", // Smart account address
+ *   rpcUrl: "https://sepolia.era.zksync.dev",
+ *   contracts: {
+ *     sessionValidator: "0x...",
+ *     webauthnValidator: "0x...",
+ *     eoaValidator: "0x...",
+ *     guardianExecutor: "0x...",
+ *     entryPoint: "0x...",
+ *     accountFactory: "0x...",
+ *   },
+ * });
+ *
+ * console.log(`Found ${sessions.length} active sessions`);
+ * sessions.forEach(({ sessionHash, sessionSpec }) => {
+ *   console.log("Session hash:", sessionHash);
+ *   console.log("Session signer:", sessionSpec.signer);
+ *   console.log("Expires at:", sessionSpec.expiresAt);
+ * });
+ * ```
+ */
+export async function listActiveSessions(
+  params: ListActiveSessionsParams,
+): Promise<ListActiveSessionsReturnType> {
+  const { account, rpcUrl, contracts } = params;
+
+  // Import the WASM function
+  const { get_active_sessions_wasm } = await import("zksync-sso-web-sdk/bundler");
+
+  // Prepare contracts JSON
+  const contractsJson = JSON.stringify({
+    session_validator: contracts.sessionValidator,
+    entry_point: contracts.entryPoint,
+    account_factory: contracts.accountFactory,
+    webauthn_validator: contracts.webauthnValidator,
+    eoa_validator: contracts.eoaValidator,
+    guardian_executor: contracts.guardianExecutor,
+  });
+
+  // Call the WASM function
+  const resultJson = await get_active_sessions_wasm(
+    rpcUrl,
+    account,
+    contractsJson,
+  );
+
+  // Parse the JSON result with basic validation
+  let parsedSessions: unknown;
+  try {
+    parsedSessions = JSON.parse(resultJson as string);
+  } catch (error) {
+    throw new Error(`Failed to parse sessions JSON returned from WASM: ${error}`);
+  }
+
+  if (!Array.isArray(parsedSessions)) {
+    throw new Error("Invalid sessions format returned from WASM: expected an array");
+  }
+
+  const sessions = parsedSessions;
+  return {
+    sessions,
+  };
+}
