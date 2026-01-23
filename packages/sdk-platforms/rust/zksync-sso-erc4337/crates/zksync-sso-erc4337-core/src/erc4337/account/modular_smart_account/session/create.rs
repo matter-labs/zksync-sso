@@ -84,7 +84,7 @@ fn add_session_call_data(
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::{
         erc4337::{
@@ -128,7 +128,7 @@ mod tests {
     };
     use std::str::FromStr;
 
-    fn generate_session_proof(
+    pub fn generate_session_proof(
         session_spec: &SessionSpec,
         account_address: Address,
         signer_private_key: &str,
