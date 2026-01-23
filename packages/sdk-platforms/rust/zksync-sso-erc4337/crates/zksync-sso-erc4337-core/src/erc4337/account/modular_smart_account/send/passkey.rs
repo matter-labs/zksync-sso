@@ -76,7 +76,13 @@ pub mod tests {
                     },
                 },
                 modular_smart_account::{
-                    deploy::{DeployAccountParams, EOASigners, deploy_account},
+                    deploy::{
+                        DeployAccountParams, EOASigners, deploy_account,
+                        user_op::{
+                            DeployAccountWithUserOpParams,
+                            deploy_account_with_user_op,
+                        },
+                    },
                     passkey::add::{
                         AddPasskeyParams, PasskeyPayload, add_passkey,
                     },
@@ -88,6 +94,7 @@ pub mod tests {
                 contract::EntryPoint::PackedUserOperation,
                 nonce::{GetNonceWithKeyParams, get_nonce_with_key},
             },
+            paymaster::mock_paymaster::deploy_mock_paymaster_and_deposit_amount,
             signer::{create_eoa_signer, test_utils::get_signature_from_js},
             user_operation::hash::user_operation_hash::get_user_operation_hash_entry_point,
         },
@@ -98,6 +105,7 @@ pub mod tests {
     };
     use alloy::{
         primitives::{Bytes, U256, Uint, address, bytes, fixed_bytes},
+        providers::ProviderBuilder,
         rpc::types::{
             TransactionRequest,
             erc4337::PackedUserOperation as AlloyPackedUserOperation,
@@ -254,6 +262,157 @@ pub mod tests {
 
         println!("Passkey transaction successfully sent");
 
+        drop(anvil_instance);
+        drop(bundler);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_transaction_webauthn_sponsored() -> eyre::Result<()> {
+        let (
+            node_url,
+            anvil_instance,
+            provider,
+            contracts,
+            signer_private_key,
+            bundler,
+            bundler_client,
+        ) = {
+            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
+            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+                &TestInfraConfig {
+                    signer_private_key: signer_private_key.clone(),
+                },
+            )
+            .await?
+        };
+
+        let unfunded_provider =
+            ProviderBuilder::new().connect_http(node_url.clone());
+
+        let factory_address = contracts.account_factory;
+        let eoa_validator_address = contracts.eoa_validator;
+
+        let entry_point_address =
+            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+
+        let eoa_signer_address =
+            address!("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720");
+
+        let (mock_paymaster, paymaster_address) =
+            deploy_mock_paymaster_and_deposit_amount(
+                U256::from(1_000_000_000_000_000_000u64),
+                provider.clone(),
+            )
+            .await?;
+        let paymaster = PaymasterParams::default_paymaster(paymaster_address);
+        let paymaster_params = Some(paymaster);
+
+        let signers = vec![eoa_signer_address];
+
+        let eoa_signers = EOASigners {
+            addresses: signers,
+            validator_address: eoa_validator_address,
+        };
+
+        let signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
+
+        let address =
+            deploy_account_with_user_op(DeployAccountWithUserOpParams {
+                deploy_params: DeployAccountParams {
+                    factory_address,
+                    eoa_signers: Some(eoa_signers),
+                    webauthn_signer: None,
+                    session_validator: None,
+                    id: None,
+                    provider: unfunded_provider.clone(),
+                },
+                entry_point_address,
+                bundler_client: bundler_client.clone(),
+                signer,
+                paymaster: paymaster_params.clone(),
+                nonce_key: None,
+            })
+            .await?;
+
+        println!("Account deployed");
+
+        fund_account_with_default_amount(address, provider.clone()).await?;
+
+        let webauthn_module = contracts.webauthn_validator;
+
+        let signer = create_eoa_signer(
+            signer_private_key.clone(),
+            eoa_validator_address,
+        )?;
+
+        add_module(AddModuleParams {
+            account_address: address,
+            module: AddModulePayload::webauthn(webauthn_module),
+            entry_point_address,
+            paymaster: paymaster_params.clone(),
+            provider: unfunded_provider.clone(),
+            bundler_client: bundler_client.clone(),
+            signer: signer.clone(),
+        })
+        .await?;
+
+        let credential_id = bytes!("0x2868baa08431052f6c7541392a458f64");
+        let passkey = [
+            fixed_bytes!(
+                "0xe0a43b9c64a2357ea7f66a0551f57442fbd32031162d9be762800864168fae40"
+            ),
+            fixed_bytes!(
+                "0x450875e2c28222e81eb25ae58d095a3e7ca295faa3fc26fb0e558a0b571da501"
+            ),
+        ];
+        let origin_domain = "https://example.com".to_string();
+
+        let passkey = PasskeyPayload { credential_id, passkey, origin_domain };
+
+        add_passkey(AddPasskeyParams {
+            account_address: address,
+            passkey,
+            webauthn_validator: webauthn_module,
+            entry_point_address,
+            paymaster: paymaster_params.clone(),
+            provider: unfunded_provider.clone(),
+            bundler_client: bundler_client.clone(),
+            signer,
+        })
+        .await?;
+
+        println!("Passkey successfully added");
+
+        // Send transaction using passkey signer
+        let calldata = encoded_call_data(address, None, Some(U256::from(1)));
+
+        let signature_provider: SignatureProvider =
+            Arc::new(move |hash: FixedBytes<32>| {
+                Box::pin(async move {
+                    let result = get_signature_from_js(hash.to_string())?;
+                    Ok(result)
+                })
+            });
+
+        passkey_send_transaction(PasskeySendParams {
+            account: address,
+            _webauthn_validator: webauthn_module,
+            entry_point: entry_point_address,
+            call_data: calldata,
+            paymaster: paymaster_params.clone(),
+            bundler_client,
+            provider: unfunded_provider.clone(),
+            signature_provider,
+        })
+        .await?;
+
+        println!("Passkey transaction successfully sent");
+
+        drop(mock_paymaster);
         drop(anvil_instance);
         drop(bundler);
         Ok(())
