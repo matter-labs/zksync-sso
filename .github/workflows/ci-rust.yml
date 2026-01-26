@@ -207,7 +207,7 @@ jobs:
       - name: Run rust tests with nextest (zksync-os)
         env:
           SSO_TEST_NODE_BACKEND: zksyncos
-          SSO_ZKSYNC_OS_PRINT_LOGS: "true"
+          SSO_ZKSYNC_OS_PRINT_LOGS: "false"
         run: cargo nextest run --profile ci --all-features
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337
 
