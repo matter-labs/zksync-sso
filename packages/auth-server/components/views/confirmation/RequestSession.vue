@@ -47,9 +47,43 @@
       class="mt-1"
     />
 
-    <!-- For new accounts, show a simple message -->
+    <!-- For new accounts creating session in two steps -->
     <div
-      v-if="!isLoggedIn"
+      v-if="accountCreated && hasSessionParams"
+      class="space-y-2 mt-2"
+    >
+      <div class="bg-neutral-975 rounded-[28px]">
+        <div class="px-5 py-2 text-neutral-400">
+          Permissions
+        </div>
+        <CommonLine class="text-neutral-100">
+          <div class="divide-y divide-neutral-800">
+            <div class="flex items-center gap-2 py-3 px-3">
+              <IconsFingerprint class="w-7 h-7" />
+              <div>Act on your behalf</div>
+            </div>
+            <div class="flex items-center gap-2 py-3 px-3">
+              <IconsClock class="w-7 h-7" />
+              <div>{{ sessionExpiry }}</div>
+            </div>
+          </div>
+        </CommonLine>
+      </div>
+    </div>
+    <SessionTokens
+      v-if="accountCreated && hasSessionParams"
+      :onchain-actions-count="onchainActionsCount"
+      :fetch-tokens-error="fetchTokensError"
+      :tokens-loading="tokensLoading"
+      :spend-limit-tokens="spendLimitTokens"
+      :has-unlimited-spend="hasUnlimitedSpend"
+      :total-usd="totalUsd"
+      class="mt-1"
+    />
+
+    <!-- For new accounts without session yet, show a simple message -->
+    <div
+      v-if="!isLoggedIn && !accountCreated"
       class="space-y-2 mt-2"
     >
       <div class="bg-neutral-975 rounded-[28px]">
@@ -59,7 +93,9 @@
         <CommonLine class="text-neutral-100">
           <div class="py-3 px-3">
             <p class="text-sm text-neutral-300">
-              A new smart account will be created for you. You can add spending permissions later when needed.
+              A new smart account will be created for you.
+              <span v-if="hasSessionParams">After that, you'll set up spending permissions.</span>
+              <span v-else>You can add spending permissions later when needed.</span>
             </p>
           </div>
         </CommonLine>
@@ -168,11 +204,17 @@ const props = defineProps({
 const { appMeta, appOrigin } = useAppMeta();
 const { login } = useAccountStore();
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const { responseInProgress, requestChainId } = storeToRefs(useRequestsStore());
-const { createAccount } = useAccountCreate(requestChainId);
+const { responseInProgress, requestChainId, requestPaymaster } = storeToRefs(useRequestsStore());
+const { createAccount, registerInProgress: accountCreationInProgress } = useAccountCreate(requestChainId);
 const { respond, deny } = useRequestsStore();
 const { getClient } = useClientStore();
 const runtimeConfig = useRuntimeConfig();
+
+// Track if we just created an account and need to create session
+const accountCreated = ref(false);
+const hasSessionParams = computed(() => {
+  return props.sessionPreferences.contractCalls && props.sessionPreferences.contractCalls.length > 0;
+});
 
 const defaults = {
   expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
@@ -284,7 +326,7 @@ const scrollDown = () => {
     behavior: "smooth",
   });
 };
-const isButtonLoading = computed(() => !appMeta.value || responseInProgress.value || tokensLoading.value);
+const isButtonLoading = computed(() => !appMeta.value || responseInProgress.value || tokensLoading.value || accountCreationInProgress.value);
 const confirmButtonAvailable = computed(() => arrivedAtBottom.value);
 const transitionName = ref("slide-up");
 const previousConfirmAvailable = ref(confirmButtonAvailable.value);
@@ -294,36 +336,53 @@ watch(confirmButtonAvailable, (newVal, oldVal) => {
     previousConfirmAvailable.value = newVal;
   }
 });
-const mainButtonText = computed(() => isLoggedIn.value ? "Connect" : "Create");
+const mainButtonText = computed(() => {
+  if (isLoggedIn.value) return "Connect";
+  if (accountCreated.value) return "Authorize";
+  return "Create";
+});
 
 const confirmConnection = async () => {
   let response: RPCResponseMessage<ExtractReturnType<Method>>["content"];
   sessionError.value = "";
 
   try {
-    if (!isLoggedIn.value) {
-      // Just create the account - session will be created by the dapp separately
+    if (!isLoggedIn.value && !accountCreated.value) {
+      // Step 1: Create the account
       const accountData = await createAccount();
       if (!accountData) return;
+
       // Login with the new account
       login({
         address: accountData.address,
         credentialId: accountData.credentialId,
       });
 
-      // Return account info without session - dapp will create session separately
+      // If session params were provided, show session creation UI
+      if (hasSessionParams.value) {
+        accountCreated.value = true;
+        // Force a UI update before returning
+        await nextTick();
+        return; // Don't respond yet, wait for session creation
+      }
+
+      // No session params, return account info only
       response = {
         result: constructReturn({
           address: accountData.address,
           chainId: accountData.chainId,
-          // No session in response - dapp needs to create it separately
           prividiumMode: runtimeConfig.public.prividiumMode,
           prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
         }),
       };
-    } else {
+    } else if (accountCreated.value || isLoggedIn.value) {
       // create a new session for the existing account
-      const client = getClient({ chainId: requestChainId.value });
+      // Use paymaster if provided (needed for newly created accounts with no ETH)
+      const client = getClient({
+        chainId: requestChainId.value,
+        usePaymaster: !!requestPaymaster.value,
+        paymasterAddress: requestPaymaster.value,
+      });
       const sessionKey = generatePrivateKey();
       const session = {
         sessionKey,

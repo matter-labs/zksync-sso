@@ -89,7 +89,11 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
     newCredential = credentialAdded.credential;
   });
 
-  // Add session
+  // Step 1: Create account
+  await expect(popup.getByText("Account Creation")).toBeVisible();
+  await popup.getByTestId("connect").click();
+
+  // Step 2: Authorize session (second passkey approval)
   await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
   await expect(popup.getByText("Permissions")).toBeVisible();
   await popup.getByTestId("connect").click();

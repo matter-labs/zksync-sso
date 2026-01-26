@@ -190,7 +190,6 @@ jobs:
 
       # Deploy MSA Factory and infrastructure (nft-quest will read from contracts-anvil.json)
       - name: Deploy Demo-App ERC-4337 contracts
-        continue-on-error: true
         run: pnpm nx deploy-msa-factory demo-app
 
       # Start Alto bundler with CORS proxy
