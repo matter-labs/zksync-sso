@@ -6,9 +6,8 @@
   "license": "MIT",
   "repository": "https://github.com/matter-labs/zksync-acount-sdk.git",
   "devDependencies": {
-    "@matterlabs/hardhat-zksync": "^1.1.0",
-    "@matterlabs/zksync-contracts": "^0.6.1",
-    "@openzeppelin/contracts": "^4.9.2",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.4.0",
     "@nomicfoundation/hardhat-verify": "^2.0.9",
     "@types/chai": "^4.3.16",
     "@types/mocha": "^10.0.7",
@@ -18,7 +17,6 @@
     "hardhat": "^2.22.7",
     "mocha": "^10.7.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.4",
-    "zksync-ethers": "^6.15.0"
+    "typescript": "^5.5.4"
   }
 }

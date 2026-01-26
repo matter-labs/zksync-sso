@@ -43,15 +43,27 @@ export default defineConfig({
   /* Run your local server before starting the tests */
   webServer: [
     {
-      command: "pnpm nx preview nft-quest",
-      url: "http://localhost:3006",
+      command: "PORT=3004 pnpm nx dev auth-server-api",
+      url: "http://localhost:3004/api/health",
       reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
       timeout: 180_000,
     },
     {
-      command: "pnpm nx preview auth-server",
+      command: "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nx dev:no-deploy auth-server",
       url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 180_000,
+    },
+    {
+      command: "PORT=3006 pnpm nx preview nft-quest",
+      url: "http://localhost:3006",
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
       timeout: 180_000,
     },
   ],
