@@ -1,7 +1,4 @@
-import type { Address } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import type { SessionSpec } from "zksync-sso-4337/client";
-import { sessionSpecToJSON } from "zksync-sso-4337/client";
 
 export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
   const chainId = toRef(_chainId);
@@ -9,30 +6,18 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
   const runtimeConfig = useRuntimeConfig();
   const { getPrividiumInstance } = usePrividiumAuthStore();
 
-  const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionSpec, "signer">, paymaster?: Address) => {
+  const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async () => {
     const result = await registerPasskey();
     if (!result) {
       throw new Error("Failed to register passkey");
     }
     const { credentialPublicKey, credentialId } = result;
 
-    // TODO: Session support during deployment - to be implemented
-    // For now, sessions can be added after deployment
-    let sessionData: SessionSpec | undefined;
-    const sessionKey = generatePrivateKey();
-    const signer = privateKeyToAddress(sessionKey);
-    if (session) {
-      sessionData = {
-        ...session,
-        signer: signer,
-      };
-    }
-
     // EOA owner for initial deployment signing
     const ownerKey = generatePrivateKey();
     const ownerAddress = privateKeyToAddress(ownerKey);
 
-    // Call backend API to deploy account
+    // Call backend API to deploy account (without session - session will be created separately)
     const apiUrl = runtimeConfig.public.authServerApiUrl;
     if (!apiUrl) {
       throw new Error("Auth Server API URL is not configured");
@@ -43,10 +28,8 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
       credentialId,
       credentialPublicKey,
       originDomain: window.location.origin,
-      session: sessionData ? sessionSpecToJSON(sessionData) : undefined,
       userId: credentialId,
       eoaSigners: [ownerAddress],
-      paymaster,
     };
 
     // Build headers - include Prividium auth if in Prividium mode
@@ -64,13 +47,33 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
       }
     }
 
-    const response = await fetch(`${apiUrl}/api/deploy-account`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(requestBody),
-    });
+    let response;
+    try {
+      response = await fetch(`${apiUrl}/api/deploy-account`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+    } catch (error) {
+      console.error("Failed to connect to auth-server API:", error);
+      throw new Error(
+        `Cannot connect to auth-server API at ${apiUrl}. Please ensure:\n`
+        + "1. The auth-server-api is running (pnpm nx dev auth-server-api)\n"
+        + "2. CORS is properly configured\n"
+        + "3. The API URL is correct\n\n"
+        + `Original error: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      throw new Error(
+        `${error} from auth-server API (status ${response.status}). `
+        + "This may indicate a contract deployment mismatch or API error.",
+      );
+    }
 
     // Check for errors in response
     if (data.error) {
@@ -86,9 +89,6 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
     return {
       address,
       chainId: chainId.value,
-      sessionKey: session ? sessionKey : undefined,
-      signer,
-      sessionConfig: sessionData,
       credentialId,
       credentialPublicKey,
     };

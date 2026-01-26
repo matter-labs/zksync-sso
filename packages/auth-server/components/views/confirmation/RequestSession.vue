@@ -13,7 +13,11 @@
       size="sm"
     />
 
-    <div class="space-y-2 mt-2">
+    <!-- Only show session permissions for logged-in users (adding session to existing account) -->
+    <div
+      v-if="isLoggedIn"
+      class="space-y-2 mt-2"
+    >
       <div class="bg-neutral-975 rounded-[28px]">
         <div class="px-5 py-2 text-neutral-400">
           Permissions
@@ -33,6 +37,7 @@
       </div>
     </div>
     <SessionTokens
+      v-if="isLoggedIn"
       :onchain-actions-count="onchainActionsCount"
       :fetch-tokens-error="fetchTokensError"
       :tokens-loading="tokensLoading"
@@ -41,6 +46,25 @@
       :total-usd="totalUsd"
       class="mt-1"
     />
+
+    <!-- For new accounts, show a simple message -->
+    <div
+      v-if="!isLoggedIn"
+      class="space-y-2 mt-2"
+    >
+      <div class="bg-neutral-975 rounded-[28px]">
+        <div class="px-5 py-2 text-neutral-400">
+          Account Creation
+        </div>
+        <CommonLine class="text-neutral-100">
+          <div class="py-3 px-3">
+            <p class="text-sm text-neutral-300">
+              A new smart account will be created for you. You can add spending permissions later when needed.
+            </p>
+          </div>
+        </CommonLine>
+      </div>
+    </div>
 
     <div
       v-if="hasDangerousActions"
@@ -278,23 +302,21 @@ const confirmConnection = async () => {
 
   try {
     if (!isLoggedIn.value) {
-      // create a new account with initial session data
-      // Ignore paymaster provided in params for standard connect to avoid validation failures
-      const accountData = await createAccount(sessionConfig.value, undefined);
+      // Just create the account - session will be created by the dapp separately
+      const accountData = await createAccount();
       if (!accountData) return;
+      // Login with the new account
       login({
         address: accountData.address,
         credentialId: accountData.credentialId,
       });
 
+      // Return account info without session - dapp will create session separately
       response = {
         result: constructReturn({
-          address: accountData!.address,
-          chainId: accountData!.chainId,
-          session: {
-            sessionConfig: accountData!.sessionConfig!,
-            sessionKey: accountData!.sessionKey!,
-          },
+          address: accountData.address,
+          chainId: accountData.chainId,
+          // No session in response - dapp needs to create it separately
           prividiumMode: runtimeConfig.public.prividiumMode,
           prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
         }),

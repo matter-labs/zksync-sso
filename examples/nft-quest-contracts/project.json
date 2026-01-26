@@ -25,6 +25,14 @@
       },
       "dependsOn": ["build", "demo-app:deploy-msa-factory"]
     },
+    "deploy:nft-only": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/nft-quest-contracts",
+        "command": "./scripts/deploy-nft-only.sh"
+      },
+      "dependsOn": ["build", "demo-app:deploy-msa-factory"]
+    },
     "test": {
       "executor": "nx:run-commands",
       "options": {
