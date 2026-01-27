@@ -3,7 +3,7 @@ deploy-contracts:
     cargo run --bin cli -- deploy-contracts
 
 # Build and deploy contracts
-build-and-deploy-contracts: 
+build-and-deploy-contracts:
     cargo run --bin cli -- build-and-deploy-contracts
 
 # Deploy a modular account with test configuration

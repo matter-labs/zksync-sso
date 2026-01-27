@@ -30,15 +30,39 @@ pub struct AltoTestHelperConfig {
     pub utility_private_key: String,
 }
 
-impl Default for AltoTestHelperConfig {
-    fn default() -> Self {
+// impl Default for AltoTestHelperConfig {
+//     fn default() -> Self {
+//         Self {
+//             entrypoint: EntryPointConfig::default(),
+//             port: None,
+//             node_url: Url::parse("http://127.0.0.1:8545").unwrap(),
+//             safe_mode: false,
+//             executor_private_keys: vec!["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string()],
+//             utility_private_key: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d".to_string(),
+//         }
+//     }
+// }
+
+impl AltoTestHelperConfig {
+    pub fn default_ethereum() -> Self {
         Self {
-            entrypoint: EntryPointConfig::default(),
+          entrypoint: EntryPointConfig::default_ethereum(),
+          port: None,
+          node_url: Url::parse("http://127.0.0.1:8545").unwrap(),
+          safe_mode: false,
+          executor_private_keys: vec!["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string()],
+          utility_private_key: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d".to_string(),
+      }
+    }
+
+    pub fn default_zksyncos() -> Self {
+        Self {
+            entrypoint: EntryPointConfig::default_zksyncos(),
             port: None,
-            node_url: Url::parse("http://127.0.0.1:8545").unwrap(),
+            node_url: Url::parse("http://127.0.0.1:3050").unwrap(),
             safe_mode: false,
-            executor_private_keys: vec!["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string()],
-            utility_private_key: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d".to_string(),
+            executor_private_keys: vec!["0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110".to_string()],
+            utility_private_key: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110".to_string(),
         }
     }
 }
@@ -312,16 +336,19 @@ pub(super) async fn terminate_child_gracefully(child: &mut Child, label: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::alloy_utilities::test_utilities::start_anvil_and_deploy_contracts;
+    use crate::utils::alloy_utilities::test_utilities::start_node_and_deploy_contracts;
     use eyre::Result;
 
     #[tokio::test]
     #[ignore = "manual test"]
     async fn test_alto_start_stop_without_anviltesthelper() -> Result<()> {
         let (node_url, anvil_instance, _, _, _) =
-            start_anvil_and_deploy_contracts().await?;
+            start_node_and_deploy_contracts().await?;
 
-        let alto_cfg = AltoTestHelperConfig { node_url, ..Default::default() };
+        let alto_cfg = AltoTestHelperConfig {
+            node_url,
+            ..AltoTestHelperConfig::default_ethereum()
+        };
 
         let mut alto = AltoTestHelper::new(alto_cfg);
         println!("[test] calling alto.start()...");
