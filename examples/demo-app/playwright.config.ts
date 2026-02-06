@@ -63,7 +63,7 @@ export default defineConfig({
     {
       // Step 2: Start auth-server-api (reads fresh contracts.json)
       // Run directly with node to ensure PORT env var is passed correctly
-      command: "cd packages/auth-server-api && PORT=3004 node --experimental-wasm-modules --import tsx src/index.ts",
+      command: "cd ../../packages/auth-server-api && PORT=3004 node --experimental-wasm-modules --import tsx src/index.ts",
       url: "http://localhost:3004/api/health",
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
