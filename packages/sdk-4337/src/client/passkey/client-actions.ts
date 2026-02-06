@@ -134,6 +134,10 @@ export function passkeyClientActions<
         ],
         ...paymasterParams,
       });
+
+      // Wait for the session creation to be confirmed on-chain
+      await config.bundler.waitForUserOperationReceipt({ hash: userOpHash });
+
       return userOpHash;
     },
   };

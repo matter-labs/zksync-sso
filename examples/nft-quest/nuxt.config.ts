@@ -119,6 +119,11 @@ export default defineNuxtConfig({
         },
       },
     },
+    // Pre-bundle dependencies to prevent page reload during E2E tests
+    // When Vite discovers new deps at runtime, it triggers a page reload
+    optimizeDeps: {
+      include: ["clsx", "tailwind-merge", "class-variance-authority"],
+    },
   },
   // ssr: false,
   eslint: {

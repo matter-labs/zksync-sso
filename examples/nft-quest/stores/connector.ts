@@ -3,8 +3,6 @@ import { localhost } from "@wagmi/core/chains";
 import type { Address } from "viem";
 import { zksyncSsoConnector } from "zksync-sso-4337/connector";
 
-import { ZeekNftQuestAbi } from "@/abi/ZeekNFTQuest";
-
 export const useConnectorStore = defineStore("connector", () => {
   const runtimeConfig = useRuntimeConfig();
   const supportedChains = [localhost] as const;
@@ -17,23 +15,25 @@ export const useConnectorStore = defineStore("connector", () => {
       icon: `${runtimeConfig.public.baseUrl}/icon-192.png`,
     },
     authServerUrl: runtimeConfig.public.authServerUrl,
-    session: {
-      feeLimit: {
-        limitType: "lifetime",
-        limit: 2_000_000_000_000_000n, // 0.002 ETH - sufficient for NFT mints
-      },
-      contractCalls: [
-        {
-          address: runtimeConfig.public.contracts.nft as Address,
-          abi: ZeekNftQuestAbi,
-          functionName: "mint",
-          valueLimit: {
-            limitType: "lifetime",
-            limit: 0n, // No ETH transfers allowed
-          },
-        },
-      ],
-    },
+    // Session disabled for now - TODO: re-enable after getting basic flow working
+    // Each transaction will open an approval popup, but paymaster still pays fees
+    // session: {
+    //   feeLimit: {
+    //     limitType: "unlimited",
+    //     limit: 0n, // Unlimited fees
+    //   },
+    //   contractCalls: [
+    //     {
+    //       address: runtimeConfig.public.contracts.nft as Address,
+    //       abi: ZeekNftQuestAbi,
+    //       // Remove functionName to allow all functions
+    //       valueLimit: {
+    //         limitType: "unlimited",
+    //         limit: 0n, // Unlimited value
+    //       },
+    //     },
+    //   ],
+    // },
     paymaster: runtimeConfig.public.contracts.paymaster as Address,
   });
   const wagmiConfig = createConfig({

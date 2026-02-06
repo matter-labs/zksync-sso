@@ -343,7 +343,7 @@ const mainButtonText = computed(() => {
 });
 
 const confirmConnection = async () => {
-  let response: RPCResponseMessage<ExtractReturnType<Method>>["content"];
+  let response: RPCResponseMessage<ExtractReturnType<Method>>["content"] | undefined;
   sessionError.value = "";
 
   try {
@@ -404,6 +404,9 @@ const confirmConnection = async () => {
       const sessionSigner = privateKeyToAccount(sessionKey);
       const proof = await sessionSigner.sign({ hash: digest });
 
+      // eslint-disable-next-line no-console
+      console.log("[Session] Creating session with config:", session.sessionConfig);
+
       await client.createSession({
         sessionSpec: session.sessionConfig,
         proof,
@@ -411,6 +414,9 @@ const confirmConnection = async () => {
           sessionValidator: contractsByChain[requestChainId.value].sessionValidator,
         },
       });
+
+      // eslint-disable-next-line no-console
+      console.log("[Session] Session created successfully");
 
       response = {
         result: constructReturn({
@@ -432,6 +438,9 @@ const confirmConnection = async () => {
     console.error(error);
     return;
   }
+
+  // eslint-disable-next-line no-console
+  console.log("[Session] About to respond with:", response);
 
   if (response) {
     respond(() => response);

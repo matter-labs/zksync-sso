@@ -77,11 +77,20 @@ const { isConnected } = storeToRefs(useConnectorStore());
 const { connectAccount } = useConnectorStore();
 
 const connect = async () => {
+  console.log("[index.vue] Connect clicked, isConnected:", isConnected.value);
   if (isConnected.value) {
+    console.log("[index.vue] Already connected, navigating to /mint");
     navigateTo("/mint");
   } else {
-    await connectAccount();
-    navigateTo("/mint");
+    console.log("[index.vue] Not connected, calling connectAccount()");
+    try {
+      await connectAccount();
+      console.log("[index.vue] connectAccount() completed, isConnected:", isConnected.value);
+      console.log("[index.vue] Navigating to /mint");
+      navigateTo("/mint");
+    } catch (error) {
+      console.error("[index.vue] Error during connectAccount():", error);
+    }
   }
 };
 </script>

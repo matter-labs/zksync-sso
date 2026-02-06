@@ -20,6 +20,14 @@
       },
       "dependsOn": ["^build"]
     },
+    "dev:nuxt-only": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "pnpm run copy:snarkjs && PORT=3002 nuxt dev"
+      },
+      "dependsOn": ["^build"]
+    },
     "dev:all": {
       "executor": "nx:run-commands",
       "options": {

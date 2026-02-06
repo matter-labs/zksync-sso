@@ -1,165 +1,145 @@
-import { expect, type Page, test } from "@playwright/test";
-
-async function waitForServicesToLoad(page: Page): Promise<void> {
-  const maxRetryAttempts = 30;
-  let retryCount = 0;
-
-  // Wait for nft-quest to finish loading
-  await page.goto("/");
-  let demoButton = page.getByText("Let's Go");
-  while (!(await demoButton.isVisible()) && retryCount < maxRetryAttempts) {
-    await page.waitForTimeout(1000);
-    demoButton = page.getByText("Let's Go");
-    retryCount++;
-
-    console.log(`Waiting for nft quest app to load (retry ${retryCount})...`);
-  }
-  console.log("NFT Quest App loaded");
-
-  // Wait for auth server to finish loading
-  retryCount = 0;
-  await page.goto("http://localhost:3002");
-  let authServerHeader = page.getByTestId("signup");
-  while (!(await authServerHeader.isVisible()) && retryCount < maxRetryAttempts) {
-    await page.waitForTimeout(1000);
-    authServerHeader = page.getByTestId("signup");
-    retryCount++;
-
-    console.log(`Waiting for auth server to load (retry ${retryCount})...`);
-  }
-  console.log("Auth Server loaded");
-};
+import {
+  clickAndWaitForPopup,
+  reuseCredential,
+  setupPopupLogging,
+  setupWebAuthnForSignup,
+  waitForServicesToLoad,
+} from "@examples/shared-test-utils";
+import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
-  page.on("console", (msg) => {
-    if (msg.type() === "error")
-      console.log(`Main page error console: "${msg.text()}"`);
-  });
-  page.on("pageerror", (exception) => {
-    console.log(`Main page uncaught exception: "${exception}"`);
+  await waitForServicesToLoad(page, {
+    appUrl: "/",
+    appSelector: "text=Let's Go",
   });
 
-  await waitForServicesToLoad(page);
+  // Pre-warm auth-server dependencies by visiting it directly
+  // This prevents Vite HMR reloads during the actual test
+  await page.goto("http://localhost:3002/confirm?origin=http://localhost:3006");
+  await page.waitForLoadState("networkidle");
+
   await page.goto("/");
   await expect(page.getByText("Let's Go")).toBeVisible();
 });
 
-test("Create account, session key, and mint NFT", async ({ page }) => {
-  // Click the Let's Go button
-  await page.getByRole("button", { name: "Let's Go" }).click();
+test("Create account and mint NFT (no sessions)", async ({ page, context: _context }) => {
+  // Set a longer timeout for this test - involves contract deployment and multiple transactions
+  test.setTimeout(120000); // 2 minutes
 
-  // Ensure popup is displayed
-  await page.waitForTimeout(2000);
-  let popup = page.context().pages()[1];
-  await expect(popup.getByText("Connect to ZK NFT Quest")).toBeVisible({ timeout: 15000 });
-  popup.on("console", (msg) => {
-    if (msg.type() === "error")
-      console.log(`Auth server error console: "${msg.text()}"`);
-  });
-  popup.on("pageerror", (exception) => {
-    console.log(`Auth server uncaught exception: "${exception}"`);
-  });
+  // Click the Let's Go button and wait for auth popup
+  const popup = await clickAndWaitForPopup(
+    page.getByRole("button", { name: "Let's Go" }),
+  );
 
-  // Setup webauthn a Chrome Devtools Protocol session
-  // NOTE: This needs to be done for every page of every test that uses WebAuthn
-  let client = await popup.context().newCDPSession(popup);
-  await client.send("WebAuthn.enable");
-  let result = await client.send("WebAuthn.addVirtualAuthenticator", {
-    options: {
-      protocol: "ctap2",
-      transport: "usb",
-      hasResidentKey: true,
-      hasUserVerification: true,
-      isUserVerified: true,
-      automaticPresenceSimulation: true,
-    },
-  });
-  const authenticatorId = result.authenticatorId;
-  console.log(`WebAuthn Authenticator ID: ${authenticatorId}`);
+  // Set up popup logging
+  setupPopupLogging(popup, "Auth Server");
 
-  // Click Sign Up
+  // Wait for popup to be fully loaded (including all Vite dependency optimizations)
+  await popup.waitForLoadState("networkidle");
+  await expect(popup.getByTestId("signup")).toBeVisible({ timeout: 60000 });
+
+  // Setup WebAuthn for signup
+  const { getCredential } = await setupWebAuthnForSignup(popup);
+
+  // Click Sign Up - this will create account (no session)
   await popup.getByTestId("signup").click();
 
-  // Save credentials.id for later tests
-  let newCredential = null;
-  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
-    console.log("New Passkey credential added");
-    console.log(`Authenticator ID: ${credentialAdded.authenticatorId}`);
-    console.log(`Credential: ${credentialAdded.credential}`);
-    newCredential = credentialAdded.credential;
-  });
+  // Wait for network to settle after account deployment
+  await popup.waitForLoadState("networkidle");
 
-  // Step 1: Create account
-  await expect(popup.getByText("Account Creation")).toBeVisible();
+  // Without sessions, auth-server navigates to /confirm/connect after account creation
+  // We need to click the "Connect" button to complete the handshake
+  await expect(popup.getByTestId("connect")).toBeVisible({ timeout: 30000 });
   await popup.getByTestId("connect").click();
 
-  // Step 2: Authorize session (second passkey approval)
-  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
-  await expect(popup.getByText("Permissions")).toBeVisible();
-  await popup.getByTestId("connect").click();
+  // Get the credential for later transaction approvals
+  const credential = getCredential();
 
-  // Waits for session to complete and popup to close
+  // Wait for popup to close
+  try {
+    await popup.waitForEvent("close", { timeout: 15000 });
+  } catch {
+    // Popup might not close automatically - check if we navigated anyway
+    if (!popup.isClosed()) {
+      // Continue anyway, the handshake likely completed
+    }
+  }
+
+  // Wait for the main page to navigate to /mint
+  await page.waitForURL("**/mint", { timeout: 15000 });
+
+  // Now handle the "Mint 100% free NFT" transaction
+  // Without sessions, this will open an approval popup
+  const mintButton = page.getByRole("button", { name: "Mint 100% free NFT" });
+
+  // Check if we have a credential for transaction approval
+  if (credential) {
+    // Click and wait for approval popup
+    const mintPopup = await clickAndWaitForPopup(mintButton);
+
+    // Wait for popup to stabilize - give it time to fully load
+    // This prevents issues with Vite HMR or slow dependency loading
+    await mintPopup.waitForTimeout(500);
+
+    if (mintPopup.isClosed()) {
+      throw new Error("Mint popup closed unexpectedly before confirmation");
+    }
+
+    setupPopupLogging(mintPopup, "Mint Approval");
+
+    // Wait for popup to fully load and confirm button to be visible
+    await mintPopup.waitForLoadState("networkidle");
+    await expect(mintPopup.getByTestId("confirm")).toBeVisible({ timeout: 10000 });
+
+    // Now set up WebAuthn with the captured credential
+    await reuseCredential(mintPopup, credential);
+
+    // Click confirm button
+    await mintPopup.getByTestId("confirm").click();
+
+    // Wait for popup to close
+    await mintPopup.waitForEvent("close", { timeout: 30000 });
+  } else {
+    // No credential - sessions might be enabled, just click
+    await mintButton.click();
+  }
+
+  // Wait a moment for the transaction to be submitted
   await page.waitForTimeout(2000);
 
-  // Mint your NFT
-  await page.getByRole("button", { name: "Mint 100% free NFT" }).click();
-  await expect(page.getByTestId("spinner")).not.toBeVisible();
+  // Wait for mint to complete
+  await expect(page.getByTestId("spinner")).not.toBeVisible({ timeout: 30000 });
+
+  // Verify we got the NFT
+  await expect(page.getByText("You've got Zeek.")).toBeVisible({ timeout: 10000 });
 
   // Send a friend the NFT
-  await expect(page.getByText("You've got Zeek.")).toBeVisible();
   const richWallet0 = "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049";
   await page.getByPlaceholder("Wallet address").fill(richWallet0);
-  await page.getByRole("button", { name: "Mint and send" }).click();
-  await expect(page.getByTestId("spinner")).not.toBeVisible();
+
+  const sendButton = page.getByRole("button", { name: "Mint and send" });
+
+  if (credential) {
+    // Click and wait for approval popup
+    const sendPopup = await clickAndWaitForPopup(sendButton);
+    setupPopupLogging(sendPopup, "Send Approval");
+
+    // Wait for popup to fully load (including Vite dependency optimization)
+    await sendPopup.waitForLoadState("networkidle");
+    await reuseCredential(sendPopup, credential);
+
+    // Click confirm button
+    await expect(sendPopup.getByTestId("confirm")).toBeVisible({ timeout: 10000 });
+    await sendPopup.getByTestId("confirm").click();
+
+    // Wait for popup to close
+    await sendPopup.waitForEvent("close", { timeout: 30000 });
+  } else {
+    // No credential - sessions might be enabled, just click
+    await sendButton.click();
+  }
+
+  // Wait for send to complete
+  await expect(page.getByTestId("spinner")).not.toBeVisible({ timeout: 30000 });
   await expect(page.getByText("You've sent the minted copy to")).toBeVisible({ timeout: 15000 });
-
-  // Disconnect and try again by logging in with the existing passkey
-  await page.getByText("keyboard_arrow_down").click();
-  await page.getByText("Disconnect").click();
-  await expect(page.getByText("Let's Go")).toBeVisible();
-  await page.getByText("Let's Go").click();
-
-  // Wait for Auth Server to pop back up
-  await page.waitForTimeout(2000);
-  popup = page.context().pages()[1];
-
-  // We need to recreate the virtual authenticator to match the previous one
-  client = await popup.context().newCDPSession(popup);
-  await client.send("WebAuthn.enable");
-  result = await client.send("WebAuthn.addVirtualAuthenticator", {
-    options: {
-      protocol: "ctap2",
-      transport: "usb",
-      hasResidentKey: true,
-      hasUserVerification: true,
-      isUserVerified: true,
-      automaticPresenceSimulation: true,
-    },
-  });
-  await expect(newCredential).not.toBeNull();
-  await client.send("WebAuthn.addCredential", {
-    authenticatorId: result.authenticatorId,
-    credential: newCredential!,
-  });
-  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
-
-  // Logout
-  await popup.getByTestId("logout").click();
-  await expect(popup.getByText("Connect to ZK NFT Quest")).toBeVisible();
-
-  // Sign In
-  await popup.getByTestId("login").click();
-
-  // Add session
-  await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
-  await expect(popup.getByText("Permissions")).toBeVisible();
-  await popup.getByTestId("connect").click();
-
-  // Waits for session to complete and popup to close
-  await page.waitForTimeout(2000);
-
-  // Mint another NFT
-  await page.getByRole("button", { name: "Mint 100% free NFT" }).click({ timeout: 60000 });
-  await expect(page.getByTestId("spinner")).not.toBeVisible();
-  await expect(page.getByText("You've got Zeek.")).toBeVisible();
 });

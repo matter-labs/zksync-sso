@@ -37,6 +37,7 @@
     "@simplewebauthn/browser": "^13.1.0"
   },
   "devDependencies": {
+    "@examples/shared-test-utils": "workspace:*",
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@playwright/test": "^1.47.2",
     "@types/node": "^22.7.5",
