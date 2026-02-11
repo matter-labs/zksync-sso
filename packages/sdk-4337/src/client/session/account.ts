@@ -167,7 +167,13 @@ export async function toSessionSmartAccount<
       const preVerificationGas = params.preVerificationGas ?? 0n;
       const maxFeePerGas = params.maxFeePerGas ?? 0n;
       const maxPriorityFeePerGas = params.maxPriorityFeePerGas ?? 0n;
-      const paymasterAndData = (params.paymasterAndData ?? "0x") as Hex;
+
+      // For EntryPoint v0.8, extract paymaster fields if provided as separate params
+      const hasPaymaster = !!(params as any).paymaster;
+      const paymaster = (params as any).paymaster as Address | undefined;
+      const paymasterData = ((params as any).paymasterData as Hex) ?? ("0x" as Hex);
+      const paymasterVerificationGasLimit = (params as any).paymasterVerificationGasLimit as bigint | undefined;
+      const paymasterPostOpGasLimit = (params as any).paymasterPostOpGasLimit as bigint | undefined;
 
       // Debug: Log effective gas & nonce passed into signing to diagnose zero-gas AA23 issues
       console.debug(
@@ -179,27 +185,38 @@ export async function toSessionSmartAccount<
           preVerificationGas: preVerificationGas.toString(),
           maxFeePerGas: maxFeePerGas.toString(),
           maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
+          paymaster: paymaster ?? "none",
         },
       );
 
-      // Compute user operation hash locally using viem helper (includes paymasterAndData)
+      // Build user operation for hash computation
+      // IMPORTANT: For EntryPoint v0.8, use separate paymaster fields (NOT paymasterAndData)
+      const userOp: any = {
+        sender,
+        nonce,
+        initCode: (params.initCode ?? "0x") as Hex,
+        callData: (params.callData ?? "0x") as Hex,
+        callGasLimit,
+        verificationGasLimit,
+        preVerificationGas,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+        signature: "0x",
+      };
+
+      if (hasPaymaster && paymaster) {
+        userOp.paymaster = paymaster;
+        userOp.paymasterVerificationGasLimit = paymasterVerificationGasLimit;
+        userOp.paymasterPostOpGasLimit = paymasterPostOpGasLimit;
+        userOp.paymasterData = paymasterData;
+      }
+
+      // Compute user operation hash locally using viem helper
       const userOpHash = getUserOperationHash({
         chainId: Number(client.chain!.id),
         entryPointAddress: this.entryPoint.address,
         entryPointVersion: "0.8",
-        userOperation: {
-          sender,
-          nonce,
-          initCode: (params.initCode ?? "0x") as Hex,
-          callData: (params.callData ?? "0x") as Hex,
-          callGasLimit,
-          verificationGasLimit,
-          preVerificationGas,
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-          paymasterAndData,
-          signature: "0x",
-        },
+        userOperation: userOp,
       } as any) as Hex;
 
       // Parse target and selector from callData for validation

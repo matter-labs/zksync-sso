@@ -44,14 +44,21 @@ export const useRequestsStore = defineStore("requests", () => {
       return obj;
     };
 
+    console.log("[requests] Awaiting responder...");
+    const content = await responder();
+    console.log("[requests] Responder returned:", content);
+
     const message = {
       id: crypto.randomUUID(),
       requestId: request.value.id,
-      content: await responder(),
+      content,
     };
 
+    console.log("[requests] Calling postMessage...");
     postMessage(serializeBigInts(message));
+    console.log("[requests] postMessage done, calling disconnect...");
     disconnect();
+    console.log("[requests] disconnect called");
   });
 
   const deny = () => {

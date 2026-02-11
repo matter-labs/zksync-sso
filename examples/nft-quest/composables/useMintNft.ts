@@ -9,20 +9,35 @@ export const useMintNft = async (_address: MaybeRef<Address>) => {
     const { wagmiConfig } = storeToRefs(useConnectorStore());
 
     const mintingForAddress = address.value;
-    // Paymaster is configured at connector level, no need to specify here
-    const transactionHash = await writeContract(wagmiConfig.value, {
-      address: runtimeConfig.public.contracts.nft as Address,
-      abi: nftAbi,
-      functionName: "mint",
-      args: [mintingForAddress],
-    });
+    console.log("[useMintNft] Starting mint for address:", mintingForAddress);
+    console.log("[useMintNft] NFT contract:", runtimeConfig.public.contracts.nft);
 
-    const transactionReceipt = await waitForTransactionReceipt(wagmiConfig.value, { hash: transactionHash });
-    if (transactionReceipt.status === "reverted") {
-      throw new Error("Transaction reverted");
+    try {
+      // Paymaster is configured at connector level, no need to specify here
+      console.log("[useMintNft] Calling writeContract...");
+      const transactionHash = await writeContract(wagmiConfig.value, {
+        address: runtimeConfig.public.contracts.nft as Address,
+        abi: nftAbi,
+        functionName: "mint",
+        args: [mintingForAddress],
+      });
+      console.log("[useMintNft] Transaction hash:", transactionHash);
+
+      console.log("[useMintNft] Waiting for transaction receipt...");
+      const transactionReceipt = await waitForTransactionReceipt(wagmiConfig.value, { hash: transactionHash });
+      console.log("[useMintNft] Transaction status:", transactionReceipt.status);
+
+      if (transactionReceipt.status === "reverted") {
+        console.error("[useMintNft] Transaction reverted!");
+        throw new Error("Transaction reverted");
+      }
+
+      console.log("[useMintNft] Mint successful!");
+      return transactionReceipt;
+    } catch (error) {
+      console.error("[useMintNft] Error during mint:", error);
+      throw error;
     }
-
-    return transactionReceipt;
   }, {
     server: false,
     immediate: false,

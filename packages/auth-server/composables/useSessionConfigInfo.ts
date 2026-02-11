@@ -33,6 +33,8 @@ export const useSessionConfigInfo = (
       tokenAddresses: tokenAddresses.value,
       throwErrorAsserter: (e) => {
         if (e instanceof FetchError && e.statusCode === 404) return false; // Contract was not a token
+        // On localhost, connection refused errors are expected since block explorer API doesn't exist
+        if (chainId.value === localhost.id && e instanceof FetchError && !e.statusCode) return false;
         return true;
       },
     });

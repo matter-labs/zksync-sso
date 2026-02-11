@@ -59,16 +59,28 @@ const { getClient } = useClientStore();
 const runtimeConfig = useRuntimeConfig();
 
 const confirmConnection = () => {
+  console.log("[RequestAccounts] confirmConnection called");
+  console.log("[RequestAccounts] requestChain:", requestChain.value);
+
   respond(async () => {
-    const client = getClient({ chainId: requestChain.value!.id });
-    return {
-      result: constructReturn({
-        address: client.account.address,
-        chainId: client.chain.id,
-        prividiumMode: runtimeConfig.public.prividiumMode,
-        prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
-      }),
-    };
+    console.log("[RequestAccounts] Inside respond callback");
+    try {
+      const client = getClient({ chainId: requestChain.value!.id });
+      console.log("[RequestAccounts] Got client, account:", client.account.address);
+      const result = {
+        result: constructReturn({
+          address: client.account.address,
+          chainId: client.chain.id,
+          prividiumMode: runtimeConfig.public.prividiumMode,
+          prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
+        }),
+      };
+      console.log("[RequestAccounts] Returning result:", result);
+      return result;
+    } catch (error) {
+      console.error("[RequestAccounts] Error in respond:", error);
+      throw error;
+    }
   });
 };
 </script>

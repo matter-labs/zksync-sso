@@ -44,24 +44,14 @@ export default defineConfig({
   ],
 
   /* Run your local server before starting the tests */
-  /* IMPORTANT: Order matters! Contracts must be deployed BEFORE auth-server-api starts,
-   * because auth-server-api reads contract addresses from contracts.json at startup.
+  /* IMPORTANT: Contracts must already be deployed BEFORE these servers start.
+   * The nft-quest:e2e NX target depends on nft-quest-contracts:deploy:local,
+   * which ensures contracts are deployed before Playwright launches.
    * Playwright starts webServers sequentially and waits for each URL before starting the next.
    */
   webServer: [
     {
-      // Step 1: Deploy all contracts first (creates/updates contracts.json)
-      // This deploys MSA factory, validators, paymaster, and NFT contract
-      // The "server" is just a simple echo to satisfy playwright's URL check
-      command: "pnpm nx deploy:local nft-quest-contracts && echo 'Contracts deployed' && node -e \"require('http').createServer((req,res)=>{res.writeHead(200);res.end('ok')}).listen(3099)\"",
-      url: "http://localhost:3099",
-      reuseExistingServer: !process.env.CI,
-      stdout: "pipe",
-      stderr: "pipe",
-      timeout: 180_000,
-    },
-    {
-      // Step 2: Start auth-server-api (reads fresh contracts.json)
+      // Step 1: Start auth-server-api (reads fresh contracts.json)
       // Run directly with node to ensure PORT env var is passed correctly
       command: "cd ../../packages/auth-server-api && PORT=3004 node --experimental-wasm-modules --import tsx src/index.ts",
       url: "http://localhost:3004/api/health",
@@ -71,9 +61,10 @@ export default defineConfig({
       timeout: 180_000,
     },
     {
-      // Step 3: Start auth-server (UI for account creation)
-      // Use dev:nuxt-only since we start auth-server-api separately in step 2
-      command: "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 pnpm nx dev:nuxt-only auth-server",
+      // Step 2: Start auth-server (UI for account creation)
+      // Use dev:nuxt-only since we start auth-server-api separately in step 1
+      // Clean .nuxt cache first to ensure fresh config from newly deployed contracts
+      command: "rm -rf ../../packages/auth-server/.nuxt && NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 pnpm nx dev:nuxt-only auth-server",
       url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
@@ -81,9 +72,10 @@ export default defineConfig({
       timeout: 180_000,
     },
     {
-      // Step 4: Start nft-quest dev server (contracts already deployed in step 1)
-      command: "PORT=3006 pnpm nuxt dev",
-      cwd: "../../examples/nft-quest",
+      // Step 3: Start nft-quest dev server (contracts already deployed via NX dependency)
+      // Clean .nuxt and Vite cache to force fresh config resolution from
+      // the newly written contracts.json and .env.local (avoids stale cached addresses)
+      command: "rm -rf .nuxt node_modules/.cache/vite && PORT=3006 pnpm nuxt dev",
       url: "http://localhost:3006",
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",

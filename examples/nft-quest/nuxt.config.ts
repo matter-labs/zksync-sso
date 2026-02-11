@@ -1,9 +1,16 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { defineNuxtConfig } from "nuxt/config";
 import { defineChain } from "viem";
 import { localhost } from "viem/chains";
 import wasm from "vite-plugin-wasm";
 
-import contracts from "./public/contracts.json";
+// Read contracts.json dynamically at config evaluation time to ensure
+// freshly deployed addresses are always picked up (avoids module cache)
+const contracts = JSON.parse(
+  readFileSync(fileURLToPath(new URL("./public/contracts.json", import.meta.url)), "utf-8"),
+);
 
 // TODO: Deploy NFT Quest to ZKsync OS Testnet and update contract addresses
 const zksyncOsTestnet = defineChain({
