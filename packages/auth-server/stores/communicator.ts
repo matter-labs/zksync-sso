@@ -32,8 +32,14 @@ export const useCommunicatorStore = defineStore("communicator", () => {
    * Posts a message back to the opener window
    */
   const postMessage = <M extends Message>(message: M) => {
-    if (!window.opener) throw new Error("No opener window found");
+    console.log("[communicator] postMessage called, origin:", origin.value);
+    if (!window.opener) {
+      console.error("[communicator] No opener window found!");
+      throw new Error("No opener window found");
+    }
+    console.log("[communicator] posting message to opener:", message);
     window.opener.postMessage(message, origin.value);
+    console.log("[communicator] postMessage completed");
   };
 
   /**
@@ -59,12 +65,15 @@ export const useCommunicatorStore = defineStore("communicator", () => {
    * Closes the popup and clears the listeners
    */
   const disconnect = () => {
+    console.log("[communicator] disconnect called");
     listeners.forEach(({ reject }, listener) => {
       window.removeEventListener("message", listener);
       reject(new Error("Request rejected"));
     });
     listeners.clear();
+    console.log("[communicator] calling window.close()");
     window.close();
+    console.log("[communicator] window.close() called");
   };
 
   /**

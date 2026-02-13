@@ -2,6 +2,19 @@
   "name": "nft-quest",
   "tags": ["type:app"],
   "targets": {
+    "dev-standalone": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "examples/nft-quest",
+        "commands": [
+          {
+            "command": "PORT=3006 pnpm nuxt dev",
+            "prefix": "NFT-Quest:"
+          }
+        ]
+      },
+      "dependsOn": ["nft-quest-contracts:deploy:nft-only"]
+    },
     "dev": {
       "executor": "nx:run-commands",
       "options": {
@@ -17,7 +30,7 @@
           }
         ]
       },
-      "dependsOn": ["nft-quest-contracts:deploy:local"]
+      "dependsOn": ["nft-quest-contracts:deploy:nft-only"]
     },
     "build": {
       "executor": "nx:run-commands",

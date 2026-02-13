@@ -15,6 +15,15 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
+        "commands": ["pnpm run copy:snarkjs && PORT=3002 nuxt dev", "pnpm nx run auth-server-api:dev"],
+        "parallel": true
+      },
+      "dependsOn": ["^build"]
+    },
+    "dev:nuxt-only": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
         "command": "pnpm run copy:snarkjs && PORT=3002 nuxt dev"
       },
       "dependsOn": ["^build"]

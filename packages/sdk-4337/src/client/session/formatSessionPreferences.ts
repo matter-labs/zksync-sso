@@ -355,8 +355,31 @@ export function formatSessionPreferences(
   return {
     expiresAt: preferences.expiry ? formatDatePreferences(preferences.expiry) : defaults.expiresAt,
     feeLimit: preferences.feeLimit ? formatLimitPreferences(preferences.feeLimit) : defaults.feeLimit,
-    callPolicies: preferences.contractCalls?.map((policy) => {
+    callPolicies: preferences.contractCalls?.flatMap((policy) => {
       const allowedStateMutability: ContractWriteMutability[] = ["nonpayable", "payable"];
+
+      // If no functionName specified, allow all functions in the ABI
+      if (!policy.functionName) {
+        const allFunctions = (policy.abi as Abi).filter(
+          (fn): fn is AbiFunction =>
+            fn.type === "function"
+            && (allowedStateMutability as AbiStateMutability[]).includes(fn.stateMutability),
+        );
+
+        return allFunctions.map((abiFunction) => {
+          const selector = toFunctionSelector(abiFunction);
+          const valueLimit = policy.valueLimit ? formatLimitPreferences(policy.valueLimit) : LimitZero;
+
+          return {
+            target: getAddress(policy.address.toLowerCase()),
+            maxValuePerUse: policy.maxValuePerUse ?? valueLimit.limit,
+            valueLimit,
+            selector: selector,
+            constraints: [], // No constraints when allowing all functions
+          };
+        });
+      }
+
       const abiFunction = (policy.abi as Abi).find((fn) => fn.type === "function" && fn.name === policy.functionName && (allowedStateMutability as AbiStateMutability[]).includes(fn.stateMutability)) as AbiFunction;
       if (!abiFunction) throw new Error(`Function not found in the provided ABI: ${policy.functionName}`);
 

@@ -22,8 +22,8 @@ const { requestParams, requestMethod, requestChainId } = storeToRefs(useRequests
 
 const sessionPreferences = computed<SessionPreferences | undefined>(() => {
   if (requestMethod.value !== "eth_requestAccounts") return undefined;
-  if ("sessionPreferences" in requestParams.value!) {
-    return requestParams.value!.sessionPreferences;
+  if (requestParams.value && "sessionPreferences" in requestParams.value) {
+    return requestParams.value.sessionPreferences;
   }
   return undefined;
 });

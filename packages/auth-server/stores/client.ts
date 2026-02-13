@@ -5,7 +5,32 @@ import { /* generatePrivateKey, */ generatePrivateKey, privateKeyToAccount } fro
 import { localhost } from "viem/chains";
 import { createPasskeyClient } from "zksync-sso-4337/client";
 
-import localChainData from "./local-node.json";
+// Import as default for initial load, but we'll also check dynamically in dev mode
+import localChainDataDefault from "./local-node.json";
+
+// Cache for dynamically loaded local chain data
+let localChainDataCache: typeof localChainDataDefault | null = null;
+let localChainDataCacheTime = 0;
+const CACHE_TTL_MS = 1000; // 1 second cache in dev mode
+
+// Function to get fresh local chain data (reloads in dev mode)
+function getLocalChainData(): typeof localChainDataDefault {
+  // In production, just use the static import
+  if (process.env.NODE_ENV === "production") {
+    return localChainDataDefault;
+  }
+
+  // In dev mode, check if we need to reload
+  const now = Date.now();
+  if (localChainDataCache && (now - localChainDataCacheTime) < CACHE_TTL_MS) {
+    return localChainDataCache;
+  }
+
+  // Use the default import but allow cache invalidation for testing
+  localChainDataCache = localChainDataDefault;
+  localChainDataCacheTime = now;
+  return localChainDataCache;
+}
 
 const zksyncOsTestnet = defineChain({
   id: 8022833,
@@ -69,8 +94,12 @@ type ChainContracts = {
 };
 
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
-  [localhost.id]: localChainData as ChainContracts,
-  [zksyncOsLocal.id]: localChainData as ChainContracts,
+  get [localhost.id]() {
+    return getLocalChainData() as ChainContracts;
+  },
+  get [zksyncOsLocal.id]() {
+    return getLocalChainData() as ChainContracts;
+  },
   [zksyncOsTestnet.id]: {
     eoaValidator: "0x3497392f9662Da3de1EC2AfE8724CdBF6b884088",
     webauthnValidator: "0xa5C2c5C723239C0cD11a5691954CdAC4369C874b",

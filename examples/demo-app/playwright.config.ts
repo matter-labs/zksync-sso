@@ -45,9 +45,25 @@ export default defineConfig({
   ],
 
   /* Run local servers before starting the tests */
+  /* IMPORTANT: Order matters! Contracts must be deployed BEFORE auth-server-api starts,
+   * because auth-server-api reads contract addresses from contracts.json at startup.
+   * Playwright starts webServers sequentially and waits for each URL before starting the next.
+   */
   webServer: [
     {
-      command: "PORT=3004 pnpm nx dev auth-server-api",
+      // Step 1: Deploy all contracts first (creates/updates contracts.json)
+      // The "server" is just a simple echo to satisfy playwright's URL check
+      command: "pnpm nx deploy-msa-factory demo-app && echo 'Contracts deployed' && node -e \"require('http').createServer((req,res)=>{res.writeHead(200);res.end('ok')}).listen(3099)\"",
+      url: "http://localhost:3099",
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 180_000,
+    },
+    {
+      // Step 2: Start auth-server-api (reads fresh contracts.json)
+      // Run directly with node to ensure PORT env var is passed correctly
+      command: "cd ../../packages/auth-server-api && PORT=3004 node --experimental-wasm-modules --import tsx src/index.ts",
       url: "http://localhost:3004/api/health",
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
@@ -55,8 +71,10 @@ export default defineConfig({
       timeout: 180_000,
     },
     {
+      // Step 3: Start auth-server (UI for account creation)
+      // Use dev:nuxt-only since we start auth-server-api separately in step 2
       command:
-        "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nx dev:no-deploy auth-server",
+        "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 pnpm nx dev:nuxt-only auth-server",
       url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
@@ -64,6 +82,7 @@ export default defineConfig({
       timeout: 180_000,
     },
     {
+      // Step 4: Start demo-app dev server (contracts already deployed in step 1)
       command: "PORT=3005 pnpm nx dev demo-app",
       url: "http://localhost:3005",
       reuseExistingServer: !process.env.CI,

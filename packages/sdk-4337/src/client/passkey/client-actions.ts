@@ -101,6 +101,28 @@ export function passkeyClientActions<
       const smartAccount = await toPasskeySmartAccount(config.passkeyAccount);
       const sessionSpecJSON = sessionSpecToJSON(params.sessionSpec);
       const callData = encode_create_session_call_data(sessionSpecJSON, params.proof) as unknown as `0x${string}`;
+      // Normalize paymaster config (same logic as smartAccountClientActions)
+      const normalizedPaymaster = config.paymaster
+        ? typeof config.paymaster === "string"
+          ? {
+              address: config.paymaster as Address,
+              verificationGasLimit: 500_000n,
+              postOpGasLimit: 1_000_000n,
+              data: "0x" as `0x${string}`,
+            }
+          : config.paymaster
+        : undefined;
+
+      // For v0.8 EntryPoint, pass separate paymaster fields (not packed paymasterAndData)
+      const paymasterParams = normalizedPaymaster
+        ? {
+            paymaster: normalizedPaymaster.address,
+            paymasterData: normalizedPaymaster.data ?? ("0x" as Hex),
+            paymasterVerificationGasLimit: normalizedPaymaster.verificationGasLimit ?? 500_000n,
+            paymasterPostOpGasLimit: normalizedPaymaster.postOpGasLimit ?? 1_000_000n,
+          }
+        : {};
+
       const userOpHash = await config.bundler.sendUserOperation({
         account: smartAccount,
         calls: [
@@ -110,7 +132,12 @@ export function passkeyClientActions<
             value: 0n,
           },
         ],
+        ...paymasterParams,
       });
+
+      // Wait for the session creation to be confirmed on-chain
+      await config.bundler.waitForUserOperationReceipt({ hash: userOpHash });
+
       return userOpHash;
     },
   };

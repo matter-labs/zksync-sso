@@ -49,6 +49,19 @@ function filterContractCallsAbi(contractCalls: PartialCallPolicy[]): PartialCall
   const allowedStateMutability: AbiStateMutability[] = ["nonpayable", "payable"];
 
   return contractCalls.map((call) => {
+    // If no functionName is specified, allow all functions in the ABI
+    if (!call.functionName) {
+      const allFunctions = (call.abi as Abi).filter(
+        (item): item is AbiFunction =>
+          item.type === "function"
+          && allowedStateMutability.includes(item.stateMutability),
+      );
+      return {
+        ...call,
+        abi: allFunctions,
+      };
+    }
+
     const matchingFunction = (call.abi as Abi).find(
       (item): item is AbiFunction =>
         item.type === "function"

@@ -9,7 +9,7 @@ contract ZeekNFTQuest is ERC721, Ownable {
   uint256 private _tokenIds;
   string private _baseTokenURI;
 
-  constructor(string memory baseTokenURI) ERC721("NFT Quest Zeek", "ZEEK") {
+  constructor(string memory baseTokenURI) ERC721("NFT Quest Zeek", "ZEEK") Ownable(msg.sender) {
     _baseTokenURI = baseTokenURI;
   }
 

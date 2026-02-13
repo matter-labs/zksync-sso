@@ -1,51 +1,45 @@
+// auth-server
+// examples/demo-app
+// examples/nft-quest
+// packages/auther-server-api
+// packages/bundler
+// paymasters
+// zk and circom
 alice
+cancun
 clsx
 COSEALG
 COSEKTY
 ctap
+debian
+distroless
+dockerized
+ethereum
+EVMLA
+foundryup
+fren
+Fren
+groth
+Groth
+jwks
 lintstagedrc
+merkle
+nfts
 nuxt
 Nuxt
 nuxtjs
-testid
-vueuse
-dockerized
-ethereum
-sepolia
-foundryup
-unpermitted
-
-// auth-server
 oidc
 Oidc
-jwks
-merkle
-
-// zk and circom
-Groth
-groth
-zkey
+pimlico
+rustup
+sepolia
 snark
 snarkjs
-
-// examples/demo-app
-zkout
-cancun
-EVMLA
-
-// paymasters
-zyfi
-
-// examples/nft-quest
-Fren
-fren
-nfts
+testid
+unpermitted
+unstake
+vueuse
 wght
-
-// packages/auther-server-api
-rustup
-distroless
-debian
-
-// packages/bundler
-pimlico
+zkey
+zkout
+zyfi

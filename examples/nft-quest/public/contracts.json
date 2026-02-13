@@ -1,16 +1,14 @@
 {
-  "rpcUrl": "http://localhost:8545",
+  "rpcUrl": "http://127.0.0.1:8545",
   "chainId": 1337,
-  "deployer": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+  "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
+  "bundlerUrl": "http://localhost:4337",
+  "factory": "0xb2E0e93B20442b80912DBA3b74De4A5718eBd359",
   "eoaValidator": "0x3a63639F3B216461Cbd39Cc7ccfE5d3bD0D34d90",
   "sessionValidator": "0xE9f92D2EB5d8Dcd38c96D94BCA1854c71c475383",
   "webauthnValidator": "0x3dF16B0d1a113f5E2B4810419a749a3d966a9dAc",
   "guardianExecutor": "0x46245F52Fc7037D219354BbBF5b4dF560119052c",
-  "accountImplementation": "0xE8f5a60b928Fa10346538De39709463dD01F9127",
-  "beacon": "0xcfE9feC15aadcB57f0C05B75018386C6F9EAF5F2",
-  "factory": "0xb2E0e93B20442b80912DBA3b74De4A5718eBd359",
   "testPaymaster": "0x1483801ed608979f6c1640ECE216c2B9E394cbeA",
   "mockPaymaster": "0x1483801ed608979f6c1640ECE216c2B9E394cbeA",
-  "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
-  "bundlerUrl": "http://localhost:4337"
+  "nftContract": "0xc3Ee0A87e6526e2120698710bAb650B33504d950"
 }

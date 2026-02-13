@@ -1,6 +1,7 @@
 import { FetchError } from "ofetch";
 import { erc20Abi, formatUnits, toFunctionSelector } from "viem";
 import type { Address } from "viem/accounts";
+import { localhost } from "viem/chains";
 import { LimitType, type SessionSpec, type SessionState } from "zksync-sso-4337/client";
 
 // Type alias for compatibility
@@ -32,6 +33,8 @@ export const useSessionStateInfo = (
       throwErrorAsserter: (e) => {
         // if (import.meta.dev) return false;
         if (e instanceof FetchError && e.statusCode === 404) return false;
+        // On localhost, connection refused errors are expected since block explorer API doesn't exist
+        if (chainId.value === localhost.id && e instanceof FetchError && !e.statusCode) return false;
         return true;
       },
     });
