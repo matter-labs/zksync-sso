@@ -1,32 +1,34 @@
 <template>
   <div class="session-row">
     <div class="session-id-container">
-      <div :title="sessionId">
-        #{{ index }}
-      </div>
-      <a
-        class="session-created-time-ago"
-        :title="fullCreatedAtDate || ''"
-        :href="`${defaultChain.blockExplorers?.native.url}/tx/${transactionHash}`"
-        target="_blank"
+      <div
+        v-if="sessionHash"
+        :title="sessionHash"
+        class="truncate"
       >
-        {{ createdTimeAgo }}
-      </a>
+        {{ sessionHash.slice(0, 10) }}...{{ sessionHash.slice(-8) }}
+      </div>
+      <div
+        v-if="sessionSpec?.signer"
+        class="session-signer text-xs text-neutral-500"
+      >
+        Signer: {{ sessionSpec.signer.slice(0, 6) }}...{{ sessionSpec.signer.slice(-4) }}
+      </div>
     </div>
     <div class="session-expiry-container">
       <SessionRowExpiry
         v-if="sessionState"
         :status="sessionState.status"
         :is-expired="isExpired"
-        :created-at="timestamp"
         :expires-at="expiresAt"
         :now="now"
+        :max-expires-at="maxExpiresAt"
       />
     </div>
     <div class="session-spend-limit-container">
       <SessionRowSpendLimit
         v-if="sessionState"
-        :config="session"
+        :config="sessionSpec"
         :state="sessionState"
         :now="now"
         :is-inactive="isInactive"
@@ -54,24 +56,19 @@
 
 <script setup lang="ts">
 import { HandRaisedIcon } from "@heroicons/vue/24/outline";
-import type { Hash } from "viem";
+import type { Hex } from "viem";
 import { SessionKeyValidatorAbi } from "zksync-sso-4337/abi";
 import { type SessionConfig, type SessionState, SessionStatus } from "zksync-sso-4337/client";
 
 const props = defineProps<{
-  session: SessionConfig;
-  index: number;
-  sessionId: Hash;
-  transactionHash: Hash;
-  blockNumber: bigint;
-  timestamp: number;
+  sessionHash: Hex;
+  sessionSpec: SessionConfig;
+  maxExpiresAt: number;
 }>();
 
 const _now = useNow({ interval: 1000 });
 const now = computed(() => _now.value.getTime());
-const createdTimeAgo = useTimeAgo(props.timestamp);
-const fullCreatedAtDate = computed(() => new Date(props.timestamp).toLocaleString());
-const expiresAt = computed<number>(() => bigintDateToDate(props.session.expiresAt).getTime());
+const expiresAt = computed<number>(() => bigintDateToDate(props.sessionSpec.expiresAt).getTime());
 const timeLeft = computed<number>(() => Math.max(0, expiresAt.value - now.value));
 const isExpired = computed(() => timeLeft.value <= 0);
 
@@ -85,7 +82,7 @@ const {
   const client = getClient({ chainId: defaultChain.id });
   const paymasterAddress = contractsByChain[defaultChain.id].accountPaymaster;
   await client.revokeSession({
-    sessionId: props.sessionId,
+    sessionId: props.sessionHash,
     paymaster: {
       address: paymasterAddress,
     },
@@ -99,10 +96,10 @@ const {
 } = useAsync(async () => {
   const client = getPublicClient({ chainId: defaultChain.id });
   const res = await client.readContract({
-    address: contractsByChain[defaultChain.id].session,
+    address: contractsByChain[defaultChain.id].sessionValidator,
     abi: SessionKeyValidatorAbi,
     functionName: "sessionState",
-    args: [address.value!, props.session],
+    args: [address.value!, props.sessionSpec],
   });
   return res as SessionState;
 });
@@ -117,7 +114,7 @@ fetchSessionState();
 .session-row {
   @apply grid px-4 items-center text-sm;
   @apply grid-cols-2 gap-y-2 py-4 gap-x-8;
-  @apply md:grid-cols-[6rem_1fr_1fr_45px] md:py-7 md:h-[100px];
+  @apply md:grid-cols-[10rem_1fr_1fr_45px] md:py-7 md:h-[100px];
 
   grid-template-areas:
     "session-id-container session-buttons-container"

@@ -4,11 +4,13 @@ export type {
   CreateSessionReturnType,
   GetSessionStateParams,
   GetSessionStateReturnType,
+  ListActiveSessionsParams,
+  ListActiveSessionsReturnType,
   SessionState,
   SessionStateEvent,
   SessionStateEventCallback,
 } from "./sessions.js";
-export { createSession, getSessionState, SessionEventType, SessionStatus } from "./sessions.js";
+export { createSession, getSessionState, listActiveSessions, SessionEventType, SessionStatus } from "./sessions.js";
 
 // Smart account deployment (prepare-only) exports
 export type {
