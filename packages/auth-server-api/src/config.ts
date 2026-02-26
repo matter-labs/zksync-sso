@@ -118,7 +118,8 @@ function parseSupportedChains(): Chain[] {
     const rpcUrl = process.env[`CHAIN_${chainIndex}_RPC_URL`];
     const decimalsStr = process.env[`CHAIN_${chainIndex}_BASE_TOKEN_DECIMALS`];
 
-    if (!rpcUrl) {
+    // RPC URL is required in non-prividium mode (prividium uses SDK transport)
+    if (!rpcUrl && !env.PRIVIDIUM_MODE) {
       console.error(`CHAIN_${chainIndex}_RPC_URL is required but not provided`);
       process.exit(1);
     }
@@ -140,12 +141,14 @@ function parseSupportedChains(): Chain[] {
       }
     }
 
-    // Validate RPC URL format
-    try {
-      new URL(rpcUrl);
-    } catch {
-      console.error(`CHAIN_${chainIndex}_RPC_URL is not a valid URL: ${rpcUrl}`);
-      process.exit(1);
+    // Validate RPC URL format if provided
+    if (rpcUrl) {
+      try {
+        new URL(rpcUrl);
+      } catch {
+        console.error(`CHAIN_${chainIndex}_RPC_URL is not a valid URL: ${rpcUrl}`);
+        process.exit(1);
+      }
     }
 
     // Create chain with defaults for name and currency
@@ -159,7 +162,7 @@ function parseSupportedChains(): Chain[] {
       },
       rpcUrls: {
         default: {
-          http: [rpcUrl],
+          http: rpcUrl ? [rpcUrl] : [],
         },
       },
     });
