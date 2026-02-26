@@ -5,16 +5,16 @@ import type { UserAuthResult, UserProfile } from "./types.js";
  * This both validates the token and returns the user's ID.
  *
  * @param authorizationHeader The full Authorization header value (e.g., "Bearer <token>")
- * @param permissionsApiUrl The base URL for the Prividium permissions API
+ * @param apiUrl The base URL for the Prividium API
  * @returns UserAuthResult with validity, userId if valid, and error type if invalid
  */
 export async function verifyUserAuth(
   authorizationHeader: string,
-  permissionsApiUrl: string,
+  apiUrl: string,
 ): Promise<UserAuthResult> {
   let response: Response;
   try {
-    response = await fetch(`${permissionsApiUrl}/api/profiles/me`, {
+    response = await fetch(`${apiUrl}/api/profiles/me`, {
       method: "GET",
       headers: {
         Authorization: authorizationHeader,

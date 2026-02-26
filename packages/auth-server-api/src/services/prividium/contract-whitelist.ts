@@ -7,19 +7,19 @@ import type { Hex } from "viem";
  *
  * @param contractAddress The deployed contract address to whitelist
  * @param templateKey The template key to associate with the contract
- * @param adminToken The authenticated admin's JWT token
- * @param permissionsApiUrl The base URL for the Prividium permissions API
+ * @param authHeaders The authentication headers from SDK
+ * @param apiUrl The base URL for the Prividium API
  */
 export async function whitelistContract(
   contractAddress: Hex,
   templateKey: string,
-  adminToken: string,
-  permissionsApiUrl: string,
+  authHeaders: Record<string, string>,
+  apiUrl: string,
 ): Promise<void> {
-  const response = await fetch(`${permissionsApiUrl}/api/contracts`, {
+  const response = await fetch(`${apiUrl}/api/contracts`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${adminToken}`,
+      ...authHeaders,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
