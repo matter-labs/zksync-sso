@@ -10,8 +10,10 @@ import type { PrividiumConfig } from "../../config.js";
  */
 export class AdminAuthService {
   private sdkInstance: PrividiumSiweChain;
+  readonly chainId: number;
 
-  constructor(private config: PrividiumConfig, chain: Chain) {
+  constructor(config: PrividiumConfig, chain: Chain) {
+    this.chainId = chain.id;
     const account = privateKeyToAccount(config.adminPrivateKey as Hex);
 
     // Initialize SDK - it handles everything
@@ -35,8 +37,7 @@ export class AdminAuthService {
   }
 
   /**
-   * Ensures admin is authenticated.
-   * Call this once at startup.
+   * Authenticates admin with Prividium. Call once at startup.
    */
   async initialize(): Promise<void> {
     if (!this.sdkInstance.isAuthorized()) {
@@ -56,15 +57,25 @@ export class AdminAuthService {
   }
 }
 
-// Singleton instance
+// Singleton instance, initialized at startup via initAdminAuthService()
 let adminAuthServiceInstance: AdminAuthService | null = null;
 
 /**
- * Gets or creates the singleton AdminAuthService instance.
+ * Initializes the singleton AdminAuthService and authenticates with Prividium.
+ * Must be called once at startup before handling requests.
  */
-export function getAdminAuthService(config: PrividiumConfig, chain: Chain): AdminAuthService {
+export async function initAdminAuthService(config: PrividiumConfig, chain: Chain): Promise<void> {
+  adminAuthServiceInstance = new AdminAuthService(config, chain);
+  await adminAuthServiceInstance.initialize();
+}
+
+/**
+ * Gets the initialized AdminAuthService singleton.
+ * Throws if called before initAdminAuthService().
+ */
+export function getAdminAuthService(): AdminAuthService {
   if (!adminAuthServiceInstance) {
-    adminAuthServiceInstance = new AdminAuthService(config, chain);
+    throw new Error("AdminAuthService not initialized. Call initAdminAuthService() at startup first.");
   }
   return adminAuthServiceInstance;
 }

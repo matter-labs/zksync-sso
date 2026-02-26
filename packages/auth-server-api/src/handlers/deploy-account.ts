@@ -39,9 +39,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     let adminSdk: PrividiumSiweChain | undefined;
     if (prividiumConfig.enabled && req.prividiumUser) {
       try {
-        const adminAuth = getAdminAuthService(prividiumConfig, chain);
-        await adminAuth.initialize();
-        adminSdk = adminAuth.getSdkInstance();
+        adminSdk = getAdminAuthService().getSdkInstance();
       } catch (error) {
         console.error("Admin authentication failed:", error);
         res.status(500).json({
@@ -53,7 +51,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
 
     // Create transport - use SDK transport if enabled, otherwise direct RPC
     const transport = adminSdk
-      ? adminSdk.transport // SDK transport with auto-auth!
+      ? adminSdk.transport // SDK provides authenticated transport
       : http(env.RPC_URL);
 
     // Create clients

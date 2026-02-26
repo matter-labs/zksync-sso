@@ -114,15 +114,10 @@ function parseSupportedChains(): Chain[] {
 
   // Keep discovering chains until CHAIN_N_ID doesn't exist
   while (process.env[`CHAIN_${chainIndex}_ID`]) {
-    const chainIdStr = process.env[`CHAIN_${chainIndex}_ID`];
+    const chainIdStr = process.env[`CHAIN_${chainIndex}_ID`]!;
     const rpcUrl = process.env[`CHAIN_${chainIndex}_RPC_URL`];
     const decimalsStr = process.env[`CHAIN_${chainIndex}_BASE_TOKEN_DECIMALS`];
 
-    // Validate required fields
-    if (!chainIdStr) {
-      console.error(`CHAIN_${chainIndex}_ID is required but not provided`);
-      process.exit(1);
-    }
     if (!rpcUrl) {
       console.error(`CHAIN_${chainIndex}_RPC_URL is required but not provided`);
       process.exit(1);
@@ -205,7 +200,15 @@ const prividiumConfig: PrividiumConfig = {
   adminPrivateKey: env.PRIVIDIUM_ADMIN_PRIVATE_KEY || "",
   templateKey: env.PRIVIDIUM_TEMPLATE_KEY || "",
   ssoAuthServerBaseUrl: env.SSO_AUTH_SERVER_BASE_URL || "",
-  domain: env.SSO_AUTH_SERVER_BASE_URL ? new URL(env.SSO_AUTH_SERVER_BASE_URL).host : "",
+  domain: (() => {
+    if (!env.SSO_AUTH_SERVER_BASE_URL) return "";
+    try {
+      return new URL(env.SSO_AUTH_SERVER_BASE_URL).host;
+    } catch {
+      console.error(`SSO_AUTH_SERVER_BASE_URL is not a valid URL: ${env.SSO_AUTH_SERVER_BASE_URL}`);
+      process.exit(1);
+    }
+  })(),
 };
 
 // Rate limiting configuration
