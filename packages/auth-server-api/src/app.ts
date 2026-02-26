@@ -14,8 +14,9 @@ app.use(express.json());
 
 // CORS configuration
 const allowlist = env.CORS_ORIGINS.split(",").map((origin) => origin.trim());
+const isAllowAll = allowlist.includes("*");
 const corsOrigins = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-  if (!origin || allowlist.indexOf(origin) !== -1) {
+  if (!origin || isAllowAll || allowlist.indexOf(origin) !== -1) {
     callback(null, true);
   } else {
     callback(new Error("Not allowed by CORS"));
