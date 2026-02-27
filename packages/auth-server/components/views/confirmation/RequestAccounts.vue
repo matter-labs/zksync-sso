@@ -66,7 +66,7 @@ const confirmConnection = () => {
         address: client.account.address,
         chainId: client.chain.id,
         prividiumMode: runtimeConfig.public.prividiumMode,
-        prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
+        prividiumProxyUrl: runtimeConfig.public.prividium?.apiBaseUrl ? `${runtimeConfig.public.prividium.apiBaseUrl}/rpc` : "",
       }),
     };
   });

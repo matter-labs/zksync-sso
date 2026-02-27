@@ -20,9 +20,9 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
     if (!runtimeConfig.public.prividiumMode) return null;
 
     if (!prividiumInstance) {
-      const { clientId, rpcUrl, authBaseUrl, permissionsApiBaseUrl } = runtimeConfig.public.prividium || {};
+      const { clientId, authBaseUrl, apiBaseUrl } = runtimeConfig.public.prividium || {};
 
-      if (!clientId || !rpcUrl || !authBaseUrl || !permissionsApiBaseUrl) {
+      if (!clientId || !authBaseUrl || !apiBaseUrl) {
         error.value = "Prividium configuration is incomplete";
         return null;
       }
@@ -30,9 +30,8 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
       prividiumInstance = createPrividiumChain({
         clientId,
         chain: defaultChain,
-        rpcUrl,
         authBaseUrl,
-        permissionsApiBaseUrl: permissionsApiBaseUrl,
+        prividiumApiBaseUrl: apiBaseUrl,
         redirectUrl: `${window.location.origin}/callback`,
         onAuthExpiry: () => {
           isAuthenticated.value = false;

@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index d9e06431ede9c94d3512c90fd10dbd769144c5c7..8f735a90d37742bad4205f956bb90feb97c892c8 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,7 @@
+ {
+   "name": "prividium",
+   "version": "0.6.0",
++  "type": "module",
+   "bin": {
+     "prividium": "bin/cli.js"
+   },

@@ -46,7 +46,7 @@
             <div class="flex items-center space-x-2">
               <div class="w-2 h-2 bg-green-500 rounded-full" />
               <span class="text-sm text-slate-600 dark:text-slate-400">
-                {{ profile?.displayName || profile?.userId || "Authenticated User" }}
+                {{ profile?.displayName || profile?.id || "Authenticated User" }}
               </span>
             </div>
             <button
