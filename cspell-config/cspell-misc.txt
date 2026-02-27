@@ -14,7 +14,7 @@ ethereum
 sepolia
 foundryup
 unpermitted
-reauthenticate
+reauthentication
 
 // auth-server
 oidc
