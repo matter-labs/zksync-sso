@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { defineConfig, devices } from "@playwright/test";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Load local-node.json for contract addresses used in e2e tests
 const localNode = JSON.parse(
