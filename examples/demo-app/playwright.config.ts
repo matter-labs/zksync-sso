@@ -81,7 +81,7 @@ export default defineConfig({
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,
-      env: authServerEnv,
+      env: { ...process.env, ...authServerEnv },
     },
     {
       command: "PORT=3005 pnpm nx dev demo-app",

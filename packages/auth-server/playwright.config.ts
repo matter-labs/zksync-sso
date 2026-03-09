@@ -67,7 +67,7 @@ export default defineConfig({
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,
-      env: authServerEnv,
+      env: { ...process.env, ...authServerEnv },
     },
   ],
 });
