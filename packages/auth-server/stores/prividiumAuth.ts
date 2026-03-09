@@ -4,10 +4,7 @@ let prividiumInstance: PrividiumChain | null = null;
 
 export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
   const runtimeConfig = useRuntimeConfig();
-  const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
-  const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
-  if (!defaultChain)
-    throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
+  const { defaultChain } = useClientStore();
 
   // Reactive state
   const profile = ref<UserProfile | null>(null);

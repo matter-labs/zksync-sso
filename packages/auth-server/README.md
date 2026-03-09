@@ -25,9 +25,9 @@ Adding contracts to the storage slot allow list (api_web3_json_rpc:
 whitelisted_tokens_for_aa)
 
 Include the addresses of SSO WebAuthValidator, SSO SessionKeyValidator, SSO
-Beacon which need to be updated by the chain id in contractsByChain in the
-client file. The block explorer url in the same file can also be updated if your
-chain is listed in viem/chains.
+Beacon via the corresponding `NUXT_PUBLIC_*` environment variables (see
+`.env.example` for the full list). The block explorer URL can also be configured
+via `NUXT_PUBLIC_BLOCK_EXPLORER_URL`.
 
 ## Design
 

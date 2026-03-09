@@ -187,7 +187,7 @@ const route = useRoute();
 const { address: currentSsoAddress } = storeToRefs(useAccountStore());
 const { confirmGuardian, confirmGuardianInProgress, getGuardians, getGuardiansData } = useRecoveryGuardian();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
-const { getWalletClient, defaultChain } = useClientStore();
+const { getWalletClient } = useClientStore();
 const { isSsoAccount: checkIsSsoAccount, isLoading: isSsoAccountLoading, error: isSsoAccountError } = useIsSsoAccount();
 
 // Parse and validate URL params
@@ -296,7 +296,7 @@ const confirmGuardianAction = async () => {
       if (!accountData.value.isConnected) {
         throw new Error("Please connect your wallet first");
       }
-      client = await getWalletClient({ chainId: defaultChain.id });
+      client = await getWalletClient();
       confirmationState.value = "got_wallet_client";
     }
 

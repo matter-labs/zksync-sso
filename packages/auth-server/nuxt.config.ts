@@ -1,5 +1,4 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { localhost } from "viem/chains";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
 
@@ -82,7 +81,28 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || localhost.id,
+      // Chain configuration
+      chainId: parseInt(process.env.NUXT_PUBLIC_CHAIN_ID || "") || 0,
+      chainName: process.env.NUXT_PUBLIC_CHAIN_NAME || "",
+      chainRpcUrl: process.env.NUXT_PUBLIC_CHAIN_RPC_URL || "",
+      blockExplorerUrl: process.env.NUXT_PUBLIC_BLOCK_EXPLORER_URL || "",
+      blockExplorerApiUrl: process.env.NUXT_PUBLIC_BLOCK_EXPLORER_API_URL || "",
+
+      // Contract addresses
+      factoryAddress: process.env.NUXT_PUBLIC_FACTORY_ADDRESS || "",
+      eoaValidatorAddress: process.env.NUXT_PUBLIC_EOA_VALIDATOR_ADDRESS || "",
+      webauthnValidatorAddress: process.env.NUXT_PUBLIC_WEBAUTHN_VALIDATOR_ADDRESS || "",
+      sessionValidatorAddress: process.env.NUXT_PUBLIC_SESSION_VALIDATOR_ADDRESS || "",
+      guardianExecutorAddress: process.env.NUXT_PUBLIC_GUARDIAN_EXECUTOR_ADDRESS || "",
+      bundlerUrl: process.env.NUXT_PUBLIC_BUNDLER_URL || "",
+      beaconAddress: process.env.NUXT_PUBLIC_BEACON_ADDRESS || "",
+      testPaymasterAddress: process.env.NUXT_PUBLIC_TEST_PAYMASTER_ADDRESS || "",
+      accountPaymasterAddress: process.env.NUXT_PUBLIC_ACCOUNT_PAYMASTER_ADDRESS || "",
+      recoveryOidcAddress: process.env.NUXT_PUBLIC_RECOVERY_OIDC_ADDRESS || "",
+      oidcKeyRegistryAddress: process.env.NUXT_PUBLIC_OIDC_KEY_REGISTRY_ADDRESS || "",
+      oidcVerifierAddress: process.env.NUXT_PUBLIC_OIDC_VERIFIER_ADDRESS || "",
+      passkeyAddress: process.env.NUXT_PUBLIC_PASSKEY_ADDRESS || "",
+
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
       authServerApiUrl: process.env.NUXT_PUBLIC_AUTH_SERVER_API_URL || "http://localhost:3004",

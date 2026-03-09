@@ -3,11 +3,11 @@ import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionSpec } from "zksync-sso-4337/client";
 import { sessionSpecToJSON } from "zksync-sso-4337/client";
 
-export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
-  const chainId = toRef(_chainId);
+export const useAccountCreate = () => {
   const { registerPasskey } = usePasskeyRegister();
   const runtimeConfig = useRuntimeConfig();
   const { getPrividiumInstance } = usePrividiumAuthStore();
+  const { defaultChain } = useClientStore();
 
   const { inProgress: registerInProgress, error: createAccountError, execute: createAccount } = useAsync(async (session?: Omit<SessionSpec, "signer">, paymaster?: Address) => {
     const result = await registerPasskey();
@@ -39,7 +39,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
     }
 
     const requestBody = {
-      chainId: chainId.value,
+      chainId: defaultChain.id,
       credentialId,
       credentialPublicKey,
       originDomain: window.location.origin,
@@ -85,7 +85,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
 
     return {
       address,
-      chainId: chainId.value,
+      chainId: defaultChain.id,
       sessionKey: session ? sessionKey : undefined,
       signer,
       sessionConfig: sessionData,

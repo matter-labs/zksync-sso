@@ -114,7 +114,7 @@ import { AddressSchema } from "@/utils/schemas";
 
 const accountData = useAppKitAccount();
 const { getRecovery, initRecovery, initRecoveryInProgress, getGuardians } = useRecoveryGuardian();
-const { getWalletClient, defaultChain } = useClientStore();
+const { getWalletClient } = useClientStore();
 const { isSsoAccount: checkIsSsoAccount } = useIsSsoAccount();
 const route = useRoute();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
@@ -248,7 +248,7 @@ const handleConfirmRecovery = async () => {
       }
       client = configurableAccount;
     } else {
-      client = await getWalletClient({ chainId: defaultChain.id });
+      client = await getWalletClient();
     }
 
     if (!recoveryParams.value) return;

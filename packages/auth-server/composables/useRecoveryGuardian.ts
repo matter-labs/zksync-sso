@@ -10,8 +10,7 @@ const getGuardiansError = ref<Error | null>(null);
 const getGuardiansData = ref<readonly { addr: Address; isReady: boolean }[] | null>(null);
 
 export const useRecoveryGuardian = () => {
-  const { getClient, getPublicClient, getThrowAwayClient, defaultChain, contractsByChain } = useClientStore();
-  const contracts = contractsByChain[defaultChain!.id];
+  const { getClient, getPublicClient, getThrowAwayClient, contracts } = useClientStore();
 
   const getGuardedAccountsInProgress = ref(false);
   const getGuardedAccountsError = ref<Error | null>(null);
@@ -25,7 +24,7 @@ export const useRecoveryGuardian = () => {
 
     try {
       if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
-      const client = getPublicClient({ chainId: defaultChain.id });
+      const client = getPublicClient();
 
       // Query GuardianAdded events where this guardian was added
       const addedEvents = await client.getContractEvents({
@@ -91,7 +90,7 @@ export const useRecoveryGuardian = () => {
 
     try {
       if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
-      const client = getPublicClient({ chainId: defaultChain.id });
+      const client = getPublicClient();
 
       // Get list of guardian addresses
       const guardians = await client.readContract({
@@ -136,7 +135,7 @@ export const useRecoveryGuardian = () => {
 
     try {
       if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
-      const client = getPublicClient({ chainId: defaultChain.id });
+      const client = getPublicClient();
 
       const [recoveryType, hashedData, timestamp] = await client.readContract({
         address: contracts.guardianExecutor,
@@ -166,11 +165,11 @@ export const useRecoveryGuardian = () => {
   const { inProgress: proposeGuardianInProgress, error: proposeGuardianError, execute: proposeGuardian } = useAsync(async (address: Address) => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
 
-    const client = getClient({ chainId: defaultChain.id, usePaymaster: true });
+    const client = getClient({ usePaymaster: true });
     const accountAddress = client.account.address;
 
     // Check if GuardianExecutor module is installed
-    const publicClient = getPublicClient({ chainId: defaultChain.id });
+    const publicClient = getPublicClient();
     const isModuleInstalled = await publicClient.readContract({
       address: accountAddress,
       abi: [{
@@ -223,7 +222,7 @@ export const useRecoveryGuardian = () => {
   const { inProgress: removeGuardianInProgress, error: removeGuardianError, execute: removeGuardian } = useAsync(async (address: Address) => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
 
-    const client = getClient({ chainId: defaultChain.id, usePaymaster: true });
+    const client = getClient({ usePaymaster: true });
 
     const tx = await client.writeContract({
       address: contracts.guardianExecutor,
@@ -286,7 +285,7 @@ export const useRecoveryGuardian = () => {
   const { inProgress: discardRecoveryInProgress, error: discardRecoveryError, execute: discardRecovery } = useAsync(async () => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
 
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getClient();
 
     const tx = await client.writeContract({
       address: contracts.guardianExecutor,
@@ -372,7 +371,7 @@ export const useRecoveryGuardian = () => {
   const { inProgress: checkRecoveryRequestInProgress, error: checkRecoveryRequestError, execute: checkRecoveryRequest } = useAsync(async ({ address }: { address: Address }) => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
 
-    const client = getPublicClient({ chainId: defaultChain.id });
+    const client = getPublicClient();
 
     // Get timing constants from contract
     const [requestValidityTime, requestDelayTime] = await Promise.all([
@@ -442,7 +441,7 @@ export const useRecoveryGuardian = () => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
 
     // Use throwaway client for finalization (anyone can call this)
-    const client = getThrowAwayClient({ chainId: defaultChain.id });
+    const client = getThrowAwayClient();
 
     const recoveryData = encodeAbiParameters(
       parseAbiParameters("bytes32 credentialIdHash, bytes32[2] publicKey"),

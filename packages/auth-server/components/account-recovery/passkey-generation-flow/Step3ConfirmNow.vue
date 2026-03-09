@@ -82,7 +82,7 @@ import { getPasskeySignatureFromPublicKeyBytes } from "zksync-sso-4337/client/pa
 
 import type { RegisterNewPasskeyReturnType } from "~/composables/usePasskeyRegister";
 
-const { getWalletClient, defaultChain } = useClientStore();
+const { getWalletClient } = useClientStore();
 const { getGuardians, initRecovery, initRecoveryInProgress } = useRecoveryGuardian();
 const { isSsoAccount } = useIsSsoAccount();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
@@ -139,7 +139,7 @@ const handleConfirmRecovery = async () => {
       }
       client = configurableAccount;
     } else {
-      client = await getWalletClient({ chainId: defaultChain.id });
+      client = await getWalletClient();
     }
 
     // Convert {x, y} public key format to Uint8Array (COSE format)

@@ -63,7 +63,7 @@
 <script lang="ts" setup>
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();
-const { requestChain, requestMethod } = storeToRefs(useRequestsStore());
+const { requestMethod } = storeToRefs(useRequestsStore());
 const session = useAppSession();
 const runtimeConfig = useRuntimeConfig();
 
@@ -71,8 +71,8 @@ const runtimeConfig = useRuntimeConfig();
 const { needsAuthentication } = storeToRefs(usePrividiumAuthStore());
 
 // Account creation and login composables
-const { registerInProgress, createAccount, createAccountError } = useAccountCreate(computed(() => requestChain.value!.id));
-const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(computed(() => requestChain.value!.id));
+const { registerInProgress, createAccount, createAccountError } = useAccountCreate();
+const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin();
 
 // Check if Prividium authentication is needed
 const needsPrividiumAuth = computed(() => {

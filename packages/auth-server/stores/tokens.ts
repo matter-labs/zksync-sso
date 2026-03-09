@@ -11,30 +11,30 @@ export type Token = {
   fetchedFromBlockExplorer: boolean;
 };
 
-type TokenKey = `${SupportedChainId}-${Address}`;
-export const getTokenKey = (chainId: SupportedChainId, tokenAddress: Address): TokenKey => `${chainId}-${tokenAddress}`;
+type TokenKey = `${number}-${Address}`;
+export const getTokenKey = (chainId: number, tokenAddress: Address): TokenKey => `${chainId}-${tokenAddress}`;
 
 export const useTokensStore = defineStore("tokens", () => {
-  const { getPublicClient } = useClientStore();
+  const { getPublicClient, defaultChain, blockExplorerApiUrl } = useClientStore();
 
   const tokens = ref<{ [tokenKey: TokenKey]: Token }>({});
   const tokensInProgress = ref<{ [tokenKey: TokenKey]: boolean }>({});
   const addressIsNotToken = ref<{ [tokenKey: TokenKey]: boolean }>({});
-  const setToken = (args: { chainId: SupportedChainId; token: Token }) => {
+  const setToken = (args: { chainId: number; token: Token }) => {
     tokens.value[getTokenKey(args.chainId, args.token.address)] = args.token;
   };
-  const getToken = (args: { chainId: SupportedChainId; tokenAddress: Address }): Token | undefined => {
+  const getToken = (args: { chainId: number; tokenAddress: Address }): Token | undefined => {
     return tokens.value[getTokenKey(args.chainId, args.tokenAddress)];
   };
-  const getTokenInProgress = (args: { chainId: SupportedChainId; tokenAddress: Address }): boolean => {
+  const getTokenInProgress = (args: { chainId: number; tokenAddress: Address }): boolean => {
     return tokensInProgress.value[`${args.chainId}-${args.tokenAddress}`] || false;
   };
 
-  /* Add base tokens info to be available by default */
-  supportedChains.map((chain) => {
-    const baseToken = chain.nativeCurrency;
+  /* Add base token info to be available by default */
+  {
+    const baseToken = defaultChain.nativeCurrency;
     setToken({
-      chainId: chain.id,
+      chainId: defaultChain.id,
       token: {
         address: BASE_TOKEN_ADDRESS,
         symbol: baseToken.symbol,
@@ -43,10 +43,10 @@ export const useTokensStore = defineStore("tokens", () => {
         fetchedFromBlockExplorer: false,
       },
     });
-  });
+  }
 
-  const fetchTokenWithRpc = useMemoize(async (args: { chainId: SupportedChainId; tokenAddress: Address }): Promise<Token | undefined> => {
-    const client = getPublicClient({ chainId: args.chainId });
+  const fetchTokenWithRpc = useMemoize(async (args: { chainId: number; tokenAddress: Address }): Promise<Token | undefined> => {
+    const client = getPublicClient();
     // eslint-disable-next-line prefer-const
     let [symbol, name, decimals] = await Promise.all([
       client.readContract({
@@ -88,7 +88,7 @@ export const useTokensStore = defineStore("tokens", () => {
     };
   });
 
-  type FetchTokenArgs = { chainId: SupportedChainId; tokenAddress: Address; refresh?: true };
+  type FetchTokenArgs = { chainId: number; tokenAddress: Address; refresh?: true };
   const _fetchToken = useMemoize(async (args: FetchTokenArgs) => {
     const tokenKey = getTokenKey(args.chainId, args.tokenAddress);
     const cachedToken = tokens.value[tokenKey];
@@ -109,7 +109,7 @@ export const useTokensStore = defineStore("tokens", () => {
         tokenPriceUSD: string;
         iconURL: string;
       }[];
-    }>(`${blockExplorerApiByChain[args.chainId]}?module=token&action=tokeninfo&contractaddress=${args.tokenAddress}`).catch((err) => {
+    }>(`${blockExplorerApiUrl}?module=token&action=tokeninfo&contractaddress=${args.tokenAddress}`).catch((err) => {
       fetchError = err;
       // eslint-disable-next-line no-console
       console.error("Failed to fetch token info from block explorer", err);
@@ -160,7 +160,7 @@ export const useTokensStore = defineStore("tokens", () => {
       _fetchToken.clear(); // We don't need cache, just reuse the promise
     }
   };
-  const fetchTokens = async (args: { chainId: SupportedChainId; tokenAddresses: Address[]; throwErrorAsserter?: (err: unknown) => boolean }) => {
+  const fetchTokens = async (args: { chainId: number; tokenAddresses: Address[]; throwErrorAsserter?: (err: unknown) => boolean }) => {
     return await Promise.all(
       args.tokenAddresses.map((tokenAddress) => fetchToken({ chainId: args.chainId, tokenAddress }).catch((err) => {
         if (args.throwErrorAsserter) {

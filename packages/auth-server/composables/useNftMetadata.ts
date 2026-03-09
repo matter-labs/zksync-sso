@@ -1,13 +1,12 @@
 import type { Abi, Address } from "viem";
 
 export const useNftMetadata = async ({
-  chainId,
   address,
   abi,
-}: { chainId?: SupportedChainId; address: Address; abi: Abi }) => {
-  const { getPublicClient, defaultChain } = useClientStore();
+}: { address: Address; abi: Abi }) => {
+  const { getPublicClient } = useClientStore();
 
-  const client = getPublicClient({ chainId: chainId ?? defaultChain.id });
+  const client = getPublicClient();
   const res = await client.readContract({
     address: address,
     abi,

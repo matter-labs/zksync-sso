@@ -81,7 +81,7 @@ import type { ExtractParams } from "zksync-sso-4337/client";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { responseInProgress, responseError, requestParams, requestChain } = storeToRefs(useRequestsStore());
+const { responseInProgress, responseError, requestParams } = storeToRefs(useRequestsStore());
 const { getClient } = useClientStore();
 
 const messageParams = computed(() => {
@@ -120,7 +120,7 @@ const confirmSign = async () => {
     if (!messageParams.value) {
       throw new Error("Message parameters are not available");
     }
-    const client = getClient({ chainId: requestChain.value!.id });
+    const client = getClient();
     const signature = await client.signMessage({
       message: { raw: messageParams.value[0] },
     });

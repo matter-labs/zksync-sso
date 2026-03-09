@@ -1,19 +1,16 @@
 import { findAddressesByPasskey, getPasskeyCredential } from "zksync-sso-4337/client";
 
-export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
-  const chainId = toRef(_chainId);
+export const useAccountLogin = () => {
   const { login } = useAccountStore();
-  const { getPublicClient } = useClientStore();
+  const { getPublicClient, contracts } = useClientStore();
 
   const { inProgress: loginInProgress, error: accountLoginError, execute: loginToAccount } = useAsync(async () => {
-    const client = getPublicClient({ chainId: chainId.value });
+    const client = getPublicClient();
 
     const credential = await getPasskeyCredential();
     if (!credential) throw new Error("No credential found");
 
     try {
-      const contracts = contractsByChain[chainId.value];
-
       // Use findAddressesByPasskey from sdk-4337
       const result = await findAddressesByPasskey({
         client,

@@ -1,7 +1,6 @@
 import { FetchError } from "ofetch";
 import { erc20Abi, formatUnits, toFunctionSelector } from "viem";
 import type { Address } from "viem/accounts";
-import { localhost } from "viem/chains";
 import type { UnwrapRef } from "vue";
 import { type Limit, LimitType, LimitUnlimited, type SessionSpec } from "zksync-sso-4337/client";
 
@@ -9,15 +8,14 @@ import { type Limit, LimitType, LimitUnlimited, type SessionSpec } from "zksync-
 type SessionConfig = SessionSpec;
 
 export const useSessionConfigInfo = (
-  _chainId: MaybeRef<SupportedChainId>,
   _sessionConfig: MaybeRef<Omit<SessionConfig, "signer">>,
   now: Ref<Date>,
 ) => {
-  const chainId = toRef(_chainId);
   const sessionConfig = toRef(_sessionConfig);
 
   const { getToken, getTokenInProgress, fetchTokens } = useTokensStore();
-  const { checkTargetAddress } = useProhibitedCallsCheck(chainId);
+  const { checkTargetAddress } = useProhibitedCallsCheck();
+  const { defaultChain } = useClientStore();
 
   const onchainActionsCount = computed(() => {
     return sessionConfig.value.callPolicies.length + sessionConfig.value.transferPolicies.length;
@@ -29,7 +27,7 @@ export const useSessionConfigInfo = (
 
   const { error: fetchTokensError, execute: fetchAllTokens } = useAsync(async () => {
     await fetchTokens({
-      chainId: chainId.value,
+      chainId: defaultChain.id,
       tokenAddresses: tokenAddresses.value,
       throwErrorAsserter: (e) => {
         if (e instanceof FetchError && e.statusCode === 404) return false; // Contract was not a token
@@ -41,7 +39,7 @@ export const useSessionConfigInfo = (
 
   const tokensLoading = computed(() => {
     return tokenAddresses.value.some((address) => getTokenInProgress({
-      chainId: chainId.value,
+      chainId: defaultChain.id,
       tokenAddress: address,
     }));
   });
@@ -101,7 +99,7 @@ export const useSessionConfigInfo = (
     for (const policy of sessionConfig.value.callPolicies) {
       addLimit(BASE_TOKEN_ADDRESS, policy.valueLimit);
       const token = getToken({
-        chainId: chainId.value,
+        chainId: defaultChain.id,
         tokenAddress: policy.target,
       });
       if (!token) continue;
@@ -166,7 +164,7 @@ export const useSessionConfigInfo = (
       .filter(([, amount]) => amount !== 0n)
       .map(([tokenAddress, amount]) => {
         const token = getToken({
-          chainId: chainId.value,
+          chainId: defaultChain.id,
           tokenAddress: tokenAddress as Address,
         });
         if (!token) return null;
@@ -203,7 +201,7 @@ export const useSessionConfigInfo = (
       actions.push("Unlimited spend is requested for some of the tokens.");
     }
 
-    if (chainId.value !== localhost.id && fetchTokensError.value) {
+    if (fetchTokensError.value) {
       actions.push("Failed to fetch token information. Displayed tokens and spend limits may be incorrect.");
     }
 

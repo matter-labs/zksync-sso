@@ -171,7 +171,7 @@ import { formatAmount, shortenAddress } from "~/utils/formatters";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { responseInProgress, responseError, requestParams, requestChain, requestPaymaster } = storeToRefs(useRequestsStore());
+const { responseInProgress, responseError, requestParams, requestPaymaster } = storeToRefs(useRequestsStore());
 const { getClient } = useClientStore();
 
 const transactionParams = computed(() => {
@@ -190,7 +190,7 @@ const advancedInfoOpened = ref(false);
 
 const { result: preparedTransaction, inProgress: preparingTransaction, error: preparingFailed, execute: prepareTransaction } = useAsync(async () => {
   if (!transactionParams.value) return null;
-  const client = getClient({ chainId: requestChain.value!.id });
+  const client = getClient();
   return await client.prepareTransactionRequest(transactionParams.value);
 });
 const { resume: resumeAutoReEstimation, pause: pauseAutoReEstimation } = useIntervalFn(async () => {
@@ -260,7 +260,6 @@ const confirmTransaction = async () => {
       ? requestPaymaster.value
       : requestPaymaster.value?.address;
     const client = getClient({
-      chainId: requestChain.value!.id,
       usePaymaster: usePaymasterFlag,
       paymasterAddress: paymasterAddr,
     });

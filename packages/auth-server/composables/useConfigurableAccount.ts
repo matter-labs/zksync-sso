@@ -2,11 +2,11 @@ import type { Address, Hex } from "viem";
 import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
 
 export const useConfigurableAccount = () => {
-  const { getPublicClient, getConfigurableClient, defaultChain, contractsByChain } = useClientStore();
+  const { getPublicClient, getConfigurableClient, contracts } = useClientStore();
 
   const { inProgress: getConfigurableAccountInProgress, error: getConfigurableAccountError, execute: getConfigurableAccount } = useAsync(async ({ address, usePaymaster = false }: { address: Address; usePaymaster?: boolean }) => {
-    const publicClient = getPublicClient({ chainId: defaultChain.id });
-    const webauthnValidatorAddress = contractsByChain[defaultChain.id].webauthnValidator;
+    const publicClient = getPublicClient();
+    const webauthnValidatorAddress = contracts.webauthnValidator;
 
     // Small delay to allow blockchain to index recent events (especially important in test environments)
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -67,7 +67,6 @@ export const useConfigurableAccount = () => {
     const credentialIdHex = latestEvent.args.credentialId as Hex;
 
     return getConfigurableClient({
-      chainId: defaultChain.id,
       address,
       credentialId: credentialIdHex,
       usePaymaster,

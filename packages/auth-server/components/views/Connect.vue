@@ -13,7 +13,7 @@
 import { getAddress } from "viem";
 import type { SessionPreferences } from "zksync-sso-4337/client";
 
-const { requestParams, requestMethod, requestChainId } = storeToRefs(useRequestsStore());
+const { requestParams, requestMethod } = storeToRefs(useRequestsStore());
 
 // TODO: if user is logged in and has an active session,
 // display the request account view
@@ -28,7 +28,7 @@ const sessionPreferences = computed<SessionPreferences | undefined>(() => {
   return undefined;
 });
 
-const { checkTargetAddress } = useProhibitedCallsCheck(requestChainId);
+const { checkTargetAddress } = useProhibitedCallsCheck();
 const hasProhibitedCallTarget = computed(() => {
   if (!sessionPreferences.value) return false;
   return (sessionPreferences.value.contractCalls || []).some(

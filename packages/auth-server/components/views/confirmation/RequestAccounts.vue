@@ -53,14 +53,15 @@ import { CheckIcon } from "@heroicons/vue/24/outline";
 
 const { appMeta, domain } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
+const { responseInProgress } = storeToRefs(useRequestsStore());
 const { address } = storeToRefs(useAccountStore());
 const { getClient } = useClientStore();
+
 const runtimeConfig = useRuntimeConfig();
 
 const confirmConnection = () => {
   respond(async () => {
-    const client = getClient({ chainId: requestChain.value!.id });
+    const client = getClient();
     return {
       result: constructReturn({
         address: client.account.address,

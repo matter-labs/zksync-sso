@@ -20,7 +20,7 @@ import type { OidcDigest } from "zksync-sso-circuits";
 
 const { startGoogleOauth } = useGoogleOauth();
 const { buildOidcDigest } = useRecoveryOidc();
-const { defaultChain, getPublicClient } = useClientStore();
+const { getPublicClient, contracts } = useClientStore();
 
 const emit = defineEmits<{
   (e: "done", userAddress: Address, digest: OidcDigest, sub: string): void;
@@ -41,10 +41,10 @@ async function findAddressUsingGoogleData() {
   }
 
   const digest = await buildOidcDigest(jwt);
-  const publicClient = getPublicClient({ chainId: defaultChain.id });
+  const publicClient = getPublicClient();
 
   const addressToRecover = await publicClient.readContract({
-    address: contractsByChain[defaultChain.id].recoveryOidc,
+    address: contracts.recoveryOidc,
     abi: OidcRecoveryValidatorAbi,
     functionName: "addressForDigest",
     args: [digest.toHex()],
