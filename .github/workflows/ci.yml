@@ -13,6 +13,9 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      CHAIN_1_ID: 1337
+      CHAIN_1_RPC_URL: http://localhost:8545
     defaults:
       run:
         working-directory: ./

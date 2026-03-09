@@ -296,7 +296,7 @@ const confirmConnection = async () => {
             sessionKey: accountData!.sessionKey!,
           },
           prividiumMode: runtimeConfig.public.prividiumMode,
-          prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
+          prividiumProxyUrl: runtimeConfig.public.prividium?.apiBaseUrl ? `${runtimeConfig.public.prividium.apiBaseUrl}/rpc` : "",
         }),
       };
     } else {
@@ -337,7 +337,7 @@ const confirmConnection = async () => {
           chainId: client.chain.id,
           session,
           prividiumMode: runtimeConfig.public.prividiumMode,
-          prividiumProxyUrl: runtimeConfig.public.prividium?.rpcUrl || "",
+          prividiumProxyUrl: runtimeConfig.public.prividium?.apiBaseUrl ? `${runtimeConfig.public.prividium.apiBaseUrl}/rpc` : "",
         }),
       };
     }

@@ -45,7 +45,7 @@ export function prividiumAuthMiddleware(config: PrividiumConfig) {
     }
 
     // Verify user token with Prividium
-    const authResult = await verifyUserAuth(authHeader, config.permissionsApiUrl);
+    const authResult = await verifyUserAuth(authHeader, config.apiUrl);
 
     if (!authResult.valid || !authResult.userId) {
       if (authResult.error === "network_error") {

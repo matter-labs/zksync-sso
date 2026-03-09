@@ -28,7 +28,7 @@
               >
                 <div class="w-1 h-1 bg-green-500 rounded-full" />
                 <span class="text-xs text-neutral-500 dark:text-neutral-400">
-                  {{ profile?.displayName || profile?.userId || "Unknown" }}
+                  {{ profile?.displayName || profile?.id || "Unknown" }}
                 </span>
               </div>
             </div>

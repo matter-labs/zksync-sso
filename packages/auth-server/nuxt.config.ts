@@ -89,10 +89,8 @@ export default defineNuxtConfig({
       prividiumMode: process.env.PRIVIDIUM_MODE === "true",
       prividium: {
         clientId: process.env.PRIVIDIUM_CLIENT_ID || "",
-        proxyBaseUrl: process.env.PRIVIDIUM_RPC_PROXY_BASE_URL || "",
-        rpcUrl: process.env.PRIVIDIUM_RPC_PROXY_BASE_URL ? `${process.env.PRIVIDIUM_RPC_PROXY_BASE_URL}/rpc` : "",
         authBaseUrl: process.env.PRIVIDIUM_AUTH_BASE_URL || "",
-        permissionsApiBaseUrl: process.env.PRIVIDIUM_PERMISSIONS_BASE_URL || "",
+        apiBaseUrl: process.env.PRIVIDIUM_API_URL || "",
       },
       oidc: {
         googlePublicClient: "69763429492-f7nl555i50akmail80pid3m4hhsg7u2n.apps.googleusercontent.com",

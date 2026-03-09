@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { PrividiumSiweChain } from "prividium/siwe";
 import { type Address, createPublicClient, createWalletClient, type Hex, http, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
@@ -6,7 +7,7 @@ import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso
 
 import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, GUARDIAN_EXECUTOR_ADDRESS, prividiumConfig, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
 import { deployAccountSchema } from "../schemas.js";
-import { addAddressToUser, createProxyTransport, getAdminAuthService, whitelistContract } from "../services/prividium/index.js";
+import { addAddressToUser, getAdminAuthService, whitelistContract } from "../services/prividium/index.js";
 
 type DeployAccountRequest = {
   chainId: number;
@@ -34,12 +35,11 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Get chain from request
     const chain = getChain(body.chainId);
 
-    // Get admin token if in Prividium mode (needed for RPC proxy, whitelisting, and address association)
-    let adminToken: string | undefined;
+    // Get SDK instance if in Prividium mode (provides authenticated transport and headers)
+    let adminSdk: PrividiumSiweChain | undefined;
     if (prividiumConfig.enabled && req.prividiumUser) {
       try {
-        const adminAuth = getAdminAuthService(prividiumConfig);
-        adminToken = await adminAuth.getValidToken();
+        adminSdk = getAdminAuthService().getSdkInstance();
       } catch (error) {
         console.error("Admin authentication failed:", error);
         res.status(500).json({
@@ -49,9 +49,9 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       }
     }
 
-    // Create transport - use Prividium proxy if enabled, otherwise direct RPC
-    const transport = prividiumConfig.enabled && adminToken
-      ? createProxyTransport(prividiumConfig.proxyUrl, adminToken)
+    // Create transport - use SDK transport if enabled, otherwise direct RPC
+    const transport = adminSdk
+      ? adminSdk.transport // SDK provides authenticated transport
       : http(env.RPC_URL);
 
     // Create clients
@@ -166,14 +166,24 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     console.log("Account deployed at:", deployedAddress);
 
     // Prividium post-deployment steps (all blocking)
-    if (prividiumConfig.enabled && req.prividiumUser && adminToken) {
+    if (prividiumConfig.enabled && req.prividiumUser && adminSdk) {
+      // Get auth headers from SDK
+      const authHeaders = adminSdk.getAuthHeaders();
+      if (!authHeaders) {
+        console.error("Failed to get auth headers");
+        res.status(500).json({
+          error: "Authentication error",
+        });
+        return;
+      }
+
       // Step 1: Whitelist the contract with template (blocking)
       try {
         await whitelistContract(
           deployedAddress,
           prividiumConfig.templateKey,
-          adminToken,
-          prividiumConfig.permissionsApiUrl,
+          authHeaders,
+          prividiumConfig.apiUrl,
         );
       } catch (error) {
         console.error("Failed to whitelist contract:", error);
@@ -188,8 +198,8 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
         await addAddressToUser(
           req.prividiumUser.userId,
           [deployedAddress],
-          adminToken,
-          prividiumConfig.permissionsApiUrl,
+          authHeaders,
+          prividiumConfig.apiUrl,
         );
       } catch (error) {
         console.error("Failed to associate address with user:", error);
