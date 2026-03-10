@@ -6,12 +6,12 @@ import { defineConfig, devices } from "@playwright/test";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Load local-node.json for contract addresses used in e2e tests
+// Load contracts.json for contract addresses used in e2e tests
 const localNode = JSON.parse(
-  readFileSync(resolve(__dirname, "../../packages/auth-server/stores/local-node.json"), "utf-8"),
+  readFileSync(resolve(__dirname, "../../packages/auth-server/stores/contracts.json"), "utf-8"),
 );
 
-// Auth server env vars derived from local-node.json
+// Auth server env vars derived from contracts.json
 const authServerEnv = {
   NUXT_PUBLIC_AUTH_SERVER_API_URL: "http://localhost:3004",
   NUXT_PUBLIC_CHAIN_ID: String(localNode.chainId),

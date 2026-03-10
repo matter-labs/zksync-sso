@@ -118,8 +118,8 @@ cp contracts-anvil.json public/contracts.json
 echo "✅ Copied to public/contracts.json"
 
 # Copy to auth-server stores
-cp contracts-anvil.json "$WORKSPACE_ROOT/packages/auth-server/stores/local-node.json"
-echo "✅ Copied to packages/auth-server/stores/local-node.json"
+cp contracts-anvil.json "$WORKSPACE_ROOT/packages/auth-server/stores/contracts.json"
+echo "✅ Copied to packages/auth-server/stores/contracts.json"
 
 # Copy to auth-server-api src
 cp contracts-anvil.json "$WORKSPACE_ROOT/packages/auth-server-api/src/contracts.json"

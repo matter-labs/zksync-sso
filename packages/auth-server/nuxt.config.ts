@@ -1,6 +1,25 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { defineNuxtConfig } from "nuxt/config";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
+
+// Load contracts from stores/contracts.json as fallback for local development
+const contractsJsonPath = join(fileURLToPath(new URL(".", import.meta.url)), "stores/contracts.json");
+const contractsFromFile: {
+  chainId?: number;
+  rpcUrl?: string;
+  factory?: string;
+  eoaValidator?: string;
+  webauthnValidator?: string;
+  sessionValidator?: string;
+  guardianExecutor?: string;
+  beacon?: string;
+  bundlerUrl?: string;
+  testPaymaster?: string;
+} = existsSync(contractsJsonPath) ? JSON.parse(readFileSync(contractsJsonPath, "utf-8")) : {};
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -81,22 +100,22 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      // Chain configuration
-      chainId: parseInt(process.env.NUXT_PUBLIC_CHAIN_ID || "") || 0,
+      // Chain configuration (env vars take priority, fall back to stores/contracts.json)
+      chainId: parseInt(process.env.NUXT_PUBLIC_CHAIN_ID || "") || contractsFromFile.chainId || 0,
       chainName: process.env.NUXT_PUBLIC_CHAIN_NAME || "",
-      chainRpcUrl: process.env.NUXT_PUBLIC_CHAIN_RPC_URL || "",
+      chainRpcUrl: process.env.NUXT_PUBLIC_CHAIN_RPC_URL || contractsFromFile.rpcUrl || "",
       blockExplorerUrl: process.env.NUXT_PUBLIC_BLOCK_EXPLORER_URL || "",
       blockExplorerApiUrl: process.env.NUXT_PUBLIC_BLOCK_EXPLORER_API_URL || "",
 
-      // Contract addresses
-      factoryAddress: process.env.NUXT_PUBLIC_FACTORY_ADDRESS || "",
-      eoaValidatorAddress: process.env.NUXT_PUBLIC_EOA_VALIDATOR_ADDRESS || "",
-      webauthnValidatorAddress: process.env.NUXT_PUBLIC_WEBAUTHN_VALIDATOR_ADDRESS || "",
-      sessionValidatorAddress: process.env.NUXT_PUBLIC_SESSION_VALIDATOR_ADDRESS || "",
-      guardianExecutorAddress: process.env.NUXT_PUBLIC_GUARDIAN_EXECUTOR_ADDRESS || "",
-      bundlerUrl: process.env.NUXT_PUBLIC_BUNDLER_URL || "",
-      beaconAddress: process.env.NUXT_PUBLIC_BEACON_ADDRESS || "",
-      testPaymasterAddress: process.env.NUXT_PUBLIC_TEST_PAYMASTER_ADDRESS || "",
+      // Contract addresses (env vars take priority, fall back to stores/contracts.json)
+      factoryAddress: process.env.NUXT_PUBLIC_FACTORY_ADDRESS || contractsFromFile.factory || "",
+      eoaValidatorAddress: process.env.NUXT_PUBLIC_EOA_VALIDATOR_ADDRESS || contractsFromFile.eoaValidator || "",
+      webauthnValidatorAddress: process.env.NUXT_PUBLIC_WEBAUTHN_VALIDATOR_ADDRESS || contractsFromFile.webauthnValidator || "",
+      sessionValidatorAddress: process.env.NUXT_PUBLIC_SESSION_VALIDATOR_ADDRESS || contractsFromFile.sessionValidator || "",
+      guardianExecutorAddress: process.env.NUXT_PUBLIC_GUARDIAN_EXECUTOR_ADDRESS || contractsFromFile.guardianExecutor || "",
+      bundlerUrl: process.env.NUXT_PUBLIC_BUNDLER_URL || contractsFromFile.bundlerUrl || "",
+      beaconAddress: process.env.NUXT_PUBLIC_BEACON_ADDRESS || contractsFromFile.beacon || "",
+      testPaymasterAddress: process.env.NUXT_PUBLIC_TEST_PAYMASTER_ADDRESS || contractsFromFile.testPaymaster || "",
       accountPaymasterAddress: process.env.NUXT_PUBLIC_ACCOUNT_PAYMASTER_ADDRESS || "",
       recoveryOidcAddress: process.env.NUXT_PUBLIC_RECOVERY_OIDC_ADDRESS || "",
       oidcKeyRegistryAddress: process.env.NUXT_PUBLIC_OIDC_KEY_REGISTRY_ADDRESS || "",

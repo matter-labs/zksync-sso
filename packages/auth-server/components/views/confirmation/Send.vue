@@ -256,9 +256,7 @@ const confirmTransaction = async () => {
       throw new Error("Transaction parameters are not available");
     }
     const usePaymasterFlag = !!requestPaymaster.value;
-    const paymasterAddr = typeof requestPaymaster.value === "string"
-      ? requestPaymaster.value
-      : requestPaymaster.value?.address;
+    const paymasterAddr = requestPaymaster.value || undefined;
     const client = getClient({
       usePaymaster: usePaymasterFlag,
       paymasterAddress: paymasterAddr,
