@@ -101,20 +101,22 @@ export const useTokensStore = defineStore("tokens", () => {
     if (addressIsNotToken.value[tokenKey]) throw notTokenError;
 
     let fetchError: unknown;
-    const { result } = await $fetch<{
-      result: {
-        tokenName: string;
-        symbol: string;
-        tokenDecimal: string;
-        tokenPriceUSD: string;
-        iconURL: string;
-      }[];
-    }>(`${blockExplorerApiUrl}?module=token&action=tokeninfo&contractaddress=${args.tokenAddress}`).catch((err) => {
-      fetchError = err;
-      // eslint-disable-next-line no-console
-      console.error("Failed to fetch token info from block explorer", err);
-      return { result: [] };
-    });
+    const { result } = blockExplorerApiUrl
+      ? await $fetch<{
+        result: {
+          tokenName: string;
+          symbol: string;
+          tokenDecimal: string;
+          tokenPriceUSD: string;
+          iconURL: string;
+        }[];
+      }>(`${blockExplorerApiUrl}?module=token&action=tokeninfo&contractaddress=${args.tokenAddress}`).catch((err) => {
+        fetchError = err;
+        // eslint-disable-next-line no-console
+        console.error("Failed to fetch token info from block explorer", err);
+        return { result: [] as never[] };
+      })
+      : { result: [] as never[] };
 
     const tokenInfo = result[0];
     if (!tokenInfo) {
