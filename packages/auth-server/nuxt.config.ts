@@ -19,6 +19,7 @@ const contractsFromFile: {
   beacon?: string;
   bundlerUrl?: string;
   testPaymaster?: string;
+  entryPoint?: string;
 } = existsSync(contractsJsonPath) ? JSON.parse(readFileSync(contractsJsonPath, "utf-8")) : {};
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
@@ -70,6 +71,10 @@ export default defineNuxtConfig({
       wasm(),
       topLevelAwait(),
     ],
+    optimizeDeps: {
+      // Wait for full crawl before serving, preventing mid-session reloads from late dep discovery.
+      holdUntilCrawlEnd: true,
+    },
     css: {
       preprocessorOptions: {
         scss: {
@@ -116,6 +121,7 @@ export default defineNuxtConfig({
       bundlerUrl: process.env.NUXT_PUBLIC_BUNDLER_URL || contractsFromFile.bundlerUrl || "",
       beaconAddress: process.env.NUXT_PUBLIC_BEACON_ADDRESS || contractsFromFile.beacon || "",
       testPaymasterAddress: process.env.NUXT_PUBLIC_TEST_PAYMASTER_ADDRESS || contractsFromFile.testPaymaster || "",
+      entryPointAddress: process.env.NUXT_PUBLIC_ENTRY_POINT_ADDRESS || contractsFromFile.entryPoint || "",
       accountPaymasterAddress: process.env.NUXT_PUBLIC_ACCOUNT_PAYMASTER_ADDRESS || "",
       recoveryOidcAddress: process.env.NUXT_PUBLIC_RECOVERY_OIDC_ADDRESS || "",
       oidcKeyRegistryAddress: process.env.NUXT_PUBLIC_OIDC_KEY_REGISTRY_ADDRESS || "",

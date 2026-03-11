@@ -203,10 +203,10 @@ const {
   }
 
   // Ensure entryPoint is provided by the chain configuration
-  const { entryPoint } = contracts as { entryPoint?: Address };
-  if (!entryPoint) {
+  if (!contracts.entryPoint) {
     throw new Error(`EntryPoint address is not configured for chain ${defaultChain.id}`);
   }
+  const entryPoint = contracts.entryPoint;
 
   // Use the new listActiveSessions function from the SDK
   const { sessions: activeSessions } = await listActiveSessions({

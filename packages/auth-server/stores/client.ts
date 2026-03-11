@@ -10,6 +10,7 @@ export type ChainContracts = {
   sessionValidator: Address;
   guardianExecutor: Address;
   factory: Address;
+  entryPoint?: Address;
   bundlerUrl?: string;
   beacon?: Address;
   testPaymaster?: Address;
@@ -53,6 +54,7 @@ export const useClientStore = defineStore("client", () => {
     webauthnValidator: runtimeConfig.public.webauthnValidatorAddress as Address,
     sessionValidator: runtimeConfig.public.sessionValidatorAddress as Address,
     guardianExecutor: runtimeConfig.public.guardianExecutorAddress as Address,
+    entryPoint: (runtimeConfig.public.entryPointAddress as Address) || undefined,
     bundlerUrl: runtimeConfig.public.bundlerUrl || undefined,
     beacon: (runtimeConfig.public.beaconAddress as Address) || undefined,
     testPaymaster: (runtimeConfig.public.testPaymasterAddress as Address) || undefined,
