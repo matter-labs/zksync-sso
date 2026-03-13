@@ -131,11 +131,11 @@ export default defineNuxtConfig({
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
       authServerApiUrl: process.env.NUXT_PUBLIC_AUTH_SERVER_API_URL || "http://localhost:3004",
-      prividiumMode: process.env.PRIVIDIUM_MODE === "true",
+      prividiumMode: process.env.NUXT_PUBLIC_PRIVIDIUM_MODE === "true",
       prividium: {
-        clientId: process.env.PRIVIDIUM_CLIENT_ID || "",
-        authBaseUrl: process.env.PRIVIDIUM_AUTH_BASE_URL || "",
-        apiBaseUrl: process.env.PRIVIDIUM_API_URL || "",
+        clientId: process.env.NUXT_PUBLIC_PRIVIDIUM_CLIENT_ID || "",
+        authBaseUrl: process.env.NUXT_PUBLIC_PRIVIDIUM_AUTH_BASE_URL || "",
+        apiBaseUrl: process.env.NUXT_PUBLIC_PRIVIDIUM_API_BASE_URL || "",
       },
       oidc: {
         googlePublicClient: "69763429492-f7nl555i50akmail80pid3m4hhsg7u2n.apps.googleusercontent.com",
