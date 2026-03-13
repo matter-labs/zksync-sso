@@ -7,10 +7,11 @@ export const useRequestsStore = defineStore("requests", () => {
   const request = ref<RPCRequestMessage<Method> | undefined>();
   const hasRequests = computed(() => !!request.value);
   const requestChain = computed(() => {
-    const chainId = request.value?.content.chainId;
-    return supportedChains.find((chain) => chain.id === chainId);
+    // With single-chain config, always return the default chain
+    const { defaultChain } = useClientStore();
+    return defaultChain;
   });
-  const requestChainId = computed(() => request.value?.content.chainId as unknown as SupportedChainId);
+  const requestChainId = computed(() => request.value?.content.chainId as number);
   const requestMethod = computed(() => request.value?.content.action.method);
   const requestParams = computed(() => request.value?.content.action.params);
   const requestPaymaster = computed(() => request.value?.content.paymaster);

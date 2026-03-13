@@ -206,7 +206,7 @@ import { createNonceV2 } from "zksync-sso-circuits";
 
 import { GOOGLE_CERTS_URL, GOOGLE_ISS } from "./constants";
 
-const { getWalletClient, getPublicClient, defaultChain, getOidcClient } = useClientStore();
+const { getWalletClient, getPublicClient, contracts, getOidcClient } = useClientStore();
 const { startGoogleOauth } = useGoogleOauth();
 const accountData = useAppKitAccount();
 const {
@@ -275,10 +275,10 @@ function formatDebugInfo(step: string, error: unknown, context?: Record<string, 
     errorStack: error instanceof Error ? error.stack : undefined,
     context,
     contracts: {
-      recoveryOidc: contractsByChain[defaultChain.id].recoveryOidc,
-      oidcKeyRegistry: contractsByChain[defaultChain.id].oidcKeyRegistry,
-      oidcVerifier: contractsByChain[defaultChain.id].oidcVerifier,
-      passkey: contractsByChain[defaultChain.id].passkey,
+      recoveryOidc: contracts.recoveryOidc,
+      oidcKeyRegistry: contracts.oidcKeyRegistry,
+      oidcVerifier: contracts.oidcVerifier,
+      passkey: contracts.passkey,
     },
     chainId: defaultChain.id,
     userAddress: userAddress.value,
@@ -329,8 +329,8 @@ async function go() {
 
     // Step 1: Prepare Recovery
     currentStep.value = 1;
-    const client = await getWalletClient({ chainId: defaultChain.id });
-    const publicClient = getPublicClient({ chainId: defaultChain.id });
+    const client = await getWalletClient();
+    const publicClient = getPublicClient();
     const blindingFactor = buildBlindingFactor();
     const oidcData = await getOidcAccounts(userAddress.value);
 
@@ -398,7 +398,7 @@ async function go() {
 
     // Step 5: Validate Contracts
     currentStep.value = 5;
-    const recoveryAddress = contractsByChain[defaultChain.id].recoveryOidc as Address;
+    const recoveryAddress = contracts.recoveryOidc as Address;
     const senderAddress = client.account.address as Address;
 
     const [webAuthValidatorAddr, keyRegistryAddr, verifierAddr] = await Promise.all([
@@ -415,7 +415,7 @@ async function go() {
       throw new Error(`OIDC recovery validator at ${recoveryAddress} is not properly initialized. Please contact support.`);
     }
 
-    const expectedPasskey = contractsByChain[defaultChain.id].passkey as Address | undefined;
+    const expectedPasskey = contracts.passkey as Address | undefined;
     if (expectedPasskey && webAuthValidatorAddr.toLowerCase() !== expectedPasskey.toLowerCase()) {
       throw new Error(`WebAuth validator mismatch. Expected: ${expectedPasskey}, Found: ${webAuthValidatorAddr}`);
     }
@@ -515,7 +515,7 @@ async function go() {
     currentStep.value = 6;
     const sendTransactionArgs = {
       account: client.account,
-      to: contractsByChain[defaultChain.id].recoveryOidc,
+      to: contracts.recoveryOidc,
       data: calldata,
       value: 0n,
       gas: 20_000_000n,
@@ -581,7 +581,7 @@ async function go() {
 
     // Step 8: Add Passkey
     currentStep.value = 8;
-    const oidcClient = getOidcClient({ chainId: defaultChain.id, address: userAddress.value });
+    const oidcClient = getOidcClient({ address: userAddress.value });
 
     const addedPasskey = await oidcClient.addNewPasskeyViaOidc({
       credentialId: passkey.value.credentialId,
@@ -647,8 +647,8 @@ async function go() {
 
     // Add contract validation details if we got there
     if (currentStep.value >= 5) {
-      const recoveryAddress = contractsByChain[defaultChain.id].recoveryOidc as Address;
-      const publicClient = getPublicClient({ chainId: defaultChain.id });
+      const recoveryAddress = contracts.recoveryOidc as Address;
+      const publicClient = getPublicClient();
 
       try {
         const [webAuthValidatorAddr, keyRegistryAddr, verifierAddr] = await Promise.all([
@@ -662,8 +662,8 @@ async function go() {
           webAuthValidator: webAuthValidatorAddr,
           keyRegistry: keyRegistryAddr,
           verifier: verifierAddr,
-          expectedPasskey: contractsByChain[defaultChain.id].passkey,
-          expectedKeyRegistry: contractsByChain[defaultChain.id].oidcKeyRegistry,
+          expectedPasskey: contracts.passkey,
+          expectedKeyRegistry: contracts.oidcKeyRegistry,
         };
       } catch {
         // Ignore errors in debug context collection

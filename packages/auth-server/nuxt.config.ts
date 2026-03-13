@@ -1,7 +1,26 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { defineNuxtConfig } from "nuxt/config";
-import { localhost } from "viem/chains";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
+
+// Load contracts from stores/contracts.json as fallback for local development
+const contractsJsonPath = join(fileURLToPath(new URL(".", import.meta.url)), "stores/contracts.json");
+const contractsFromFile: {
+  chainId?: number;
+  rpcUrl?: string;
+  factory?: string;
+  eoaValidator?: string;
+  webauthnValidator?: string;
+  sessionValidator?: string;
+  guardianExecutor?: string;
+  beacon?: string;
+  bundlerUrl?: string;
+  testPaymaster?: string;
+  entryPoint?: string;
+} = existsSync(contractsJsonPath) ? JSON.parse(readFileSync(contractsJsonPath, "utf-8")) : {};
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -52,6 +71,10 @@ export default defineNuxtConfig({
       wasm(),
       topLevelAwait(),
     ],
+    optimizeDeps: {
+      // Wait for full crawl before serving, preventing mid-session reloads from late dep discovery.
+      holdUntilCrawlEnd: true,
+    },
     css: {
       preprocessorOptions: {
         scss: {
@@ -82,15 +105,37 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || localhost.id,
+      // Chain configuration (env vars take priority, fall back to stores/contracts.json)
+      chainId: parseInt(process.env.NUXT_PUBLIC_CHAIN_ID || "") || contractsFromFile.chainId || 0,
+      chainName: process.env.NUXT_PUBLIC_CHAIN_NAME || "",
+      chainRpcUrl: process.env.NUXT_PUBLIC_CHAIN_RPC_URL || contractsFromFile.rpcUrl || "",
+      blockExplorerUrl: process.env.NUXT_PUBLIC_BLOCK_EXPLORER_URL || "",
+      blockExplorerApiUrl: process.env.NUXT_PUBLIC_BLOCK_EXPLORER_API_URL || "",
+
+      // Contract addresses (env vars take priority, fall back to stores/contracts.json)
+      factoryAddress: process.env.NUXT_PUBLIC_FACTORY_ADDRESS || contractsFromFile.factory || "",
+      eoaValidatorAddress: process.env.NUXT_PUBLIC_EOA_VALIDATOR_ADDRESS || contractsFromFile.eoaValidator || "",
+      webauthnValidatorAddress: process.env.NUXT_PUBLIC_WEBAUTHN_VALIDATOR_ADDRESS || contractsFromFile.webauthnValidator || "",
+      sessionValidatorAddress: process.env.NUXT_PUBLIC_SESSION_VALIDATOR_ADDRESS || contractsFromFile.sessionValidator || "",
+      guardianExecutorAddress: process.env.NUXT_PUBLIC_GUARDIAN_EXECUTOR_ADDRESS || contractsFromFile.guardianExecutor || "",
+      bundlerUrl: process.env.NUXT_PUBLIC_BUNDLER_URL || contractsFromFile.bundlerUrl || "",
+      beaconAddress: process.env.NUXT_PUBLIC_BEACON_ADDRESS || contractsFromFile.beacon || "",
+      testPaymasterAddress: process.env.NUXT_PUBLIC_TEST_PAYMASTER_ADDRESS || contractsFromFile.testPaymaster || "",
+      entryPointAddress: process.env.NUXT_PUBLIC_ENTRY_POINT_ADDRESS || contractsFromFile.entryPoint || "",
+      accountPaymasterAddress: process.env.NUXT_PUBLIC_ACCOUNT_PAYMASTER_ADDRESS || "",
+      recoveryOidcAddress: process.env.NUXT_PUBLIC_RECOVERY_OIDC_ADDRESS || "",
+      oidcKeyRegistryAddress: process.env.NUXT_PUBLIC_OIDC_KEY_REGISTRY_ADDRESS || "",
+      oidcVerifierAddress: process.env.NUXT_PUBLIC_OIDC_VERIFIER_ADDRESS || "",
+      passkeyAddress: process.env.NUXT_PUBLIC_PASSKEY_ADDRESS || "",
+
       ssoAccountInterfaceId: "0xb9094997",
       appKitProjectId: process.env.NUXT_PUBLIC_APPKIT_PROJECT_ID || "9bc5059f6eed355858cc56a3388e9b50",
       authServerApiUrl: process.env.NUXT_PUBLIC_AUTH_SERVER_API_URL || "http://localhost:3004",
-      prividiumMode: process.env.PRIVIDIUM_MODE === "true",
+      prividiumMode: process.env.NUXT_PUBLIC_PRIVIDIUM_MODE === "true",
       prividium: {
-        clientId: process.env.PRIVIDIUM_CLIENT_ID || "",
-        authBaseUrl: process.env.PRIVIDIUM_AUTH_BASE_URL || "",
-        apiBaseUrl: process.env.PRIVIDIUM_API_URL || "",
+        clientId: process.env.NUXT_PUBLIC_PRIVIDIUM_CLIENT_ID || "",
+        authBaseUrl: process.env.NUXT_PUBLIC_PRIVIDIUM_AUTH_BASE_URL || "",
+        apiBaseUrl: process.env.NUXT_PUBLIC_PRIVIDIUM_API_BASE_URL || "",
       },
       oidc: {
         googlePublicClient: "69763429492-f7nl555i50akmail80pid3m4hhsg7u2n.apps.googleusercontent.com",

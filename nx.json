@@ -14,7 +14,15 @@
       "plugin": "@nx/eslint/plugin",
       "options": {
         "targetName": "lint"
-      }
+      },
+      "exclude": [
+        "packages/circuits",
+        "packages/contracts",
+        "packages/erc4337-contracts",
+        "zksync-sso-circuits",
+        "zksync-sso-contracts",
+        "zksync-sso-contracts-7579"
+      ]
     },
     {
       "plugin": "@nx/nuxt/plugin",
@@ -75,5 +83,6 @@
       "projectChangelogs": true
     }
   },
-  "extends": "nx/presets/npm.json"
+  "extends": "nx/presets/npm.json",
+  "ignoredDirs": ["packages/circuits", "packages/contracts", "packages/erc4337-contracts"]
 }

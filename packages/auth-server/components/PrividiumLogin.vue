@@ -87,14 +87,11 @@
 </template>
 
 <script lang="ts" setup>
-const runtimeConfig = useRuntimeConfig();
-const chainId = runtimeConfig.public.chainId as SupportedChainId;
-
 const prividiumAuthStore = usePrividiumAuthStore();
 const { loading, isAuthenticated, profile } = storeToRefs(prividiumAuthStore);
 const { login } = useAccountStore();
-const { loginInProgress, loginToAccount } = useAccountLogin(chainId);
-const { registerInProgress: deployInProgress, createAccount, createAccountError } = useAccountCreate(chainId);
+const { loginInProgress, loginToAccount } = useAccountLogin();
+const { registerInProgress: deployInProgress, createAccount, createAccountError } = useAccountCreate();
 
 const error = computed(() => createAccountError.value?.message || "");
 

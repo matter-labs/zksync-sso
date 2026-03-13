@@ -73,9 +73,7 @@
 <script setup lang="ts">
 import { type Address, formatUnits } from "viem";
 
-const runtimeConfig = useRuntimeConfig();
 const { address } = useAccountStore();
-const chainId = runtimeConfig.public.chainId as SupportedChainId;
 const assets = ref<GetAddressInfoResponse | null>(null);
 
 const showLimit = 5;
@@ -143,7 +141,8 @@ interface Token {
 }
 
 // Get Address Info
-const blockExplorerUrl = blockExplorerApiByChain[chainId].replace(/\/api$/, "");
+const { blockExplorerApiUrl } = useClientStore();
+const blockExplorerUrl = blockExplorerApiUrl.replace(/\/api$/, "");
 const getAddressInfoUrl = `${blockExplorerUrl}/address/${address}`;
 const { data: getAddressInfoResponse } = await useFetch(getAddressInfoUrl);
 assets.value = await getAddressInfoResponse.value as GetAddressInfoResponse;

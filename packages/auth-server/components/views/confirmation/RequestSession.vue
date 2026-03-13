@@ -144,10 +144,10 @@ const props = defineProps({
 const { appMeta, appOrigin } = useAppMeta();
 const { login } = useAccountStore();
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const { responseInProgress, requestChainId } = storeToRefs(useRequestsStore());
-const { createAccount } = useAccountCreate(requestChainId);
+const { responseInProgress } = storeToRefs(useRequestsStore());
+const { createAccount } = useAccountCreate();
 const { respond, deny } = useRequestsStore();
-const { getClient } = useClientStore();
+const { getClient, contracts } = useClientStore();
 const runtimeConfig = useRuntimeConfig();
 
 const defaults = {
@@ -186,7 +186,6 @@ const {
   totalUsd,
   dangerousActions,
 } = useSessionConfigInfo(
-  requestChainId,
   sessionConfig,
   now,
 );
@@ -301,7 +300,7 @@ const confirmConnection = async () => {
       };
     } else {
       // create a new session for the existing account
-      const client = getClient({ chainId: requestChainId.value });
+      const client = getClient();
       const sessionKey = generatePrivateKey();
       const session = {
         sessionKey,
@@ -327,7 +326,7 @@ const confirmConnection = async () => {
         sessionSpec: session.sessionConfig,
         proof,
         contracts: {
-          sessionValidator: contractsByChain[requestChainId.value].sessionValidator,
+          sessionValidator: contracts.sessionValidator,
         },
       });
 

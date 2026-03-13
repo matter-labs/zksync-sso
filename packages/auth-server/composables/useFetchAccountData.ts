@@ -8,14 +8,14 @@ type AccountData = {
   chainId: number;
 };
 
-export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: MaybeRef<SupportedChainId>) => {
+export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: MaybeRef<number>) => {
   const username = toRef(_username);
   const chainId = toRef(_chainId);
   const accountData = ref<AccountData | null>(null);
-  /* const { getPublicClient } = useClientStore(); */
+  const { contracts } = useClientStore();
 
   const fetchAccountDataByUsername = async (name: string): Promise<AccountData | null> => {
-    const factoryAddress = contractsByChain[chainId.value].accountFactory;
+    const factoryAddress = contracts.factory;
     if (!factoryAddress) throw new Error("Account factory address is not set");
 
     /* TODO: implement account info fetching */

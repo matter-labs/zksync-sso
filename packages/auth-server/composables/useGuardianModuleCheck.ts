@@ -6,8 +6,7 @@ import type { Address } from "viem";
 import { isGuardianModuleInstalled } from "zksync-sso-4337";
 
 export const useGuardianModuleCheck = () => {
-  const { getPublicClient, defaultChain, contractsByChain } = useClientStore();
-  const contracts = contractsByChain[defaultChain!.id];
+  const { getPublicClient, contracts } = useClientStore();
 
   const checkInProgress = ref(false);
   const checkError = ref<Error | null>(null);
@@ -32,7 +31,7 @@ export const useGuardianModuleCheck = () => {
         throw new Error("GuardianExecutor contract address not configured for this chain");
       }
 
-      const client = getPublicClient({ chainId: defaultChain.id });
+      const client = getPublicClient();
 
       const result = await isGuardianModuleInstalled({
         client,

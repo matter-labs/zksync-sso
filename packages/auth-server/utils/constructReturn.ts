@@ -16,14 +16,15 @@ export const constructReturn = ({
   prividiumMode,
   prividiumProxyUrl,
 }: ConstructReturnOptions): ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> => {
+  const { defaultChain, contracts } = useClientStore();
   return {
     account: {
       address,
       activeChainId: chainId,
       session: !session ? undefined : session,
     },
-    chainsInfo: supportedChains.map((chain) => ({
-      id: chain.id,
+    chainsInfo: [{
+      id: defaultChain.id,
       capabilities: {
         paymasterService: {
           supported: true,
@@ -35,11 +36,11 @@ export const constructReturn = ({
           supported: true,
         },
       },
-      contracts: contractsByChain[chain.id],
+      contracts,
       bundlerUrl: prividiumMode
         ? prividiumProxyUrl
-        : contractsByChain[chain.id].bundlerUrl || "",
+        : contracts.bundlerUrl || "",
       prividiumMode,
-    })),
+    }],
   };
 };

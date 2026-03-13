@@ -62,16 +62,13 @@ definePageMeta({
   middleware: ["logged-out"],
 });
 
-const runtimeConfig = useRuntimeConfig();
 const { $config } = useNuxtApp();
-
-const chainId = runtimeConfig.public.chainId as SupportedChainId;
 
 const isPrividiumMode = computed(() => $config.public.prividiumMode);
 
 const { login } = useAccountStore();
-const { registerInProgress, createAccount } = useAccountCreate(chainId);
-const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(chainId);
+const { registerInProgress, createAccount } = useAccountCreate();
+const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin();
 
 const signUp = async () => {
   const result = await createAccount();

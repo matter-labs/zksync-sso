@@ -93,7 +93,7 @@ const emit = defineEmits<{
   (e: "next" | "back"): void;
 }>();
 
-const { getWalletClient, defaultChain } = useClientStore();
+const { getWalletClient } = useClientStore();
 const { isSsoAccount: checkIsSsoAccount, isLoading, error: isSsoAccountError } = useIsSsoAccount();
 const { confirmGuardian, confirmGuardianInProgress } = useRecoveryGuardian();
 const { getConfigurableAccount, getConfigurableAccountInProgress } = useConfigurableAccount();
@@ -142,7 +142,7 @@ const handleConfirmGuardian = async () => {
       if (!accountData.value.isConnected) {
         throw new Error("Please connect your wallet first");
       }
-      client = await getWalletClient({ chainId: defaultChain.id });
+      client = await getWalletClient();
     }
 
     await confirmGuardian({

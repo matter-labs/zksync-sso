@@ -58,7 +58,7 @@ import type { Address, Hex } from "viem";
 import { listActiveSessions } from "zksync-sso-4337";
 import { ConstraintCondition, LimitType, type SessionSpec } from "zksync-sso-4337/client";
 
-const { defaultChain } = useClientStore();
+const { defaultChain, contracts } = useClientStore();
 const { address } = storeToRefs(useAccountStore());
 
 // Types for WASM-returned session data (snake_case with string values)
@@ -193,7 +193,7 @@ const {
   error: sessionsFetchError,
   execute: sessionsFetch,
 } = useAsync(async () => {
-  const contracts = contractsByChain[defaultChain.id];
+  // contracts already obtained from useClientStore()
 
   // Get RPC URL from the chain configuration
   const rpcUrl = defaultChain.rpcUrls.default.http[0];
@@ -203,10 +203,10 @@ const {
   }
 
   // Ensure entryPoint is provided by the chain configuration
-  const { entryPoint } = contracts as { entryPoint?: Address };
-  if (!entryPoint) {
+  if (!contracts.entryPoint) {
     throw new Error(`EntryPoint address is not configured for chain ${defaultChain.id}`);
   }
+  const entryPoint = contracts.entryPoint;
 
   // Use the new listActiveSessions function from the SDK
   const { sessions: activeSessions } = await listActiveSessions({

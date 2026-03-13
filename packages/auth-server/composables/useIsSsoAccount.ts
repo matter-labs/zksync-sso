@@ -1,11 +1,11 @@
 import type { Address } from "viem";
 
 export function useIsSsoAccount() {
-  const { getPublicClient, defaultChain } = useClientStore();
+  const { getPublicClient } = useClientStore();
   const runtimeConfig = useRuntimeConfig();
 
   const { inProgress: isLoading, error, execute: isSsoAccount } = useAsync(async (accountAddress: Address): Promise<boolean> => {
-    const publicClient = getPublicClient({ chainId: defaultChain.id });
+    const publicClient = getPublicClient();
 
     try {
       return await publicClient.readContract({

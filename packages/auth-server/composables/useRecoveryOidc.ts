@@ -9,10 +9,10 @@ import type { OidcData } from "zksync-sso/client/oidc";
 import { type Groth16Proof, type JWT, JwtTxValidationInputs, OidcDigest } from "zksync-sso-circuits";
 
 export const useRecoveryOidc = () => {
-  const { getClient, getPublicClient, defaultChain } = useClientStore();
+  const { getClient, getPublicClient, contracts } = useClientStore();
   const { snarkjs } = useSnarkJs();
   const { saltServiceUrl, wasmUrl, zkeyUrl } = useOidcConfig();
-  const paymasterAddress = contractsByChain[defaultChain!.id].accountPaymaster;
+  const paymasterAddress = contracts.accountPaymaster;
 
   async function buildOidcDigest(jwt: JWT): Promise<OidcDigest> {
     const response = await fetch(saltServiceUrl(), {
@@ -33,10 +33,10 @@ export const useRecoveryOidc = () => {
     result: googleAccountData,
     error: getOidcAccountsError,
   } = useAsync(async (oidcAddress: Address) => {
-    const client = getPublicClient({ chainId: defaultChain.id });
+    const client = getPublicClient();
     try {
       const data = await client.readContract({
-        address: contractsByChain[defaultChain.id].recoveryOidc,
+        address: contracts.recoveryOidc,
         abi: OidcRecoveryValidatorAbi,
         functionName: "oidcDataForAddress",
         args: [oidcAddress],
@@ -57,7 +57,7 @@ export const useRecoveryOidc = () => {
     error: addOidcAccountError,
     execute: addOidcAccount,
   } = useAsync(async (oidcDigest: Hex, iss: string) => {
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getClient();
 
     return await client.addOidcAccount({
       paymaster: {
@@ -71,7 +71,7 @@ export const useRecoveryOidc = () => {
   const {
     execute: removeOidcAccount,
   } = useAsync(async () => {
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getClient();
     await client.removeOidcAccount();
   });
 

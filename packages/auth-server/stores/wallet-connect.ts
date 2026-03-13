@@ -5,8 +5,6 @@ import { buildApprovedNamespaces } from "@walletconnect/utils";
 import type { RpcRequestError } from "viem";
 import { fromHex } from "viem";
 
-import { supportedChains } from "./client";
-
 export const useWalletConnectStore = defineStore("wallet-connect", () => {
   const { defaultChain, getClient } = useClientStore();
   const { address: accountAddress } = useAccountStore();
@@ -35,7 +33,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
       switch (req.params.request.method) {
         case "eth_sendRawTransaction":
         {
-          const client = getClient({ chainId: defaultChain.id });
+          const client = getClient();
           try {
             const tx = await client.sendRawTransaction({
               serializedTransaction: req.params.request.params[0],
@@ -118,7 +116,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   };
 
   const sendTransaction = async (txData: WalletKitTypes.SessionRequest) => {
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getClient();
     const { to, data, value } = txData.params.request.params[0];
     const tx = await client.sendTransaction({
       to,
@@ -133,7 +131,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   };
 
   const sendRawTransaction = async (txData: WalletKitTypes.SessionRequest) => {
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getClient();
     const tx = await client.sendRawTransaction({
       serializedTransaction: txData.params.request.params[0],
     });
@@ -145,7 +143,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   };
 
   const signTypedData = async (txData: WalletKitTypes.SessionRequest) => {
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getClient();
     const { types, primaryType, message, domain } = JSON.parse(txData.params.request.params[1]);
     const signature = await client.signTypedData({
       domain: domain ?? {
@@ -166,7 +164,7 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
   };
 
   const signPersonal = async (txData: WalletKitTypes.SessionRequest) => {
-    const client = getClient({ chainId: defaultChain.id });
+    const client = getClient();
     const message = fromHex(txData.params.request.params[0], "string");
     const signature = await client.signMessage({
       message,
@@ -198,15 +196,14 @@ export const useWalletConnectStore = defineStore("wallet-connect", () => {
 });
 
 function getSupportedNamespaces(accountAddress: string) {
+  const { defaultChain } = useClientStore();
   return {
     eip155: {
-      chains: supportedChains.map((chain) => `eip155:${chain.id}`),
+      chains: [`eip155:${defaultChain.id}`],
       methods: ["eth_sendTransaction", "eth_sendRawTransaction", "personal_sign", "eth_signTypedData_v4"],
       events: ["accountsChanged", "chainChanged"],
-      accounts: supportedChains.map((chain) => `eip155:${chain.id}:${accountAddress}`),
-
+      accounts: [`eip155:${defaultChain.id}:${accountAddress}`],
     },
-
   };
 }
 
