@@ -4,7 +4,7 @@ let prividiumInstance: PrividiumChain | null = null;
 
 export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
   const runtimeConfig = useRuntimeConfig();
-  const { defaultChain } = useClientStore();
+  const defaultChain = useChain();
 
   // Reactive state
   const profile = ref<UserProfile | null>(null);

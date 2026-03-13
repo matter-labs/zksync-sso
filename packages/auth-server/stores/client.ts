@@ -1,5 +1,5 @@
 import { useAppKitProvider } from "@reown/appkit/vue";
-import { type Address, createPublicClient, createWalletClient, custom, defineChain, type Hex, http, publicActions, walletActions } from "viem";
+import { type Address, createPublicClient, createWalletClient, custom, type Hex, http, publicActions, walletActions } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { createPasskeyClient } from "zksync-sso-4337/client";
@@ -27,25 +27,7 @@ export const useClientStore = defineStore("client", () => {
   const { address, credentialId } = storeToRefs(useAccountStore());
   const prividiumAuthStore = usePrividiumAuthStore();
 
-  // Build chain from runtime config
-  const defaultChain = defineChain({
-    id: runtimeConfig.public.chainId,
-    name: runtimeConfig.public.chainName || `Chain ${runtimeConfig.public.chainId}`,
-    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-    rpcUrls: {
-      default: { http: [runtimeConfig.public.chainRpcUrl || "http://localhost:8545"] },
-    },
-    ...(runtimeConfig.public.blockExplorerUrl
-      ? {
-          blockExplorers: {
-            default: {
-              name: "Explorer",
-              url: runtimeConfig.public.blockExplorerUrl,
-            },
-          },
-        }
-      : {}),
-  });
+  const defaultChain = useChain();
 
   // Build contracts from runtime config
   const contracts: ChainContracts = {
