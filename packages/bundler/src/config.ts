@@ -17,7 +17,7 @@ const envSchema = z.object({
   UTILITY_PRIVATE_KEY: z
     .string()
     .default("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"),
-  RPC_URL: z.string().default("http://localhost:8545"),
+  RPC_URL: z.string().default("http://localhost:5050"),
 });
 
 // Parse and validate environment variables

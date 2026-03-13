@@ -19,7 +19,7 @@ const config: HardhatUserConfig = {
     },
     dockerizedNode: {
       url: "http://localhost:3050",
-      ethNetwork: "http://localhost:8545",
+      ethNetwork: "http://localhost:5050",
       zksync: true,
     },
     inMemoryNode: {

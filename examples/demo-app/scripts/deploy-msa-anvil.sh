@@ -7,9 +7,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Configuration
-DEPLOYER_ADDRESS="0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"  # Anvil account #9
-RPC_URL="http://localhost:8545"
-CHAIN_ID=1337
+DEPLOYER_ADDRESS="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"  # Anvil account #0 (admin)
+RPC_URL="http://localhost:5050"
+CHAIN_ID=6565
 CONTRACTS_DIR="$WORKSPACE_ROOT/packages/erc4337-contracts"
 
 echo "🚀 Deploying MSA Factory and modules to Anvil (standard EVM)..."

@@ -42,7 +42,7 @@ COPY --from=builder /app/dist ./dist
 # Environment defaults (can be overridden at runtime)
 ENV EXECUTOR_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 ENV UTILITY_PRIVATE_KEY="0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
-ENV RPC_URL="http://localhost:8545"
+ENV RPC_URL="http://localhost:5050"
 
 # Healthcheck on CORS proxy port (external)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \

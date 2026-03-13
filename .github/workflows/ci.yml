@@ -14,8 +14,8 @@ jobs:
       contents: read
       pull-requests: write
     env:
-      CHAIN_1_ID: 1337
-      CHAIN_1_RPC_URL: http://localhost:8545
+      CHAIN_1_ID: 6565
+      CHAIN_1_RPC_URL: http://localhost:5050
     defaults:
       run:
         working-directory: ./
@@ -48,13 +48,13 @@ jobs:
       - name: Install foundry
         uses: foundry-rs/foundry-toolchain@v1.5.0
 
-      # Start Anvil for ERC-4337 contract deployments (standard EVM on port 8545)
-      # Uses same configuration as local development: fork mainnet, chain-id 1337
+      # Start Anvil for ERC-4337 contract deployments (standard EVM on port 5050)
+      # Uses same configuration as local development: fork mainnet, chain-id 6565
       - name: Start Anvil
         run: |
           pnpm run anvil &
           echo "Waiting for Anvil to be ready..."
-          timeout 30 bash -c 'until cast client --rpc-url http://localhost:8545 > /dev/null 2>&1; do sleep 1; done'
+          timeout 30 bash -c 'until cast client --rpc-url http://localhost:5050 > /dev/null 2>&1; do sleep 1; done'
           echo "Anvil is ready!"
         working-directory: packages/erc4337-contracts
 

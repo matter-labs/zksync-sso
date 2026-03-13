@@ -119,11 +119,10 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, createConfig, connect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract, getConnectorClient } from "@wagmi/core";
-import { createWalletClient, createPublicClient, http, parseEther, toHex, type Address, type Hash } from "viem";
+import { disconnect, getBalance, watchAccount, createConfig, connect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract, getConnectorClient, type Config } from "@wagmi/core";
+import { createWalletClient, createPublicClient, defineChain, http, parseEther, toHex, type Address, type Hash } from "viem";
 import { zksyncSsoConnector, getConnectedSsoSessionClient, isSsoSessionClientConnected } from "zksync-sso-4337/connector";
 import { privateKeyToAccount } from "viem/accounts";
-import { localhost } from "viem/chains";
 import { onMounted } from "vue";
 import ERC1271CallerContract from "../forge-output-erc1271.json";
 
@@ -151,9 +150,16 @@ if (typeof window !== "undefined") {
     .catch(() => undefined);
 }
 
-const chain = localhost;
+const chain = defineChain({
+  id: 6565,
+  name: "Localhost",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["http://localhost:5050"] },
+  },
+});
 
-const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
+const testTransferTarget: Address = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 
 const sessionConfig = {
   feeLimit: parseEther("0.1"),
@@ -327,11 +333,11 @@ const sendTokens = async () => {
     let transactionHash: Hash;
 
     // Check if we're using a session client
-    const isSession = await isSsoSessionClientConnected(wagmiConfig);
+    const isSession = await isSsoSessionClientConnected(wagmiConfig as unknown as Config);
 
     if (isSession) {
       // Use session client's sendTransaction which routes through bundler
-      const sessionClient = await getConnectedSsoSessionClient(wagmiConfig);
+      const sessionClient = await getConnectedSsoSessionClient(wagmiConfig as unknown as Config);
       transactionHash = await sessionClient.sendTransaction({
         to: testTransferTarget,
         value: parseEther("0.1"),

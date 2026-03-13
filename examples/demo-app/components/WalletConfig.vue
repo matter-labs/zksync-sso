@@ -325,7 +325,7 @@ async function detectEnvironment() {
   try {
     const contracts = await loadContracts();
     rpcUrl.value = contracts.rpcUrl || "";
-    isAnvil.value = rpcUrl.value.includes("localhost:8545") || rpcUrl.value.includes("127.0.0.1:8545");
+    isAnvil.value = rpcUrl.value.includes("localhost:5050") || rpcUrl.value.includes("127.0.0.1:5050");
 
     // Auto-select appropriate source
     if (isAnvil.value && config.value.source === "browser-wallet") {
