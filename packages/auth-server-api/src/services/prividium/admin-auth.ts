@@ -48,6 +48,16 @@ export class AdminAuthService {
   }
 
   /**
+   * Re-authenticates the admin with Prividium.
+   * Call when the session has expired and RPC calls fail.
+   */
+  async reauthenticate(): Promise<void> {
+    console.log("Admin token expired, re-authenticating...");
+    await this.sdkInstance.authorize();
+    console.log("Admin re-authenticated successfully");
+  }
+
+  /**
    * Gets the SDK instance.
    * Use sdkInstance.transport for RPC calls.
    * Use sdkInstance.getAuthHeaders() for custom API calls.
