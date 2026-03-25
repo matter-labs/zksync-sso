@@ -67,15 +67,17 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       transport,
     });
 
-    // Check deployer balance
-    const balance = await publicClient.getBalance({ address: deployerAccount.address });
-    const minBalance = parseEther("0.01"); // Minimum balance required for deployment
-    if (balance < minBalance) {
-      console.error(`Deployer balance too low: ${balance.toString()} < ${minBalance.toString()}`);
-      res.status(500).json({
-        error: "Deployer doesn't have enough balance to cover deployment",
-      });
-      return;
+    // Check deployer balance (skipped if MIN_DEPLOYER_BALANCE_ETH is 0 or unset)
+    const minBalance = parseEther(env.MIN_DEPLOYER_BALANCE_ETH);
+    if (minBalance > 0n) {
+      const balance = await publicClient.getBalance({ address: deployerAccount.address });
+      if (balance < minBalance) {
+        console.error(`Deployer balance too low: ${balance.toString()} < ${minBalance.toString()}`);
+        res.status(500).json({
+          error: "Deployer doesn't have enough balance to cover deployment",
+        });
+        return;
+      }
     }
 
     // Prepare deployment transaction

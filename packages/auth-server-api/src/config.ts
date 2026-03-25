@@ -48,6 +48,7 @@ const envSchema = z.object({
   // Rate Limiting Configuration
   RATE_LIMIT_DEPLOY_MAX: z.string().default("20"),
   RATE_LIMIT_DEPLOY_WINDOW_MS: z.string().default("3600000"), // 1 hour
+  MIN_DEPLOYER_BALANCE_ETH: z.string().default("0"),
 });
 
 // Parse and validate environment variables

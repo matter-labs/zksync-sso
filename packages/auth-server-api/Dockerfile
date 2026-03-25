@@ -106,6 +106,9 @@ RUN PNPM_SDK_4337=$(find /prod/auth-server-api/node_modules/.pnpm -type d -name 
     fi && \
     rm -rf /tmp/sdk-4337-dist
 
+# Copy full Foundry build output so downstream tools can extract whatever they need
+COPY --from=builder /usr/src/app/packages/erc4337-contracts/out /prod/auth-server-api/contracts
+
 WORKDIR /prod/auth-server-api
 
 # Environment variables
