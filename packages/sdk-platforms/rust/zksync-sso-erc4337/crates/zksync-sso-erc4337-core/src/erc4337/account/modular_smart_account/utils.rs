@@ -1,10 +1,25 @@
+#[cfg(test)]
+use crate::utils::alloy_utilities::test_utilities::node_backend::{
+    TestNodeBackend, resolve_test_node_backend,
+};
+#[cfg(test)]
+use alloy::providers::ProviderBuilder;
+#[cfg(test)]
+use alloy::{eips::BlockId, primitives::U256, rpc::types::TransactionRequest};
 use alloy::{
     primitives::Address,
-    providers::Provider,
+    providers::{Provider, WalletProvider},
     rpc::types::{BlockNumberOrTag, Filter, FilterSet, Log},
     sol_types::SolEvent,
 };
 use std::collections::HashSet;
+#[cfg(test)]
+use tokio::time::{Duration, sleep};
+#[cfg(test)]
+use url::Url;
+
+#[cfg(test)]
+const DEFAULT_L1_RPC_URL: &str = "http://127.0.0.1:8545";
 
 pub const MAX_BLOCK_RANGE: u64 = 100_000;
 
@@ -81,16 +96,89 @@ where
 /// The new block number after mining (as a hex string)
 pub async fn advance_time<P>(provider: &P, seconds: u64) -> eyre::Result<String>
 where
+    P: Provider + WalletProvider + Send + Sync + Clone,
+{
+    #[cfg(test)]
+    match resolve_test_node_backend() {
+        TestNodeBackend::Anvil => {
+            // Increase time by the specified number of seconds
+            let _: u64 = provider
+                .raw_request("evm_increaseTime".into(), (seconds,))
+                .await?;
+
+            // Mine a block to apply the time change
+            // evm_mine returns the new block number as a hex string
+            let block_number: String =
+                provider.raw_request("evm_mine".into(), ()).await?;
+
+            Ok(block_number)
+        }
+        TestNodeBackend::ZkSyncOs => {
+            let start_ts = latest_block_timestamp(provider).await?;
+            let target_ts = start_ts.saturating_add(seconds).saturating_add(1);
+
+            let l1_url = std::env::var("SSO_ZKSYNC_OS_L1_RPC_URL")
+                .unwrap_or_else(|_| DEFAULT_L1_RPC_URL.to_string());
+            let l1_url = Url::parse(&l1_url)?;
+            let l1_provider = ProviderBuilder::new().connect_http(l1_url);
+            for _ in 0..20 {
+                let l1_ts = latest_block_timestamp(&l1_provider).await?;
+                if target_ts > l1_ts {
+                    let delta = target_ts - l1_ts;
+                    let _: u64 = l1_provider
+                        .raw_request("evm_increaseTime".into(), (delta,))
+                        .await?;
+                    let _: String =
+                        l1_provider.raw_request("evm_mine".into(), ()).await?;
+                }
+
+                let from = provider.default_signer_address();
+                let pending_nonce = provider
+                    .get_transaction_count(from)
+                    .block_id(BlockId::Number(BlockNumberOrTag::Pending))
+                    .await?;
+                let tx = TransactionRequest::default()
+                    .from(from)
+                    .to(from)
+                    .nonce(pending_nonce)
+                    .value(U256::ZERO);
+                _ = provider.send_transaction(tx).await?.get_receipt().await?;
+
+                let latest_ts = latest_block_timestamp(provider).await?;
+                if latest_ts >= target_ts {
+                    let block_number: String = provider
+                        .raw_request("eth_blockNumber".into(), ())
+                        .await?;
+                    return Ok(block_number);
+                }
+                sleep(Duration::from_millis(250)).await;
+            }
+
+            let block_number: String =
+                provider.raw_request("eth_blockNumber".into(), ()).await?;
+            Ok(block_number)
+        }
+    }
+
+    #[cfg(not(test))]
+    {
+        let _: u64 =
+            provider.raw_request("evm_increaseTime".into(), (seconds,)).await?;
+        let block_number: String =
+            provider.raw_request("evm_mine".into(), ()).await?;
+        Ok(block_number)
+    }
+}
+
+#[cfg(test)]
+pub(crate) async fn latest_block_timestamp<P>(provider: &P) -> eyre::Result<u64>
+where
     P: Provider + Send + Sync + Clone,
 {
-    // Increase time by the specified number of seconds
-    let _: u64 =
-        provider.raw_request("evm_increaseTime".into(), (seconds,)).await?;
-
-    // Mine a block to apply the time change
-    // evm_mine returns the new block number as a hex string
-    let block_number: String =
-        provider.raw_request("evm_mine".into(), ()).await?;
-
-    Ok(block_number)
+    let block = provider
+        .get_block_by_number(BlockNumberOrTag::Latest)
+        .await?
+        .ok_or_else(|| eyre::eyre!("latest block not found"))?;
+    let ts = block.header.timestamp;
+    Ok(ts)
 }

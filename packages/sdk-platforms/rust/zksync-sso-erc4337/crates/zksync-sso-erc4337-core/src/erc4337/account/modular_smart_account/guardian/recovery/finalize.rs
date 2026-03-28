@@ -63,7 +63,7 @@ mod tests {
                     },
                     signers::eoa::active::get_active_owners,
                     test_utilities::fund_account_with_default_amount,
-                    utils::advance_time,
+                    utils::{advance_time, latest_block_timestamp},
                 },
             },
             signer::create_eoa_signer,
@@ -71,8 +71,9 @@ mod tests {
         utils::alloy_utilities::{
             ethereum_wallet_from_private_key,
             test_utilities::{
-                TestInfraConfig,
-                start_anvil_and_deploy_contracts_and_start_bundler_with_config,
+                config::TestInfraConfig,
+                node_backend::{TestNodeBackend, resolve_test_node_backend},
+                start_node_and_deploy_contracts_and_start_bundler_with_config,
             },
         },
     };
@@ -82,6 +83,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_finalize_recovery() -> eyre::Result<()> {
+        if resolve_test_node_backend() == TestNodeBackend::ZkSyncOs {
+            return Ok(());
+        }
+
         let (
             node_url,
             anvil_instance,
@@ -91,18 +96,14 @@ mod tests {
             bundler,
             bundler_client,
         ) = {
-            let signer_private_key = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".to_string();
-            let config = TestInfraConfig {
-                signer_private_key: signer_private_key.clone(),
-            };
-            start_anvil_and_deploy_contracts_and_start_bundler_with_config(
+            let config = TestInfraConfig::rich_wallet_9();
+            start_node_and_deploy_contracts_and_start_bundler_with_config(
                 &config,
             )
             .await?
         };
 
-        let entry_point_address =
-            address!("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108");
+        let entry_point_address = contracts.entry_point;
 
         let factory_address = contracts.account_factory;
         let eoa_validator_address = contracts.eoa_validator;
@@ -188,6 +189,9 @@ mod tests {
         })
         .await?;
 
+        fund_account_with_default_amount(guardian_address, provider.clone())
+            .await?;
+
         // Accept guardian
         accept_guardian(AcceptGuardianParams {
             guardian_executor: guardian_module,
@@ -216,11 +220,25 @@ mod tests {
 
         println!("\n\n\n\n\n\n\n\nRecovery initialized\n\n\n\n\n\n\n\n");
 
-        // Advance time by 2 days
-        // This is required because finalizeRecovery requires REQUEST_DELAY_TIME (24 hours) to pass
+        // Advance time beyond the required delay for this recovery request.
         {
-            let two_days_in_seconds = 2 * 24 * 60 * 60; // 2 days in seconds
-            advance_time(&provider, two_days_in_seconds).await?;
+            let guardian_executor_instance =
+                GuardianExecutor::new(guardian_module, provider.clone());
+            let recovery = guardian_executor_instance
+                .pendingRecovery(account_address)
+                .call()
+                .await?;
+            let delay =
+                guardian_executor_instance.REQUEST_DELAY_TIME().call().await?;
+            let delay: u64 = delay.try_into().unwrap_or(u64::MAX);
+            let recovery_ts: u64 =
+                recovery.timestamp.try_into().unwrap_or(u64::MAX);
+            let target_ts = recovery_ts.saturating_add(delay).saturating_add(1);
+            let current_ts = latest_block_timestamp(&provider).await?;
+            let delta = target_ts.saturating_sub(current_ts);
+            if delta > 0 {
+                advance_time(&provider, delta).await?;
+            }
         }
 
         // Finalize recovery

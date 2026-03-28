@@ -32,6 +32,10 @@ pub async fn check_contracts_deployed<P: Provider + Send + Sync + Clone>(
 ) -> eyre::Result<()> {
     let contracts = vec![
         Contract {
+            address: contracts.entry_point,
+            name: "EntryPoint".to_string(),
+        },
+        Contract {
             address: contracts.eoa_validator,
             name: "EOAKeyValidator".to_string(),
         },
