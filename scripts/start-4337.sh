@@ -21,8 +21,13 @@ docker compose -f "$COMPOSE_FILE" up -d l1 zksyncos
 
 echo "Waiting for zksync-os RPC on http://127.0.0.1:3050 ..."
 for _ in $(seq 1 90); do
-  if cast chain-id -r http://127.0.0.1:3050 >/dev/null 2>&1; then
+  if curl -fsS \
+    -H 'Content-Type: application/json' \
+    -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+    http://127.0.0.1:3050 >/dev/null 2>&1; then
     echo "zksync-os is ready."
+    echo "Predeploying bundler prerequisites..."
+    pnpm --dir "$ROOT_DIR/packages/erc4337-contracts" run bundler:prepare
     exit 0
   fi
   sleep 2

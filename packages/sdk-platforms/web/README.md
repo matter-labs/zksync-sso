@@ -186,12 +186,23 @@ The SDK is designed to work with a local zksync-os node and Alto bundler for dev
 ```bash
 # Terminal 1: Start the local stack
 pnpm dev:stack:up
+```
 
+This also predeploys the deterministic deployer and Alto simulation contracts
+that the local bundler needs.
+
+```bash
 # Terminal 2: Deploy contracts
 pnpm --dir packages/erc4337-contracts deploy-test
+```
 
-# Terminal 3: Start Alto bundler + proxy
+```bash
+# Terminal 3: Start Alto bundler
 pnpm --dir packages/erc4337-contracts bundler
+```
+
+```bash
+# Terminal 4: Start the bundler proxy
 pnpm --dir packages/erc4337-contracts bundler-proxy
 ```
 

@@ -166,10 +166,18 @@ This monorepo is comprised of the active ERC-4337 development path:
    pnpm dev:stack:up
    ```
 
-6. Start the Alto bundler and CORS proxy in a separate terminal:
+   This also predeploys the deterministic deployer and Alto simulation contracts
+   required by the local bundler.
+
+6. Start the Alto bundler and CORS proxy in separate terminals:
 
    ```bash
+   # Terminal 1
    pnpm --dir packages/erc4337-contracts run bundler
+   ```
+
+   ```bash
+   # Terminal 2
    pnpm --dir packages/erc4337-contracts run bundler-proxy
    ```
 
