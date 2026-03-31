@@ -89,6 +89,10 @@
           <CommonContentLoader :length="18" />&nbsp;<CommonContentLoader :length="8" />
         </span>
         <span
+          v-else-if="hasPaymaster"
+          class="text-green-400 font-medium"
+        >0 ETH (Sponsored)</span>
+        <span
           v-else
         >{{ formatUnits(totalFee, 18) }} ETH</span>
       &nbsp;
@@ -163,9 +167,11 @@ import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
 import Web3Avatar from "web3-avatar-vue";
 import type { ExtractParams } from "zksync-sso-4337/client";
 
+import { formatAmount, shortenAddress } from "~/utils/formatters";
+
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { responseInProgress, responseError, requestParams, requestChain } = storeToRefs(useRequestsStore());
+const { responseInProgress, responseError, requestParams, requestPaymaster } = storeToRefs(useRequestsStore());
 const { getClient } = useClientStore();
 
 const transactionParams = computed(() => {
@@ -184,7 +190,7 @@ const advancedInfoOpened = ref(false);
 
 const { result: preparedTransaction, inProgress: preparingTransaction, error: preparingFailed, execute: prepareTransaction } = useAsync(async () => {
   if (!transactionParams.value) return null;
-  const client = getClient({ chainId: requestChain.value!.id });
+  const client = getClient();
   return await client.prepareTransactionRequest(transactionParams.value);
 });
 const { resume: resumeAutoReEstimation, pause: pauseAutoReEstimation } = useIntervalFn(async () => {
@@ -226,17 +232,38 @@ const totalFee = computed<bigint>(() => {
   return 0n;
 });
 
+const hasPaymaster = computed<boolean>(() => {
+  // Check if request has paymaster metadata (ERC-4337)
+  if (requestPaymaster.value) {
+    return true;
+  }
+  // Check if transaction has paymaster params
+  const params = transactionParams.value as unknown;
+  if (params?.paymasterParams || params?.paymaster) {
+    return true;
+  }
+  // Also check prepared transaction
+  const prepared = preparedTransaction.value as unknown;
+  if (prepared?.paymasterParams || prepared?.paymaster) {
+    return true;
+  }
+  return false;
+});
+
 const confirmTransaction = async () => {
   respond(async () => {
     if (!transactionParams.value) {
       throw new Error("Transaction parameters are not available");
     }
-    const client = getClient({ chainId: requestChain.value!.id });
+    const usePaymasterFlag = !!requestPaymaster.value;
+    const paymasterAddr = requestPaymaster.value || undefined;
+    const client = getClient({
+      usePaymaster: usePaymasterFlag,
+      paymasterAddress: paymasterAddr,
+    });
     const transactionHash = await client.sendTransaction(transactionParams.value);
     return {
-      result: {
-        value: transactionHash,
-      },
+      result: transactionHash,
     };
   });
 };

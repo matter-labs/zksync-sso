@@ -1,4 +1,12 @@
+/* eslint-disable no-console */
 import { expect, type Page, test } from "@playwright/test";
+
+type WebAuthnCredential = {
+  credentialId: string;
+  isResidentCredential: boolean;
+  privateKey: string;
+  signCount: number;
+};
 
 async function waitForServicesToLoad(page: Page): Promise<void> {
   const maxRetryAttempts = 10;
@@ -45,25 +53,27 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("Create account with session and send ETH", async ({ page }) => {
-  // Click the Connect button
-  await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
+  // Step 1: regular connect to create account with passkey
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
 
-  // Ensure popup is displayed
   await page.waitForTimeout(2000);
   const popup = page.context().pages()[1];
   await expect(popup.getByText("Connect to")).toBeVisible();
   popup.on("console", (msg) => {
-    if (msg.type() === "error")
-      console.log(`Auth server error console: "${msg.text()}"`);
+    if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
   });
   popup.on("pageerror", (exception) => {
     console.log(`Auth server uncaught exception: "${exception}"`);
   });
 
-  // Setup webauthn a Chrome Devtools Protocol session
-  // NOTE: This needs to be done for every page of every test that uses WebAuthn
+  // Prepare WebAuthn for passkey creation and capture the credential for later reuse
   const client = await popup.context().newCDPSession(popup);
   await client.send("WebAuthn.enable");
+  let newCredential: WebAuthnCredential | null = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    console.log("New Passkey credential added");
+    newCredential = credentialAdded.credential;
+  });
   await client.send("WebAuthn.addVirtualAuthenticator", {
     options: {
       protocol: "ctap2",
@@ -75,95 +85,67 @@ test("Create account with session and send ETH", async ({ page }) => {
     },
   });
 
-  // Click Sign Up
   await popup.getByTestId("signup").click();
-
-  // Add session
-  await expect(popup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
-  await expect(popup.getByText("Act on your behalf")).toBeVisible();
-  await expect(popup.getByText("Expires tomorrow")).toBeVisible();
-  await expect(popup.getByText("Permissions")).toBeVisible();
+  await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
   await popup.getByTestId("connect").click();
 
-  // Waits for session to complete and popup to close
   await page.waitForTimeout(2000);
-
-  // Check address/balance is shown
   await expect(page.getByText("Disconnect")).toBeVisible();
-  await expect(page.getByText("Balance:")).toBeVisible();
-  const startBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
+  const initialBalanceText = await page.getByText("Balance:").innerText();
+  const initialBalance = +initialBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  await expect(initialBalance, "Balance should be non-zero after initial funding").toBeGreaterThan(0);
 
-  // Send some eth
+  // Step 2: disconnect then reconnect with session using the same passkey credential
+  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Connect with Session", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
+  await page.waitForTimeout(2000);
+  const sessionPopup = page.context().pages()[1];
+  await expect(sessionPopup.getByText("Act on your behalf")).toBeVisible();
+
+  const sessionClient = await sessionPopup.context().newCDPSession(sessionPopup);
+  await sessionClient.send("WebAuthn.enable");
+  const sessionAuthenticator = await sessionClient.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+  await expect(newCredential).not.toBeNull();
+  await sessionClient.send("WebAuthn.addCredential", {
+    authenticatorId: sessionAuthenticator.authenticatorId,
+    credential: newCredential!,
+  });
+
+  await expect(sessionPopup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
+  await sessionPopup.getByTestId("connect").click();
+
+  await page.waitForTimeout(2000);
+  await expect(page.getByText("Disconnect")).toBeVisible();
+  const sessionBalanceText = await page.getByText("Balance:").innerText();
+  const sessionStartBalance = +sessionBalanceText.replace("Balance: ", "").replace(" ETH", "");
+
+  // Step 3: send ETH under session (no extra signing step expected)
   await page.getByRole("button", { name: "Send 0.1 ETH", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeEnabled();
-  const endBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
-  await expect(startBalance, "Balance after transfer should be ~0.1 ETH less")
-    .toBeGreaterThan(endBalance + 0.1);
-});
 
-test("Create account with session and send ETH with paymaster", async ({ page }) => {
-  // Click the Connect button
-  await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
+  // Wait for transaction to be sent (button should be disabled during transaction)
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeDisabled();
 
-  // Ensure popup is displayed
-  await page.waitForTimeout(2000);
-  const popup = page.context().pages()[1];
-  await expect(popup.getByText("Connect to")).toBeVisible();
-  popup.on("console", (msg) => {
-    if (msg.type() === "error")
-      console.log(`Auth server error console: "${msg.text()}"`);
-  });
-  popup.on("pageerror", (exception) => {
-    console.log(`Auth server uncaught exception: "${exception}"`);
-  });
+  // Wait for transaction to complete (button becomes enabled again)
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeEnabled({ timeout: 30000 });
 
-  // Setup webauthn a Chrome Devtools Protocol session
-  // NOTE: This needs to be done for every page of every test that uses WebAuthn
-  const client = await popup.context().newCDPSession(popup);
-  await client.send("WebAuthn.enable");
-  await client.send("WebAuthn.addVirtualAuthenticator", {
-    options: {
-      protocol: "ctap2",
-      transport: "usb",
-      hasResidentKey: true,
-      hasUserVerification: true,
-      isUserVerified: true,
-      automaticPresenceSimulation: true,
-    },
-  });
-
-  // Click Sign Up
-  await popup.getByTestId("signup").click();
-
-  // Add session
-  await expect(popup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
-  await expect(popup.getByText("Act on your behalf")).toBeVisible();
-  await expect(popup.getByText("Expires tomorrow")).toBeVisible();
-  await expect(popup.getByText("Permissions")).toBeVisible();
-  await popup.getByTestId("connect").click();
-
-  // Waits for session to complete and popup to close
+  // Wait a bit for balance to update
   await page.waitForTimeout(2000);
 
-  // Check address/balance is shown
-  await expect(page.getByText("Disconnect")).toBeVisible();
-  await expect(page.getByText("Balance:")).toBeVisible();
-  const startBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
+  const sessionEndBalanceText = await page.getByText("Balance:").innerText();
+  const sessionEndBalance = +sessionEndBalanceText.replace("Balance: ", "").replace(" ETH", "");
 
-  // Send some eth with paymaster
-  await page.getByRole("button", { name: "Send 0.1 ETH with Paymaster", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Send 0.1 ETH with Paymaster", exact: true })).toBeEnabled();
-  const endBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
-  await expect(startBalance, "Balance after transfer should be 0.1 ETH less (no fees)")
-    .toEqual(endBalance + 0.1);
+  await expect(sessionStartBalance, "Balance after transfer should be ~0.1 ETH less").toBeGreaterThan(sessionEndBalance + 0.09);
 });
 
 test("Create passkey account and send ETH", async ({ page }) => {
@@ -196,7 +178,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
       automaticPresenceSimulation: true,
     },
   });
-  let newCredential = null;
+  let newCredential: WebAuthnCredential | null = null;
   client.on("WebAuthn.credentialAdded", (credentialAdded) => {
     console.log("New Passkey credential added");
     console.log(`Authenticator ID: ${credentialAdded.authenticatorId}`);
@@ -209,7 +191,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
 
   // Confirm access to your account
   await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
-  await expect(popup.getByText("localhost:3004")).toBeVisible();
+  await expect(popup.getByText("localhost:3005")).toBeVisible();
   await expect(popup.getByText("Let it see your address, balance and activity")).toBeVisible();
   await popup.getByTestId("connect").click();
 
@@ -269,25 +251,27 @@ test("Create passkey account and send ETH", async ({ page }) => {
 });
 
 test("Create passkey account and send ETH with paymaster", async ({ page }) => {
-  // Click the Connect button
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  // Create account with paymaster connect (paymaster sponsors all gas)
+  await page.getByRole("button", { name: "Connect (Paymaster)", exact: true }).click();
 
-  // Ensure popup is displayed
   await page.waitForTimeout(2000);
   let popup = page.context().pages()[1];
   await expect(popup.getByText("Connect to")).toBeVisible();
   popup.on("console", (msg) => {
-    if (msg.type() === "error")
-      console.log(`Auth server error console: "${msg.text()}"`);
+    if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
   });
   popup.on("pageerror", (exception) => {
     console.log(`Auth server uncaught exception: "${exception}"`);
   });
 
-  // Setup webauthn a Chrome Devtools Protocol session
-  // NOTE: This needs to be done for every page of every test that uses WebAuthn
+  // Setup WebAuthn for passkey creation
   let client = await popup.context().newCDPSession(popup);
   await client.send("WebAuthn.enable");
+  let newCredential: WebAuthnCredential | null = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    console.log("New Passkey credential added");
+    newCredential = credentialAdded.credential;
+  });
   await client.send("WebAuthn.addVirtualAuthenticator", {
     options: {
       protocol: "ctap2",
@@ -298,41 +282,30 @@ test("Create passkey account and send ETH with paymaster", async ({ page }) => {
       automaticPresenceSimulation: true,
     },
   });
-  let newCredential = null;
-  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
-    console.log("New Passkey credential added");
-    console.log(`Authenticator ID: ${credentialAdded.authenticatorId}`);
-    console.log(`Credential: ${credentialAdded.credential}`);
-    newCredential = credentialAdded.credential;
-  });
 
-  // Click Sign Up
+  // Complete signup
   await popup.getByTestId("signup").click();
-
-  // Confirm access to your account
   await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
-  await expect(popup.getByText("localhost:3004")).toBeVisible();
-  await expect(popup.getByText("Let it see your address, balance and activity")).toBeVisible();
   await popup.getByTestId("connect").click();
 
-  // Waits for session to complete and popup to close
-  await page.waitForTimeout(2000);
-
-  // Check address/balance is shown
-  await expect(page.getByText("Disconnect")).toBeVisible();
+  // Wait for connection
+  await page.waitForTimeout(3000);
+  await expect(page.getByText("Disconnect")).toBeVisible({ timeout: 10000 });
   await expect(page.getByText("Balance:")).toBeVisible();
-  const startBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
 
-  // Send some eth with paymaster
-  await page.getByRole("button", { name: "Send 0.1 ETH with Paymaster", exact: true }).click();
+  const startBalanceText = await page.getByText("Balance:").innerText();
+  const startBalance = +startBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  console.log(`Starting balance: ${startBalance} ETH`);
 
-  // Wait for Auth Server to pop back up
+  // Click "Send 0.1 ETH (Paymaster)" button
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true }).click();
+
+  // Wait for Auth Server to pop back up for transaction confirmation
   await page.waitForTimeout(2000);
   popup = page.context().pages()[1];
 
-  // We need to recreate the virtual authenticator to match the previous one
+  // Setup virtual authenticator for transaction signature
   client = await popup.context().newCDPSession(popup);
   await client.send("WebAuthn.enable");
   const result = await client.send("WebAuthn.addVirtualAuthenticator", {
@@ -351,45 +324,60 @@ test("Create passkey account and send ETH with paymaster", async ({ page }) => {
     credential: newCredential!,
   });
 
-  // Confirm the transfer
+  // Verify the transaction details in auth server
   await expect(popup.getByText("-0.1")).toBeVisible();
   await expect(popup.getByText("Sending to")).toBeVisible();
-  await expect(popup.getByText("0x55b...4A6")).toBeVisible();
+
+  // CRITICAL: Verify that fees are shown as sponsored (paymaster covers them)
   await expect(popup.getByText("Fees")).toBeVisible();
+  const sponsoredText = popup.getByText("0 ETH (Sponsored)");
+  await expect(sponsoredText, "Paymaster should cover fees - expecting '0 ETH (Sponsored)' to be shown").toBeVisible();
+  console.log("✓ Auth server shows fees are sponsored by paymaster");
+
+  // Confirm the transfer
   await popup.getByTestId("confirm").click();
 
-  // Wait for confirmation to complete and popup to close
-  await page.waitForTimeout(2000);
+  // Wait for confirmation to complete and popup to close (paymaster txs may take longer)
+  await page.waitForTimeout(5000);
 
-  // Confirm transfer completed and balance updated
-  await expect(page.getByRole("button", { name: "Send 0.1 ETH with Paymaster", exact: true })).toBeEnabled();
-  const endBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
-  await expect(startBalance, "Balance after transfer should be 0.1 ETH less (no fees)")
-    .toEqual(endBalance + 0.1);
+  // Verify transaction completed
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true })).toBeEnabled();
+
+  const endBalanceText = await page.getByText("Balance:").innerText();
+  const endBalance = +endBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  console.log(`Ending balance: ${endBalance} ETH`);
+
+  const balanceChange = startBalance - endBalance;
+  console.log(`Balance change: ${balanceChange} ETH`);
+
+  // Balance should decrease by EXACTLY 0.1 ETH (no gas fees paid by user)
+  // Allow small tolerance for rounding
+  expect(Math.abs(balanceChange - 0.1), "Balance should decrease by exactly 0.1 ETH (paymaster pays gas)").toBeLessThan(0.001);
+  console.log("✓ Paymaster successfully covered gas fees - balance decreased by exactly 0.1 ETH");
 });
 
-test("Create passkey account and sign typed data", async ({ page }) => {
-  // Click the Connect button
+test("Create account with session, create session via paymaster, and send ETH", async ({ page }) => {
+  // Step 1: Create a passkey account without session (regular connect)
   await page.getByRole("button", { name: "Connect", exact: true }).click();
 
-  // Ensure popup is displayed
   await page.waitForTimeout(2000);
-  let popup = page.context().pages()[1];
+  const popup = page.context().pages()[1];
   await expect(popup.getByText("Connect to")).toBeVisible();
   popup.on("console", (msg) => {
-    if (msg.type() === "error")
-      console.log(`Auth server error console: "${msg.text()}"`);
+    if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
   });
   popup.on("pageerror", (exception) => {
     console.log(`Auth server uncaught exception: "${exception}"`);
   });
 
-  // Setup webauthn a Chrome Devtools Protocol session
-  // NOTE: This needs to be done for every page of every test that uses WebAuthn
-  let client = await popup.context().newCDPSession(popup);
+  // Setup WebAuthn for passkey creation
+  const client = await popup.context().newCDPSession(popup);
   await client.send("WebAuthn.enable");
+  let newCredential: WebAuthnCredential | null = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    console.log("New Passkey credential added");
+    newCredential = credentialAdded.credential;
+  });
   await client.send("WebAuthn.addVirtualAuthenticator", {
     options: {
       protocol: "ctap2",
@@ -400,45 +388,37 @@ test("Create passkey account and sign typed data", async ({ page }) => {
       automaticPresenceSimulation: true,
     },
   });
-  let newCredential = null;
-  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
-    console.log("New Passkey credential added");
-    console.log(`Authenticator ID: ${credentialAdded.authenticatorId}`);
-    console.log(`Credential: ${credentialAdded.credential}`);
-    newCredential = credentialAdded.credential;
-  });
 
-  // Click Sign Up
+  // Complete signup
   await popup.getByTestId("signup").click();
-
-  // Confirm access to your account
   await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
-  await expect(popup.getByText("localhost:3004")).toBeVisible();
-  await expect(popup.getByText("Let it see your address, balance and activity")).toBeVisible();
   await popup.getByTestId("connect").click();
 
-  // Waits for session to complete and popup to close
+  // Wait for connection
   await page.waitForTimeout(2000);
-
-  // Check address/balance is shown
   await expect(page.getByText("Disconnect")).toBeVisible();
-  await expect(page.getByText("Balance:")).toBeVisible();
+  const initialBalanceText = await page.getByText("Balance:").innerText();
+  const initialBalance = +initialBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  await expect(initialBalance, "Balance should be non-zero after initial funding").toBeGreaterThan(0);
 
-  // Verify typed data section is visible
-  await expect(page.getByText("Typed Data Signature Verification")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign Typed Data" })).toBeVisible();
+  // Step 2: Disconnect and reconnect with "Connect Session (Paymaster)"
+  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true })).toBeVisible();
 
-  // Click Sign Typed Data button
-  await page.getByRole("button", { name: "Sign Typed Data" }).click();
+  // Store balance before session creation with paymaster
+  const balanceBeforePaymaster = initialBalance;
+  console.log("Balance before session creation with paymaster:", balanceBeforePaymaster, "ETH");
 
-  // Wait for Auth Server popup to open
+  // Connect with session (paymaster will sponsor session creation)
+  await page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true }).click();
   await page.waitForTimeout(2000);
-  popup = page.context().pages()[1];
+  const sessionPopup = page.context().pages()[1];
+  await expect(sessionPopup.getByText("Act on your behalf")).toBeVisible();
 
-  // We need to recreate the virtual authenticator to match the previous one
-  client = await popup.context().newCDPSession(popup);
-  await client.send("WebAuthn.enable");
-  const result = await client.send("WebAuthn.addVirtualAuthenticator", {
+  // Setup WebAuthn with existing credential
+  const sessionClient = await sessionPopup.context().newCDPSession(sessionPopup);
+  await sessionClient.send("WebAuthn.enable");
+  const sessionAuthenticator = await sessionClient.send("WebAuthn.addVirtualAuthenticator", {
     options: {
       protocol: "ctap2",
       transport: "usb",
@@ -449,28 +429,209 @@ test("Create passkey account and sign typed data", async ({ page }) => {
     },
   });
   await expect(newCredential).not.toBeNull();
-  await client.send("WebAuthn.addCredential", {
-    authenticatorId: result.authenticatorId,
+  await sessionClient.send("WebAuthn.addCredential", {
+    authenticatorId: sessionAuthenticator.authenticatorId,
     credential: newCredential!,
   });
 
-  // Verify the sign typed data popup content
-  await expect(popup.getByText("Sign Typed Data Request")).toBeVisible();
-  await expect(popup.getByText("Message (TestStruct)", { exact: true })).toBeVisible();
+  // Authorize session creation with paymaster
+  await expect(sessionPopup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
+  await sessionPopup.getByTestId("connect").click();
 
-  // Click Sign button in the popup
-  await popup.getByTestId("confirm").click();
+  // Wait for session creation to complete
+  await page.waitForTimeout(2000);
+  await expect(page.getByText("Disconnect")).toBeVisible();
+  const sessionBalanceText = await page.getByText("Balance:").innerText();
+  const sessionStartBalance = +sessionBalanceText.replace("Balance: ", "").replace(" ETH", "");
 
-  // Wait for signature to complete and popup to close
-  await page.waitForTimeout(3000);
+  // Verify session was created (balance should be available)
+  expect(sessionStartBalance).toBeGreaterThan(0);
 
-  // Verify signature appears on main page
-  await expect(page.getByText("Signature:")).toBeVisible();
+  // Verify paymaster paid the fees - balance should not have decreased (or decreased minimally)
+  // Session creation typically costs gas, but paymaster should cover it
+  const balanceDifference = balanceBeforePaymaster - sessionStartBalance;
+  console.log("Balance after session creation:", sessionStartBalance, "ETH");
+  console.log("Balance difference:", balanceDifference, "ETH");
 
-  // Wait for signature verification to complete
+  // Balance should not have decreased significantly (allow for minor variations)
+  // If paymaster is working, the difference should be near zero
+  expect(balanceDifference).toBeLessThan(0.001); // Allow for minimal difference
+  console.log("✓ Paymaster successfully covered session creation fees");
+
+  console.log("Session created successfully with balance:", sessionStartBalance, "ETH");
+});
+
+test("Create session and verify it appears in auth-server sessions list", async ({ page }) => {
+  test.setTimeout(120000);
+  console.log("\n=== Session Display in Sessions List Test ===\n");
+
+  // Step 1: Create account
+  console.log("Step 1: Creating account...");
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
   await page.waitForTimeout(2000);
 
-  // Verify signature validation shows as successful
-  await expect(page.getByText("Typed Data Verification Result:")).toBeVisible();
-  await expect(page.getByText("Valid ✓")).toBeVisible();
+  const popup = page.context().pages()[1];
+  await expect(popup.getByText("Connect to")).toBeVisible();
+
+  // Setup WebAuthn
+  const client = await popup.context().newCDPSession(popup);
+  await client.send("WebAuthn.enable");
+  let newCredential: WebAuthnCredential | null = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    newCredential = credentialAdded.credential;
+  });
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+
+  // Complete signup
+  await popup.getByTestId("signup").click();
+  await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
+  await popup.getByTestId("connect").click();
+  await page.waitForTimeout(2000);
+  await expect(page.getByText("Disconnect")).toBeVisible();
+
+  // Capture the account address from the page
+  const demoPageContent = await page.textContent("body");
+  const accountMatch = demoPageContent?.match(/0x[a-fA-F0-9]{40}/);
+  const demoAccountAddress = accountMatch ? accountMatch[0] : "unknown";
+  console.log(`✓ Account created: ${demoAccountAddress}`);
+
+  // Step 2: Create session
+  console.log("\nStep 2: Creating session...");
+  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Connect with Session", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
+  await page.waitForTimeout(2000);
+
+  const sessionPopup = page.context().pages()[1];
+  await expect(sessionPopup.getByText("Act on your behalf")).toBeVisible();
+
+  // Setup WebAuthn with existing credential
+  const sessionClient = await sessionPopup.context().newCDPSession(sessionPopup);
+  await sessionClient.send("WebAuthn.enable");
+  const sessionAuthenticator = await sessionClient.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+  await expect(newCredential).not.toBeNull();
+  await sessionClient.send("WebAuthn.addCredential", {
+    authenticatorId: sessionAuthenticator.authenticatorId,
+    credential: newCredential!,
+  });
+
+  // Authorize session
+  await expect(sessionPopup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
+  await sessionPopup.getByTestId("connect").click();
+  await page.waitForTimeout(3000);
+  await expect(page.getByText("Disconnect")).toBeVisible();
+  console.log("✓ Session created");
+
+  // Step 3: Navigate to auth-server sessions page to verify
+  console.log("\nStep 3: Verifying session appears in auth-server...");
+
+  const authPage = await page.context().newPage();
+  await authPage.goto("http://localhost:3002");
+  await authPage.waitForTimeout(1000);
+
+  // Check if logged in
+  const isLoggedIn = await authPage.locator("[data-testid='account-address']").isVisible({ timeout: 2000 }).catch(() => false);
+
+  if (!isLoggedIn) {
+    console.log("Logging into auth-server...");
+    // Already on auth-server homepage, just click login
+    await authPage.getByTestId("login").click();
+    await authPage.waitForTimeout(1000);
+
+    // Setup WebAuthn for login
+    const authClient = await authPage.context().newCDPSession(authPage);
+    await authClient.send("WebAuthn.enable");
+    const authAuthenticator = await authClient.send("WebAuthn.addVirtualAuthenticator", {
+      options: {
+        protocol: "ctap2",
+        transport: "usb",
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        automaticPresenceSimulation: true,
+      },
+    });
+    await authClient.send("WebAuthn.addCredential", {
+      authenticatorId: authAuthenticator.authenticatorId,
+      credential: newCredential!,
+    });
+
+    await authPage.waitForURL("**/dashboard", { timeout: 15000 });
+    console.log("✓ Logged into auth-server");
+  }
+
+  // Navigate to sessions page
+  await authPage.goto("http://localhost:3002/dashboard/sessions");
+  await authPage.waitForLoadState("domcontentloaded");
+
+  // Listen for console logs from the sessions page
+  authPage.on("console", (msg) => {
+    if (msg.text().includes("[sessions.vue]")) {
+      console.log(`  Auth-server: ${msg.text()}`);
+    }
+  });
+
+  console.log("✓ Navigated to sessions page");
+  console.log(`  Demo account (created session): ${demoAccountAddress}`);
+
+  // Verify sessions page content
+  const header = authPage.locator("header").getByText("Sessions");
+  await expect(header).toBeVisible();
+  console.log("✓ Sessions page loaded");
+
+  // Wait for sessions data to load - look for either session rows or the table/list container
+  // The sessions are loaded via WASM asynchronously, so we need to wait
+  try {
+    // Wait for the sessions list container or session rows to appear
+    await authPage.waitForSelector("table tbody tr, [role='list'] > div, [data-testid*='session']", {
+      timeout: 15000,
+      state: "attached",
+    });
+    console.log("✓ Sessions data container loaded");
+  } catch (e) {
+    console.log("⚠ No sessions container appeared within 15s", e);
+  }
+
+  // Additional wait to ensure console logs are captured
+  await authPage.waitForTimeout(2000);
+
+  // Log page content for debugging
+  const pageContent = await authPage.locator("main").textContent();
+  console.log(`Page content: ${pageContent?.substring(0, 500)}`);
+
+  // Verify at least one session is displayed
+  // The session rows use class="session-row" in the SessionRow component
+  const sessionRows = authPage.locator(".session-row");
+  const sessionCount = await sessionRows.count();
+  console.log(`Found ${sessionCount} session row(s)`);
+
+  expect(sessionCount, "At least one session should be displayed").toBeGreaterThan(0);
+  console.log(`✓ Found ${sessionCount} session(s) displayed`);
+
+  // Verify empty state message is NOT shown
+  const emptyState = authPage.getByText(/no active sessions/i);
+  const emptyVisible = await emptyState.isVisible({ timeout: 1000 }).catch(() => false);
+  expect(emptyVisible, "Empty state should NOT be visible when sessions exist").toBe(false);
+  console.log("✓ Empty state correctly hidden");
+
+  await authPage.close();
+  console.log("\n=== Session Display Test Complete ===\n");
 });

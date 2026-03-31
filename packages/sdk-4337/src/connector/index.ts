@@ -3,11 +3,15 @@ import {
   type Config,
   type Connector,
   createConnector,
-  getConnectorClient as wagmiGetConnectorClient,
+  getConnections,
   type GetConnectorClientParameters,
 } from "@wagmi/core";
 import type { Compute } from "@wagmi/core/internal";
 import {
+  type Abi,
+  type AbiFunction,
+  type AbiStateMutability,
+  type Address,
   type Client,
   getAddress,
   SwitchChainError,
@@ -16,7 +20,8 @@ import {
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
 
-import type { SessionClient, SessionPreferences } from "../client/index.js";
+import type { PaymasterConfig } from "../actions/sendUserOperation.js";
+import type { PartialCallPolicy, SessionClient, SessionPreferences } from "../client/index.js";
 import type { ProviderInterface } from "../client-auth-server/index.js";
 import { WalletProvider } from "../client-auth-server/WalletProvider.js";
 import type { AppMetadata, Communicator } from "../communicator/interface.js";
@@ -37,7 +42,32 @@ export type ZksyncSsoConnectorOptions = {
   communicator?: Communicator;
   provider?: ProviderInterface;
   connectorMetadata?: ConnectorMetadata;
+  paymaster?: Address | PaymasterConfig;
 };
+
+function filterContractCallsAbi(contractCalls: PartialCallPolicy[]): PartialCallPolicy[] {
+  const allowedStateMutability: AbiStateMutability[] = ["nonpayable", "payable"];
+
+  return contractCalls.map((call) => {
+    const matchingFunction = (call.abi as Abi).find(
+      (item): item is AbiFunction =>
+        item.type === "function"
+        && item.name === call.functionName
+        && allowedStateMutability.includes(item.stateMutability),
+    );
+
+    if (!matchingFunction) {
+      throw new Error(
+        `Function "${call.functionName}" not found in ABI for contract ${call.address}. Only nonpayable/payable functions are allowed.`,
+      );
+    }
+
+    return {
+      ...call,
+      abi: [matchingFunction],
+    };
+  });
+}
 
 export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
   let walletProvider: ProviderInterface | undefined;
@@ -141,6 +171,45 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
     },
     async getProvider() {
       if (!walletProvider) {
+        // Normalize paymaster to PaymasterConfig format
+        let paymasterConfig: PaymasterConfig | undefined;
+        if (parameters.paymaster) {
+          if (typeof parameters.paymaster === "string") {
+            // Legacy format: just an address, use default gas limits for passkey
+            paymasterConfig = {
+              address: parameters.paymaster as Address,
+              verificationGasLimit: 500_000n, // Default for passkey validation
+              postOpGasLimit: 1_000_000n, // Default for post-operation
+            };
+          } else {
+            // Full config provided
+            paymasterConfig = parameters.paymaster;
+          }
+        }
+
+        // Process session to filter ABI to only the specified function
+        let processedSession = parameters.session;
+        if (parameters.session) {
+          if (typeof parameters.session === "function") {
+            const originalSessionFn = parameters.session;
+            processedSession = async () => {
+              const sessionConfig = await originalSessionFn();
+              if (sessionConfig.contractCalls) {
+                return {
+                  ...sessionConfig,
+                  contractCalls: filterContractCallsAbi(sessionConfig.contractCalls),
+                };
+              }
+              return sessionConfig;
+            };
+          } else if (parameters.session.contractCalls) {
+            processedSession = {
+              ...parameters.session,
+              contractCalls: filterContractCallsAbi(parameters.session.contractCalls),
+            };
+          }
+        }
+
         walletProvider = parameters.provider ?? new WalletProvider({
           metadata: {
             name: parameters.metadata?.name,
@@ -148,11 +217,12 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
             configData: parameters.metadata?.configData,
           },
           authServerUrl: parameters.authServerUrl,
-          session: parameters.session,
+          session: processedSession,
           transports: config.transports,
           bundlerClients: parameters.bundlerClients,
           chains: config.chains,
           customCommunicator: parameters.communicator,
+          paymaster: paymasterConfig,
         });
       }
       return walletProvider;
@@ -194,6 +264,13 @@ export const zksyncSsoConnector = (parameters: ZksyncSsoConnectorOptions) => {
       if (error instanceof EthereumProviderError && error.code === 4900) return; // User initiated
       console.error("Account disconnected", error);
     },
+    // Add a helper method to get the client directly (accessible via connector._getClient)
+    _getClient(parameters?: { chainId?: number }) {
+      if (!walletProvider) {
+        throw new Error("Wallet provider not initialized. Please connect your wallet first.");
+      }
+      return walletProvider.getClient(parameters);
+    },
   }));
 };
 
@@ -208,7 +285,9 @@ export type GetConnectedSsoClientReturnType<
 >;
 
 export const isSsoSessionClient = (client: Client): boolean => {
-  return client.key === "zksync-sso-session-wallet";
+  // Accept both passkey and session clients
+  return client.key === "zksync-sso-passkey-client"
+    || client.key === "zksync-sso-session-client";
 };
 
 export const isSsoSessionClientConnected = async<
@@ -218,8 +297,28 @@ export const isSsoSessionClientConnected = async<
   config: config,
   parameters: GetConnectorClientParameters<config, chainId> = {},
 ): Promise<boolean> => {
-  const connectorClient = await wagmiGetConnectorClient(config, parameters);
-  return isSsoSessionClient(connectorClient);
+  // Get the current connection
+  const connections = getConnections(config);
+  const connection = connections.find((c) => c.accounts.length > 0);
+
+  if (!connection?.connector) {
+    return false;
+  }
+
+  try {
+    // Check if this is a ZKsync SSO connector with our custom _getClient method
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof (connection.connector as any)._getClient !== "function") {
+      return false;
+    }
+
+    // Use the custom _getClient method to get our custom client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = await (connection.connector as any)._getClient(parameters);
+    return isSsoSessionClient(client);
+  } catch {
+    return false;
+  }
 };
 
 export const getConnectedSsoSessionClient = async<
@@ -229,10 +328,29 @@ export const getConnectedSsoSessionClient = async<
   config: config,
   parameters: GetConnectorClientParameters<config, chainId> = {},
 ): Promise<GetConnectedSsoClientReturnType<config, chainId>> => {
-  const connectorClient = await wagmiGetConnectorClient(config, parameters);
-  if (!isSsoSessionClient(connectorClient)) {
+  const connections = getConnections(config);
+  const connection = connections.find((c) => c.accounts.length > 0);
+
+  if (!connection?.connector) {
+    throw new Error("No active wallet connection found");
+  }
+
+  // Check if this is a ZKsync SSO connector with our custom _getClient method
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (connection.connector as any)._getClient !== "function") {
+    throw new Error("Connector does not support getClient method. Make sure you're using the ZKsync SSO connector.");
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const client = await (connection.connector as any)._getClient(parameters);
+
+  if (!isSsoSessionClient(client)) {
     throw new Error("ZKsync SSO Session Client not connected");
   }
-  const sessionClient = connectorClient as unknown as GetConnectedSsoClientReturnType<config, chainId>;
+
+  const sessionClient = client as unknown as GetConnectedSsoClientReturnType<config, chainId>;
   return sessionClient;
 };
+
+// Re-export callPolicy utility for convenient access
+export { callPolicy } from "../client/index.js";

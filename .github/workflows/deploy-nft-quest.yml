@@ -49,7 +49,7 @@ jobs:
         uses: dutterbutter/anvil-zksync-action@v1.1.0
 
       - name: Deploy contracts
-        run: pnpm run deploy --file ../auth-server/stores/local-node.json
+        run: pnpm run deploy --file ../auth-server/stores/contracts.json
         working-directory: packages/contracts
 
       - name: Build apps

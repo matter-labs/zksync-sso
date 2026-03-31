@@ -137,46 +137,61 @@ This monorepo is comprised of the following packages, products, and examples:
 
 ## Running development
 
-1. Install workspace dependencies with PNPM.
+1. Install dependencies.
 
    ```bash
    pnpm install
    ```
 
-2. If creating new packages: use pnpm and
-   [workspace protocol](https://pnpm.io/workspaces#workspace-protocol-workspace)
-   to link SDK in the new folder.
-
-3. Install `foundry-zksync`:
+2. Create .env files (first time only):
 
    ```bash
-   curl -L https://raw.githubusercontent.com/matter-labs/foundry-zksync/main/install-foundry-zksync | bash
+   cp packages/auth-server/.env.example packages/auth-server/.env
+   cp packages/auth-server-api/.env.example packages/auth-server-api/.env
+   cp packages/bundler/.env.example packages/bundler/.env
    ```
 
-4. Start a local node:
+3. Install [Foundry](https://getfoundry.sh) (if not yet installed):
 
    ```bash
-   npx zksync-cli dev start
+   curl -L https://foundry.paradigm.xyz | bash
+   foundryup
    ```
 
-5. Compile and deploy contracts to the local node:
+4. Install ERC-4337 Soldeer dependencies:
 
    ```bash
-   # Compile and deploy contracts
-   pnpm --dir packages/contracts run build
-   pnpm --dir packages/contracts run publish ../sdk/src/abi
-   pnpm run format-abi
-   pnpm --dir packages/contracts run deploy --file ../auth-server/stores/local-node.json
+   cd packages/erc4337-contracts && forge soldeer install && cd ../..
    ```
 
-6. Start the demo application:
+5. Start a local Anvil node in a separate terminal (forks mainnet, chain-id
+   1337):
 
    ```bash
-   pnpm nx dev demo-app
+   pnpm --dir packages/erc4337-contracts run anvil
    ```
 
-Your local Auth Server will be running at `http://localhost:3002/`, and the demo
-app will be running at `http://localhost:3004/`.
+6. Start the Alto bundler with CORS proxy in a separate terminal:
+
+   ```bash
+   pnpm --dir packages/erc4337-contracts run bundler:with-proxy
+   ```
+
+7. Start the demo application (automatically builds contracts, deploys, and
+   starts auth-server):
+
+   ```bash
+   pnpm nx dev:erc4337 demo-app
+   ```
+
+Local port list:
+
+- auth server: 3002
+- auth server api: 3004
+- demo app: 3005
+- bundler CORS proxy: 4337
+- Alto bundler: 4338
+- Anvil: 8545
 
 ## Running commands
 
@@ -216,19 +231,21 @@ command.
 
 ## Running/Debugging End-to-End Tests
 
-To execute the end-to-end tests for the `demo-app` you'll need to do some setup:
-
-1. Start `anvil-zksync`
-2. Deploy the smart contracts, `pnpm --dir packages/contracts run deploy`
-
-Once the local node is configured with the smart contracts deployed, you can run
-the e2e tests:
+To execute the end-to-end tests, complete steps 1–6 from "Running development"
+above (Anvil running + contracts deployed + bundler running), then:
 
 ```bash
-pnpm nx e2e demo-app
+# ERC-4337 e2e tests
+pnpm nx e2e:erc4337 demo-app
+
+# Demo-only tests (session + passkey)
+pnpm nx e2e:demo-only demo-app
+
+# Guardian e2e tests
+pnpm nx e2e:guardian auth-server
 ```
 
-To debug the end-to-end tests:
+To debug end-to-end tests interactively:
 
 ```bash
 pnpm nx e2e:debug demo-app

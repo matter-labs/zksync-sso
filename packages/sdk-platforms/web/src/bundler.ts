@@ -51,6 +51,28 @@ export const {
   // ===== PASSKEY MANAGEMENT HELPER FUNCTIONS =====
   // Functions for encoding passkey management transactions (client-new/actions/addPasskey.ts)
   encode_add_passkey_call_data, // Encode MSA.execute() call data for adding passkey
+
+  // ===== PAYMASTER & USER OPERATION =====
+  // Core functions for sending user operations with paymaster support
+  PaymasterParams, // Paymaster configuration (address, data, gas limits)
+  send_user_operation, // Send UserOperation with optional paymaster sponsorship
+
+  // ===== GUARDIAN MANAGEMENT =====
+  // Functions for managing guardian recovery system
+  propose_guardian_wasm, // Propose a new guardian for smart account
+  accept_guardian_wasm, // Accept a proposed guardian role
+  remove_guardian_wasm, // Remove an active guardian
+  get_guardians_list_wasm, // Get list of guardians for an account
+  get_guardian_status_wasm, // Get status of a specific guardian
+  initialize_recovery_wasm, // Initialize guardian-based recovery process
+
+  // Guardian encoding functions (for passkey-based accounts)
+  encode_propose_guardian_call_data, // Encode propose guardian call (no signing)
+  encode_remove_guardian_call_data, // Encode remove guardian call (no signing)
+
+  // ===== SESSION MANAGEMENT =====
+  // Functions for managing session keys
+  get_active_sessions_wasm, // Get list of active sessions for an account
 } = wasm;
 
 // Initialize WASM module

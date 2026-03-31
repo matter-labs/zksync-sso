@@ -4,6 +4,7 @@ import { createWebAuthnCredential } from "zksync-sso-4337/client";
 // Return type matching what components expect
 export type RegisterNewPasskeyReturnType = {
   credentialId: Hex;
+  credentialIdBase64url: string;
   credentialPublicKey: { x: Hex; y: Hex };
 };
 
@@ -25,6 +26,7 @@ export const usePasskeyRegister = () => {
 
     return {
       credentialId: result.credentialId,
+      credentialIdBase64url: result.credentialIdBase64url,
       credentialPublicKey: result.publicKey,
     };
   });

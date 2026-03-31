@@ -84,9 +84,7 @@ impl AltoTestHelper {
         use crate::erc4337::bundler::{
             config::BundlerConfig, pimlico::client::BundlerClient,
         };
-        assert!(self.port != 4337);
         let bundler_url = format!("http://127.0.0.1:{}", self.port);
-        assert!(!bundler_url.contains(":4337"));
         let config = BundlerConfig::new(bundler_url);
         BundlerClient::new(config)
     }

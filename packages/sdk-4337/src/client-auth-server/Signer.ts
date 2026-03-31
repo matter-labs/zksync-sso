@@ -1,6 +1,7 @@
-import { type Address, type Chain, createPublicClient, createWalletClient, custom, type Hash, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport, type WalletClient } from "viem";
+import { type Address, type Chain, createPublicClient, createWalletClient, custom, type Hash, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, toHex, type Transport, type WalletClient } from "viem";
 import { type BundlerClient, createBundlerClient } from "viem/account-abstraction";
 
+import type { PaymasterConfig } from "../actions/sendUserOperation.js";
 import { createSessionClient, type SessionClient } from "../client/session/client.js";
 import type { Communicator } from "../communicator/index.js";
 import type { AppMetadata, RequestArguments } from "./interface.js";
@@ -43,6 +44,7 @@ type SignerConstructorParams = {
   // onSessionStateChange?: (event: { address: Address; chainId: number; state: SessionStateEvent }) => void;
   skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
   storage?: StorageLike;
+  paymaster?: PaymasterConfig;
 };
 
 type ChainsInfo = ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema>["chainsInfo"];
@@ -55,6 +57,7 @@ export class Signer implements SignerInterface {
   private readonly transports: Record<number, Transport> = {};
   private readonly bundlerClients: Record<number, BundlerClient> = {};
   private readonly sessionParameters?: () => (SessionPreferences | Promise<SessionPreferences>);
+  private readonly paymaster?: PaymasterConfig;
   // private readonly onSessionStateChange?: SignerConstructorParams["onSessionStateChange"];
   // private readonly skipPreTransactionStateValidation?: boolean;
 
@@ -62,7 +65,7 @@ export class Signer implements SignerInterface {
   private _chainsInfo: StorageItem<ChainsInfo>;
   private client: { instance: SessionClient; type: "session" } | { instance: WalletClient; type: "auth-server" } | undefined;
 
-  constructor({ metadata, communicator, updateListener, session, chains, transports, bundlerClients, /* onSessionStateChange, skipPreTransactionStateValidation, */ storage }: SignerConstructorParams) {
+  constructor({ metadata, communicator, updateListener, session, chains, transports, bundlerClients, /* onSessionStateChange, skipPreTransactionStateValidation, */ storage, paymaster }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
 
     this.getMetadata = metadata;
@@ -72,6 +75,7 @@ export class Signer implements SignerInterface {
     this.chains = chains;
     this.transports = transports || {};
     this.bundlerClients = bundlerClients || {};
+    this.paymaster = paymaster;
     // this.onSessionStateChange = onSessionStateChange;
     // this.skipPreTransactionStateValidation = skipPreTransactionStateValidation;
 
@@ -139,14 +143,23 @@ export class Signer implements SignerInterface {
       return this.bundlerClients[chainId];
     }
 
-    // Try to create bundler client from chainsInfo if bundlerUrl is available
     const chainInfo = this.chainsInfo.find((c) => c.id === chainId);
-    if (!chainInfo?.bundlerUrl) {
+    if (!chainInfo) {
       return undefined;
     }
 
     const chain = this.chains.find((c) => c.id === chainId);
     if (!chain) {
+      return undefined;
+    }
+
+    // In prividium mode, use transport from constructor; otherwise use bundlerUrl
+    const bundlerTransport = chainInfo.prividiumMode
+      ? this.transports[chainId]
+      : http(chainInfo.bundlerUrl);
+
+    if (!bundlerTransport) {
+      console.error(`Prividium mode requires a transport for chain ${chainId}`);
       return undefined;
     }
 
@@ -158,7 +171,7 @@ export class Signer implements SignerInterface {
     this.bundlerClients[chain.id] = createBundlerClient({
       client: publicClient,
       chain,
-      transport: http(chainInfo.bundlerUrl),
+      transport: bundlerTransport,
       userOperation: {
         // Use fixed gas values matching old Rust SDK implementation
         // (old SDK used: 2M callGas, 2M verificationGas, 1M preVerificationGas)
@@ -199,6 +212,7 @@ export class Signer implements SignerInterface {
           bundlerClient,
           chain,
           transport: this.transports[chain.id] || http(),
+          paymaster: this.paymaster, // Pass full paymaster config for transaction sponsorship
           /* onSessionStateChange: (event: SessionStateEvent) => {
             if (!this.onSessionStateChange) return;
             this.onSessionStateChange({
@@ -249,6 +263,7 @@ export class Signer implements SignerInterface {
       params: {
         metadata,
         sessionPreferences,
+        paymaster: this.paymaster?.address,
       },
     });
     const handshakeData = responseMessage.content.result!;
@@ -327,6 +342,9 @@ export class Signer implements SignerInterface {
       case "eth_accounts": {
         return this.accounts as ExtractReturnType<TMethod>;
       }
+      case "eth_chainId": {
+        return toHex(this.chain.id) as ExtractReturnType<TMethod>;
+      }
       default:
         return undefined;
     }
@@ -342,6 +360,8 @@ export class Signer implements SignerInterface {
     const message = this.createRequestMessage<TMethod, TSchema>({
       action: request,
       chainId: this.chain.id,
+      // Include paymaster metadata for auth server to display sponsorship
+      paymaster: this.paymaster?.address,
     });
     const response: RPCResponseMessage<ExtractReturnType<TMethod, TSchema>>
       = await this.communicator.postRequestAndWaitForResponse(message);

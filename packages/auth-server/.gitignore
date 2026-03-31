@@ -26,3 +26,4 @@ logs
 # Auto generated files
 public/circuit
 public/snarkjs.min.js
+stores/contracts.json

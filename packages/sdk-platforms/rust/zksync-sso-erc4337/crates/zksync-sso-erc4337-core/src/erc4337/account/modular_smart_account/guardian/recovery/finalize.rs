@@ -1,12 +1,15 @@
 use crate::erc4337::account::modular_smart_account::guardian::contract::GuardianExecutor;
 use alloy::{
-    primitives::Address, providers::Provider, rpc::types::TransactionReceipt,
+    primitives::{Address, Bytes},
+    providers::Provider,
+    rpc::types::TransactionReceipt,
 };
 
 #[derive(Clone)]
 pub struct FinalizeRecoveryParams<P: Provider + Send + Sync + Clone> {
     pub guardian_executor: Address,
     pub account: Address,
+    pub data: Bytes,
     pub guardian_provider: P,
 }
 
@@ -19,6 +22,7 @@ where
     let FinalizeRecoveryParams {
         guardian_executor,
         account,
+        data,
         guardian_provider,
     } = params;
 
@@ -26,7 +30,7 @@ where
         GuardianExecutor::new(guardian_executor, guardian_provider);
 
     let receipt = guardian_executor_instance
-        .finalizeRecovery(account)
+        .finalizeRecovery(account, data)
         .send()
         .await?
         .get_receipt()
@@ -197,14 +201,14 @@ mod tests {
             address!("0x14dC79964da2C08b23698B3D3cc7Ca32193d9955");
 
         // Initialize recovery directly
+        let initialize_recovery_data: Bytes =
+            new_owner_address.abi_encode().into();
         {
-            let initialize_recovery_data =
-                new_owner_address.abi_encode().into();
             initialize_recovery(InitializeRecoveryParams {
                 guardian_executor: guardian_module,
                 account: account_address,
                 recovery_type: RecoveryType::EOA,
-                data: initialize_recovery_data,
+                data: initialize_recovery_data.clone(),
                 guardian_provider: guardian_provider.clone(),
             })
             .await?;
@@ -223,6 +227,7 @@ mod tests {
         finalize_recovery(FinalizeRecoveryParams {
             guardian_executor: guardian_module,
             account: account_address,
+            data: initialize_recovery_data,
             guardian_provider: guardian_provider.clone(),
         })
         .await?;

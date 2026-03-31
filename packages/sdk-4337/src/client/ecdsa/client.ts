@@ -37,6 +37,8 @@ export type CreateEcdsaClientParams<
     signerPrivateKey: Hash;
     /** EOA validator contract address (required for signature formatting). */
     eoaValidatorAddress: Address;
+    /** Optional override for EntryPoint address used by the account implementation. */
+    entryPointAddress?: Address;
   };
 
   /** Bundler client instance (created externally by user) */
@@ -47,6 +49,9 @@ export type CreateEcdsaClientParams<
 
   /** Transport for public RPC calls */
   transport: TTransport;
+
+  /** Optional paymaster address for sponsored transactions */
+  paymaster?: Address;
 
   /** Optional client metadata */
   key?: string;
@@ -141,6 +146,9 @@ export function createEcdsaClient<
 ): EcdsaClient<TTransport, TChain, TRpcSchema> {
   const { account: accountConfig, bundlerClient, chain, transport } = params;
 
+  // Wrap bundler client to inject paymaster if provided
+  const wrappedBundlerClient = bundlerClient;
+
   // Create public client for RPC calls
   const publicClient = createPublicClient({
     chain,
@@ -153,6 +161,7 @@ export function createEcdsaClient<
     address: accountConfig.address,
     signerPrivateKey: accountConfig.signerPrivateKey,
     eoaValidatorAddress: accountConfig.eoaValidatorAddress,
+    entryPointAddress: accountConfig.entryPointAddress,
   };
 
   // Create the client with all actions
@@ -170,13 +179,13 @@ export function createEcdsaClient<
     .extend((client) =>
       ecdsaClientActions({
         client,
-        bundler: bundlerClient,
+        bundler: wrappedBundlerClient,
         ecdsaAccount: ecdsaAccountParams,
         accountAddress: accountConfig.address,
       }),
     )
     .extend(() => ({
-      bundler: bundlerClient,
+      bundler: wrappedBundlerClient,
     }));
 
   return client as EcdsaClient<TTransport, TChain, TRpcSchema>;

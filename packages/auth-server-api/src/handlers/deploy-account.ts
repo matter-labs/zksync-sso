@@ -1,11 +1,13 @@
 import type { Request, Response } from "express";
-import { type Address, createPublicClient, createWalletClient, type Hex, http } from "viem";
+import type { PrividiumSiweChain } from "prividium/siwe";
+import { type Address, createPublicClient, createWalletClient, type Hex, http, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
 import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
 
-import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
+import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, GUARDIAN_EXECUTOR_ADDRESS, prividiumConfig, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
 import { deployAccountSchema } from "../schemas.js";
+import { addAddressToUser, getAdminAuthService, whitelistContract } from "../services/prividium/index.js";
 
 type DeployAccountRequest = {
   chainId: number;
@@ -33,30 +35,54 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Get chain from request
     const chain = getChain(body.chainId);
 
+    // Get SDK instance if in Prividium mode (provides authenticated transport and headers)
+    let adminSdk: PrividiumSiweChain | undefined;
+    if (prividiumConfig.enabled && req.prividiumUser) {
+      try {
+        adminSdk = getAdminAuthService().getSdkInstance();
+      } catch (error) {
+        console.error("Admin authentication failed:", error);
+        res.status(500).json({
+          error: "Admin authentication failed",
+        });
+        return;
+      }
+    }
+
+    // Create transport - use SDK transport if enabled, otherwise direct RPC
+    const transport = adminSdk
+      ? adminSdk.transport // SDK provides authenticated transport
+      : http(env.RPC_URL);
+
     // Create clients
     const publicClient = createPublicClient({
       chain,
-      transport: http(env.RPC_URL),
+      transport,
     });
 
     const deployerAccount = privateKeyToAccount(env.DEPLOYER_PRIVATE_KEY as Hex);
     const walletClient = createWalletClient({
       account: deployerAccount,
       chain,
-      transport: http(env.RPC_URL),
+      transport,
     });
 
-    // Check deployer balance
-    const balance = await publicClient.getBalance({ address: deployerAccount.address });
-    const minBalance = BigInt("100000000000000000"); // 0.1 ETH minimum
-    if (balance < minBalance) {
-      res.status(500).json({
-        error: `Insufficient balance to cover deployment. Current: ${balance.toString()}, Required: ${minBalance.toString()}`,
-      });
-      return;
+    // Check deployer balance (skipped if MIN_DEPLOYER_BALANCE_ETH is 0 or unset)
+    const minBalance = parseEther(env.MIN_DEPLOYER_BALANCE_ETH);
+    if (minBalance > 0n) {
+      const balance = await publicClient.getBalance({ address: deployerAccount.address });
+      if (balance < minBalance) {
+        console.error(`Deployer balance too low: ${balance.toString()} < ${minBalance.toString()}`);
+        res.status(500).json({
+          error: "Deployer doesn't have enough balance to cover deployment",
+        });
+        return;
+      }
     }
 
     // Prepare deployment transaction
+    const executorModulesToInstall = GUARDIAN_EXECUTOR_ADDRESS ? [GUARDIAN_EXECUTOR_ADDRESS as Address] : [];
+
     const { transaction, accountId } = prepareDeploySmartAccount({
       contracts: {
         factory: FACTORY_ADDRESS as Address,
@@ -74,6 +100,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       eoaSigners: body.eoaSigners,
       userId: body.userId,
       installSessionValidator: true,
+      executorModules: executorModulesToInstall,
     });
 
     console.log("Deploying account with ID:", accountId);
@@ -81,10 +108,12 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Send transaction
     let txHash: Hex;
     try {
-      txHash = await walletClient.sendTransaction({
+      const txParams = {
         to: transaction.to,
         data: transaction.data,
-      });
+      };
+
+      txHash = await walletClient.sendTransaction(txParams);
     } catch (error) {
       console.error("Transaction send failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -95,7 +124,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
         return;
       }
       res.status(500).json({
-        error: `Transaction failed: ${errorMessage}`,
+        error: "Internal server error",
       });
       return;
     }
@@ -110,9 +139,8 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       });
     } catch (error) {
       console.error("Transaction receipt failed:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({
-        error: `Transaction failed to be mined: ${errorMessage}`,
+        error: "Internal server error",
       });
       return;
     }
@@ -120,7 +148,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Check if transaction was successful
     if (receipt.status === "reverted") {
       res.status(500).json({
-        error: "Deployment reverted: Transaction execution failed",
+        error: "Deployment reverted",
       });
       return;
     }
@@ -131,22 +159,65 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       deployedAddress = getAccountAddressFromLogs(receipt.logs);
     } catch (error) {
       console.error("Failed to extract address from logs:", error);
-      const errorMessage = error instanceof Error ? error.message : "";
       res.status(500).json({
-        error: `Deployment failed: Could not extract account address from logs. ${errorMessage}`,
+        error: "Internal server error",
       });
       return;
     }
 
     console.log("Account deployed at:", deployedAddress);
 
+    // Prividium post-deployment steps (all blocking)
+    if (prividiumConfig.enabled && req.prividiumUser && adminSdk) {
+      // Get auth headers from SDK
+      const authHeaders = adminSdk.getAuthHeaders();
+      if (!authHeaders) {
+        console.error("Failed to get auth headers");
+        res.status(500).json({
+          error: "Authentication error",
+        });
+        return;
+      }
+
+      // Step 1: Whitelist the contract with template (blocking)
+      try {
+        await whitelistContract(
+          deployedAddress,
+          prividiumConfig.templateKey,
+          authHeaders,
+          prividiumConfig.apiUrl,
+        );
+      } catch (error) {
+        console.error("Failed to whitelist contract:", error);
+        res.status(500).json({
+          error: "Failed to whitelist contract",
+        });
+        return;
+      }
+
+      // Step 2: Associate address with user (blocking)
+      try {
+        await addAddressToUser(
+          req.prividiumUser.userId,
+          [deployedAddress],
+          authHeaders,
+          prividiumConfig.apiUrl,
+        );
+      } catch (error) {
+        console.error("Failed to associate address with user:", error);
+        res.status(500).json({
+          error: "Failed to associate address with user",
+        });
+        return;
+      }
+    }
+
     // Return success response
     res.json({ address: deployedAddress });
   } catch (error) {
     console.error("Deployment error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     res.status(500).json({
-      error: `Deployment failed: ${errorMessage}`,
+      error: "Internal server error",
     });
   }
 };

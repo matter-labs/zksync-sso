@@ -23,7 +23,7 @@ function uint8ArrayToBase64url(bytes: Uint8Array): string {
 /**
  * Convert base64url string to Uint8Array
  */
-function base64urlToUint8Array(base64url: string): Uint8Array {
+export function base64urlToUint8Array(base64url: string): Uint8Array {
   const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
   const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, "=");
   const binary = atob(padded);
@@ -246,6 +246,11 @@ export interface WebAuthnCredential {
    */
   credentialId: Hex;
 
+  /**
+   * Raw credential ID (base64url encoded string)
+   */
+  credentialIdBase64url: string;
+
   publicKey: {
     /**
      * X coordinate of P-256 public key (32 bytes, hex string with 0x prefix)
@@ -382,7 +387,7 @@ export async function createWebAuthnCredential(options: CreateCredentialOptions)
   const coseKey = authenticatorData.slice(coseKeyOffset);
 
   // Parse COSE key to extract public key coordinates
-  const [xBuffer, yBuffer] = parseCOSEKey(coseKey);
+  const [xBuffer, yBuffer] = getPublicKeyBytesFromPasskeySignature(coseKey);
 
   console.log({
     credential,
@@ -391,6 +396,7 @@ export async function createWebAuthnCredential(options: CreateCredentialOptions)
 
   return {
     credentialId: bytesToHex(credId),
+    credentialIdBase64url: credential.id,
     publicKey: {
       x: bytesToHex(xBuffer),
       y: bytesToHex(yBuffer),
@@ -489,10 +495,11 @@ function decodeValue(buffer: Uint8Array, offset: number): [number | Uint8Array, 
 
 /**
  * Parse COSE key to extract P-256 public key coordinates
+ * Browser-compatible version using Uint8Array (no Node Buffer dependency)
  * @param publicPasskey - CBOR-encoded COSE public key
  * @returns Tuple of [x, y] coordinates as Uint8Arrays
  */
-function parseCOSEKey(publicPasskey: Uint8Array): [Uint8Array, Uint8Array] {
+export function getPublicKeyBytesFromPasskeySignature(publicPasskey: Uint8Array): [Uint8Array, Uint8Array] {
   const cosePublicKey = decodeMap(publicPasskey);
   const x = cosePublicKey.get(COSEKEYS.x) as Uint8Array;
   const y = cosePublicKey.get(COSEKEYS.y) as Uint8Array;
@@ -506,6 +513,109 @@ function parseCOSEKey(publicPasskey: Uint8Array): [Uint8Array, Uint8Array] {
   }
 
   return [x, y];
+}
+
+// ============================================================================
+// COSE/CBOR Encoding Functions
+// ============================================================================
+
+// Encode an integer in CBOR format
+function encodeInt(int: number): Uint8Array {
+  if (int >= 0 && int <= 23) {
+    return new Uint8Array([int]);
+  } else if (int >= 24 && int <= 255) {
+    return new Uint8Array([0x18, int]);
+  } else if (int >= 256 && int <= 65535) {
+    const buf = new Uint8Array(3);
+    buf[0] = 0x19;
+    buf[1] = (int >> 8) & 0xFF;
+    buf[2] = int & 0xFF;
+    return buf;
+  } else if (int < 0 && int >= -24) {
+    return new Uint8Array([0x20 - (int + 1)]);
+  } else if (int < -24 && int >= -256) {
+    return new Uint8Array([0x38, -int - 1]);
+  } else if (int < -256 && int >= -65536) {
+    const buf = new Uint8Array(3);
+    buf[0] = 0x39;
+    const value = -int - 1;
+    buf[1] = (value >> 8) & 0xFF;
+    buf[2] = value & 0xFF;
+    return buf;
+  } else {
+    throw new Error("Unsupported integer range");
+  }
+}
+
+// Encode a byte array in CBOR format
+function encodeBytes(bytes: Uint8Array): Uint8Array {
+  if (bytes.length <= 23) {
+    const result = new Uint8Array(1 + bytes.length);
+    result[0] = 0x40 + bytes.length;
+    result.set(bytes, 1);
+    return result;
+  } else if (bytes.length < 256) {
+    const result = new Uint8Array(2 + bytes.length);
+    result[0] = 0x58;
+    result[1] = bytes.length;
+    result.set(bytes, 2);
+    return result;
+  } else {
+    throw new Error("Unsupported byte array length");
+  }
+}
+
+// Encode a map in CBOR format
+function encodeMap(map: COSEPublicKeyMap): Uint8Array {
+  const encodedItems: Uint8Array[] = [];
+
+  // CBOR map header
+  const mapHeader = 0xA0 | map.size;
+  encodedItems.push(new Uint8Array([mapHeader]));
+
+  map.forEach((value, key) => {
+    // Encode the key
+    encodedItems.push(encodeInt(key));
+
+    // Encode the value based on its type
+    if (value instanceof Uint8Array) {
+      encodedItems.push(encodeBytes(value));
+    } else {
+      encodedItems.push(encodeInt(value));
+    }
+  });
+
+  // Concatenate all encoded items
+  const totalLength = encodedItems.reduce((sum, item) => sum + item.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const item of encodedItems) {
+    result.set(item, offset);
+    offset += item.length;
+  }
+  return result;
+}
+
+/**
+ * Encodes x,y hex coordinates into a CBOR-encoded COSE public key format.
+ * Browser-compatible version using Uint8Array (no Node Buffer dependency)
+ * This is the inverse of getPublicKeyBytesFromPasskeySignature.
+ * @param coordinates - Tuple of [x, y] coordinates as hex strings
+ * @returns CBOR-encoded COSE public key as Uint8Array
+ */
+export function getPasskeySignatureFromPublicKeyBytes(coordinates: readonly [Hex, Hex]): Uint8Array {
+  const [xHex, yHex] = coordinates;
+  const x = hexToBytes(xHex);
+  const y = hexToBytes(yHex);
+
+  const cosePublicKey: COSEPublicKeyMap = new Map();
+  cosePublicKey.set(COSEKEYS.kty, 2); // Type 2 for EC keys
+  cosePublicKey.set(COSEKEYS.alg, -7); // -7 for ES256 algorithm
+  cosePublicKey.set(COSEKEYS.crv, 1); // Curve ID (1 for P-256)
+  cosePublicKey.set(COSEKEYS.x, x);
+  cosePublicKey.set(COSEKEYS.y, y);
+
+  return encodeMap(cosePublicKey);
 }
 
 export async function getPasskeyCredential() {

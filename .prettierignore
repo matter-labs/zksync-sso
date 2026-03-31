@@ -33,6 +33,11 @@ deployments-zk
 # Ignore Swift/Rust files
 packages/sdk-platforms/*
 
+# Submodules / external packages
+packages/circuits/**
+packages/contracts/**
+packages/erc4337-contracts/**
+
 **/*.ptau
 packages/contracts/test/**/*
 # contract JSON test files are not properly formatted

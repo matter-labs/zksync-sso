@@ -1,17 +1,12 @@
-// TODO: This composable uses AAFactoryAbi which is only for guardian logic (not available in sdk-4337)
-// This composable has been commented out as it's only used in recovery flows
-
-/*
 import type { Address } from "viem";
-import { AAFactoryAbi } from "zksync-sso/abi";
+import { AAFactoryAbi } from "zksync-sso-4337/abi";
 
-export const useCheckSsoAccount = (_chainId: MaybeRef<SupportedChainId>) => {
-  const chainId = toRef(_chainId);
-  const { getThrowAwayClient } = useClientStore();
+export const useCheckSsoAccount = () => {
+  const { getThrowAwayClient, contracts } = useClientStore();
 
   const { inProgress: isLoading, error, execute: checkIsSsoAccount } = useAsync(async (accountId: Address): Promise<boolean> => {
-    const client = getThrowAwayClient({ chainId: chainId.value });
-    const factoryAddress = contractsByChain[chainId.value].accountFactory;
+    const client = getThrowAwayClient();
+    const factoryAddress = contracts.factory;
 
     const guardianAddress = await client.readContract({
       address: factoryAddress,
@@ -29,4 +24,3 @@ export const useCheckSsoAccount = (_chainId: MaybeRef<SupportedChainId>) => {
     error,
   };
 };
-*/

@@ -20,14 +20,14 @@ use alloy::{
 
 #[derive(Clone)]
 pub struct RemoveGuardianParams<P: Provider + Send + Sync + Clone> {
-    guardian_executor: Address,
-    guardian_to_remove: Address,
-    account_address: Address,
-    entry_point_address: Address,
-    paymaster: Option<PaymasterParams>,
-    provider: P,
-    bundler_client: BundlerClient,
-    signer: Signer,
+    pub guardian_executor: Address,
+    pub guardian_to_remove: Address,
+    pub account_address: Address,
+    pub entry_point_address: Address,
+    pub paymaster: Option<PaymasterParams>,
+    pub provider: P,
+    pub bundler_client: BundlerClient,
+    pub signer: Signer,
 }
 
 pub async fn remove_guardian<P>(

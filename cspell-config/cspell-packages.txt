@@ -2,8 +2,10 @@
 hexlify
 viem
 wagmi
+siwe
 cbor
 levischuck
 ofetch
 reown
 jose
+pinia

@@ -1,19 +1,16 @@
 import { findAddressesByPasskey, getPasskeyCredential } from "zksync-sso-4337/client";
 
-export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
-  const chainId = toRef(_chainId);
+export const useAccountLogin = () => {
   const { login } = useAccountStore();
-  const { getPublicClient } = useClientStore();
+  const { getPublicClient, contracts } = useClientStore();
 
   const { inProgress: loginInProgress, error: accountLoginError, execute: loginToAccount } = useAsync(async () => {
-    const client = getPublicClient({ chainId: chainId.value });
+    const client = getPublicClient();
 
     const credential = await getPasskeyCredential();
     if (!credential) throw new Error("No credential found");
 
     try {
-      const contracts = contractsByChain[chainId.value];
-
       // Use findAddressesByPasskey from sdk-4337
       const result = await findAddressesByPasskey({
         client,
@@ -36,11 +33,6 @@ export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
       });
       return { success: true } as const;
     } catch (error) {
-      // TODO: Guardian recovery not yet available in sdk-4337
-      // Recovery fallback logic commented out
-      // const { checkRecoveryRequest, executeRecovery, getRecovery } = useRecoveryGuardian();
-      // ...recovery logic...
-
       // eslint-disable-next-line no-console
       console.warn("Login failed", error);
       throw new Error("Account not found");

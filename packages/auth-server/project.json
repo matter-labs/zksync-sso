@@ -11,6 +11,14 @@
       },
       "dependsOn": ["^build", "demo-app:deploy-contracts-erc4337"]
     },
+    "dev:no-deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "pnpm run copy:snarkjs && PORT=3002 nuxt dev"
+      },
+      "dependsOn": ["^build"]
+    },
     "dev:all": {
       "executor": "nx:run-commands",
       "options": {
@@ -50,11 +58,17 @@
         "cwd": "packages/auth-server",
         "commands": [
           {
-            "command": "PORT=3002 pnpm nuxt preview"
+            "command": "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nuxt preview",
+            "prefix": "Auth-Frontend:"
+          },
+          {
+            "command": "PORT=3004 pnpm nx run auth-server-api:dev",
+            "prefix": "Auth-API:"
           }
-        ]
+        ],
+        "parallel": true
       },
-      "dependsOn": ["build:local"]
+      "dependsOn": ["build:local", "^build"]
     },
     "deploy": {
       "executor": "nx:run-commands",
@@ -71,6 +85,22 @@
         "command": "firebase hosting:channel:deploy --only zksync-auth-server-staging --project zksync-auth-server-staging"
       },
       "dependsOn": ["build"]
+    },
+    "e2e:guardian": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "PW_TEST_HTML_REPORT_OPEN=never pnpm exec playwright test guardian.spec.ts --config playwright.config.ts"
+      },
+      "dependsOn": ["build:local"]
+    },
+    "e2e:session": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "PW_TEST_HTML_REPORT_OPEN=never pnpm exec playwright test sessions.spec.ts --config playwright.config.ts"
+      },
+      "dependsOn": ["build:local"]
     }
   }
 }

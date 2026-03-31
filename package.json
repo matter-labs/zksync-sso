@@ -57,5 +57,6 @@
   "dependencies": {
     "prettier-plugin-solidity": "^1.4.1",
     "snarkjs": "^0.7.5"
-  }
+  },
+  "pnpm": {}
 }

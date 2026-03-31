@@ -4,7 +4,7 @@ import { ref } from "vue";
 import { useClientStore } from "~/stores/client";
 
 export function useValidateAccount() {
-  const { getPublicClient, defaultChain } = useClientStore();
+  const { getPublicClient } = useClientStore();
   const runtimeConfig = useRuntimeConfig();
 
   const isValidatingAccount = ref(false);
@@ -15,7 +15,7 @@ export function useValidateAccount() {
     error.value = null;
 
     try {
-      const publicClient = getPublicClient({ chainId: defaultChain.id });
+      const publicClient = getPublicClient();
 
       const isSSO = await publicClient.readContract({
         address,

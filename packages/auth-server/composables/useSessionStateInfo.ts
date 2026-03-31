@@ -7,7 +7,7 @@ import { LimitType, type SessionSpec, type SessionState } from "zksync-sso-4337/
 type SessionConfig = SessionSpec;
 
 export const useSessionStateInfo = (
-  _chainId: MaybeRef<SupportedChainId>,
+  _chainId: MaybeRef<number>,
   _sessionConfig: MaybeRef<SessionConfig>,
   _sessionState: MaybeRef<SessionState>,
 ) => {

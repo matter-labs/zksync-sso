@@ -26,6 +26,7 @@ mod tests {
                     send::{SendUserOpParams, send_user_op},
                     session::{
                         create::{CreateSessionParams, create_session},
+                        hash::hash_session,
                         session_lib::session_spec::{
                             SessionSpec, limit_type::LimitType,
                             transfer_spec::TransferSpec,
@@ -44,8 +45,9 @@ mod tests {
         },
     };
     use alloy::{
-        primitives::{Bytes, FixedBytes, U256, Uint, address},
-        signers::local::PrivateKeySigner,
+        primitives::{Bytes, FixedBytes, U256, Uint, address, keccak256},
+        signers::{SignerSync, local::PrivateKeySigner},
+        sol_types::SolValue,
     };
     use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
 
@@ -199,6 +201,12 @@ mod tests {
             }],
         };
 
+        let session_hash = hash_session(session_spec.clone());
+        let hash_to_sign = keccak256((session_hash, address).abi_encode());
+        let signer_key = PrivateKeySigner::from_str(session_key_hex).unwrap();
+        let signature = signer_key.sign_hash_sync(&hash_to_sign).unwrap();
+        let proof = signature.as_bytes();
+
         create_session(CreateSessionParams {
             account_address: address,
             spec: session_spec.clone(),
@@ -208,6 +216,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: signer.clone(),
+            proof: proof.into(),
         })
         .await?;
 
@@ -374,6 +383,13 @@ mod tests {
             }],
         };
 
+        let session_hash = hash_session(session_spec.clone());
+        let hash_to_sign =
+            keccak256((session_hash, account_address).abi_encode());
+        let signer_key = PrivateKeySigner::from_str(session_key_hex).unwrap();
+        let signature = signer_key.sign_hash_sync(&hash_to_sign).unwrap();
+        let proof = signature.as_bytes();
+
         create_session(CreateSessionParams {
             account_address,
             spec: session_spec.clone(),
@@ -383,6 +399,7 @@ mod tests {
             bundler_client: bundler_client.clone(),
             provider: provider.clone(),
             signer: eoa_signer.clone(),
+            proof: proof.into(),
         })
         .await?;
 

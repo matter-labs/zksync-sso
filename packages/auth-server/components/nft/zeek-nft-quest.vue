@@ -49,15 +49,14 @@ import { ZeekNftQuestAbi } from "~/abi/ZeekNFTQuest";
 
 const runtimeConfig = useRuntimeConfig();
 const { address } = useAccountStore();
-const chainId = runtimeConfig.public.chainId as SupportedChainId;
-const nftAddress = runtimeConfig.public[chainId].nftQuestAddress as Address;
+const nftAddress = runtimeConfig.public.nftQuestAddress as Address;
 const nftMetadata = ref<null | { animation_url: string; background_color: string; description: string; image: string }>(null);
 const hasNft = ref(false);
 
 const getNFTTransactions = async function () {
-  const { getPublicClient, defaultChain } = useClientStore();
+  const { getPublicClient } = useClientStore();
 
-  const client = getPublicClient({ chainId: chainId ?? defaultChain.id });
+  const client = getPublicClient();
   const res = await client.readContract({
     address: nftAddress,
     abi: ZeekNftQuestAbi,

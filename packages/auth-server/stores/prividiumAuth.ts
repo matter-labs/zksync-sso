@@ -1,13 +1,10 @@
-import { createPrividiumChain, type PrividiumChain, type UserProfile } from "test-prividium-sdk";
+import { createPrividiumChain, type PrividiumChain, type UserProfile } from "prividium";
 
 let prividiumInstance: PrividiumChain | null = null;
 
 export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
   const runtimeConfig = useRuntimeConfig();
-  const defaultChainId = runtimeConfig.public.chainId as SupportedChainId;
-  const defaultChain = supportedChains.find((chain) => chain.id === defaultChainId);
-  if (!defaultChain)
-    throw new Error(`Default chain is set to ${defaultChainId}, but is missing from the supported chains list`);
+  const defaultChain = useChain();
 
   // Reactive state
   const profile = ref<UserProfile | null>(null);
@@ -20,9 +17,9 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
     if (!runtimeConfig.public.prividiumMode) return null;
 
     if (!prividiumInstance) {
-      const { clientId, proxyBaseUrl, authBaseUrl, permissionsApiBaseUrl } = runtimeConfig.public.prividium || {};
+      const { clientId, authBaseUrl, apiBaseUrl } = runtimeConfig.public.prividium || {};
 
-      if (!clientId || !proxyBaseUrl || !authBaseUrl || !permissionsApiBaseUrl) {
+      if (!clientId || !authBaseUrl || !apiBaseUrl) {
         error.value = "Prividium configuration is incomplete";
         return null;
       }
@@ -30,9 +27,8 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
       prividiumInstance = createPrividiumChain({
         clientId,
         chain: defaultChain,
-        rpcUrl: `${proxyBaseUrl}/rpc`,
         authBaseUrl,
-        permissionsApiBaseUrl: permissionsApiBaseUrl,
+        prividiumApiBaseUrl: apiBaseUrl,
         redirectUrl: `${window.location.origin}/callback`,
         onAuthExpiry: () => {
           isAuthenticated.value = false;
@@ -109,6 +105,10 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
       profile.value = await prividium.fetchUser();
       return profile;
     } catch (err) {
+      if (err instanceof Error && err.message.includes("401 Unauthorized")) {
+        signOut();
+        return;
+      }
       error.value = err instanceof Error ? err.message : "Failed to fetch profile";
     } finally {
       loading.value = false;

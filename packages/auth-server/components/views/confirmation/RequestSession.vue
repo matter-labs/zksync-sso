@@ -128,9 +128,9 @@
 
 <script lang="ts" setup>
 import { useNow } from "@vueuse/core";
-import { parseEther } from "viem";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { formatSessionPreferences, type SessionPreferences } from "zksync-sso-4337/client";
+import { encodePacked, keccak256, pad, parseEther } from "viem";
+import { generatePrivateKey, privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
+import { formatSessionPreferences, getSessionHash, type SessionPreferences } from "zksync-sso-4337/client";
 import { LimitType } from "zksync-sso-4337/client";
 import type { ExtractReturnType, Method, RPCResponseMessage } from "zksync-sso-4337/client-auth-server";
 
@@ -144,10 +144,11 @@ const props = defineProps({
 const { appMeta, appOrigin } = useAppMeta();
 const { login } = useAccountStore();
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const { responseInProgress, requestChainId } = storeToRefs(useRequestsStore());
-const { createAccount } = useAccountCreate(requestChainId);
+const { responseInProgress } = storeToRefs(useRequestsStore());
+const { createAccount } = useAccountCreate();
 const { respond, deny } = useRequestsStore();
-const { getClient } = useClientStore();
+const { getClient, contracts } = useClientStore();
+const runtimeConfig = useRuntimeConfig();
 
 const defaults = {
   expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
@@ -185,7 +186,6 @@ const {
   totalUsd,
   dangerousActions,
 } = useSessionConfigInfo(
-  requestChainId,
   sessionConfig,
   now,
 );
@@ -278,7 +278,8 @@ const confirmConnection = async () => {
   try {
     if (!isLoggedIn.value) {
       // create a new account with initial session data
-      const accountData = await createAccount(sessionConfig.value);
+      // Ignore paymaster provided in params for standard connect to avoid validation failures
+      const accountData = await createAccount(sessionConfig.value, undefined);
       if (!accountData) return;
       login({
         address: accountData.address,
@@ -286,18 +287,20 @@ const confirmConnection = async () => {
       });
 
       response = {
-        result: constructReturn(
-          accountData!.address,
-          accountData!.chainId,
-          {
+        result: constructReturn({
+          address: accountData!.address,
+          chainId: accountData!.chainId,
+          session: {
             sessionConfig: accountData!.sessionConfig!,
             sessionKey: accountData!.sessionKey!,
           },
-        ),
+          prividiumMode: runtimeConfig.public.prividiumMode,
+          prividiumProxyUrl: runtimeConfig.public.prividium?.apiBaseUrl ? `${runtimeConfig.public.prividium.apiBaseUrl}/rpc` : "",
+        }),
       };
     } else {
       // create a new session for the existing account
-      const client = getClient({ chainId: requestChainId.value });
+      const client = getClient();
       const sessionKey = generatePrivateKey();
       const session = {
         sessionKey,
@@ -307,19 +310,34 @@ const confirmConnection = async () => {
         },
       };
 
+      // Proof: sign keccak256(abi.encode(sessionSpec, account)) with the session key
+      const sessionHash = getSessionHash(session.sessionConfig);
+      const digest = keccak256(encodePacked([
+        "bytes32",
+        "bytes32",
+      ], [
+        sessionHash,
+        pad(client.account.address),
+      ]));
+      const sessionSigner = privateKeyToAccount(sessionKey);
+      const proof = await sessionSigner.sign({ hash: digest });
+
       await client.createSession({
         sessionSpec: session.sessionConfig,
+        proof,
         contracts: {
-          sessionValidator: contractsByChain[requestChainId.value].sessionValidator,
+          sessionValidator: contracts.sessionValidator,
         },
       });
 
       response = {
-        result: constructReturn(
-          client.account.address,
-          client.chain.id,
+        result: constructReturn({
+          address: client.account.address,
+          chainId: client.chain.id,
           session,
-        ),
+          prividiumMode: runtimeConfig.public.prividiumMode,
+          prividiumProxyUrl: runtimeConfig.public.prividium?.apiBaseUrl ? `${runtimeConfig.public.prividium.apiBaseUrl}/rpc` : "",
+        }),
       };
     }
   } catch (error) {

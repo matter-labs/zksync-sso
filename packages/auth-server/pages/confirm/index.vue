@@ -26,9 +26,16 @@
       key="sign-typed-data"
     />
     <ViewsConfirmationSend
-      v-else
+      v-else-if="requestMethod === 'eth_sendTransaction'"
       key="confirmation"
     />
+    <div
+      v-else
+      key="unsupported-method"
+      class="flex h-full items-center justify-center"
+    >
+      <p>Unsupported request method.</p>
+    </div>
   </TransitionGroup>
 </template>
 
@@ -37,11 +44,11 @@ import { getAddress } from "viem";
 import type { ExtractParams } from "zksync-sso-4337/client";
 
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const { hasRequests, requestParams, requestMethod, requestChainId } = storeToRefs(useRequestsStore());
+const { hasRequests, requestParams, requestMethod } = storeToRefs(useRequestsStore());
 
 const loading = ref(true);
 
-const { checkTargetAddress } = useProhibitedCallsCheck(requestChainId);
+const { checkTargetAddress } = useProhibitedCallsCheck();
 const hasProhibitedCallTarget = computed(() => {
   if (requestMethod.value === "eth_sendTransaction") {
     const [transaction] = requestParams.value as ExtractParams<"eth_sendTransaction">;

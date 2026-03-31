@@ -7,6 +7,7 @@ import type {
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
 
+import type { PaymasterConfig } from "../../actions/sendUserOperation.js";
 import {
   type SmartAccountClientActions,
   smartAccountClientActions,
@@ -23,6 +24,7 @@ export type SessionClientData<
   bundler: BundlerClient;
   sessionAccount: ToSessionSmartAccountParams<TTransport, TChain>;
   accountAddress: Address;
+  paymaster?: PaymasterConfig;
 };
 
 /**
@@ -49,6 +51,7 @@ export function sessionClientActions<
     accountFactory: () => toSessionSmartAccount(config.sessionAccount),
     client: config.client,
     accountAddress: config.accountAddress,
+    paymaster: config.paymaster,
   });
 
   return {
