@@ -73,7 +73,7 @@ export function getBundlerUrl(contracts: ContractsConfig): string {
 export function getChainConfig(contracts: ContractsConfig): Chain {
   return {
     id: contracts.chainId,
-    name: "Anvil",
+    name: "ZKsync OS Local",
     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
     rpcUrls: { default: { http: [contracts.rpcUrl] } },
   } satisfies Chain;

@@ -19,20 +19,20 @@ ERC-4337 bundler service with CORS proxy for ZKsync SSO. Built on
 
 ### Local Development
 
-Works out of the box with local Anvil:
+Works out of the box with local zksync-os:
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Start bundler (uses default anvil keys)
+# Start bundler (uses default zksync-os keys)
 pnpm dev
 ```
 
 The bundler will start with default configuration for local development:
 
-- Anvil rich account keys
-- RPC: `http://localhost:8545`
+- local zksync-os rich wallet keys
+- RPC: `http://localhost:3050`
 - EntryPoint: `0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108`
 
 ### Production
@@ -85,9 +85,9 @@ docker run -p 4337:4337 -p 4338:4338 \
 
 | Variable               | Description                               | Default (Local Dev)     |
 | ---------------------- | ----------------------------------------- | ----------------------- |
-| `EXECUTOR_PRIVATE_KEY` | Private key for executing user operations | Anvil account #0        |
-| `UTILITY_PRIVATE_KEY`  | Private key for utility operations        | Anvil account #1        |
-| `RPC_URL`              | RPC endpoint for blockchain network       | `http://localhost:8545` |
+| `EXECUTOR_PRIVATE_KEY` | Private key for executing user operations | zksync-os rich wallet   |
+| `UTILITY_PRIVATE_KEY`  | Private key for utility operations        | zksync-os rich wallet   |
+| `RPC_URL`              | RPC endpoint for blockchain network       | `http://localhost:3050` |
 
 ## Configuration
 

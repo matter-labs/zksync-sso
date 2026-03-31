@@ -1831,7 +1831,7 @@ pub fn compute_account_id(user_id: &str) -> String {
 }
 
 // ===== NEW SDK HELPER FUNCTIONS =====
-// These functions are used by the new viem-based SDK (packages/sdk/src/client-new)
+// These functions are used by the current viem-based SDK.
 
 /// Encode a call to EntryPoint.getNonce(sender, key)
 /// Used for querying account nonce from the entry point

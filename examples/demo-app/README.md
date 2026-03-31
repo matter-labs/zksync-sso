@@ -5,10 +5,13 @@ coverage for the SDK.
 
 ## Requirements
 
-You will need [Era In Memory Node](https://github.com/matter-labs/era-test-node)
-for deploying contracts locally.
+You will need the local `zksync-os` stack for deploying contracts locally.
 
-In a terminal, start up the Era In Memory Node with the command `era_test_node`.
+From the repository root, start it with:
+
+```bash
+pnpm dev:stack:up
+```
 
 ## Setup
 

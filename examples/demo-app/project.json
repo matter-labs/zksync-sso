@@ -58,7 +58,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
-        "command": "./scripts/deploy-msa-anvil.sh"
+        "command": "./scripts/deploy-msa.sh"
       },
       "dependsOn": ["build-erc4337-contracts"]
     },
@@ -170,8 +170,8 @@
         "cwd": "examples/demo-app",
         "commands": [
           {
-            "command": "./scripts/deploy-msa-anvil.sh",
-            "prefix": "Deploy-Anvil:"
+            "command": "./scripts/deploy-msa.sh",
+            "prefix": "Deploy-Local:"
           },
           {
             "command": "pnpm nx run demo-app:deploy-contracts-erc4337",

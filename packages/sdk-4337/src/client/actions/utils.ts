@@ -16,7 +16,7 @@ import {
  *
  * @example
  * ```typescript
- * import { generateAccountId } from "zksync-sso/client-new/actions";
+ * import { generateAccountId } from "zksync-sso/client/actions";
  *
  * // Generate deterministic account ID from user ID
  * const accountId = generateAccountId("user123");

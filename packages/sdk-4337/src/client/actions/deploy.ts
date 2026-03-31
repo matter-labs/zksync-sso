@@ -75,7 +75,7 @@ export type PrepareDeploySmartAccountResult = {
  *
  * @example
  * ```typescript
- * import { prepareDeploySmartAccount } from "zksync-sso/client-new/actions";
+ * import { prepareDeploySmartAccount } from "zksync-sso/client/actions";
  *
  * const { transaction, accountId } = prepareDeploySmartAccount({
  *   contracts: {
@@ -196,7 +196,7 @@ export function prepareDeploySmartAccount(
  *
  * @example
  * ```typescript
- * import { prepareDeploySmartAccount, getAccountAddressFromLogs } from "zksync-sso/client-new/actions";
+ * import { prepareDeploySmartAccount, getAccountAddressFromLogs } from "zksync-sso/client/actions";
  *
  * const { transaction } = prepareDeploySmartAccount({ ... });
  * const hash = await walletClient.sendTransaction(transaction);

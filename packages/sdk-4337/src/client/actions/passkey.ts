@@ -61,7 +61,7 @@ export type AddPasskeyResult = {
  *
  * @example
  * ```typescript
- * import { addPasskey } from "zksync-sso/client-new/actions";
+ * import { addPasskey } from "zksync-sso/client/actions";
  *
  * const { transaction } = addPasskey({
  *   account: "0x...", // Your smart account address

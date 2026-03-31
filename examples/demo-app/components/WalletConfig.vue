@@ -5,7 +5,7 @@
     </h2>
     <p class="text-sm text-gray-600 mb-4">
       Configure the funding source for account deployment and transactions.
-      For automated tests, Anvil accounts are used by default.
+      For automated tests, local zksync-os rich wallets are used by default.
     </p>
 
     <div class="space-y-3">
@@ -14,10 +14,10 @@
         <div class="text-sm">
           <strong>Detected Environment:</strong>
           <span
-            :class="isAnvil ? 'text-green-600' : 'text-blue-600'"
+            :class="isLocalZkSyncOs ? 'text-green-600' : 'text-blue-600'"
             class="ml-2"
           >
-            {{ isAnvil ? 'Anvil (Local Testnet)' : 'Custom Network' }}
+            {{ isLocalZkSyncOs ? 'ZKsync OS (Local Testnet)' : 'Custom Network' }}
           </span>
         </div>
         <div
@@ -36,12 +36,12 @@
             <input
               v-model="config.source"
               type="radio"
-              value="anvil"
+              value="zksync-os"
               class="mr-2"
-              :disabled="!isAnvil"
+              :disabled="!isLocalZkSyncOs"
             >
-            <span :class="!isAnvil ? 'text-gray-400' : ''">
-              Anvil Test Account (Automated Testing)
+            <span :class="!isLocalZkSyncOs ? 'text-gray-400' : ''">
+              ZKsync OS Rich Wallet (Automated Testing)
             </span>
           </label>
           <label class="flex items-center">
@@ -65,14 +65,14 @@
         </div>
       </div>
 
-      <!-- Anvil Account Selection -->
+      <!-- ZKsync OS Account Selection -->
       <div
-        v-if="config.source === 'anvil'"
+        v-if="config.source === 'zksync-os'"
         class="pl-6 border-l-2 border-indigo-300"
       >
-        <label class="block text-sm font-medium mb-1">Anvil Account:</label>
+        <label class="block text-sm font-medium mb-1">ZKsync OS Account:</label>
         <select
-          v-model="config.anvilAccountIndex"
+          v-model="config.zksyncOsAccountIndex"
           class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
         >
           <option
@@ -80,11 +80,11 @@
             :key="i - 1"
             :value="i - 1"
           >
-            Account #{{ i - 1 }} ({{ anvilAddresses[i - 1] }})
+            Account #{{ i - 1 }} ({{ zksyncOsAddresses[i - 1] }})
           </option>
         </select>
         <p class="text-xs text-gray-500 mt-1">
-          Select which Anvil test account to use for funding
+          Select which local zksync-os rich wallet to use for funding
         </p>
       </div>
 
@@ -159,15 +159,15 @@
           <div>
             <strong>Source:</strong>
             {{
-              config.source === 'anvil'
-                ? 'Anvil Test Account'
+              config.source === 'zksync-os'
+                ? 'ZKsync OS Rich Wallet'
                 : config.source === 'private-key'
                   ? 'Private Key'
                   : 'Browser Wallet'
             }}
           </div>
-          <div v-if="config.source === 'anvil'">
-            <strong>Account:</strong> #{{ config.anvilAccountIndex }}
+          <div v-if="config.source === 'zksync-os'">
+            <strong>Account:</strong> #{{ config.zksyncOsAccountIndex }}
           </div>
           <div v-if="config.source === 'private-key' && config.privateKey">
             <strong>Private Key:</strong> {{ config.privateKey.substring(0, 10) }}...
@@ -219,10 +219,10 @@ const connecting = ref(false);
 const connectedAddress = ref("");
 const walletError = ref("");
 const rpcUrl = ref("");
-const isAnvil = ref(true);
+const isLocalZkSyncOs = ref(true);
 
-// Anvil test account addresses
-const anvilAddresses = [
+// Local zksync-os rich wallet addresses
+const zksyncOsAddresses = [
   "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", // Account #0
   "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", // Account #1
   "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", // Account #2
@@ -237,8 +237,8 @@ const anvilAddresses = [
 
 // Check if configuration is ready to use
 const isReady = computed(() => {
-  if (config.value.source === "anvil") {
-    return isAnvil.value && config.value.anvilAccountIndex !== null;
+  if (config.value.source === "zksync-os") {
+    return isLocalZkSyncOs.value && config.value.zksyncOsAccountIndex !== null;
   } else if (config.value.source === "private-key") {
     return config.value.privateKey && config.value.privateKey.startsWith("0x") && config.value.privateKey.length === 66;
   } else if (config.value.source === "browser-wallet") {
@@ -321,16 +321,16 @@ function handleAccountsChanged(accounts) {
  * Detect network environment and check for query parameters
  */
 async function detectEnvironment() {
-  // First, detect if we're on Anvil
+  // First, detect if we're on the local zksync-os RPC
   try {
     const contracts = await loadContracts();
     rpcUrl.value = contracts.rpcUrl || "";
-    isAnvil.value = rpcUrl.value.includes("localhost:8545") || rpcUrl.value.includes("127.0.0.1:8545");
+    isLocalZkSyncOs.value = rpcUrl.value.includes("localhost:3050") || rpcUrl.value.includes("127.0.0.1:3050");
 
     // Auto-select appropriate source
-    if (isAnvil.value && config.value.source === "browser-wallet") {
-      config.value.source = "anvil";
-    } else if (!isAnvil.value && config.value.source === "anvil") {
+    if (isLocalZkSyncOs.value && config.value.source === "browser-wallet") {
+      config.value.source = "zksync-os";
+    } else if (!isLocalZkSyncOs.value && config.value.source === "zksync-os") {
       config.value.source = "browser-wallet";
     }
   } catch (err) {
@@ -339,7 +339,7 @@ async function detectEnvironment() {
   }
 
   // Then, check for fundingAccount query parameter (for E2E tests)
-  // This must happen after we've detected isAnvil
+  // This must happen after we've detected the local zksync-os environment
   if (typeof window !== "undefined") {
     const urlParams = new URLSearchParams(window.location.search);
     const fundingAccountParam = urlParams.get("fundingAccount");
@@ -347,10 +347,10 @@ async function detectEnvironment() {
       const accountIndex = parseInt(fundingAccountParam, 10);
       if (!isNaN(accountIndex) && accountIndex >= 0 && accountIndex <= 9) {
         // eslint-disable-next-line no-console
-        console.log("Setting Anvil account from query parameter:", accountIndex);
-        config.value.source = "anvil";
-        config.value.anvilAccountIndex = accountIndex;
-        // Since isAnvil might already be true from detectEnvironment,
+        console.log("Setting zksync-os account from query parameter:", accountIndex);
+        config.value.source = "zksync-os";
+        config.value.zksyncOsAccountIndex = accountIndex;
+        // Since isLocalZkSyncOs might already be true from detectEnvironment,
         // the isReady computed property should now evaluate to true
       }
     }

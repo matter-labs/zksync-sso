@@ -120,16 +120,15 @@
 
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, createConfig, connect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract, getConnectorClient } from "@wagmi/core";
-import { createWalletClient, createPublicClient, http, parseEther, toHex, type Address, type Hash } from "viem";
+import { createWalletClient, createPublicClient, http, parseEther, toHex, defineChain, type Address, type Hash } from "viem";
 import { zksyncSsoConnector, getConnectedSsoSessionClient, isSsoSessionClientConnected } from "zksync-sso-4337/connector";
 import { privateKeyToAccount } from "viem/accounts";
-import { localhost } from "viem/chains";
 import { onMounted } from "vue";
 import ERC1271CallerContract from "../forge-output-erc1271.json";
 
 // Load contracts from public JSON at runtime to avoid ESM JSON import issues
 const contractsUrl = "/contracts.json";
-let contractsAnvil: Record<string, unknown> = {};
+let contractsConfig: Record<string, unknown> = {};
 let testPaymasterAddress: Address | undefined;
 
 const runtimeConfig = useRuntimeConfig();
@@ -142,16 +141,25 @@ if (typeof window !== "undefined") {
   fetch(contractsUrl)
     .then((r) => r.json())
     .then((json) => {
-      contractsAnvil = json;
+      contractsConfig = json;
       // Prefer contract JSON values when available
-      testPaymasterAddress = (contractsAnvil as { testPaymaster?: Address; TestPaymaster?: Address }).testPaymaster
-      ?? (contractsAnvil as { TestPaymaster?: Address }).TestPaymaster
+      testPaymasterAddress = (contractsConfig as { testPaymaster?: Address; TestPaymaster?: Address }).testPaymaster
+      ?? (contractsConfig as { TestPaymaster?: Address }).TestPaymaster
       ?? testPaymasterAddress;
     })
     .catch(() => undefined);
 }
 
-const chain = localhost;
+const chain = defineChain({
+  id: 6565,
+  name: "ZKsync OS Local",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: ["http://localhost:3050"],
+    },
+  },
+});
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 
@@ -220,7 +228,7 @@ const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
 
   const richClient = createWalletClient({
-    account: privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"), // Rich anvil account
+    account: privateKeyToAccount("0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"), // Local zksync-os rich wallet
     chain: chain,
     transport: http(),
   });

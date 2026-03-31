@@ -1,0 +1,14 @@
+genesis:
+  bridgehub_address: '0xd8f8df05efacd52f28cdf11be22ce3d6ae0fabf7'
+  bytecode_supplier_address: '0x9f3f32ea83c8a1c8e993fd9035d1d077545467ac'
+  genesis_input_path: /app/config/genesis.json
+  chain_id: 6565
+l1_sender:
+  pubdata_mode: Blobs
+  operator_commit_sk: '0xafc49c5bb410acc43973d0b6cf638220d3cedc3109a08aefa82cffb4853d4eb4'
+  operator_prove_sk: '0x2b099802815e63d929e07bec5bacd57732c75d5087c5bf6545b095cdc1a1b853'
+  operator_execute_sk: '0xefe771b62e5371edc4401bbf8b7aacddb3ed66abae4e6c901cd546fca50295e8'
+external_price_api_client:
+  source: Forced
+  forced_prices:
+    '0x0000000000000000000000000000000000000001': 3000

@@ -138,7 +138,7 @@ const props = defineProps({
 
 // Local state
 const signingMethod = ref("eoa");
-const to = ref("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // Anvil account #2
+const to = ref("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"); // Local zksync-os rich wallet #2
 const amount = ref("0.001");
 const usePaymaster = ref(false);
 const loading = ref(false);

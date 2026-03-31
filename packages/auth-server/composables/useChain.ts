@@ -10,7 +10,7 @@ export const useChain = () => {
       name: runtimeConfig.public.chainName || `Chain ${runtimeConfig.public.chainId}`,
       nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
       rpcUrls: {
-        default: { http: [runtimeConfig.public.chainRpcUrl || "http://localhost:5050"] },
+        default: { http: [runtimeConfig.public.chainRpcUrl || "http://localhost:3050"] },
       },
       ...(runtimeConfig.public.blockExplorerUrl
         ? {

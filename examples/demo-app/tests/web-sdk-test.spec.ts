@@ -43,7 +43,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("Deploy, fund, and transfer from smart account", async ({ page }) => {
-  // Use Anvil account #2 for this test to avoid nonce conflicts
+  // Use local zksync-os account #2 for this test to avoid nonce conflicts
   await page.goto("/web-sdk-test?fundingAccount=2");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
@@ -94,7 +94,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
   await expect(page.getByText("Recipient Address:")).toBeVisible();
   const recipientInput = page.getByText("Recipient Address:").locator("..").locator("input");
   await expect(recipientInput).toBeVisible();
-  await recipientInput.fill("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"); // Anvil account #2
+  await recipientInput.fill("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"); // Local zksync-os account #2
 
   // Fill in transfer amount - find input by locating the label first
   await expect(page.getByText("Amount (ETH):")).toBeVisible();
@@ -120,7 +120,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
 });
 
 test("Deploy smart account with paymaster and send transaction", async ({ page }) => {
-  // Use Anvil account #5 for this test to avoid nonce conflicts
+  // Use local zksync-os account #5 for this test to avoid nonce conflicts
   await page.goto("/web-sdk-test?fundingAccount=5");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
@@ -164,7 +164,7 @@ test("Deploy smart account with paymaster and send transaction", async ({ page }
   console.log("✅ All steps completed successfully with paymaster!");
 });
 test("Deploy with passkey and send transaction using passkey", async ({ page }) => {
-  // Use Anvil account #3 for this test to avoid nonce conflicts with the first test
+  // Use local zksync-os account #3 for this test to avoid nonce conflicts with the first test
   await page.goto("/web-sdk-test?fundingAccount=3");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
@@ -265,7 +265,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
 });
 
 test("Find addresses by passkey credential ID", async ({ page }) => {
-  // Use Anvil account #4 for this test to avoid nonce conflicts
+  // Use local zksync-os account #4 for this test to avoid nonce conflicts
   await page.goto("/web-sdk-test?fundingAccount=4");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
@@ -381,7 +381,7 @@ test("Deploy with session support and send transaction using session key", async
     console.error("[BROWSER ERROR]:", err);
   });
 
-  // Use Anvil account #7 for session tests (renumbered to avoid conflict with passkey test #4)
+  // Use local zksync-os account #7 for session tests (renumbered to avoid conflict with passkey test #4)
   await page.goto("/web-sdk-test?fundingAccount=7");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
@@ -512,7 +512,7 @@ test("Deploy with session support and send transaction using session key", async
 });
 
 test("Deploy account, enable session, modify session config, and send transaction", async ({ page }) => {
-  // Use Anvil account #8 for this test (renumbered)
+  // Use local zksync-os account #8 for this test (renumbered)
   await page.goto("/web-sdk-test?fundingAccount=8");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
@@ -603,7 +603,7 @@ test("Deploy account, enable session, modify session config, and send transactio
 });
 
 test("Deploy account with session validator pre-installed", async ({ page }) => {
-  // Use Anvil account #9 for this test (renumbered)
+  // Use local zksync-os account #9 for this test (renumbered)
   await page.goto("/web-sdk-test?fundingAccount=9");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
@@ -696,7 +696,7 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
 });
 
 test("Deploy with passkey and send transaction using passkey with paymaster", async ({ page }) => {
-  // Use Anvil account #8 for this test to avoid nonce conflicts
+  // Use local zksync-os account #8 for this test to avoid nonce conflicts
   await page.goto("/web-sdk-test?fundingAccount=8");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 

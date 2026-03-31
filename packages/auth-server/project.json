@@ -23,8 +23,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "commands": ["pnpm nx run auth-server:dev ", "pnpm nx run zksync-sso-oidc-server:dev:all"],
-        "parallel": true
+        "command": "pnpm nx run auth-server:dev"
       }
     },
     "build": {

@@ -24,7 +24,7 @@ export const {
   EncodeGetUserOperationHashParams, // Params for encoding getUserOpHash call
 
   // ===== NEW SDK HELPER FUNCTIONS =====
-  // These functions are used by the new viem-based SDK (packages/sdk/src/client-new)
+  // These functions are used by the current viem-based SDK.
   encode_get_nonce_call_data, // Encode EntryPoint.getNonce() call
   decode_nonce_result, // Decode nonce result from EntryPoint
   encode_get_account_list_call_data, // Encode WebAuthnValidator.getAccountList() call

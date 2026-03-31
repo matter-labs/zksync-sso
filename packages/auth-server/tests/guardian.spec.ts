@@ -8,11 +8,11 @@ import type { Page } from "@playwright/test";
 const execAsync = promisify(exec);
 
 /**
- * Fund an account with ETH using Anvil's default rich wallet
+ * Fund an account with ETH using the local zksync-os rich wallet
  */
 async function fundAccount(address: string, amount: string = "1"): Promise<void> {
-  const ANVIL_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-  const cmd = `cast send ${address} --value ${amount}ether --private-key ${ANVIL_PRIVATE_KEY} --rpc-url http://localhost:8545`;
+  const RICH_WALLET_PRIVATE_KEY = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
+  const cmd = `cast send ${address} --value ${amount}ether --private-key ${RICH_WALLET_PRIVATE_KEY} --rpc-url http://localhost:3050`;
   try {
     await execAsync(cmd);
     console.log(`✅ Funded ${address} with ${amount} ETH`);

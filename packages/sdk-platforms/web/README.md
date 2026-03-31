@@ -181,24 +181,23 @@ npm run build
 
 ### Local Development Setup
 
-The SDK is designed to work with a local Anvil node and Alto bundler for development:
+The SDK is designed to work with a local zksync-os node and Alto bundler for development:
 
 ```bash
-# Terminal 1: Start local Anvil node
-anvil
+# Terminal 1: Start the local stack
+pnpm dev:stack:up
 
 # Terminal 2: Deploy contracts
-cd packages/erc4337-contracts
-pnpm deploy:local
+pnpm --dir packages/erc4337-contracts deploy-test
 
-# Terminal 3: Start Alto bundler
-cd examples/demo-app
-pnpm dev:bundler
+# Terminal 3: Start Alto bundler + proxy
+pnpm --dir packages/erc4337-contracts bundler
+pnpm --dir packages/erc4337-contracts bundler-proxy
 ```
 
 This creates a local environment at:
 
-- **RPC**: `http://localhost:8545` (Anvil)
+- **RPC**: `http://localhost:3050` (zksync-os)
 - **Bundler**: `http://localhost:4337` (Alto via bundler-proxy)
 - **Entry Point**: `0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108`
 
@@ -210,14 +209,14 @@ Deploy ERC-4337 modular smart accounts with EOA validators:
 import { deploy_account, DeployAccountConfig } from 'zksync-sso-web-sdk/bundler';
 
 const config = new DeployAccountConfig(
-  "http://localhost:8545",           // RPC URL
+  "http://localhost:3050",           // RPC URL
   "0xBF0c79fD7b3eeF6Ac1bf67CEef3B2adED40ddC40",  // Factory address (from deploy:local)
-  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",  // Deployer private key (Anvil account #0)
+  "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6",  // Deployer private key (local zksync-os rich wallet)
   "0x3a09a0f6Cb773BCfdf606D21FAecFe5699f74718",  // EOA validator address
   null  // WebAuthn validator (optional, pass address if using passkeys)
 );
 
-// Deploy with EOA signer (Anvil account #1)
+// Deploy with EOA signer (local zksync-os rich wallet #1)
 const accountAddress = await deploy_account(
   "user-123",  // User ID
   ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"],  // EOA signer addresses
@@ -236,7 +235,7 @@ Send transactions signed by an EOA private key via ERC-4337:
 import { send_transaction_eoa, SendTransactionConfig } from 'zksync-sso-web-sdk/bundler';
 
 const txConfig = new SendTransactionConfig(
-  "http://localhost:8545",           // RPC URL
+  "http://localhost:3050",           // RPC URL
   "http://localhost:4337",           // Bundler URL (via bundler-proxy)
   "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108"  // Entry Point address
 );
@@ -244,7 +243,7 @@ const txConfig = new SendTransactionConfig(
 const receipt = await send_transaction_eoa(
   txConfig,
   "0x3a09a0f6Cb773BCfdf606D21FAecFe5699f74718",  // EOA validator address
-  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",  // Private key (Anvil account #1)
+  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",  // Private key (local zksync-os rich wallet #1)
   accountAddress,                     // Your smart account
   "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",  // Recipient
   "1000000000000000000",             // 1 ETH in wei
@@ -264,7 +263,7 @@ const response = await fetch("/contracts.json");
 const contracts = await response.json();
 
 const config = new DeployAccountConfig(
-  contracts.rpcUrl,           // "http://localhost:8545"
+  contracts.rpcUrl,           // "http://localhost:3050"
   contracts.factory,          // Deployed factory address
   deployerPrivateKey,
   contracts.eoaValidator,     // Deployed EOA validator
@@ -325,7 +324,7 @@ class DeployAccountConfig {
 
 Configuration for deploying smart accounts:
 
-- `rpc_url` - Ethereum RPC endpoint (e.g., `http://localhost:8545`)
+- `rpc_url` - Ethereum RPC endpoint (e.g., `http://localhost:3050`)
 - `account_factory_address` - Factory contract that deploys accounts
 - `deployer_private_key` - Private key used to fund deployment
 - `eoa_validator_address` - EOA validator contract address
@@ -358,7 +357,7 @@ const ENTRY_POINT = "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";  // EntryPoint
 // Other addresses available in contracts.json after deployment
 ```
 
-### Anvil Test Accounts
+### Local zksync-os Test Accounts
 
 ```typescript
 // Account #0 (Deployer)
@@ -402,8 +401,8 @@ This will:
 Set up a complete local development environment:
 
 ```bash
-# Terminal 1: Start Anvil
-anvil
+# Terminal 1: Start local zksync-os
+pnpm dev:stack:up
 
 # Terminal 2: Deploy contracts
 cd packages/erc4337-contracts
@@ -472,7 +471,7 @@ The SDK is built with a Rust core compiled to WebAssembly:
 - [x] EOA validator integration
 - [x] Bundler API integration (Alto via bundler-proxy)
 - [x] Gas estimation
-- [x] Local development environment with Anvil + Alto
+- [x] Local development environment with zksync-os + Alto
 - [ ] WebAuthn passkey transaction signing (in progress)
 - [ ] Session key validator support
 - [ ] Multi-chain configuration

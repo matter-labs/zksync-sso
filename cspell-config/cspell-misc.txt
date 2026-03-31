@@ -37,12 +37,6 @@ EVMLA
 // paymasters
 zyfi
 
-// examples/nft-quest
-Fren
-fren
-nfts
-wght
-
 // packages/auther-server-api
 rustup
 distroless

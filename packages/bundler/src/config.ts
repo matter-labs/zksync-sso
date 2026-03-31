@@ -9,15 +9,15 @@ dotenv.config();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Environment schema with defaults from alto-with-proxy.json (anvil rich accounts)
+// Environment schema with defaults from the local zksync-os bundler config.
 const envSchema = z.object({
   EXECUTOR_PRIVATE_KEY: z
     .string()
-    .default("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"),
+    .default("0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"),
   UTILITY_PRIVATE_KEY: z
     .string()
-    .default("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"),
-  RPC_URL: z.string().default("http://localhost:8545"),
+    .default("0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"),
+  RPC_URL: z.string().default("http://localhost:3050"),
 });
 
 // Parse and validate environment variables

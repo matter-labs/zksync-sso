@@ -85,7 +85,7 @@ import { parseEther } from "viem";
 import { LimitType } from "zksync-sso/utils";
 
 await passkeyClient.createSession({
-  // See packages/sdk/src/client-auth-server/session.ts for an easier way to create the sessionConfig
+  // See the auth-server client helpers for a higher-level sessionConfig builder
   sessionConfig: {
     signer: sessionPublicKey,
     expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
