@@ -51,7 +51,7 @@ const authServerApiEnv = {
   RPC_URL: localNode.rpcUrl,
 };
 
-const reuseExistingServer = false;
+const reuseExistingServer = !!process.env.CI;
 
 /**
  * See https://playwright.dev/docs/test-configuration.
