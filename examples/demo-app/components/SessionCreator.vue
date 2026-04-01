@@ -291,7 +291,11 @@ async function createSessionOnChain() {
     // Wait for the UserOp to be mined
     // eslint-disable-next-line no-console
     console.log("Waiting for session creation UserOp to be mined...");
-    await bundlerClient.waitForUserOperationReceipt({ hash: userOpHash });
+    await bundlerClient.waitForUserOperationReceipt({
+      hash: userOpHash,
+      retryCount: 180,
+      timeout: 300_000,
+    });
     // eslint-disable-next-line no-console
     console.log("Session creation UserOp mined!");
 

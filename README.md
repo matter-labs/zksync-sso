@@ -123,7 +123,8 @@ const connectWithSSO = () => {
 This monorepo is comprised of the active ERC-4337 development path:
 
 - `packages/sdk-4337` is the `zksync-sso` JavaScript SDK
-- `packages/sdk-platforms/web` provides the Rust/WASM web bindings used by the SDK
+- `packages/sdk-platforms/web` provides the Rust/WASM web bindings used by the
+  SDK
 - `packages/auth-server` is the Auth Server used for account creation and
   session key management
 - `packages/erc4337-contracts` are the on-chain smart contracts behind ZKsync
@@ -181,12 +182,22 @@ This monorepo is comprised of the active ERC-4337 development path:
    pnpm --dir packages/erc4337-contracts run bundler-proxy
    ```
 
-7. Start the demo application (automatically builds contracts, deploys, and
-   starts auth-server):
+7. Start the demo application and local SSO helpers:
 
    ```bash
    pnpm nx dev:erc4337 demo-app
    ```
+
+   This local-only flow uses
+   [`examples/demo-app/scripts/deploy-msa-local.sh`](/Users/jackhamer/Documents/Projects/matterlabs/zksync-sso/examples/demo-app/scripts/deploy-msa-local.sh)
+   under the hood. It deploys the reusable SSO contract suite, bridges the small
+   set of local wallets needed for dev/e2e, deploys a mock paymaster, and starts
+   the auth-server alongside the demo app.
+
+For reusable chain deployments, use
+[`examples/demo-app/scripts/deploy-msa.sh`](/Users/jackhamer/Documents/Projects/matterlabs/zksync-sso/examples/demo-app/scripts/deploy-msa.sh).
+That script only deploys the SSO contract suite and syncs manifests; it does not
+do any local bridge funding or mock-paymaster setup.
 
 Local port list:
 
@@ -237,7 +248,7 @@ command.
 ## Running/Debugging End-to-End Tests
 
 To execute the end-to-end tests, complete steps 1–6 from "Running development"
-above (zksync-os running + contracts deployed + bundler running), then:
+above (zksync-os running + bundler running), then:
 
 ```bash
 # ERC-4337 e2e tests
@@ -249,6 +260,10 @@ pnpm nx e2e:demo-only demo-app
 # Guardian e2e tests
 pnpm nx e2e:guardian auth-server
 ```
+
+`pnpm nx e2e:erc4337 demo-app` redeploys the local demo contracts itself via
+`deploy-msa-local.sh`. It still expects `zksync-os`, Alto, and the bundler proxy
+to already be running.
 
 To debug end-to-end tests interactively:
 

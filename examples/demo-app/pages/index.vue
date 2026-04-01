@@ -226,6 +226,7 @@ onMounted(async () => {
 
 const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
+  const gasPrice = await publicClient.getGasPrice();
 
   const richClient = createWalletClient({
     account: privateKeyToAccount("0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"), // Local zksync-os rich wallet
@@ -236,6 +237,7 @@ const fundAccount = async () => {
   let transactionHash = await richClient.sendTransaction({
     to: address.value,
     value: parseEther("1"),
+    gasPrice,
   });
   // FIXME: When not using sessions, sendTransaction returns a map and not a string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

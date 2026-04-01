@@ -13,6 +13,8 @@ export default defineConfig({
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
+  /* Fresh local deployments can take longer than Playwright's default 30s timeout. */
+  timeout: 240_000,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
@@ -36,13 +38,27 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local server before starting the tests */
-  webServer: [
-    {
-      command: "pnpm nx preview demo-app",
-      url: "http://localhost:3005",
-      reuseExistingServer: !process.env.CI,
-      timeout: 180_000,
-    },
-  ],
+  /* Run your local servers before starting the tests */
+  webServer: process.env.PW_MANAGED_SERVERS
+    ? undefined
+    : [
+        {
+          command: "RPC_URL=http://127.0.0.1:3050 PORT=3004 pnpm nx run auth-server-api:dev",
+          url: "http://localhost:3004",
+          reuseExistingServer: !process.env.CI,
+          timeout: 180_000,
+        },
+        {
+          command: "pnpm nx run auth-server:build:local && NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 NUXT_PUBLIC_CHAIN_RPC_URL=http://localhost:3050 PORT=3002 pnpm -C packages/auth-server exec nuxt preview",
+          url: "http://localhost:3002",
+          reuseExistingServer: !process.env.CI,
+          timeout: 180_000,
+        },
+        {
+          command: "pnpm nx run demo-app:build:local && PORT=3005 pnpm -C examples/demo-app exec nuxt preview",
+          url: "http://localhost:3005",
+          reuseExistingServer: !process.env.CI,
+          timeout: 180_000,
+        },
+      ],
 });

@@ -392,6 +392,9 @@ importers:
 
   packages/erc4337-contracts:
     devDependencies:
+      '@matterlabs/zksync-js':
+        specifier: ^0.0.2
+        version: 0.0.2(viem@2.37.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@4.2.1))
       '@pimlico/alto':
         specifier: ^0.0.19
         version: 0.0.19(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)
@@ -2454,6 +2457,20 @@ packages:
     peerDependencies:
       '@openzeppelin/contracts': 4.6.0
       '@openzeppelin/contracts-upgradeable': 4.6.0
+
+  '@matterlabs/zksync-js@0.0.2':
+    resolution: {integrity: sha512-BAD2c6vxx7pdl4UaGQIPjspTD9qn178WiFmVMLFCy/Ey0M30sWkh+flbO9K1rIgy0Areh1pJKNNuclKgn9zD0A==}
+    peerDependencies:
+      '@typechain/ethers-v6': ^0.5.0
+      ethers: ^6.15.0
+      viem: '>=2.0.0 <3'
+    peerDependenciesMeta:
+      '@typechain/ethers-v6':
+        optional: true
+      ethers:
+        optional: true
+      viem:
+        optional: true
 
   '@metamask/eth-json-rpc-provider@1.0.1':
     resolution: {integrity: sha512-whiUMPlAOrVGmX8aKYVPvlKyG4CpQXiNNyt74vE1xb5sPvmx5oA7B/kOi/JdBvhGQq97U1/AVdXEdk2zkP8qyA==}
@@ -12474,6 +12491,12 @@ snapshots:
       '@openzeppelin/contracts': 5.4.0
       '@openzeppelin/contracts-upgradeable': 4.9.6
 
+  '@matterlabs/zksync-js@0.0.2(viem@2.37.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@4.2.1))':
+    dependencies:
+      '@noble/hashes': 1.8.0
+    optionalDependencies:
+      viem: 2.37.5(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@4.2.1)
+
   '@metamask/eth-json-rpc-provider@1.0.1':
     dependencies:
       '@metamask/json-rpc-engine': 7.3.3
@@ -12623,7 +12646,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
       '@types/debug': 4.1.12
-      debug: 4.3.7
+      debug: 4.4.3
       pony-cause: 2.1.11
       semver: 7.7.3
       uuid: 9.0.1
@@ -12774,6 +12797,12 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 3.0.0
       fastq: 1.17.1
+
+  '@nrwl/devkit@19.8.0(nx@19.8.0(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.25)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))':
+    dependencies:
+      '@nx/devkit': 19.8.0(nx@19.8.0(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.25)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))
+    transitivePeerDependencies:
+      - nx
 
   '@nrwl/devkit@19.8.0(nx@19.8.6(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.25)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))':
     dependencies:
@@ -13461,7 +13490,7 @@ snapshots:
 
   '@nx/devkit@19.8.0(nx@19.8.0(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.25)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))':
     dependencies:
-      '@nrwl/devkit': 19.8.0(nx@19.8.6(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.25)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))
+      '@nrwl/devkit': 19.8.0(nx@19.8.0(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.25)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))
       ejs: 3.1.10
       enquirer: 2.3.6
       ignore: 5.3.2

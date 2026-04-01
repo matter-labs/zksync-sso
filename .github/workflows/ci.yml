@@ -47,11 +47,6 @@ jobs:
       - name: Install foundry
         uses: foundry-rs/foundry-toolchain@v1.5.0
 
-      - name: Start local zksync-os stack
-        run: |
-          chmod +x ./scripts/start-4337.sh
-          ./scripts/start-4337.sh
-
       # Install dependencies for repo
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
@@ -60,6 +55,11 @@ jobs:
       - name: Install ERC-4337 contract dependencies
         run: forge soldeer install
         working-directory: packages/erc4337-contracts
+
+      - name: Start local zksync-os stack
+        run: |
+          chmod +x ./scripts/start-4337.sh
+          ./scripts/start-4337.sh
 
       - name: Build ERC-4337 contracts
         run: forge build

@@ -910,6 +910,7 @@ async function deployAccount() {
     // Create chain config and public client
     const chain = getChainConfig(contracts);
     const publicClient = await createPublicClient(contracts);
+    const gasPrice = await publicClient.getGasPrice();
 
     // Prepare passkey signers if enabled
     let passkeySigners: Array<{ credentialId: Hex; publicKey: { x: Hex; y: Hex }; originDomain: string }> | undefined = undefined;
@@ -968,6 +969,7 @@ async function deployAccount() {
     const hash = await walletClient.sendTransaction({
       to: transaction.to,
       data: transaction.data,
+      gasPrice,
     });
 
     // eslint-disable-next-line no-console
@@ -1258,6 +1260,8 @@ async function fundSmartAccount() {
     // Get the wallet client based on wallet configuration
     const walletClient = await getFundingWalletClient();
     const [signerAddress] = await walletClient.getAddresses();
+    const publicClient = await createPublicClient();
+    const gasPrice = await publicClient.getGasPrice();
 
     // eslint-disable-next-line no-console
     console.log("  From (Funding Wallet):", signerAddress);
@@ -1269,17 +1273,21 @@ async function fundSmartAccount() {
     const toAddress = getAddress(targetAddress);
 
     // Send transaction to fund the target
-    const hash = await walletClient.sendTransaction({
-      account: signerAddress,
+    const request = {
       to: toAddress,
       value: amountWei,
-    });
+      gasPrice,
+    };
+
+    const hash = walletConfig.value.source === "browser-wallet"
+      ? await walletClient.sendTransaction({
+        account: signerAddress,
+        ...request,
+      })
+      : await walletClient.sendTransaction(request);
 
     // eslint-disable-next-line no-console
     console.log("  Transaction sent:", hash);
-
-    // Create public client to wait for receipt
-    const publicClient = await createPublicClient();
 
     // Wait for confirmation
     const receipt = await publicClient.waitForTransactionReceipt({ hash });

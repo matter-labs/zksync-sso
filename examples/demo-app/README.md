@@ -5,12 +5,22 @@ coverage for the SDK.
 
 ## Requirements
 
-You will need the local `zksync-os` stack for deploying contracts locally.
+You will need the local `zksync-os` stack and local bundler processes.
 
 From the repository root, start it with:
 
 ```bash
 pnpm dev:stack:up
+```
+
+Then start the bundler processes in separate terminals:
+
+```bash
+pnpm --dir packages/erc4337-contracts run bundler
+```
+
+```bash
+pnpm --dir packages/erc4337-contracts run bundler-proxy
 ```
 
 ## Setup
@@ -21,10 +31,12 @@ Run the following commands from the root of the monorepo.
 pnpm install
 ```
 
-Running the Demo App requires the Auth Server. The following will start both.
+Running the Demo App requires the Auth Server. The local ERC-4337 target below
+also deploys the local contract suite, bridges the small set of local wallets
+needed for testing, and deploys the mock paymaster.
 
 ```bash
-pnpm nx dev demo-app
+pnpm nx dev:erc4337 demo-app
 ```
 
 The output will list the localhost addresses for both running applications.

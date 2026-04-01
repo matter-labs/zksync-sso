@@ -6,8 +6,8 @@ ZKsync SSO Auth Server
 
 ```sh
 # Ensure the local zksync-os stack is already running (pnpm dev:stack:up)
-# Deploy ZKsync SSO smart contracts
-pnpm --dir packages/erc4337-contracts run deploy-test
+# Deploy the reusable SSO contract suite
+pnpm --dir packages/erc4337-contracts run deploy-contracts
 
 # Start Auth Server
 pnpm nx dev auth-server

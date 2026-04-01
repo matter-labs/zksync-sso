@@ -192,8 +192,8 @@ This also predeploys the deterministic deployer and Alto simulation contracts
 that the local bundler needs.
 
 ```bash
-# Terminal 2: Deploy contracts
-pnpm --dir packages/erc4337-contracts deploy-test
+# Terminal 2: Deploy the reusable SSO contract suite
+pnpm --dir packages/erc4337-contracts deploy-contracts
 ```
 
 ```bash
@@ -221,7 +221,7 @@ import { deploy_account, DeployAccountConfig } from 'zksync-sso-web-sdk/bundler'
 
 const config = new DeployAccountConfig(
   "http://localhost:3050",           // RPC URL
-  "0xBF0c79fD7b3eeF6Ac1bf67CEef3B2adED40ddC40",  // Factory address (from deploy:local)
+  "0xBF0c79fD7b3eeF6Ac1bf67CEef3B2adED40ddC40",  // Factory address (from contracts.json after deployment)
   "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6",  // Deployer private key (local zksync-os rich wallet)
   "0x3a09a0f6Cb773BCfdf606D21FAecFe5699f74718",  // EOA validator address
   null  // WebAuthn validator (optional, pass address if using passkeys)
@@ -361,7 +361,7 @@ Configuration for sending transactions:
 
 ### Default Addresses (Local Development)
 
-When using `pnpm deploy:local` in the erc4337-contracts package:
+After running `pnpm --dir packages/erc4337-contracts deploy-contracts`:
 
 ```typescript
 const ENTRY_POINT = "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";  // EntryPoint v0.8
@@ -415,17 +415,17 @@ Set up a complete local development environment:
 # Terminal 1: Start local zksync-os
 pnpm dev:stack:up
 
-# Terminal 2: Deploy contracts
-cd packages/erc4337-contracts
-pnpm deploy:local
+# Terminal 2: Deploy the reusable SSO contract suite
+pnpm --dir packages/erc4337-contracts deploy-contracts
 
-# Terminal 3: Start bundler via proxy
-cd examples/demo-app
-pnpm dev:bundler
+# Terminal 3: Start Alto bundler
+pnpm --dir packages/erc4337-contracts bundler
 
-# Terminal 4: Run demo app
-cd examples/demo-app
-pnpm dev
+# Terminal 4: Start the bundler proxy
+pnpm --dir packages/erc4337-contracts bundler-proxy
+
+# Terminal 5: Run the local demo stack
+pnpm nx dev:erc4337 demo-app
 ```
 
 Then navigate to `http://localhost:3000/web-sdk-test` to test the SDK.
