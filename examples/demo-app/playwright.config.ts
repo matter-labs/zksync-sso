@@ -28,6 +28,10 @@ const authServerEnv = {
   PORT: "3002",
 };
 
+// The demo-only suite can run after the ERC-4337 suite in CI, where the auth
+// server and preview processes may still be alive on the same ports.
+const reuseExistingServer = true;
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -69,7 +73,7 @@ export default defineConfig({
     {
       command: "PORT=3004 pnpm nx dev auth-server-api",
       url: "http://localhost:3004/api/health",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,
@@ -77,7 +81,7 @@ export default defineConfig({
     {
       command: "pnpm nx dev:no-deploy auth-server",
       url: "http://localhost:3002",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,
@@ -86,7 +90,7 @@ export default defineConfig({
     {
       command: "PORT=3005 pnpm nx dev demo-app",
       url: "http://localhost:3005",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,

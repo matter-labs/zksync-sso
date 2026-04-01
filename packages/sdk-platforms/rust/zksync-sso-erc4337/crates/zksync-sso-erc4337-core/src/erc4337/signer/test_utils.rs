@@ -7,6 +7,8 @@ pub fn get_signature_from_js(hash: String) -> eyre::Result<Bytes> {
     let working_dir = "../../../../../erc4337-contracts";
 
     let output = Command::new("pnpm")
+        .env("CHAIN_ID", "6565")
+        .env("PORT", "3050")
         .arg("tsx")
         .arg("test/integration/utils.ts")
         .arg("--hash")
