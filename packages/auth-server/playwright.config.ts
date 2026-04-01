@@ -28,6 +28,14 @@ const authServerEnv = {
   PORT: "3002",
 };
 
+const authServerApiEnv = {
+  CHAIN_1_ID: String(localNode.chainId),
+  CHAIN_1_RPC_URL: localNode.rpcUrl,
+  DEPLOYER_PRIVATE_KEY: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6",
+  PORT: "3004",
+  RPC_URL: localNode.rpcUrl,
+};
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -53,15 +61,16 @@ export default defineConfig({
 
   webServer: [
     {
-      command: "PORT=3004 pnpm nx dev auth-server-api",
+      command: "pnpm nx dev auth-server-api",
       url: "http://localhost:3004/api/health",
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,
+      env: { ...process.env, ...authServerApiEnv },
     },
     {
-      command: "pnpm nx dev:no-deploy auth-server",
+      command: "pnpm nx preview:no-deploy auth-server",
       url: "http://localhost:3002",
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",

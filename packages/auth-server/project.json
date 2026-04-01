@@ -23,7 +23,8 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/auth-server",
-        "command": "pnpm nx run auth-server:dev"
+        "commands": ["pnpm nx run auth-server:dev ", "pnpm nx run zksync-sso-oidc-server:dev:all"],
+        "parallel": true
       }
     },
     "build": {
@@ -66,6 +67,14 @@
           }
         ],
         "parallel": true
+      },
+      "dependsOn": ["build:local", "^build"]
+    },
+    "preview:no-deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "command": "NUXT_PUBLIC_AUTH_SERVER_API_URL=http://localhost:3004 PORT=3002 pnpm nuxt preview"
       },
       "dependsOn": ["build:local", "^build"]
     },

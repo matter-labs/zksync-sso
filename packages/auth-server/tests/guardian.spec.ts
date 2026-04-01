@@ -802,58 +802,40 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
   await confirmButton.click();
   console.log("Clicked confirm button, waiting for response...");
 
-  // Wait and check state multiple times to see if it progresses or gets stuck
-  await guardianPage.waitForTimeout(2000);
-
   const stateElement = guardianPage.locator("text=Current State:").locator("xpath=following-sibling::span");
+  const successIndicator = guardianPage.getByText(/Guardian Confirmed|successfully confirmed/i).first();
+  const confirmGuardianErrorElement = guardianPage.locator("p.text-error-600, p.text-error-400").first();
+  const debugStateVisible = await stateElement.isVisible().catch(() => false);
 
-  // Check state progression over 30 seconds (15 iterations × 2 seconds)
-  // Allows time for: event queries (10s) + transaction confirmation (10s) + buffer
+  if (!debugStateVisible) {
+    console.log("Debug state panel is not visible in preview mode; waiting on user-visible confirmation instead.");
+  }
+
+  // Wait up to ~50 seconds for either success or a visible error.
   for (let i = 0; i < 25; i++) {
-    const currentState = await stateElement.textContent().catch(() => "unknown");
+    const currentState = debugStateVisible ? await stateElement.textContent().catch(() => "unknown") : "debug-hidden";
     console.log(`[${i * 2}s] Current confirmation state: ${currentState}`);
 
-    // Check for UI error after each state check
-    const errorElement = guardianPage.locator("p.text-error-600, p.text-error-400");
-    const hasError = await errorElement.isVisible().catch(() => false);
+    if (await successIndicator.isVisible().catch(() => false)) {
+      console.log("✅ Guardian confirmed successfully.");
+      break;
+    }
 
-    if (hasError) {
-      const errorText = await errorElement.textContent();
+    if (await confirmGuardianErrorElement.isVisible().catch(() => false)) {
+      const errorText = await confirmGuardianErrorElement.textContent();
       console.log("❌ Guardian confirmation failed with UI error:", errorText);
       throw new Error(`Guardian confirmation failed: ${errorText}`);
     }
 
-    // If state shows error, extract it
-    if (currentState?.startsWith("error:")) {
+    if (currentState.startsWith("error:")) {
       console.log("❌ Confirmation state shows error:", currentState);
       throw new Error(`Guardian confirmation failed: ${currentState}`);
-    }
-
-    // If we reached a final state, break
-    if (currentState === "complete" || currentState === "confirm_guardian_completed") {
-      break;
-    }
-
-    // If stuck in getting state for more than 16 seconds, that's the issue
-    // (Allows 5s for getBlockNumber + 10s for event queries + buffer)
-    if (i >= 8 && currentState?.includes("getting")) {
-      console.log(`⚠️ Stuck in ${currentState} for ${i * 2} seconds`);
-      await guardianPage.screenshot({ path: "test-results/stuck-getting-client-debug.png" });
-      const bodyText = await guardianPage.locator("body").textContent();
-      console.log("Page debug state:", bodyText?.match(/Current State:.*?Expected flow:/s)?.[0] || "Not found");
-      throw new Error(`Guardian confirmation stuck in state: ${currentState}. getConfigurableAccount or getWalletClient is hanging/failing silently.`);
     }
 
     await guardianPage.waitForTimeout(2000);
   }
 
-  // Check for successful completion
-  const finalState = await stateElement.textContent().catch(() => "unknown");
-  if (finalState !== "complete" && finalState !== "confirm_guardian_completed") {
-    console.log("⚠️ Guardian confirmation did not complete. Final state:", finalState);
-    throw new Error(`Guardian confirmation failed. Final state: ${finalState}`);
-  }
-  console.log("✅ Guardian confirmed successfully. Final state:", finalState);
+  await expect(successIndicator).toBeVisible({ timeout: 5000 });
 
   // Step 5: Owner initiates recovery with new passkey using "Confirm Now" flow
   console.log("\nStep 5: Owner initiating account recovery with Confirm Now...");
