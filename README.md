@@ -132,6 +132,19 @@ This monorepo is comprised of the active ERC-4337 development path:
 - `packages/bundler` contains the Alto-facing bundler helpers and config
 - `examples/demo-app` is the local integration app for the current stack
 
+## Prerequisites
+
+Install these once before running the local development flow:
+
+- Node.js 22.x
+- `pnpm`
+- [Foundry](https://getfoundry.sh)
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
 ## Running development
 
 1. Install dependencies.
@@ -148,29 +161,21 @@ This monorepo is comprised of the active ERC-4337 development path:
    cp packages/bundler/.env.example packages/bundler/.env
    ```
 
-3. Install [Foundry](https://getfoundry.sh) (if not yet installed):
-
-   ```bash
-   curl -L https://foundry.paradigm.xyz | bash
-   foundryup
-   ```
-
-4. Install ERC-4337 Soldeer dependencies:
+3. Install ERC-4337 Soldeer dependencies:
 
    ```bash
    cd packages/erc4337-contracts && forge soldeer install && cd ../..
    ```
 
-5. Start the local `zksync-os` stack in a separate terminal:
+4. Start the local `zksync-os` stack in a separate terminal:
 
    ```bash
    pnpm dev:stack:up
    ```
 
-   This also predeploys the deterministic deployer and Alto simulation contracts
-   required by the local bundler.
+   This also predeploys the local bundler prerequisites.
 
-6. Start the Alto bundler and CORS proxy in separate terminals:
+5. Start the Alto bundler and CORS proxy in separate terminals:
 
    ```bash
    # Terminal 1
@@ -182,22 +187,15 @@ This monorepo is comprised of the active ERC-4337 development path:
    pnpm --dir packages/erc4337-contracts run bundler-proxy
    ```
 
-7. Start the demo application and local SSO helpers:
+6. Start the demo application and local SSO helpers:
 
    ```bash
    pnpm nx dev:erc4337 demo-app
    ```
 
-   This local-only flow uses
-   [`examples/demo-app/scripts/deploy-msa-local.sh`](/Users/jackhamer/Documents/Projects/matterlabs/zksync-sso/examples/demo-app/scripts/deploy-msa-local.sh)
-   under the hood. It deploys the reusable SSO contract suite, bridges the small
-   set of local wallets needed for dev/e2e, deploys a mock paymaster, and starts
-   the auth-server alongside the demo app.
+   This uses `scripts/setup-local-dev.sh`.
 
-For reusable chain deployments, use
-[`examples/demo-app/scripts/deploy-msa.sh`](/Users/jackhamer/Documents/Projects/matterlabs/zksync-sso/examples/demo-app/scripts/deploy-msa.sh).
-That script only deploys the SSO contract suite and syncs manifests; it does not
-do any local bridge funding or mock-paymaster setup.
+For reusable deployments, use `scripts/deploy-sso-contracts.sh`.
 
 Local port list:
 
@@ -247,7 +245,7 @@ command.
 
 ## Running/Debugging End-to-End Tests
 
-To execute the end-to-end tests, complete steps 1–6 from "Running development"
+To execute the end-to-end tests, complete steps 1–5 from "Running development"
 above (zksync-os running + bundler running), then:
 
 ```bash
@@ -261,9 +259,8 @@ pnpm nx e2e:demo-only demo-app
 pnpm nx e2e:guardian auth-server
 ```
 
-`pnpm nx e2e:erc4337 demo-app` redeploys the local demo contracts itself via
-`deploy-msa-local.sh`. It still expects `zksync-os`, Alto, and the bundler proxy
-to already be running.
+`pnpm nx e2e:erc4337 demo-app` runs `scripts/setup-local-dev.sh`, but still
+expects `zksync-os`, Alto, and the bundler proxy to already be running.
 
 To debug end-to-end tests interactively:
 

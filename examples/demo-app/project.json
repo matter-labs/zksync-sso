@@ -52,13 +52,13 @@
         "cwd": "examples/demo-app",
         "command": "echo '{\"deployedTo\":\"0x0000000000000000000000000000000000000000\"}' > forge-output-paymaster.json && echo '{\"deployedTo\":\"0x0000000000000000000000000000000000000000\"}' > forge-output-erc1271.json && echo 'Created stub contract JSONs for ERC-4337 build'"
       },
-      "dependsOn": ["deploy-msa-factory"]
+      "dependsOn": ["setup-local-dev"]
     },
-    "deploy-msa-factory": {
+    "setup-local-dev": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "examples/demo-app",
-        "command": "./scripts/deploy-msa-local.sh"
+        "command": "../../scripts/setup-local-dev.sh"
       },
       "dependsOn": ["build-erc4337-contracts"]
     },
@@ -170,8 +170,8 @@
         "cwd": "examples/demo-app",
         "commands": [
           {
-            "command": "./scripts/deploy-msa-local.sh",
-            "prefix": "Deploy-Local:"
+            "command": "../../scripts/setup-local-dev.sh",
+            "prefix": "Setup-Local:"
           },
           {
             "command": "pnpm nx run demo-app:deploy-contracts-erc4337",

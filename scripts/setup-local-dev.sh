@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 CONTRACTS_DIR="${CONTRACTS_DIR:-$WORKSPACE_ROOT/packages/erc4337-contracts}"
 L1_RPC_URL="${L1_RPC_URL:-http://localhost:5010}"
@@ -69,7 +69,7 @@ else
   echo "Skipping L1 to L2 bridge step because ENABLE_L1_TO_L2_BRIDGE=$ENABLE_L1_TO_L2_BRIDGE"
 fi
 
-"$SCRIPT_DIR/deploy-msa.sh"
+"$SCRIPT_DIR/deploy-sso-contracts.sh"
 
 echo ""
 echo "📦 Deploying MockPaymaster for local development..."

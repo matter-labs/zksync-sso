@@ -1,10 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Navigate to the workspace root (3 levels up from scripts/)
-WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 CONTRACTS_DIR="${CONTRACTS_DIR:-$WORKSPACE_ROOT/packages/erc4337-contracts}"
 RPC_URL="${RPC_URL:-http://localhost:3050}"
@@ -19,7 +17,7 @@ PUBLIC_CONTRACTS_JSON_PATH="${PUBLIC_CONTRACTS_JSON_PATH:-$WORKSPACE_ROOT/exampl
 AUTH_SERVER_CONTRACTS_PATH="${AUTH_SERVER_CONTRACTS_PATH:-$WORKSPACE_ROOT/packages/auth-server/stores/contracts.json}"
 AUTH_SERVER_API_CONTRACTS_PATH="${AUTH_SERVER_API_CONTRACTS_PATH:-$WORKSPACE_ROOT/packages/auth-server-api/src/contracts.json}"
 
-echo "Deploying reusable MSA contract suite..."
+echo "Deploying reusable SSO contract suite..."
 echo ""
 echo "📍 Deployer: $DEPLOYER_ADDRESS"
 echo "🌐 RPC URL: $RPC_URL"
@@ -34,7 +32,7 @@ forge build
 
 # Deploy the reusable factory/module suite only.
 echo ""
-echo "Deploying MSA contracts using pnpm deploy-contracts..."
+echo "Deploying SSO contracts using pnpm deploy-contracts..."
 DEPLOY_OUTPUT=$(RPC_URL="$RPC_URL" \
   PRIVATE_KEY="$PRIVATE_KEY" \
   pnpm deploy-contracts 2>&1)
@@ -66,7 +64,7 @@ echo "  WebAuthnValidator: $WEBAUTHN_VALIDATOR"
 echo "  GuardianExecutor: $GUARDIAN_EXECUTOR"
 echo "  ModularSmartAccount impl: $ACCOUNT_IMPL"
 echo "  UpgradeableBeacon: $BEACON"
-echo "  MSAFactory: $FACTORY"
+echo "  SmartAccountFactory: $FACTORY"
 
 # Create the local contracts manifest
 echo ""
