@@ -108,13 +108,11 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Send transaction
     let txHash: Hex;
     try {
-      const txParams = {
+      txHash = await walletClient.sendTransaction({
         to: transaction.to,
         data: transaction.data,
-        type: "legacy" as const,
-      };
-
-      txHash = await walletClient.sendTransaction(txParams);
+        type: "legacy",
+      });
     } catch (error) {
       console.error("Transaction send failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";

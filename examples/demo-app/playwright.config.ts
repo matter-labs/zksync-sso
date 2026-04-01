@@ -28,6 +28,14 @@ const authServerEnv = {
   PORT: "3002",
 };
 
+const authServerApiEnv = {
+  PORT: "3004",
+  RPC_URL: localNode.rpcUrl,
+  CHAIN_1_ID: String(localNode.chainId),
+  CHAIN_1_RPC_URL: localNode.rpcUrl,
+  DEPLOYER_PRIVATE_KEY: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6",
+};
+
 // The demo-only suite can run after the ERC-4337 suite in CI, where the auth
 // server and preview processes may still be alive on the same ports.
 const reuseExistingServer = true;
@@ -71,15 +79,16 @@ export default defineConfig({
   /* Run local servers before starting the tests */
   webServer: [
     {
-      command: "PORT=3004 pnpm nx dev auth-server-api",
+      command: "pnpm nx dev auth-server-api",
       url: "http://localhost:3004/api/health",
       reuseExistingServer,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,
+      env: { ...process.env, ...authServerApiEnv },
     },
     {
-      command: "pnpm nx dev:no-deploy auth-server",
+      command: "pnpm nx run auth-server:build:local && PORT=3002 pnpm -C ../../packages/auth-server exec nuxt preview",
       url: "http://localhost:3002",
       reuseExistingServer,
       stdout: "pipe",
@@ -88,7 +97,7 @@ export default defineConfig({
       env: { ...process.env, ...authServerEnv },
     },
     {
-      command: "PORT=3005 pnpm nx dev demo-app",
+      command: "pnpm nx run demo-app:build:local && PORT=3005 pnpm exec nuxt preview",
       url: "http://localhost:3005",
       reuseExistingServer,
       stdout: "pipe",

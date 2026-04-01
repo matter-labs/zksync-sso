@@ -8,6 +8,26 @@ type WebAuthnCredential = {
   signCount: number;
 };
 
+function parseBalanceText(balanceText: string): number {
+  return Number(balanceText.replace("Balance: ", "").replace(" ETH", "").trim());
+}
+
+async function waitForNumericBalance(page: Page): Promise<number> {
+  const balanceText = page.getByText("Balance:");
+
+  await expect.poll(async () => {
+    const text = await balanceText.innerText();
+    const balance = parseBalanceText(text);
+
+    return Number.isFinite(balance) ? balance : null;
+  }, {
+    message: "Expected the balance to render as a numeric ETH amount",
+    timeout: 30000,
+  }).not.toBeNull();
+
+  return parseBalanceText(await balanceText.innerText());
+}
+
 async function waitForServicesToLoad(page: Page): Promise<void> {
   const maxRetryAttempts = 10;
   let retryCount = 0;
@@ -91,8 +111,7 @@ test("Create account with session and send ETH", async ({ page }) => {
 
   await page.waitForTimeout(2000);
   await expect(page.getByText("Disconnect")).toBeVisible();
-  const initialBalanceText = await page.getByText("Balance:").innerText();
-  const initialBalance = +initialBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  const initialBalance = await waitForNumericBalance(page);
   await expect(initialBalance, "Balance should be non-zero after initial funding").toBeGreaterThan(0);
 
   // Step 2: disconnect then reconnect with session using the same passkey credential
@@ -127,8 +146,7 @@ test("Create account with session and send ETH", async ({ page }) => {
 
   await page.waitForTimeout(2000);
   await expect(page.getByText("Disconnect")).toBeVisible();
-  const sessionBalanceText = await page.getByText("Balance:").innerText();
-  const sessionStartBalance = +sessionBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  const sessionStartBalance = await waitForNumericBalance(page);
 
   // Step 3: send ETH under session (no extra signing step expected)
   await page.getByRole("button", { name: "Send 0.1 ETH", exact: true }).click();
@@ -142,8 +160,7 @@ test("Create account with session and send ETH", async ({ page }) => {
   // Wait a bit for balance to update
   await page.waitForTimeout(2000);
 
-  const sessionEndBalanceText = await page.getByText("Balance:").innerText();
-  const sessionEndBalance = +sessionEndBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  const sessionEndBalance = await waitForNumericBalance(page);
 
   await expect(sessionStartBalance, "Balance after transfer should be ~0.1 ETH less").toBeGreaterThan(sessionEndBalance + 0.09);
 });
@@ -201,9 +218,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
   // Check address/balance is shown
   await expect(page.getByText("Disconnect")).toBeVisible();
   await expect(page.getByText("Balance:")).toBeVisible();
-  const startBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
+  const startBalance = await waitForNumericBalance(page);
 
   // Send some eth
   await page.getByRole("button", { name: "Send 0.1 ETH", exact: true }).click();
@@ -243,9 +258,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
 
   // Confirm transfer completed and balance updated
   await expect(page.getByRole("button", { name: "Send 0.1 ETH", exact: true })).toBeEnabled();
-  const endBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
+  const endBalance = await waitForNumericBalance(page);
   await expect(startBalance, "Balance after transfer should be ~0.1 ETH less")
     .toBeGreaterThan(endBalance + 0.1);
 });
@@ -293,8 +306,7 @@ test("Create passkey account and send ETH with paymaster", async ({ page }) => {
   await expect(page.getByText("Disconnect")).toBeVisible({ timeout: 10000 });
   await expect(page.getByText("Balance:")).toBeVisible();
 
-  const startBalanceText = await page.getByText("Balance:").innerText();
-  const startBalance = +startBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  const startBalance = await waitForNumericBalance(page);
   console.log(`Starting balance: ${startBalance} ETH`);
 
   // Click "Send 0.1 ETH (Paymaster)" button
@@ -343,8 +355,7 @@ test("Create passkey account and send ETH with paymaster", async ({ page }) => {
   // Verify transaction completed
   await expect(page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true })).toBeEnabled();
 
-  const endBalanceText = await page.getByText("Balance:").innerText();
-  const endBalance = +endBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  const endBalance = await waitForNumericBalance(page);
   console.log(`Ending balance: ${endBalance} ETH`);
 
   const balanceChange = startBalance - endBalance;
@@ -397,8 +408,7 @@ test("Create account with session, create session via paymaster, and send ETH", 
   // Wait for connection
   await page.waitForTimeout(2000);
   await expect(page.getByText("Disconnect")).toBeVisible();
-  const initialBalanceText = await page.getByText("Balance:").innerText();
-  const initialBalance = +initialBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  const initialBalance = await waitForNumericBalance(page);
   await expect(initialBalance, "Balance should be non-zero after initial funding").toBeGreaterThan(0);
 
   // Step 2: Disconnect and reconnect with "Connect Session (Paymaster)"
@@ -441,8 +451,7 @@ test("Create account with session, create session via paymaster, and send ETH", 
   // Wait for session creation to complete
   await page.waitForTimeout(2000);
   await expect(page.getByText("Disconnect")).toBeVisible();
-  const sessionBalanceText = await page.getByText("Balance:").innerText();
-  const sessionStartBalance = +sessionBalanceText.replace("Balance: ", "").replace(" ETH", "");
+  const sessionStartBalance = await waitForNumericBalance(page);
 
   // Verify session was created (balance should be available)
   expect(sessionStartBalance).toBeGreaterThan(0);
