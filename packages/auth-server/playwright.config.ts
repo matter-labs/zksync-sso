@@ -36,6 +36,10 @@ const authServerApiEnv = {
   RPC_URL: localNode.rpcUrl,
 };
 
+// The guardian suite can run after other targets in CI, where the local API or
+// preview server may already be alive on the same ports.
+const reuseExistingServer = true;
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -63,7 +67,7 @@ export default defineConfig({
     {
       command: "pnpm nx dev auth-server-api",
       url: "http://localhost:3004/api/health",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,
@@ -72,7 +76,7 @@ export default defineConfig({
     {
       command: "pnpm nx preview:no-deploy auth-server",
       url: "http://localhost:3002",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,
