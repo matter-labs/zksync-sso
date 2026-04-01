@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 import { expect, type Page, test } from "@playwright/test";
 
+const AUTH_SERVER_URL = process.env.PW_AUTH_SERVER_URL || "http://localhost:3002";
+
 type WebAuthnCredential = {
   credentialId: string;
   isResidentCredential: boolean;
@@ -46,7 +48,7 @@ async function waitForServicesToLoad(page: Page): Promise<void> {
 
   // Wait for auth server to finish loading
   retryCount = 0;
-  await page.goto("http://localhost:3002");
+  await page.goto(AUTH_SERVER_URL);
   let authServerHeader = page.getByTestId("signup");
   while (!(await authServerHeader.isVisible()) && retryCount < maxRetryAttempts) {
     await page.waitForTimeout(1000);
@@ -57,6 +59,18 @@ async function waitForServicesToLoad(page: Page): Promise<void> {
   }
   console.log("Auth Server loaded");
 };
+
+async function openPopup(
+  page: Page,
+  trigger: () => Promise<unknown>,
+): Promise<Page> {
+  const popupPromise = page.waitForEvent("popup");
+  await trigger();
+  const popup = await popupPromise;
+  await popup.waitForLoadState("domcontentloaded");
+
+  return popup;
+}
 
 test.beforeEach(async ({ page }) => {
   page.on("console", (msg) => {
@@ -74,10 +88,7 @@ test.beforeEach(async ({ page }) => {
 
 test("Create account with session and send ETH", async ({ page }) => {
   // Step 1: regular connect to create account with passkey
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
-
-  await page.waitForTimeout(2000);
-  const popup = page.context().pages()[1];
+  const popup = await openPopup(page, () => page.getByRole("button", { name: "Connect", exact: true }).click());
   await expect(popup.getByText("Connect to")).toBeVisible();
   popup.on("console", (msg) => {
     if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
@@ -118,9 +129,7 @@ test("Create account with session and send ETH", async ({ page }) => {
   await page.getByRole("button", { name: "Disconnect", exact: true }).click();
   await expect(page.getByRole("button", { name: "Connect with Session", exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
-  await page.waitForTimeout(2000);
-  const sessionPopup = page.context().pages()[1];
+  const sessionPopup = await openPopup(page, () => page.getByRole("button", { name: "Connect with Session", exact: true }).click());
   await expect(sessionPopup.getByText("Act on your behalf")).toBeVisible();
 
   const sessionClient = await sessionPopup.context().newCDPSession(sessionPopup);
@@ -167,11 +176,7 @@ test("Create account with session and send ETH", async ({ page }) => {
 
 test("Create passkey account and send ETH", async ({ page }) => {
   // Click the Connect button
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
-
-  // Ensure popup is displayed
-  await page.waitForTimeout(2000);
-  let popup = page.context().pages()[1];
+  let popup = await openPopup(page, () => page.getByRole("button", { name: "Connect", exact: true }).click());
   await expect(popup.getByText("Connect to")).toBeVisible();
   popup.on("console", (msg) => {
     if (msg.type() === "error")
@@ -221,11 +226,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
   const startBalance = await waitForNumericBalance(page);
 
   // Send some eth
-  await page.getByRole("button", { name: "Send 0.1 ETH", exact: true }).click();
-
-  // Wait for Auth Server to pop back up
-  await page.waitForTimeout(2000);
-  popup = page.context().pages()[1];
+  popup = await openPopup(page, () => page.getByRole("button", { name: "Send 0.1 ETH", exact: true }).click());
 
   // We need to recreate the virtual authenticator to match the previous one
   client = await popup.context().newCDPSession(popup);
@@ -265,10 +266,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
 
 test("Create passkey account and send ETH with paymaster", async ({ page }) => {
   // Create account with paymaster connect (paymaster sponsors all gas)
-  await page.getByRole("button", { name: "Connect (Paymaster)", exact: true }).click();
-
-  await page.waitForTimeout(2000);
-  let popup = page.context().pages()[1];
+  let popup = await openPopup(page, () => page.getByRole("button", { name: "Connect (Paymaster)", exact: true }).click());
   await expect(popup.getByText("Connect to")).toBeVisible();
   popup.on("console", (msg) => {
     if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
@@ -311,11 +309,7 @@ test("Create passkey account and send ETH with paymaster", async ({ page }) => {
 
   // Click "Send 0.1 ETH (Paymaster)" button
   await expect(page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true }).click();
-
-  // Wait for Auth Server to pop back up for transaction confirmation
-  await page.waitForTimeout(2000);
-  popup = page.context().pages()[1];
+  popup = await openPopup(page, () => page.getByRole("button", { name: "Send 0.1 ETH (Paymaster)", exact: true }).click());
 
   // Setup virtual authenticator for transaction signature
   client = await popup.context().newCDPSession(popup);
@@ -369,10 +363,7 @@ test("Create passkey account and send ETH with paymaster", async ({ page }) => {
 
 test("Create account with session, create session via paymaster, and send ETH", async ({ page }) => {
   // Step 1: Create a passkey account without session (regular connect)
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
-
-  await page.waitForTimeout(2000);
-  const popup = page.context().pages()[1];
+  const popup = await openPopup(page, () => page.getByRole("button", { name: "Connect", exact: true }).click());
   await expect(popup.getByText("Connect to")).toBeVisible();
   popup.on("console", (msg) => {
     if (msg.type() === "error") console.log(`Auth server error console: "${msg.text()}"`);
@@ -420,9 +411,7 @@ test("Create account with session, create session via paymaster, and send ETH", 
   console.log("Balance before session creation with paymaster:", balanceBeforePaymaster, "ETH");
 
   // Connect with session (paymaster will sponsor session creation)
-  await page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true }).click();
-  await page.waitForTimeout(2000);
-  const sessionPopup = page.context().pages()[1];
+  const sessionPopup = await openPopup(page, () => page.getByRole("button", { name: "Connect Session (Paymaster)", exact: true }).click());
   await expect(sessionPopup.getByText("Act on your behalf")).toBeVisible();
 
   // Setup WebAuthn with existing credential
@@ -476,10 +465,7 @@ test("Create session and verify it appears in auth-server sessions list", async 
 
   // Step 1: Create account
   console.log("Step 1: Creating account...");
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
-  await page.waitForTimeout(2000);
-
-  const popup = page.context().pages()[1];
+  const popup = await openPopup(page, () => page.getByRole("button", { name: "Connect", exact: true }).click());
   await expect(popup.getByText("Connect to")).toBeVisible();
 
   // Setup WebAuthn
@@ -517,10 +503,7 @@ test("Create session and verify it appears in auth-server sessions list", async 
   console.log("\nStep 2: Creating session...");
   await page.getByRole("button", { name: "Disconnect", exact: true }).click();
   await expect(page.getByRole("button", { name: "Connect with Session", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Connect with Session", exact: true }).click();
-  await page.waitForTimeout(2000);
-
-  const sessionPopup = page.context().pages()[1];
+  const sessionPopup = await openPopup(page, () => page.getByRole("button", { name: "Connect with Session", exact: true }).click());
   await expect(sessionPopup.getByText("Act on your behalf")).toBeVisible();
 
   // Setup WebAuthn with existing credential
@@ -553,7 +536,7 @@ test("Create session and verify it appears in auth-server sessions list", async 
   console.log("\nStep 3: Verifying session appears in auth-server...");
 
   const authPage = await page.context().newPage();
-  await authPage.goto("http://localhost:3002");
+  await authPage.goto(AUTH_SERVER_URL);
   await authPage.waitForTimeout(1000);
 
   // Check if logged in
@@ -588,7 +571,7 @@ test("Create session and verify it appears in auth-server sessions list", async 
   }
 
   // Navigate to sessions page
-  await authPage.goto("http://localhost:3002/dashboard/sessions");
+  await authPage.goto(`${AUTH_SERVER_URL}/dashboard/sessions`);
   await authPage.waitForLoadState("domcontentloaded");
 
   // Listen for console logs from the sessions page

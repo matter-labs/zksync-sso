@@ -17,7 +17,7 @@ export default [
       "**/deployments-zk/",
       "**/cache-zk/",
       "**/typechain-types/",
-      "packages/erc4337-contracts/**",
+      "packages/contracts/**",
       "packages/circuits/**",
     ],
   },

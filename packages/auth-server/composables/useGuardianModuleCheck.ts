@@ -3,7 +3,7 @@
  */
 
 import type { Address } from "viem";
-import { isGuardianModuleInstalled } from "zksync-sso-4337";
+import { isGuardianModuleInstalled } from "zksync-sso";
 
 export const useGuardianModuleCheck = () => {
   const { getPublicClient, contracts } = useClientStore();

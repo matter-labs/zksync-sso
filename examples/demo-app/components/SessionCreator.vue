@@ -74,7 +74,7 @@ import { ref, computed } from "vue";
 import { createPublicClient, http, parseEther, type Address, type Chain, encodePacked, keccak256, pad } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { privateKeyToAccount } from "viem/accounts";
-import { createSession, toEcdsaSmartAccount, LimitType, getSessionHash } from "zksync-sso-4337/client";
+import { createSession, toEcdsaSmartAccount, LimitType, getSessionHash } from "zksync-sso/client";
 
 interface SessionConfig {
   enabled: boolean;

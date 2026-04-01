@@ -1,7 +1,7 @@
 {
   "name": "zksync-sso-web-sdk",
   "version": "0.0.1",
-  "description": "WebAssembly-based SDK for zkSync SSO ERC-4337 integration",
+  "description": "WebAssembly-based SDK for zkSync SSO",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -64,7 +64,6 @@
   "keywords": [
     "zksync",
     "sso",
-    "erc4337",
     "account-abstraction",
     "wasm",
     "webassembly",

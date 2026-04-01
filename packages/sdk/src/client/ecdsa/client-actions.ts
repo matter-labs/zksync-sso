@@ -33,7 +33,7 @@ export type EcdsaClientActions<TChain extends Chain = Chain, TAccount extends Ac
 
 /**
  * Decorator that provides wallet actions for ECDSA client.
- * Overrides standard wallet methods to use ERC-4337 bundler under the hood.
+ * Overrides standard wallet methods to use the bundler under the hood.
  */
 export function ecdsaClientActions<
   TTransport extends Transport,

@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE_GZ="$ROOT_DIR/dev/zksyncos/l1-state.json.gz"
 STATE_JSON="$ROOT_DIR/dev/zksyncos/l1-state.json"
-COMPOSE_FILE="$ROOT_DIR/docker-compose.4337.yml"
+COMPOSE_FILE="$ROOT_DIR/docker-compose.stack.yml"
 
 if [ ! -f "$STATE_GZ" ]; then
   echo "Missing compressed L1 state snapshot: $STATE_GZ" >&2
@@ -27,7 +27,7 @@ for _ in $(seq 1 90); do
     http://127.0.0.1:3050 >/dev/null 2>&1; then
     echo "zksync-os is ready."
     echo "Predeploying bundler prerequisites..."
-    pnpm --dir "$ROOT_DIR/packages/erc4337-contracts" run bundler:prepare
+    pnpm --dir "$ROOT_DIR/packages/contracts" run bundler:prepare
     exit 0
   fi
   sleep 2

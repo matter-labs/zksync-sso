@@ -1,5 +1,5 @@
 import type { Address, Hex } from "viem";
-import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
+import { WebAuthnValidatorAbi } from "zksync-sso/abi";
 
 export const useConfigurableAccount = () => {
   const { getPublicClient, getConfigurableClient, contracts } = useClientStore();

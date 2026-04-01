@@ -75,7 +75,7 @@
 import { ref, computed } from "vue";
 import { createPublicClient, http, parseEther, type Chain, type Address, type Abi } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
-import { createSessionClient, LimitType } from "zksync-sso-4337/client";
+import { createSessionClient, LimitType } from "zksync-sso/client";
 // WASM helpers for diagnostics and nonce calculation
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore

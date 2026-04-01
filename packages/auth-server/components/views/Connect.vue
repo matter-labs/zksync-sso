@@ -11,7 +11,7 @@
 
 <script lang="ts" setup>
 import { getAddress } from "viem";
-import type { SessionPreferences } from "zksync-sso-4337/client";
+import type { SessionPreferences } from "zksync-sso/client";
 
 const { requestParams, requestMethod } = storeToRefs(useRequestsStore());
 

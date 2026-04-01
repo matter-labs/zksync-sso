@@ -4,8 +4,7 @@ import {
   type Client,
   createClient,
   createPublicClient,
-  type Hex,
-  type JsonRpcAccount,
+  type Hash,
   type Prettify,
   type PublicActions,
   publicActions,
@@ -17,32 +16,27 @@ import {
 } from "viem";
 import type { BundlerClient } from "viem/account-abstraction";
 
-import type { PaymasterConfig } from "../../actions/sendUserOperation.js";
-import type { ToPasskeySmartAccountParams } from "./account.js";
+import type { ToEcdsaSmartAccountParams } from "./account.js";
 import {
-  type PasskeyClientActions,
-  passkeyClientActions,
+  type EcdsaClientActions,
+  ecdsaClientActions,
 } from "./client-actions.js";
 
 /**
- * Parameters for creating a passkey bundler client
+ * Parameters for creating an ECDSA bundler client
  */
-export type CreatePasskeyClientParams<
+export type CreateEcdsaClientParams<
   TTransport extends Transport = Transport,
   TChain extends Chain = Chain,
 > = {
-  /** Passkey account configuration */
+  /** ECDSA account configuration */
   account: {
     /** Smart account address (required - no counterfactual support). */
     address: Address;
-    /** Passkey validator contract address (required for signature formatting). */
-    validatorAddress: Address;
-    /** Passkey credential ID (hex string). */
-    credentialId: Hex;
-    /** Relying Party ID (domain where passkey was created). */
-    rpId: string;
-    /** Origin URL (for WebAuthn verification). */
-    origin: string;
+    /** ECDSA signer private key (hex string). */
+    signerPrivateKey: Hash;
+    /** EOA validator contract address (required for signature formatting). */
+    eoaValidatorAddress: Address;
     /** Optional override for EntryPoint address used by the account implementation. */
     entryPointAddress?: Address;
   };
@@ -56,8 +50,8 @@ export type CreatePasskeyClientParams<
   /** Transport for public RPC calls */
   transport: TTransport;
 
-  /** Optional paymaster configuration for sponsored transactions - can be either a full config object or just an address string */
-  paymaster?: PaymasterConfig | Address;
+  /** Optional paymaster address for sponsored transactions */
+  paymaster?: Address;
 
   /** Optional client metadata */
   key?: string;
@@ -65,9 +59,9 @@ export type CreatePasskeyClientParams<
 };
 
 /**
- * Passkey bundler client type with all actions
+ * ECDSA bundler client type with all actions
  */
-export type PasskeyClient<
+export type EcdsaClient<
   TTransport extends Transport = Transport,
   TChain extends Chain = Chain,
   TRpcSchema extends RpcSchema | undefined = undefined,
@@ -75,26 +69,26 @@ export type PasskeyClient<
   Client<
     TTransport,
     TChain,
-    JsonRpcAccount,
+    undefined,
     TRpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...TRpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema]
   > &
   PublicActions<TTransport, TChain> &
-  PasskeyClientActions & {
+  EcdsaClientActions & {
     /** The bundler client instance */
     bundler: BundlerClient;
   }
 >;
 
 /**
- * Create a viem wallet client wrapper around a passkey smart account.
+ * Create a viem wallet client wrapper around an ECDSA smart account.
  *
  * This client provides a standard viem WalletClient interface while using
- * ERC-4337 user operations under the hood. All transactions are sent via
+ * user operations under the hood. All transactions are sent via
  * the bundler and return actual transaction hashes (not userOp hashes).
  *
- * The smart account is lazy-loaded on first transaction since toPasskeySmartAccount is async.
+ * The smart account is lazy-loaded on first transaction since toEcdsaSmartAccount is async.
  *
  * @param params - Configuration including account details, bundler client, and chain
  * @returns A viem wallet client compatible with wagmi and standard tooling
@@ -103,7 +97,7 @@ export type PasskeyClient<
  * ```typescript
  * import { createPublicClient, http } from "viem";
  * import { createBundlerClient } from "viem/account-abstraction";
- * import { createPasskeyClient } from "zksync-sso-4337/client/passkey";
+ * import { createEcdsaClient } from "zksync-sso/client/ecdsa";
  *
  * const publicClient = createPublicClient({
  *   chain,
@@ -115,13 +109,11 @@ export type PasskeyClient<
  *   transport: http(bundlerUrl),
  * });
  *
- * const client = createPasskeyClient({
+ * const client = createEcdsaClient({
  *   account: {
  *     address: "0x...",
- *     validatorAddress: "0x...",
- *     credentialId: "0x...",
- *     rpId: window.location.hostname,
- *     origin: window.location.origin,
+ *     signerPrivateKey: "0x...",
+ *     eoaValidatorAddress: "0x...",
  *   },
  *   bundlerClient,
  *   chain,
@@ -138,24 +130,20 @@ export type PasskeyClient<
  * // Wait for confirmation
  * const receipt = await client.waitForTransactionReceipt({ hash });
  *
- * // Add a new passkey
- * await client.addPasskey({
- *   credentialId: "0x...",
- *   publicKey: { x: "0x...", y: "0x..." },
- *   originDomain: "example.com",
- * });
+ * // Sign messages (supported for ECDSA)
+ * const signature = await client.signMessage({ message: "Hello" });
  *
  * // Access bundler client directly
  * const bundler = client.bundler;
  * ```
  */
-export function createPasskeyClient<
+export function createEcdsaClient<
   TTransport extends Transport = Transport,
   TChain extends Chain = Chain,
   TRpcSchema extends RpcSchema | undefined = undefined,
 >(
-  params: CreatePasskeyClientParams<TTransport, TChain>,
-): PasskeyClient<TTransport, TChain, TRpcSchema> {
+  params: CreateEcdsaClientParams<TTransport, TChain>,
+): EcdsaClient<TTransport, TChain, TRpcSchema> {
   const { account: accountConfig, bundlerClient, chain, transport } = params;
 
   // Wrap bundler client to inject paymaster if provided
@@ -167,14 +155,12 @@ export function createPasskeyClient<
     transport,
   });
 
-  // Prepare passkey account params for lazy loading
-  const passkeyAccountParams: ToPasskeySmartAccountParams = {
-    client: publicClient as ToPasskeySmartAccountParams["client"],
+  // Prepare ECDSA account params for lazy loading
+  const ecdsaAccountParams: ToEcdsaSmartAccountParams = {
+    client: publicClient as ToEcdsaSmartAccountParams["client"],
     address: accountConfig.address,
-    validatorAddress: accountConfig.validatorAddress,
-    credentialId: accountConfig.credentialId,
-    rpId: accountConfig.rpId,
-    origin: accountConfig.origin,
+    signerPrivateKey: accountConfig.signerPrivateKey,
+    eoaValidatorAddress: accountConfig.eoaValidatorAddress,
     entryPointAddress: accountConfig.entryPointAddress,
   };
 
@@ -183,26 +169,24 @@ export function createPasskeyClient<
   const client = createClient({
     chain,
     transport,
-    account: { address: accountConfig.address, type: "json-rpc" },
+    account: undefined,
     type: "walletClient",
-    key: params.key || "zksync-sso-passkey-client",
-    name: params.name || "ZKsync SSO Passkey Client",
+    key: params.key || "zksync-sso-ecdsa-client",
+    name: params.name || "ZKsync SSO ECDSA Client",
   })
     .extend(publicActions)
     .extend(walletActions)
     .extend((client) =>
-      passkeyClientActions({
+      ecdsaClientActions({
         client,
         bundler: wrappedBundlerClient,
-        passkeyAccount: passkeyAccountParams,
+        ecdsaAccount: ecdsaAccountParams,
         accountAddress: accountConfig.address,
-        validatorAddress: accountConfig.validatorAddress,
-        paymaster: params.paymaster,
       }),
     )
     .extend(() => ({
       bundler: wrappedBundlerClient,
     }));
 
-  return client as PasskeyClient<TTransport, TChain, TRpcSchema>;
+  return client as EcdsaClient<TTransport, TChain, TRpcSchema>;
 }

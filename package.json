@@ -14,12 +14,12 @@
     "prepare": "husky",
     "graph": "pnpm nx graph",
     "dev:demo": "pnpm nx run-many -t serve -p auth-server demo-app",
-    "dev:stack:up": "./scripts/start-4337.sh",
-    "dev:stack:down": "./scripts/stop-4337.sh",
+    "dev:stack:up": "./scripts/start-stack.sh",
+    "dev:stack:down": "./scripts/stop-stack.sh",
     "fmt": "pnpm prettier --write --ignore-path .prettierignore .",
     "lint": "pnpm run lint:eslint && pnpm run lint:markdown && pnpm run lint:spelling && pnpm run lint:prettier",
     "lint:fix": "pnpm eslint --fix --ignore-pattern 'packages/*' --ignore-pattern 'examples/*' . && pnpm nx affected -t lint --fix --exclude=zksync-sso-circuits,zksync-sso-contracts-7579 && pnpm prettier --write --ignore-path .prettierignore . | grep -v 'unchanged' | xargs",
-    "format-abi": "pnpm eslint --fix packages/sdk-4337/src/abi && pnpm nx affected -t lint --fix --exclude=zksync-sso-circuits,zksync-sso-contracts-7579 && pnpm prettier --write packages/sdk-4337/src/abi | grep -v 'unchanged' | xargs",
+    "format-abi": "pnpm eslint --fix packages/sdk/src/abi && pnpm nx affected -t lint --fix --exclude=zksync-sso-circuits,zksync-sso-contracts-7579 && pnpm prettier --write packages/sdk/src/abi | grep -v 'unchanged' | xargs",
     "lint:eslint": "pnpm nx run-many -t lint --all --exclude=zksync-sso-circuits,zksync-sso-contracts-7579 && pnpm eslint --ignore-pattern 'packages/*' --ignore-pattern 'examples/*' .",
     "lint:markdown": "markdownlint-cli2 '**/*.md'",
     "lint:spelling": "cspell .",
@@ -49,7 +49,7 @@
     "typescript": "5.6.2",
     "typescript-eslint": "8.7.0",
     "viem": "^2.30.0",
-    "zksync-sso-4337": "workspace:*"
+    "zksync-sso": "workspace:*"
   },
   "nx": {
     "includedScripts": []

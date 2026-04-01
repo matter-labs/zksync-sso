@@ -55,8 +55,8 @@
 <script setup lang="ts">
 import { InformationCircleIcon } from "@heroicons/vue/20/solid";
 import type { Address, Hex } from "viem";
-import { listActiveSessions } from "zksync-sso-4337";
-import { ConstraintCondition, LimitType, type SessionSpec } from "zksync-sso-4337/client";
+import { listActiveSessions } from "zksync-sso";
+import { ConstraintCondition, LimitType, type SessionSpec } from "zksync-sso/client";
 
 const { defaultChain, contracts } = useClientStore();
 const { address } = storeToRefs(useAccountStore());

@@ -1,4 +1,4 @@
-name: zksync-sso-4337
+name: zksync-sso
 
 services:
   l1:

@@ -62,7 +62,7 @@ export type CreateSessionReturnType = {
  *
  * @example
  * ```typescript
- * import { createSession } from "@zksync-sso/sdk-4337";
+ * import { createSession } from "@zksync-sso/sdk";
  * import { createPublicClient, createWalletClient } from "viem";
  * import { zkSyncSepoliaTestnet } from "viem/chains";
  *
@@ -535,7 +535,7 @@ export type ListActiveSessionsReturnType = {
  *
  * @example
  * ```typescript
- * import { listActiveSessions } from "@zksync-sso/sdk-4337";
+ * import { listActiveSessions } from "@zksync-sso/sdk";
  *
  * const { sessions } = await listActiveSessions({
  *   account: "0x...", // Smart account address

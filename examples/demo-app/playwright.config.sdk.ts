@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Playwright configuration for ERC-4337 web SDK tests.
+ * Playwright configuration for the web SDK tests.
  * This config is specifically for testing the web-sdk-test page
  * which tests deploy, fund, and transfer operations.
  */
@@ -43,7 +43,7 @@ export default defineConfig({
     ? undefined
     : [
         {
-          command: "RPC_URL=http://127.0.0.1:3050 PORT=3004 pnpm nx run auth-server-api:dev",
+          command: "CORS_ORIGINS=http://localhost:3002,http://localhost:3004,http://localhost:3005 RPC_URL=http://127.0.0.1:3050 PORT=3004 pnpm nx run auth-server-api:dev",
           url: "http://localhost:3004",
           reuseExistingServer: !process.env.CI,
           timeout: 180_000,
@@ -55,7 +55,7 @@ export default defineConfig({
           timeout: 180_000,
         },
         {
-          command: "pnpm nx run demo-app:build:local && PORT=3005 pnpm -C examples/demo-app exec nuxt preview",
+          command: "NUXT_PUBLIC_AUTH_SERVER_CONFIRM_URL=http://localhost:3002/confirm pnpm nx run demo-app:build:local && NUXT_PUBLIC_AUTH_SERVER_CONFIRM_URL=http://localhost:3002/confirm PORT=3005 pnpm -C examples/demo-app exec nuxt preview",
           url: "http://localhost:3005",
           reuseExistingServer: !process.env.CI,
           timeout: 180_000,

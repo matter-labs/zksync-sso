@@ -110,7 +110,7 @@ import { ref } from "vue";
 import { formatEther, parseEther } from "viem";
 import type { Address } from "viem";
 
-import { WebAuthnValidatorAbi } from "zksync-sso-4337/abi";
+import { WebAuthnValidatorAbi } from "zksync-sso/abi";
 import { PaymasterParams, prepare_passkey_user_operation, submit_passkey_user_operation, SendTransactionConfig, send_transaction_eoa, signWithPasskey } from "zksync-sso-web-sdk/bundler";
 
 import { loadContracts, getBundlerUrl, getChainConfig, createPublicClient } from "~/utils/contracts";

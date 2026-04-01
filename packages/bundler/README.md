@@ -1,11 +1,11 @@
 # Bundler
 
-ERC-4337 bundler service with CORS proxy for ZKsync SSO. Built on
+Bundler service with CORS proxy for zksync SSO. Built on
 [@pimlico/alto](https://github.com/pimlicolabs/alto).
 
 ## Features
 
-- **Alto Bundler**: ERC-4337 compliant bundler on port 4338
+- **Alto Bundler**: Bundler backend on port 4338
 - **CORS Proxy**: Browser-friendly proxy on port 4337
 - **Environment Validation**: Zod-based config with sensible defaults
 - **Docker Ready**: Multi-stage build with production-optimized image
@@ -99,7 +99,7 @@ The bundler generates an Alto config file at runtime with these fixed values:
 
 ## API Usage
 
-Send ERC-4337 user operations to: `http://localhost:4337`
+Send user operations to: `http://localhost:4337`
 
 The CORS proxy automatically forwards requests to Alto bundler and adds
 appropriate CORS headers for browser compatibility.

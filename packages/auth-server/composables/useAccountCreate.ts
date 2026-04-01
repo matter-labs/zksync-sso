@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import type { SessionSpec } from "zksync-sso-4337/client";
-import { sessionSpecToJSON } from "zksync-sso-4337/client";
+import type { SessionSpec } from "zksync-sso/client";
+import { sessionSpecToJSON } from "zksync-sso/client";
 
 export const useAccountCreate = () => {
   const { registerPasskey } = usePasskeyRegister();

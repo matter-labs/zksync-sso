@@ -28,7 +28,7 @@ The build size is approximately 54KB (optimized).
 
 ```bash
 # Build the contracts first (if not already built)
-cd /path/to/packages/erc4337-contracts
+cd /path/to/packages/contracts
 forge soldeer install
 forge build
 

@@ -54,15 +54,15 @@ COPY . .
 # Install all dependencies
 RUN pnpm install -r --frozen-lockfile
 
-# Build ERC-4337 contracts with Foundry
-WORKDIR /usr/src/app/packages/erc4337-contracts
+# Build contracts with Foundry
+WORKDIR /usr/src/app/packages/contracts
 RUN forge soldeer install
 RUN forge build
 
 # Build in dependency order
 WORKDIR /usr/src/app
 RUN pnpm nx build web-sdk
-RUN pnpm nx build sdk-4337
+RUN pnpm nx build sdk
 
 # Copy snarkjs and build auth-server with nuxt build (NOT generate)
 WORKDIR /usr/src/app/packages/auth-server

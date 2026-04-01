@@ -35,6 +35,11 @@ export default defineNuxtConfig({
       },
     },
   },
+  runtimeConfig: {
+    public: {
+      authServerConfirmUrl: process.env.NUXT_PUBLIC_AUTH_SERVER_CONFIRM_URL || "http://localhost:3002/confirm",
+    },
+  },
   vite: {
     plugins: [wasm()],
     build: {

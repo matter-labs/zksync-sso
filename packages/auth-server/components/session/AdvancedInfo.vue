@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
-import type { SessionSpec } from "zksync-sso-4337/client";
+import type { SessionSpec } from "zksync-sso/client";
 
 // Type alias for compatibility
 type SessionConfig = SessionSpec;

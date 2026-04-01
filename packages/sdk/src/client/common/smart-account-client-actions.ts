@@ -71,7 +71,7 @@ export type SmartAccountClientActions<TChain extends Chain = Chain, TAccount ext
 
 /**
  * Generic decorator that provides wallet actions for smart account clients.
- * Overrides standard wallet methods to use ERC-4337 bundler under the hood.
+ * Overrides standard wallet methods to use the bundler under the hood.
  * Works with any smart account type (passkey, ECDSA, etc.) that returns ToSmartAccountReturnType.
  */
 export function smartAccountClientActions<

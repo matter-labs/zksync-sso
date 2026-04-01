@@ -59,5 +59,5 @@ PORT=3005 pnpm -C examples/demo-app exec nuxt preview >/tmp/demo-app-preview.log
 DEMO_PID=$!
 wait_for_http "http://127.0.0.1:3005" "demo-app preview"
 
-echo "Running Playwright ERC-4337 suite..."
-PW_MANAGED_SERVERS=1 PW_TEST_HTML_REPORT_OPEN=never pnpm --dir examples/demo-app exec playwright test --config=playwright-erc4337.config.ts "$@"
+echo "Running Playwright SDK suite..."
+PW_MANAGED_SERVERS=1 PW_TEST_HTML_REPORT_OPEN=never pnpm --dir examples/demo-app exec playwright test --config=playwright.config.sdk.ts "$@"

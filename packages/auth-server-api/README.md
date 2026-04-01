@@ -36,7 +36,7 @@ SSO_AUTH_SERVER_BASE_URL=https://sso.example.com  # Base URL of the SSO auth ser
 ### Contract ABI
 
 The SSO smart account contract ABI is available at:
-[`packages/erc4337-contracts/out/ModularSmartAccount.sol/ModularSmartAccount.json`](../erc4337-contracts/out/ModularSmartAccount.sol/ModularSmartAccount.json)
+[`packages/contracts/out/ModularSmartAccount.sol/ModularSmartAccount.json`](../contracts/out/ModularSmartAccount.sol/ModularSmartAccount.json)
 after compiling the contracts.
 
 ### Required Permissions

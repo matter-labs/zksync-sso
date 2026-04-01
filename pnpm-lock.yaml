@@ -84,9 +84,9 @@ importers:
       viem:
         specifier: ^2.30.0
         version: 2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
-      zksync-sso-4337:
+      zksync-sso:
         specifier: workspace:*
-        version: link:packages/sdk-4337
+        version: link:packages/sdk
 
   examples/demo-app:
     dependencies:
@@ -120,9 +120,9 @@ importers:
       wagmi:
         specifier: ^2.12.17
         version: 2.14.15(@tanstack/query-core@5.59.16)(@tanstack/react-query@5.59.16(react@18.3.1))(@types/react@19.1.8)(bufferutil@4.0.8)(immer@10.0.2)(ioredis@5.4.1)(react@18.3.1)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))(zod@3.24.1)
-      zksync-sso-4337:
+      zksync-sso:
         specifier: workspace:*
-        version: link:../../packages/sdk-4337
+        version: link:../../packages/sdk
     devDependencies:
       '@nuxt/eslint':
         specifier: ^0.5.7
@@ -238,9 +238,9 @@ importers:
       web3-avatar-vue:
         specifier: ^1.0.5
         version: 1.0.5(vue@3.5.31(typescript@5.6.2))
-      zksync-sso-4337:
+      zksync-sso:
         specifier: workspace:*
-        version: link:../sdk-4337
+        version: link:../sdk
       zksync-sso-circuits:
         specifier: workspace:*
         version: link:../circuits
@@ -293,9 +293,9 @@ importers:
       viem:
         specifier: 2.30.0
         version: 2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
-      zksync-sso-4337:
+      zksync-sso:
         specifier: workspace:*
-        version: link:../sdk-4337
+        version: link:../sdk
       zod:
         specifier: ^3.24.1
         version: 3.24.1
@@ -390,7 +390,7 @@ importers:
         specifier: ^17.7.2
         version: 17.7.2
 
-  packages/erc4337-contracts:
+  packages/contracts:
     devDependencies:
       '@matterlabs/zksync-js':
         specifier: ^0.0.2
@@ -460,7 +460,7 @@ importers:
         specifier: ^4.19.2
         version: 4.20.6
 
-  packages/sdk-4337:
+  packages/sdk:
     dependencies:
       '@peculiar/asn1-ecc':
         specifier: ^2.3.13

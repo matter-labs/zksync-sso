@@ -2,6 +2,8 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
+const AUTH_SERVER_URL = process.env.PW_AUTH_SERVER_URL || "http://localhost:3002";
+
 type WebAuthnCredential = {
   credentialId: string;
   isResidentCredential: boolean;
@@ -14,7 +16,7 @@ async function waitForAuthServerToLoad(page: Page): Promise<void> {
   let retryCount = 0;
 
   // Wait for auth server to finish loading
-  await page.goto("http://localhost:3002");
+  await page.goto(AUTH_SERVER_URL);
   let authServerHeader = page.getByTestId("signup");
   while (!(await authServerHeader.isVisible()) && retryCount < maxRetryAttempts) {
     await page.waitForTimeout(1000);
@@ -70,7 +72,7 @@ test("Session list: verify sessions page loads and displays correctly", async ({
 
   // Step 1: Create account and login
   console.log("Step 1: Creating account...");
-  await page.goto("http://localhost:3002");
+  await page.goto(AUTH_SERVER_URL);
   await page.waitForTimeout(1000);
 
   await expect(page.getByTestId("signup")).toBeVisible();
@@ -91,7 +93,7 @@ test("Session list: verify sessions page loads and displays correctly", async ({
     pageErrors.push(err.message);
   });
 
-  await page.goto("http://localhost:3002/dashboard/sessions");
+  await page.goto(`${AUTH_SERVER_URL}/dashboard/sessions`);
 
   // Wait for DOM to be ready instead of networkidle (which may fail due to API errors)
   await page.waitForLoadState("domcontentloaded");

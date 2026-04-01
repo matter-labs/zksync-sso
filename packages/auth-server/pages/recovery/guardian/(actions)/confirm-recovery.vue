@@ -106,7 +106,7 @@
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
 import { type Address, encodeAbiParameters, isAddressEqual, keccak256, pad, parseAbiParameters, toHex } from "viem";
-import { base64urlToUint8Array, getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
+import { base64urlToUint8Array, getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
 import { z } from "zod";
 
 import { uint8ArrayToHex } from "@/utils/formatters";
@@ -268,7 +268,7 @@ const handleConfirmRecovery = async () => {
 
     // Poll for recovery completion instead of waiting once
     // The contract state might take a few seconds to update after transaction confirmation
-    const maxRetries = 10;
+    const maxRetries = 40;
     const retryDelay = 1000; // 1 second between checks
 
     for (let i = 0; i < maxRetries; i++) {

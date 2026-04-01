@@ -121,7 +121,7 @@
 <script lang="ts" setup>
 import { disconnect, getBalance, watchAccount, createConfig, connect, waitForTransactionReceipt, type GetBalanceReturnType, signTypedData, readContract, getConnectorClient } from "@wagmi/core";
 import { createWalletClient, createPublicClient, http, parseEther, toHex, defineChain, type Address, type Hash } from "viem";
-import { zksyncSsoConnector, getConnectedSsoSessionClient, isSsoSessionClientConnected } from "zksync-sso-4337/connector";
+import { zksyncSsoConnector, getConnectedSsoSessionClient, isSsoSessionClientConnected } from "zksync-sso/connector";
 import { privateKeyToAccount } from "viem/accounts";
 import { onMounted } from "vue";
 import ERC1271CallerContract from "../forge-output-erc1271.json";
@@ -175,7 +175,7 @@ const sessionConfig = {
 
 const buildConnector = (mode: "regular" | "session" | "paymaster" | "session-paymaster") => {
   const baseConfig: Parameters<typeof zksyncSsoConnector>[0] = {
-    authServerUrl: "http://localhost:3002/confirm",
+    authServerUrl: runtimeConfig.public.authServerConfirmUrl,
     // Add unique timestamp to ensure each connector is truly fresh
     // This prevents Wagmi from reusing cached connector instances
     connectorMetadata: {
@@ -261,13 +261,15 @@ watchAccount(wagmiConfig, {
 });
 
 watch(address, async () => {
-  if (!address.value) {
+  const currentAddress = address.value;
+
+  if (!currentAddress) {
     balance.value = null;
     return;
   }
 
   let currentBalance = await getBalance(wagmiConfig, {
-    address: address.value,
+    address: currentAddress,
   });
 
   // Skip auto-funding if using paymaster (check query param)
@@ -279,9 +281,18 @@ watch(address, async () => {
       // eslint-disable-next-line no-console
       console.error("Funding failed:", error);
     });
+
+    if (address.value !== currentAddress) {
+      return;
+    }
+
     currentBalance = await getBalance(wagmiConfig, {
-      address: address.value,
+      address: currentAddress,
     });
+  }
+
+  if (address.value !== currentAddress) {
+    return;
   }
 
   balance.value = currentBalance;
@@ -329,7 +340,8 @@ const disconnectWallet = async () => {
 const isSendingEth = ref<boolean>(false);
 
 const sendTokens = async () => {
-  if (!address.value) return;
+  const currentAddress = address.value;
+  if (!currentAddress) return;
 
   errorMessage.value = "";
   isSendingEth.value = true;
@@ -352,7 +364,7 @@ const sendTokens = async () => {
       transactionHash = await connectorClient.request({
         method: "eth_sendTransaction",
         params: [{
-          from: address.value,
+          from: currentAddress,
           to: testTransferTarget,
           value: toHex(parseEther("0.1")),
         }],
@@ -362,9 +374,11 @@ const sendTokens = async () => {
     const receipt = await waitForTransactionReceipt(wagmiConfig, {
       hash: transactionHash,
     });
-    balance.value = await getBalance(wagmiConfig, {
-      address: address.value,
-    });
+    if (address.value === currentAddress) {
+      balance.value = await getBalance(wagmiConfig, {
+        address: currentAddress,
+      });
+    }
     if (receipt.status === "reverted") throw new Error("Transaction reverted");
   } catch (error) {
     // eslint-disable-next-line no-console

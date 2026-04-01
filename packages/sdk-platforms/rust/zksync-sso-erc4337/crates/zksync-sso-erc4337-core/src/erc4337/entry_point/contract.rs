@@ -4,7 +4,7 @@ use std::fmt::Debug;
 sol!(
     #[sol(rpc)]
     EntryPoint,
-    "../../../../../../packages/erc4337-contracts/out/EntryPoint.sol/EntryPoint.json"
+    "../../../../../../packages/contracts/out/EntryPoint.sol/EntryPoint.json"
 );
 
 pub use self::EntryPoint::PackedUserOperation;

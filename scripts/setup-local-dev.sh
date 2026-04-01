@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-CONTRACTS_DIR="${CONTRACTS_DIR:-$WORKSPACE_ROOT/packages/erc4337-contracts}"
+CONTRACTS_DIR="${CONTRACTS_DIR:-$WORKSPACE_ROOT/packages/contracts}"
 L1_RPC_URL="${L1_RPC_URL:-http://localhost:5010}"
 RPC_URL="${RPC_URL:-http://localhost:3050}"
 PRIVATE_KEY="${PRIVATE_KEY:-0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6}"
@@ -59,7 +59,7 @@ if [ "$ENABLE_L1_TO_L2_BRIDGE" = "true" ]; then
   bridge_wallet_if_needed "$PRIVATE_KEY"
 
   if [ "$BRIDGE_TEST_WALLETS" = "true" ]; then
-    echo "Bridging local ERC-4337 test wallets from L1 to L2 if needed..."
+    echo "Bridging local test wallets from L1 to L2 if needed..."
     IFS=',' read -r -a test_wallet_keys <<< "$LOCAL_TEST_WALLET_PRIVATE_KEYS"
     for wallet_private_key in "${test_wallet_keys[@]}"; do
       bridge_wallet_if_needed "$wallet_private_key"

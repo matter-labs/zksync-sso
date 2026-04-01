@@ -10,7 +10,7 @@
         Web SDK Status
       </h2>
       <p class="text-sm text-gray-600 mb-2">
-        Testing WASM-based ZKSync SSO ERC-4337 integration
+        Testing WASM-based zkSync SSO integration
       </p>
 
       <div class="space-y-2">
@@ -585,7 +585,7 @@ import { createWalletClient, http, type Hash, type Hex, type Address, parseEther
 import { privateKeyToAccount } from "viem/accounts";
 import { createBundlerClient } from "viem/account-abstraction";
 
-import { createEcdsaClient, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, findAddressesByPasskey, getPasskeyCredential } from "zksync-sso-4337/client";
+import { createEcdsaClient, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, findAddressesByPasskey, getPasskeyCredential } from "zksync-sso/client";
 // WASM FFI helpers (prepare/sign/submit + paymaster)
 import {
   SendTransactionConfig,

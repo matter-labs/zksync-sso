@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-CONTRACTS_DIR="${CONTRACTS_DIR:-$WORKSPACE_ROOT/packages/erc4337-contracts}"
+CONTRACTS_DIR="${CONTRACTS_DIR:-$WORKSPACE_ROOT/packages/contracts}"
 RPC_URL="${RPC_URL:-http://localhost:3050}"
 BUNDLER_URL="${BUNDLER_URL:-http://localhost:4337}"
 ENTRY_POINT="${ENTRY_POINT:-0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108}"

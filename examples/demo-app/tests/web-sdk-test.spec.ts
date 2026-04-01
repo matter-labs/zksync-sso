@@ -2,13 +2,13 @@
 /**
  * Web SDK Test Suite
  *
- * NOTE: To run these tests, use the e2e:erc4337:demo-only target:
- *   pnpm nx e2e:erc4337:demo-only demo-app
+ * NOTE: To run these tests, use the e2e:sdk:demo-only target:
+ *   pnpm nx e2e:sdk:demo-only demo-app
  *
  * To run a specific test:
- *   pnpm nx e2e:erc4337:demo-only demo-app -t "test name"
+ *   pnpm nx e2e:sdk:demo-only demo-app -t "test name"
  *
- * This target uses nuxt preview (production build) and the ERC-4337 test configuration.
+ * This target uses nuxt preview (production build) and the SDK test configuration.
  */
 import { expect, type Page, test } from "@playwright/test";
 

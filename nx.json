@@ -17,7 +17,7 @@
       },
       "exclude": [
         "packages/circuits",
-        "packages/erc4337-contracts",
+        "packages/contracts",
         "zksync-sso-circuits",
         "zksync-sso-contracts",
         "zksync-sso-contracts-7579"
@@ -66,7 +66,7 @@
     }
   },
   "release": {
-    "projects": ["sdk-4337"],
+    "projects": ["sdk"],
     "version": {
       "preVersionCommand": "pnpm nx run-many -t build",
       "conventionalCommits": true
@@ -83,5 +83,5 @@
     }
   },
   "extends": "nx/presets/npm.json",
-  "ignoredDirs": ["packages/circuits", "packages/erc4337-contracts"]
+  "ignoredDirs": ["packages/circuits", "packages/contracts"]
 }

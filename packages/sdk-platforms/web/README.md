@@ -3,19 +3,19 @@
 **⚠️ WORK IN PROGRESS**: This package is currently under active
 development and not yet ready for production use.
 
-WebAssembly-powered SDK for zkSync SSO ERC-4337 integration in web applications.
+WebAssembly-powered SDK for zkSync SSO in web applications.
 
 ## Current Status
 
 This package provides TypeScript bindings for a
-Rust/WebAssembly implementation of zkSync SSO ERC-4337 functionality.
+Rust/WebAssembly implementation of zkSync SSO functionality.
 
 **What's Working:**
 
 - ✅ WASM module builds successfully for bundler and Node.js targets
 - ✅ TypeScript client wrapper with proper exports
 - ✅ **Account deployment** with EOA validators
-- ✅ **EOA-signed transactions** via ERC-4337 UserOperations
+- ✅ **EOA-signed transactions** via user operations
 - ✅ Integration with Pimlico/Alto bundler APIs
 - ✅ Gas estimation and UserOperation construction
 - ✅ HTTP transport layer using `reqwasm` for WASM compatibility
@@ -29,7 +29,7 @@ Rust/WebAssembly implementation of zkSync SSO ERC-4337 functionality.
 - ⏳ Multi-chain support
 - ⏳ NPM package publishing
 
-The SDK is **functional** and supports real ERC-4337 operations including
+The SDK is **functional** and supports real smart-account operations including
 account deployment and EOA-signed transactions.
 
 ## Quick Start with Viem (Recommended)
@@ -193,17 +193,17 @@ that the local bundler needs.
 
 ```bash
 # Terminal 2: Deploy the reusable SSO contract suite
-pnpm --dir packages/erc4337-contracts deploy-contracts
+pnpm --dir packages/contracts deploy-contracts
 ```
 
 ```bash
 # Terminal 3: Start Alto bundler
-pnpm --dir packages/erc4337-contracts bundler
+pnpm --dir packages/contracts bundler
 ```
 
 ```bash
 # Terminal 4: Start the bundler proxy
-pnpm --dir packages/erc4337-contracts bundler-proxy
+pnpm --dir packages/contracts bundler-proxy
 ```
 
 This creates a local environment at:
@@ -361,7 +361,7 @@ Configuration for sending transactions:
 
 ### Default Addresses (Local Development)
 
-After running `pnpm --dir packages/erc4337-contracts deploy-contracts`:
+After running `pnpm --dir packages/contracts deploy-contracts`:
 
 ```typescript
 const ENTRY_POINT = "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108";  // EntryPoint v0.8
@@ -416,16 +416,16 @@ Set up a complete local development environment:
 pnpm dev:stack:up
 
 # Terminal 2: Deploy the reusable SSO contract suite
-pnpm --dir packages/erc4337-contracts deploy-contracts
+pnpm --dir packages/contracts deploy-contracts
 
 # Terminal 3: Start Alto bundler
-pnpm --dir packages/erc4337-contracts bundler
+pnpm --dir packages/contracts bundler
 
 # Terminal 4: Start the bundler proxy
-pnpm --dir packages/erc4337-contracts bundler-proxy
+pnpm --dir packages/contracts bundler-proxy
 
 # Terminal 5: Run the local demo stack
-pnpm nx dev:erc4337 demo-app
+pnpm nx dev demo-app
 ```
 
 Then navigate to `http://localhost:3000/web-sdk-test` to test the SDK.

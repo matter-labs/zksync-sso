@@ -156,7 +156,7 @@ export type FindAddressesByPasskeyResult = {
  * @example
  * ```typescript
  * import { createPublicClient, http } from "viem";
- * import { findAddressesByPasskey } from "zksync-sso-4337/client";
+ * import { findAddressesByPasskey } from "zksync-sso/client";
  *
  * const publicClient = createPublicClient({
  *   chain: zkSyncSepoliaTestnet,
@@ -245,7 +245,7 @@ export type FetchAccountResult = {
  * @example
  * ```typescript
  * import { createPublicClient, http } from "viem";
- * import { fetchAccount } from "zksync-sso-4337/actions";
+ * import { fetchAccount } from "zksync-sso/actions";
  *
  * const publicClient = createPublicClient({
  *   chain: zkSyncSepoliaTestnet,

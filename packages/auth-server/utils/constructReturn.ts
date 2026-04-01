@@ -1,5 +1,5 @@
-import type { SessionSpec } from "zksync-sso-4337/client";
-import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso-4337/client-auth-server";
+import type { SessionSpec } from "zksync-sso/client";
+import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso/client-auth-server";
 
 type ConstructReturnOptions = {
   address: `0x${string}`;

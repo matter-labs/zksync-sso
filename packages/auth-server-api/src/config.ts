@@ -31,7 +31,7 @@ try {
 // Environment schema with optional contract addresses (can fall back to contracts.json)
 const envSchema = z.object({
   PORT: z.string().default("3004"),
-  CORS_ORIGINS: z.string().default("http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005,http://localhost:3000"),
+  CORS_ORIGINS: z.string().default("http://localhost:3000,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005,http://localhost:3102,http://localhost:3104,http://localhost:3202,http://localhost:3204"),
   DEPLOYER_PRIVATE_KEY: z.string().default("0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"),
   RPC_URL: z.string().default("http://127.0.0.1:3050"),
   FACTORY_ADDRESS: z.string().optional(),

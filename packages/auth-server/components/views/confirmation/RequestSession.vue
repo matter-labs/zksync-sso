@@ -130,9 +130,9 @@
 import { useNow } from "@vueuse/core";
 import { encodePacked, keccak256, pad, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
-import { formatSessionPreferences, getSessionHash, type SessionPreferences } from "zksync-sso-4337/client";
-import { LimitType } from "zksync-sso-4337/client";
-import type { ExtractReturnType, Method, RPCResponseMessage } from "zksync-sso-4337/client-auth-server";
+import { formatSessionPreferences, getSessionHash, type SessionPreferences } from "zksync-sso/client";
+import { LimitType } from "zksync-sso/client";
+import type { ExtractReturnType, Method, RPCResponseMessage } from "zksync-sso/client-auth-server";
 
 const props = defineProps({
   sessionPreferences: {

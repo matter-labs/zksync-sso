@@ -1,5 +1,5 @@
-[submodule "packages/erc4337-contracts"]
-	path = packages/erc4337-contracts
+[submodule "packages/contracts"]
+	path = packages/contracts
 	url = git@github.com:matter-labs/zksync-sso-contracts.git
 [submodule "packages/circuits"]
 	path = packages/circuits

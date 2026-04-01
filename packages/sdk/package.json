@@ -1,7 +1,7 @@
 {
   "private": true,
   "type": "module",
-  "name": "zksync-sso-4337",
+  "name": "zksync-sso",
   "description": "ZKsync Smart Sign On SDK",
   "version": "0.0.0-development",
   "publishConfig": {
@@ -146,7 +146,7 @@
     "ethereum",
     "wallet",
     "web3",
-    "4337"
+    "smart-account"
   ],
   "dependencies": {
     "@peculiar/asn1-ecc": "^2.3.13",

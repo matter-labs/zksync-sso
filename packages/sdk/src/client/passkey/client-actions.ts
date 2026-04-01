@@ -57,7 +57,7 @@ export type PasskeyClientActions<TChain extends Chain = Chain, TAccount extends 
 
 /**
  * Decorator that provides wallet actions for passkey client.
- * Overrides standard wallet methods to use ERC-4337 bundler under the hood.
+ * Overrides standard wallet methods to use the bundler under the hood.
  * Includes passkey-specific actions like addPasskey.
  */
 export function passkeyClientActions<

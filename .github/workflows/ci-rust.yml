@@ -7,19 +7,19 @@ on:
     branches:
       - main
     paths:
-      - "packages/erc4337-contracts/**"
+      - "packages/contracts/**"
       - "packages/sdk-platforms/rust/**"
       - ".github/workflows/ci-rust.yml"
   pull_request:
     paths:
-      - "packages/erc4337-contracts/**"
+      - "packages/contracts/**"
       - "packages/sdk-platforms/rust/**"
       - ".github/workflows/ci-rust.yml"
   workflow_dispatch:
 
 jobs:
-  rust-sdk-erc4337:
-    name: Rust 4337 SDK
+  rust-sdk:
+    name: Rust SDK
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -49,7 +49,7 @@ jobs:
 
       - name: Install dependencies
         run: forge soldeer install
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
       - name: Install Node.js 22 via nvm
         run: |
@@ -70,7 +70,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pnpm-store
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('packages/erc4337-contracts/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('packages/contracts/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
@@ -79,17 +79,17 @@ jobs:
           corepack enable
           corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
           pnpm -v
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
-      - name: Build ERC-4337 contracts
+      - name: Build contracts
         run: forge build
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
-      - name: Verify ERC-4337 contract ABIs exist
+      - name: Verify contract ABIs exist
         run: |
           set -euo pipefail
           missing=()
@@ -109,7 +109,7 @@ jobs:
             find out -maxdepth 2 -type f -name '*.json' | sort || true
             exit 1
           fi
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
       - name: Run clippy
         run: |
@@ -125,8 +125,8 @@ jobs:
         run: cargo nextest run --profile ci --all-features
         working-directory: packages/sdk-platforms/rust/zksync-sso-erc4337
 
-  rust-sdk-erc4337-wasm:
-    name: Rust ERC-4337 WASM
+  rust-sdk-wasm:
+    name: Rust WASM
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -149,13 +149,13 @@ jobs:
 
       - name: Install dependencies
         run: forge soldeer install
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
-      - name: Build ERC-4337 contracts
+      - name: Build contracts
         run: forge build
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
-      - name: Verify ERC-4337 contract ABIs exist
+      - name: Verify contract ABIs exist
         run: |
           set -euo pipefail
           missing=()
@@ -175,7 +175,7 @@ jobs:
             find out -maxdepth 2 -type f -name '*.json' | sort || true
             exit 1
           fi
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
       - name: Build WASM module (web target)
         run: wasm-pack build --target web

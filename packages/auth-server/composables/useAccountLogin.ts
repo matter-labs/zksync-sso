@@ -1,4 +1,4 @@
-import { findAddressesByPasskey, getPasskeyCredential } from "zksync-sso-4337/client";
+import { findAddressesByPasskey, getPasskeyCredential } from "zksync-sso/client";
 
 export const useAccountLogin = () => {
   const { login } = useAccountStore();
@@ -11,7 +11,7 @@ export const useAccountLogin = () => {
     if (!credential) throw new Error("No credential found");
 
     try {
-      // Use findAddressesByPasskey from sdk-4337
+      // Use findAddressesByPasskey from sdk
       const result = await findAddressesByPasskey({
         client,
         contracts: {
