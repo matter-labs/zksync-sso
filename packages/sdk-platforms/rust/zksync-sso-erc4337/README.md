@@ -1,4 +1,4 @@
-# zkSync SSO ERC-4337
+# ZKsync SSO ERC-4337
 
 ZKsync SSO SDK compatible with ERC-4337 account abstraction.
 

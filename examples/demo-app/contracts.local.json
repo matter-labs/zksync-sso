@@ -1,0 +1,16 @@
+{
+  "rpcUrl": "http://localhost:3050",
+  "chainId": 6565,
+  "deployer": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+  "eoaValidator": "0xD1FF89AEA236ACeE99B9902D1345088c787a4Dc5",
+  "sessionValidator": "0x5d69251BC22130cfF271D9Ac955F87E819E6c0d8",
+  "webauthnValidator": "0x4204fEB3705e274beFe91F7bd8DAe9f97AfEe169",
+  "guardianExecutor": "0xa9858172aA97f66816aa2610503bc26EC7A2840c",
+  "accountImplementation": "0x6FC27bd543C5bA0252B7C70B54b5BAA14e0bC2f6",
+  "beacon": "0xF0111890EAD7273Fb0210c24EA5e9d931d31836B",
+  "factory": "0xf5c263F3706BA768eFedE01Ac7264A7BeEC89155",
+  "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
+  "bundlerUrl": "http://localhost:4337",
+  "testPaymaster": "0xEeD8D5f051E50Fc93B943210a8a46e4B8d5da60A",
+  "mockPaymaster": "0xEeD8D5f051E50Fc93B943210a8a46e4B8d5da60A"
+}

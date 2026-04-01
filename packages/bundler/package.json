@@ -1,7 +1,7 @@
 {
   "name": "bundler",
   "version": "0.0.1",
-  "description": "Bundler with CORS proxy for zkSync SSO",
+  "description": "Bundler with CORS proxy for ZKsync SSO",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

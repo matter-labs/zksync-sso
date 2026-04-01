@@ -268,8 +268,7 @@ pub(super) fn resolve_contracts_dir() -> PathBuf {
     }
     let manifest_dir =
         std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into());
-    let candidate =
-        Path::new(&manifest_dir).join("../../../../../contracts");
+    let candidate = Path::new(&manifest_dir).join("../../../../../contracts");
     candidate.canonicalize().unwrap_or_else(|_| candidate.to_path_buf())
 }
 

@@ -1,6 +1,6 @@
-# zkSync SSO ERC-4337 WASM FFI
+# ZKsync SSO ERC-4337 WASM FFI
 
-WebAssembly bindings for the zkSync SSO ERC-4337 core library.
+WebAssembly bindings for the ZKsync SSO ERC-4337 core library.
 
 ## Status
 

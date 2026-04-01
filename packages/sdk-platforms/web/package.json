@@ -1,7 +1,7 @@
 {
   "name": "zksync-sso-web-sdk",
   "version": "0.0.1",
-  "description": "WebAssembly-based SDK for zkSync SSO",
+  "description": "WebAssembly-based SDK for ZKsync SSO",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

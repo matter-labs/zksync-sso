@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "FFI bindings for zkSync SSO ERC-4337 (mobile platforms)"
+description = "FFI bindings for ZKsync SSO ERC-4337 (mobile platforms)"
 
 [lib]
 crate-type = ["cdylib", "staticlib"]

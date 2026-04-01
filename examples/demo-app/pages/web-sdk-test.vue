@@ -10,7 +10,7 @@
         Web SDK Status
       </h2>
       <p class="text-sm text-gray-600 mb-2">
-        Testing WASM-based zkSync SSO integration
+        Testing WASM-based ZKsync SSO integration
       </p>
 
       <div class="space-y-2">

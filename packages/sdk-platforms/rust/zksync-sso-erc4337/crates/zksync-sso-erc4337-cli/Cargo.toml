@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Command-line interface for zkSync SSO ERC-4337"
+description = "Command-line interface for ZKsync SSO ERC-4337"
 
 [[bin]]
 name = "zksync-sso-erc4337-cli"

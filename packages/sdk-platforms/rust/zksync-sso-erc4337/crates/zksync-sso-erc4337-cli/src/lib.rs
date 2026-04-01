@@ -7,7 +7,7 @@ use zksync_sso_erc4337_core::{
 
 #[derive(Parser)]
 #[command(name = "zksync-sso-erc4337")]
-#[command(about = "A command-line interface for zkSync SSO ERC-4337")]
+#[command(about = "A command-line interface for ZKsync SSO ERC-4337")]
 #[command(version)]
 struct Cli {
     #[command(subcommand)]

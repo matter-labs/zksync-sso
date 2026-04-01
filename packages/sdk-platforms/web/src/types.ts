@@ -1,5 +1,5 @@
 /**
- * Configuration for the zkSync SSO client
+ * Configuration for the ZKsync SSO client
  */
 export interface ClientConfig {
   /** RPC URL for the Ethereum provider */

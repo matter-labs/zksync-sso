@@ -3,12 +3,12 @@
 **⚠️ WORK IN PROGRESS**: This package is currently under active
 development and not yet ready for production use.
 
-WebAssembly-powered SDK for zkSync SSO in web applications.
+WebAssembly-powered SDK for ZKsync SSO in web applications.
 
 ## Current Status
 
 This package provides TypeScript bindings for a
-Rust/WebAssembly implementation of zkSync SSO functionality.
+Rust/WebAssembly implementation of ZKsync SSO functionality.
 
 **What's Working:**
 
