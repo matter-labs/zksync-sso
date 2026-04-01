@@ -15,6 +15,9 @@ sepolia
 foundryup
 unpermitted
 reauthentication
+zksyncos
+tini
+wght
 
 // auth-server
 oidc
