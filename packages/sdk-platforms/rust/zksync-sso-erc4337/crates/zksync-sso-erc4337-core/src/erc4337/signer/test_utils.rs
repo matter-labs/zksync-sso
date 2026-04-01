@@ -5,10 +5,11 @@ use std::{pin::Pin, process::Command, str::FromStr, sync::Arc};
 
 pub fn get_signature_from_js(hash: String) -> eyre::Result<Bytes> {
     let working_dir = "../../../../../erc4337-contracts";
+    let chain_id =
+        std::env::var("CHAIN_ID").unwrap_or_else(|_| "1337".to_string());
 
     let output = Command::new("pnpm")
-        .env("CHAIN_ID", "6565")
-        .env("PORT", "3050")
+        .env("CHAIN_ID", &chain_id)
         .arg("tsx")
         .arg("test/integration/utils.ts")
         .arg("--hash")

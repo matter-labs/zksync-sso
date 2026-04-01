@@ -111,6 +111,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
       const txParams = {
         to: transaction.to,
         data: transaction.data,
+        type: "legacy" as const,
       };
 
       txHash = await walletClient.sendTransaction(txParams);

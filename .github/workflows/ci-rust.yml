@@ -4,6 +4,8 @@ permissions:
 
 on:
   push:
+    branches:
+      - main
     paths:
       - "packages/erc4337-contracts/**"
       - "packages/sdk-platforms/rust/**"

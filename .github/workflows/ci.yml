@@ -71,9 +71,8 @@ jobs:
           pnpm nx build sdk-4337
           pnpm nx build:erc4337 demo-app
 
-      - name: Deploy Demo-App ERC-4337 contracts
-        continue-on-error: true
-        run: pnpm nx deploy-msa-factory demo-app
+      - name: Prepare local SSO contracts and manifests
+        run: pnpm nx setup-local-dev demo-app
 
       - name: Start Alto bundler and CORS proxy
         run: |
