@@ -1,7 +1,7 @@
-/* eslint-disable no-console */
 import { expect, type Page, test } from "@playwright/test";
 
 const AUTH_SERVER_URL = process.env.PW_AUTH_SERVER_URL || "http://localhost:3002";
+const DEMO_APP_HOST = new URL(process.env.PW_DEMO_APP_URL || "http://localhost:3005").host;
 
 type WebAuthnCredential = {
   credentialId: string;
@@ -213,7 +213,7 @@ test("Create passkey account and send ETH", async ({ page }) => {
 
   // Confirm access to your account
   await expect(popup.getByText("Connect to ZKsync SSO Demo")).toBeVisible();
-  await expect(popup.getByText("localhost:3005")).toBeVisible();
+  await expect(popup.getByText(DEMO_APP_HOST)).toBeVisible();
   await expect(popup.getByText("Let it see your address, balance and activity")).toBeVisible();
   await popup.getByTestId("connect").click();
 

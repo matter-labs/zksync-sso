@@ -7,10 +7,13 @@ import { defineConfig, devices } from "@playwright/test";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const authServerPort = "3102";
 const authServerApiPort = "3104";
+const demoAppPort = "3105";
 const authServerUrl = `http://localhost:${authServerPort}`;
 const authServerApiUrl = `http://localhost:${authServerApiPort}`;
+const demoAppUrl = `http://localhost:${demoAppPort}`;
 
 process.env.PW_AUTH_SERVER_URL = authServerUrl;
+process.env.PW_DEMO_APP_URL = demoAppUrl;
 
 // Load contracts.json for contract addresses used in e2e tests
 const localNode = JSON.parse(
@@ -45,6 +48,7 @@ const authServerApiEnv = {
     "http://localhost:3003",
     "http://localhost:3004",
     "http://localhost:3005",
+    demoAppUrl,
     authServerUrl,
     authServerApiUrl,
   ].join(","),
@@ -75,7 +79,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:3005",
+    baseURL: demoAppUrl,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on",
@@ -110,8 +114,8 @@ export default defineConfig({
       env: { ...process.env, ...authServerEnv },
     },
     {
-      command: `NUXT_PUBLIC_AUTH_SERVER_CONFIRM_URL=${authServerUrl}/confirm pnpm nx run demo-app:build:local && NUXT_PUBLIC_AUTH_SERVER_CONFIRM_URL=${authServerUrl}/confirm PORT=3005 pnpm exec nuxt preview`,
-      url: "http://localhost:3005",
+      command: `NUXT_PUBLIC_AUTH_SERVER_CONFIRM_URL=${authServerUrl}/confirm pnpm nx run demo-app:build:local && NUXT_PUBLIC_AUTH_SERVER_CONFIRM_URL=${authServerUrl}/confirm PORT=${demoAppPort} pnpm exec nuxt preview`,
+      url: demoAppUrl,
       reuseExistingServer,
       stdout: "pipe",
       stderr: "pipe",
