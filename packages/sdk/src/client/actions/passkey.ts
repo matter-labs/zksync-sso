@@ -133,6 +133,9 @@ export type FindAddressesByPasskeyParams = {
     /** Origin domain (e.g., "https://example.com" or window.location.origin) */
     originDomain: string;
   };
+
+  /** Optional account address to use as `from` in eth_call (required by some RPC nodes like Prividium) */
+  account?: Address;
 };
 
 /**
@@ -180,7 +183,7 @@ export type FindAddressesByPasskeyResult = {
 export async function findAddressesByPasskey(
   params: FindAddressesByPasskeyParams,
 ): Promise<FindAddressesByPasskeyResult> {
-  const { client, contracts, passkey } = params;
+  const { client, contracts, passkey, account } = params;
 
   // Encode the call data using Rust SDK
   const callData = encode_get_account_list_call_data(
@@ -192,6 +195,7 @@ export async function findAddressesByPasskey(
   const result = await client.call({
     to: contracts.webauthnValidator,
     data: callData,
+    account,
   });
 
   // Decode the result using Rust SDK
@@ -220,6 +224,9 @@ export type FetchAccountParams = {
 
   /** Optional: credential ID if known, otherwise will prompt user */
   credentialId?: string;
+
+  /** Optional account address to use as `from` in eth_call (required by some RPC nodes like Prividium) */
+  account?: Address;
 };
 
 /**
@@ -266,7 +273,7 @@ export type FetchAccountResult = {
 export async function fetchAccount(
   params: FetchAccountParams,
 ): Promise<FetchAccountResult> {
-  const { client, contracts, originDomain, credentialId: providedCredentialId } = params;
+  const { client, contracts, originDomain, credentialId: providedCredentialId, account } = params;
 
   let credentialId = providedCredentialId;
 
@@ -297,6 +304,7 @@ export async function fetchAccount(
       credentialId: credentialIdHex,
       originDomain,
     },
+    account,
   });
 
   if (addresses.length === 0) {
@@ -312,6 +320,7 @@ export async function fetchAccount(
     address: contracts.webauthnValidator,
     functionName: "getAccountKey",
     args: [originDomain, credentialIdHex, address],
+    account,
   });
 
   if (!publicKeyCoords || !publicKeyCoords[0] || !publicKeyCoords[1]) {

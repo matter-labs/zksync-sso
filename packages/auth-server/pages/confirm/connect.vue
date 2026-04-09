@@ -19,11 +19,6 @@
 <script lang="ts" setup>
 const { requestMethod } = storeToRefs(useRequestsStore());
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const route = useRoute();
 
-const loading = computed(() => {
-  // only display loading if the user is not logged in
-  // and if they are not registering
-  return !isLoggedIn.value && route.query.action !== "register";
-});
+const loading = computed(() => !isLoggedIn.value);
 </script>

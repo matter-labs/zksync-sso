@@ -47,6 +47,7 @@
         </ZkHighlightWrapper>
 
         <ZkButton
+          v-if="canLogin"
           type="secondary"
           class="!text-slate-400"
           :loading="loginInProgress"
@@ -64,11 +65,10 @@
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();
 const { requestMethod } = storeToRefs(useRequestsStore());
-const session = useAppSession();
 const runtimeConfig = useRuntimeConfig();
 
 // Prividium authentication store
-const { needsAuthentication } = storeToRefs(usePrividiumAuthStore());
+const { needsAuthentication, walletAddresses } = storeToRefs(usePrividiumAuthStore());
 
 // Account creation and login composables
 const { registerInProgress, createAccount, createAccountError } = useAccountCreate();
@@ -79,19 +79,20 @@ const needsPrividiumAuth = computed(() => {
   return runtimeConfig.public.prividiumMode && needsAuthentication.value;
 });
 
+// In Prividium mode, only show login if user has existing wallet addresses
+const canLogin = computed(() => {
+  if (!runtimeConfig.public.prividiumMode) return true;
+  return walletAddresses.value.length > 0;
+});
+
 const registerAccount = async () => {
-  if (!session.value) {
-    // no session defined
-    const result = await createAccount();
-    if (result) {
-      login({
-        address: result.address,
-        credentialId: result.credentialId,
-      });
-      navigateTo("/confirm/connect");
-    }
-  } else {
-    navigateTo({ path: "/confirm/connect", query: { action: "register" } });
+  const result = await createAccount();
+  if (result) {
+    login({
+      address: result.address,
+      credentialId: result.credentialId,
+    });
+    navigateTo("/confirm/connect");
   }
 };
 
