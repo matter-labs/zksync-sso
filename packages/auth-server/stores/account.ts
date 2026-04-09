@@ -24,8 +24,8 @@ export const useAccountStore = defineStore("account", () => {
   const verifyAccount = async () => {
     if (!address.value) return;
     try {
-      const { getClient, contracts } = useClientStore();
-      const client = getClient();
+      const { getPublicClient, contracts } = useClientStore();
+      const client = getPublicClient();
       const entryPoint = contracts.entryPoint;
       if (!entryPoint) return;
       await client.readContract({
@@ -44,14 +44,15 @@ export const useAccountStore = defineStore("account", () => {
         args: [address.value, 0n],
         account: address.value,
       });
-    } catch {
-      console.warn("Cached account no longer exists on-chain, logging out");
+    } catch (err) {
+      console.warn("Cached account no longer exists on-chain, logging out", err);
       logout();
     }
   };
 
   if (import.meta.client) {
-    verifyAccount();
+    // Defer to avoid circular dependency with useClientStore during store initialization
+    nextTick(() => verifyAccount());
   }
 
   const { subscribe: subscribeOnAccountChange, notify: notifyOnAccountChange } = useObservable<Address | null>();
