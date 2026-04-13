@@ -41,7 +41,7 @@
 
 <script lang="ts" setup>
 import { getAddress } from "viem";
-import type { ExtractParams } from "zksync-sso-4337/client";
+import type { ExtractParams } from "zksync-sso/client";
 
 const { isLoggedIn } = storeToRefs(useAccountStore());
 const { hasRequests, requestParams, requestMethod } = storeToRefs(useRequestsStore());

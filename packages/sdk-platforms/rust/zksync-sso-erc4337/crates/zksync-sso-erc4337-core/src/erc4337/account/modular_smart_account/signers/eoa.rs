@@ -15,7 +15,7 @@ sol!(
     #[derive(Debug, Default)]
     #[allow(missing_docs)]
     EOAKeyValidator,
-    "../../../../../../packages/erc4337-contracts/out/EOAKeyValidator.sol/EOAKeyValidator.json"
+    "../../../../../../packages/contracts/out/EOAKeyValidator.sol/EOAKeyValidator.json"
 );
 
 pub fn stub_signature_eoa(eoa_validator: Address) -> eyre::Result<Bytes> {

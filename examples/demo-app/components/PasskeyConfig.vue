@@ -127,7 +127,7 @@
 
 <script setup>
 import { computed, ref } from "vue";
-import { createWebAuthnCredential } from "zksync-sso-4337/client/passkey";
+import { createWebAuthnCredential } from "zksync-sso/client/passkey";
 
 // Props
 const props = defineProps({

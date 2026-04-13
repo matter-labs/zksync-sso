@@ -15,7 +15,10 @@ sepolia
 foundryup
 unpermitted
 reauthentication
-
+zksyncos
+tini
+wght
+redeployments
 // auth-server
 oidc
 Oidc
@@ -36,12 +39,6 @@ EVMLA
 
 // paymasters
 zyfi
-
-// examples/nft-quest
-Fren
-fren
-nfts
-wght
 
 // packages/auther-server-api
 rustup

@@ -5,5 +5,5 @@ sol!(
     #[derive(Debug, Default)]
     #[allow(missing_docs)]
     SessionKeyValidator,
-    "../../../../../../packages/erc4337-contracts/out/SessionKeyValidator.sol/SessionKeyValidator.json"
+    "../../../../../../packages/contracts/out/SessionKeyValidator.sol/SessionKeyValidator.json"
 );

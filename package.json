@@ -14,14 +14,16 @@
     "prepare": "husky",
     "graph": "pnpm nx graph",
     "dev:demo": "pnpm nx run-many -t serve -p auth-server demo-app",
-    "fmt": "pnpm prettier --write .",
+    "dev:stack:up": "./scripts/start-stack.sh",
+    "dev:stack:down": "./scripts/stop-stack.sh",
+    "fmt": "pnpm prettier --write --ignore-path .prettierignore .",
     "lint": "pnpm run lint:eslint && pnpm run lint:markdown && pnpm run lint:spelling && pnpm run lint:prettier",
-    "lint:fix": "pnpm eslint --fix --ignore-pattern 'packages/*' --ignore-pattern 'examples/*' . && pnpm nx affected -t lint --fix && pnpm prettier --write . | grep -v 'unchanged' | xargs",
-    "format-abi": "pnpm eslint --fix packages/sdk/src/abi && pnpm eslint --fix packages/sdk-4337/src/abi && pnpm nx affected -t lint --fix && pnpm prettier --write packages/sdk/src/abi | grep -v 'unchanged' | xargs && pnpm prettier --write packages/sdk-4337/src/abi | grep -v 'unchanged' | xargs",
-    "lint:eslint": "pnpm nx run-many -t lint --all && pnpm eslint --ignore-pattern 'packages/*' --ignore-pattern 'examples/*' .",
+    "lint:fix": "pnpm eslint --fix --ignore-pattern 'packages/*' --ignore-pattern 'examples/*' . && pnpm nx affected -t lint --fix --exclude=zksync-sso-circuits,zksync-sso-contracts-7579 && pnpm prettier --write --ignore-path .prettierignore . | grep -v 'unchanged' | xargs",
+    "format-abi": "pnpm eslint --fix packages/sdk/src/abi && pnpm nx affected -t lint --fix --exclude=zksync-sso-circuits,zksync-sso-contracts-7579 && pnpm prettier --write packages/sdk/src/abi | grep -v 'unchanged' | xargs",
+    "lint:eslint": "pnpm nx run-many -t lint --all --exclude=zksync-sso-circuits,zksync-sso-contracts-7579 && pnpm eslint --ignore-pattern 'packages/*' --ignore-pattern 'examples/*' .",
     "lint:markdown": "markdownlint-cli2 '**/*.md'",
     "lint:spelling": "cspell .",
-    "lint:prettier": "prettier --check ."
+    "lint:prettier": "prettier --check --ignore-path .prettierignore ."
   },
   "devDependencies": {
     "@commitlint/cli": "19.5.0",
@@ -47,8 +49,7 @@
     "typescript": "5.6.2",
     "typescript-eslint": "8.7.0",
     "viem": "^2.30.0",
-    "zksync-sso": "workspace:*",
-    "zksync-sso-4337": "workspace:*"
+    "zksync-sso": "workspace:*"
   },
   "nx": {
     "includedScripts": []

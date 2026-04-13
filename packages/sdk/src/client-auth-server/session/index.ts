@@ -1,8 +1,10 @@
 import { type Abi, type AbiFunction, type AbiStateMutability, type Address, type ContractFunctionArgs, type ContractFunctionName, encodeAbiParameters, getAddress, toFunctionSelector, toHex } from "viem";
 
-import { ConstraintCondition, type Limit, LimitType, LimitUnlimited, LimitZero, type SessionConfig } from "../../utils/session.js";
+import { ConstraintCondition, LimitType, LimitUnlimited, LimitZero, type SessionSpec, type UsageLimit } from "../../client/index.js";
 import type { ContractWriteMutability, IndexedValues } from "./type-utils.js";
 import { encodedInputToAbiChunks, getParameterChunkIndex, isDynamicInputType, isFollowedByDynamicInputType, msStringToSeconds } from "./utils.js";
+
+export * from "./utils.js";
 
 export type PartialLimit = bigint | {
   limit: bigint;
@@ -67,7 +69,7 @@ export interface SessionPreferences {
   transfers?: PartialTransferPolicy[];
 };
 
-export const formatLimitPreferences = (limit: PartialLimit): Limit => {
+export const formatLimitPreferences = (limit: PartialLimit): UsageLimit => {
   /* Just bigint was passed */
   if (typeof limit === "bigint") {
     return {
@@ -134,9 +136,9 @@ export function formatSessionPreferences(
   preferences: SessionPreferences,
   defaults: {
     expiresAt: bigint;
-    feeLimit: Limit;
+    feeLimit: UsageLimit;
   },
-): Omit<SessionConfig, "signer"> {
+): Omit<SessionSpec, "signer"> {
   return {
     expiresAt: preferences.expiry ? formatDatePreferences(preferences.expiry) : defaults.expiresAt,
     feeLimit: preferences.feeLimit ? formatLimitPreferences(preferences.feeLimit) : defaults.feeLimit,

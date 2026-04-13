@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Core functionality for zkSync SSO ERC-4337 integration"
+description = "Core functionality for ZKsync SSO ERC-4337 integration"
 
 [dependencies]
 # Alloy

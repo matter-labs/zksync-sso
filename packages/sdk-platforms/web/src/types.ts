@@ -1,10 +1,10 @@
 /**
- * Configuration for zkSync SSO ERC-4337 client
+ * Configuration for the ZKsync SSO client
  */
 export interface ClientConfig {
   /** RPC URL for the Ethereum provider */
   rpcUrl: string;
-  /** Bundler URL for ERC-4337 operations */
+  /** Bundler URL for smart-account operations */
   bundlerUrl: string;
   /** Smart contract addresses */
   contracts: {

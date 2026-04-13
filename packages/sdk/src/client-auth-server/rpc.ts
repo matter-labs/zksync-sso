@@ -13,6 +13,7 @@ export type AuthServerRpcSchema = [
     Parameters: {
       metadata: AppMetadata;
       sessionPreferences?: SessionPreferences;
+      paymaster?: Address;
     };
     ReturnType: {
       account: {
@@ -27,6 +28,8 @@ export type AuthServerRpcSchema = [
         id: Chain["id"];
         capabilities: Record<string, unknown>;
         contracts: SessionRequiredContracts;
+        bundlerUrl: string;
+        prividiumMode: boolean;
       }[];
     };
   },
@@ -57,6 +60,7 @@ export interface RPCRequestMessage<
   content: {
     action: RequestArguments<TMethod, TSchema>;
     chainId: number;
+    paymaster?: Address; // Paymaster metadata (not part of transaction params)
   };
 }
 

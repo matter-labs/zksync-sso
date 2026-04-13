@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { AAFactoryAbi } from "zksync-sso-4337/abi";
+import { AAFactoryAbi } from "zksync-sso/abi";
 
 export const useCheckSsoAccount = () => {
   const { getThrowAwayClient, contracts } = useClientStore();

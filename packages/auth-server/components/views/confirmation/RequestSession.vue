@@ -130,9 +130,8 @@
 import { useNow } from "@vueuse/core";
 import { encodePacked, keccak256, pad, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
-import { formatSessionPreferences, getSessionHash, type SessionPreferences } from "zksync-sso-4337/client";
-import { LimitType } from "zksync-sso-4337/client";
-import type { ExtractReturnType, Method, RPCResponseMessage } from "zksync-sso-4337/client-auth-server";
+import { formatSessionPreferences, getSessionHash, type SessionPreferences } from "zksync-sso/client";
+import { LimitType } from "zksync-sso/client";
 
 const props = defineProps({
   sessionPreferences: {
@@ -142,10 +141,8 @@ const props = defineProps({
 });
 
 const { appMeta, appOrigin } = useAppMeta();
-const { login } = useAccountStore();
 const { isLoggedIn } = storeToRefs(useAccountStore());
 const { responseInProgress } = storeToRefs(useRequestsStore());
-const { createAccount } = useAccountCreate();
 const { respond, deny } = useRequestsStore();
 const { getClient, contracts } = useClientStore();
 const runtimeConfig = useRuntimeConfig();
@@ -269,77 +266,51 @@ watch(confirmButtonAvailable, (newVal, oldVal) => {
     previousConfirmAvailable.value = newVal;
   }
 });
-const mainButtonText = computed(() => isLoggedIn.value ? "Connect" : "Create");
+const mainButtonText = "Connect";
 
 const confirmConnection = async () => {
-  let response: RPCResponseMessage<ExtractReturnType<Method>>["content"];
   sessionError.value = "";
 
   try {
-    if (!isLoggedIn.value) {
-      // create a new account with initial session data
-      // Ignore paymaster provided in params for standard connect to avoid validation failures
-      const accountData = await createAccount(sessionConfig.value, undefined);
-      if (!accountData) return;
-      login({
-        address: accountData.address,
-        credentialId: accountData.credentialId,
-      });
+    const client = getClient();
+    const sessionKey = generatePrivateKey();
+    const session = {
+      sessionKey,
+      sessionConfig: {
+        signer: privateKeyToAddress(sessionKey),
+        ...sessionConfig.value,
+      },
+    };
 
-      response = {
-        result: constructReturn({
-          address: accountData!.address,
-          chainId: accountData!.chainId,
-          session: {
-            sessionConfig: accountData!.sessionConfig!,
-            sessionKey: accountData!.sessionKey!,
-          },
-          prividiumMode: runtimeConfig.public.prividiumMode,
-          prividiumProxyUrl: runtimeConfig.public.prividium?.apiBaseUrl ? `${runtimeConfig.public.prividium.apiBaseUrl}/rpc` : "",
-        }),
-      };
-    } else {
-      // create a new session for the existing account
-      const client = getClient();
-      const sessionKey = generatePrivateKey();
-      const session = {
-        sessionKey,
-        sessionConfig: {
-          signer: privateKeyToAddress(sessionKey),
-          ...sessionConfig.value,
-        },
-      };
+    // Proof: sign keccak256(abi.encode(sessionSpec, account)) with the session key
+    const sessionHash = getSessionHash(session.sessionConfig);
+    const digest = keccak256(encodePacked([
+      "bytes32",
+      "bytes32",
+    ], [
+      sessionHash,
+      pad(client.account.address),
+    ]));
+    const sessionSigner = privateKeyToAccount(sessionKey);
+    const proof = await sessionSigner.sign({ hash: digest });
 
-      // Proof: sign keccak256(abi.encode(sessionSpec, account)) with the session key
-      const sessionHash = getSessionHash(session.sessionConfig);
-      const digest = keccak256(encodePacked([
-        "bytes32",
-        "bytes32",
-      ], [
-        sessionHash,
-        pad(client.account.address),
-      ]));
-      const sessionSigner = privateKeyToAccount(sessionKey);
-      const proof = await sessionSigner.sign({ hash: digest });
+    await client.createSession({
+      sessionSpec: session.sessionConfig,
+      proof,
+      contracts: {
+        sessionValidator: contracts.sessionValidator,
+      },
+    });
 
-      await client.createSession({
-        sessionSpec: session.sessionConfig,
-        proof,
-        contracts: {
-          sessionValidator: contracts.sessionValidator,
-        },
-      });
-
-      response = {
-        result: constructReturn({
-          address: client.account.address,
-          chainId: client.chain.id,
-          session,
-          prividiumMode: runtimeConfig.public.prividiumMode,
-          prividiumProxyUrl: runtimeConfig.public.prividium?.apiBaseUrl ? `${runtimeConfig.public.prividium.apiBaseUrl}/rpc` : "",
-        }),
-      };
-    }
+    respond(() => ({
+      result: constructReturn({
+        address: client.account.address,
+        chainId: client.chain.id,
+        session,
+        prividiumMode: runtimeConfig.public.prividiumMode,
+        prividiumProxyUrl: runtimeConfig.public.prividium?.apiBaseUrl ? `${runtimeConfig.public.prividium.apiBaseUrl}/rpc` : "",
+      }),
+    }));
   } catch (error) {
     if ((error as Error).message.includes("Passkey validation failed")) {
       sessionError.value = "Passkey validation failed";
@@ -348,11 +319,6 @@ const confirmConnection = async () => {
     }
     // eslint-disable-next-line no-console
     console.error(error);
-    return;
-  }
-
-  if (response) {
-    respond(() => response);
   }
 };
 

@@ -1,4 +1,5 @@
 import { createPrividiumChain, type PrividiumChain, type UserProfile } from "prividium";
+import type { Address, Hex } from "viem";
 
 let prividiumInstance: PrividiumChain | null = null;
 
@@ -44,6 +45,14 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
 
     return prividiumInstance;
   };
+
+  // Extract wallet addresses from profile
+  const walletAddresses = computed<Address[]>(() => {
+    if (!profile.value?.wallets?.length) return [];
+    return profile.value.wallets
+      .map((w) => (w as { walletAddress: Hex }).walletAddress)
+      .filter(Boolean) as Address[];
+  });
 
   // Check if user needs to authenticate for Prividium mode
   const needsAuthentication = computed(() => {
@@ -133,6 +142,7 @@ export const usePrividiumAuthStore = defineStore("prividiumAuth", () => {
     profile: readonly(profile),
     loading: readonly(loading),
     error: readonly(error),
+    walletAddresses,
     needsAuthentication,
     // Methods
     signInWithPopup,

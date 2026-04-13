@@ -1,6 +1,10 @@
 export * from "./account.js";
-export * from "./actions/account.js";
-export * from "./client.js";
-export * from "./decorators/ecdsa.js";
-export * from "./decorators/wallet.js";
-export * from "./types.js";
+export {
+  createEcdsaClient,
+  type CreateEcdsaClientParams,
+  type EcdsaClient,
+} from "./client.js";
+export {
+  type EcdsaClientActions,
+  ecdsaClientActions,
+} from "./client-actions.js";

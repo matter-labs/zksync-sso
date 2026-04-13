@@ -11,3 +11,5 @@ gitignore: true
 ignores:
   - ".github/**/*.md"
   - "**/docs/**/*.md" # Skip strict line length for detailed documentation
+  - "packages/circuits/**"
+  - "packages/erc4337-contracts/**"

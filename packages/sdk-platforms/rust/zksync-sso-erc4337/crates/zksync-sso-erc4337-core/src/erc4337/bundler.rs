@@ -19,9 +19,9 @@ impl Default for BackoffConfig {
     fn default() -> Self {
         Self {
             base_delay_ms: 1000,
-            max_delay_ms: 10_000,
+            max_delay_ms: 15_000,
             multiplier: 2.0,
-            max_attempts: 5,
+            max_attempts: 12,
             jitter_ms: 100,
         }
     }

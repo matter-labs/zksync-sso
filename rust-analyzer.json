@@ -1,6 +1,3 @@
 {
-  "linkedProjects": [
-    "packages/sdk-platforms/rust/zksync-sso/Cargo.toml",
-    "packages/sdk-platforms/rust/zksync-sso-erc4337/Cargo.toml"
-  ]
+  "linkedProjects": ["packages/sdk-platforms/rust/zksync-sso-erc4337/Cargo.toml"]
 }

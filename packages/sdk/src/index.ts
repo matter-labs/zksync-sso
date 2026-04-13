@@ -1,4 +1,12 @@
-export type { AppMetadata, ProviderInterface } from "./client-auth-server/interface.js";
-export type { SessionPreferences } from "./client-auth-server/session/index.js";
-export { WalletProvider, type WalletProviderConstructorOptions } from "./client-auth-server/WalletProvider.js";
-export { getPublicKeyBytesFromPasskeySignature } from "./utils/passkey.js";
+// Re-export client-auth-server RPC types
+export * from "./client-auth-server/index.js";
+
+// Re-export communicator
+export * from "./communicator/index.js";
+
+// Re-export errors
+export * from "./errors/index.js";
+
+// Re-export actions
+export * from "./actions/sendUserOperation.js";
+export * from "./client/actions/index.js";

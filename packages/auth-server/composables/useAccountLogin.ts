@@ -1,8 +1,10 @@
-import { findAddressesByPasskey, getPasskeyCredential } from "zksync-sso-4337/client";
+import { findAddressesByPasskey, getPasskeyCredential } from "zksync-sso/client";
 
 export const useAccountLogin = () => {
   const { login } = useAccountStore();
   const { getPublicClient, contracts } = useClientStore();
+  const runtimeConfig = useRuntimeConfig();
+  const prividiumAuthStore = usePrividiumAuthStore();
 
   const { inProgress: loginInProgress, error: accountLoginError, execute: loginToAccount } = useAsync(async () => {
     const client = getPublicClient();
@@ -11,7 +13,12 @@ export const useAccountLogin = () => {
     if (!credential) throw new Error("No credential found");
 
     try {
-      // Use findAddressesByPasskey from sdk-4337
+      // In Prividium mode, pass a wallet address as `from` for eth_call
+      const accountFrom = runtimeConfig.public.prividiumMode
+        ? prividiumAuthStore.walletAddresses[0]
+        : undefined;
+
+      // Use findAddressesByPasskey from sdk
       const result = await findAddressesByPasskey({
         client,
         contracts: {
@@ -21,6 +28,7 @@ export const useAccountLogin = () => {
           credentialId: credential.credentialIdHex,
           originDomain: window.location.origin,
         },
+        account: accountFrom,
       });
       if (!result.addresses.length) throw new Error("No accounts found for this passkey");
 

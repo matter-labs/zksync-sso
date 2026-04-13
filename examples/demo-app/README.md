@@ -5,10 +5,23 @@ coverage for the SDK.
 
 ## Requirements
 
-You will need [Era In Memory Node](https://github.com/matter-labs/era-test-node)
-for deploying contracts locally.
+You will need the local `zksync-os` stack and local bundler processes.
 
-In a terminal, start up the Era In Memory Node with the command `era_test_node`.
+From the repository root, start it with:
+
+```bash
+pnpm dev:stack:up
+```
+
+Then start the bundler processes in separate terminals:
+
+```bash
+pnpm --dir packages/contracts run bundler
+```
+
+```bash
+pnpm --dir packages/contracts run bundler-proxy
+```
 
 ## Setup
 
@@ -18,7 +31,9 @@ Run the following commands from the root of the monorepo.
 pnpm install
 ```
 
-Running the Demo App requires the Auth Server. The following will start both.
+Running the Demo App requires the Auth Server. The local target below also
+deploys the local contract suite, bridges the small set of local wallets needed
+for testing, and deploys the mock paymaster.
 
 ```bash
 pnpm nx dev demo-app

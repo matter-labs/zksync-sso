@@ -1,122 +1,208 @@
-import { type PublicKeyCredentialDescriptorJSON } from "@simplewebauthn/browser";
-import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
-import { erc7739Actions } from "viem/experimental";
-import { eip712WalletActions } from "viem/zksync";
+import {
+  type Address,
+  type Chain,
+  type Client,
+  createClient,
+  createPublicClient,
+  type Hex,
+  type JsonRpcAccount,
+  type Prettify,
+  type PublicActions,
+  publicActions,
+  type PublicRpcSchema,
+  type RpcSchema,
+  type Transport,
+  walletActions,
+  type WalletRpcSchema,
+} from "viem";
+import type { BundlerClient } from "viem/account-abstraction";
 
-import type { CustomPaymasterHandler } from "../../paymaster/index.js";
-import { passkeyHashSignatureResponseFormat } from "../../utils/passkey.js";
-import { toPasskeyAccount } from "./account.js";
-import { requestPasskeyAuthentication } from "./actions/passkey.js";
-import { type ZksyncSsoPasskeyActions, zksyncSsoPasskeyActions } from "./decorators/passkey.js";
-import { zksyncSsoPasskeyWalletActions } from "./decorators/wallet.js";
+import type { PaymasterConfig } from "../../actions/sendUserOperation.js";
+import type { ToPasskeySmartAccountParams } from "./account.js";
+import {
+  type PasskeyClientActions,
+  passkeyClientActions,
+} from "./client-actions.js";
 
-export function createZksyncPasskeyClient<
-  transport extends Transport,
-  chain extends Chain,
-  rpcSchema extends RpcSchema | undefined = undefined,
->(_parameters: ZksyncSsoPasskeyClientConfig<transport, chain, rpcSchema>): ZksyncSsoPasskeyClient<transport, chain, rpcSchema> {
-  type WalletClientParameters = typeof _parameters;
-  const parameters: WalletClientParameters & {
-    key: NonNullable<WalletClientParameters["key"]>;
-    name: NonNullable<WalletClientParameters["name"]>;
-  } = {
-    ..._parameters,
-    address: getAddress(_parameters.address),
-    key: _parameters.key || "zksync-sso-passkey-wallet",
-    name: _parameters.name || "ZKsync SSO Passkey Client",
+/**
+ * Parameters for creating a passkey bundler client
+ */
+export type CreatePasskeyClientParams<
+  TTransport extends Transport = Transport,
+  TChain extends Chain = Chain,
+> = {
+  /** Passkey account configuration */
+  account: {
+    /** Smart account address (required - no counterfactual support). */
+    address: Address;
+    /** Passkey validator contract address (required for signature formatting). */
+    validatorAddress: Address;
+    /** Passkey credential ID (hex string). */
+    credentialId: Hex;
+    /** Relying Party ID (domain where passkey was created). */
+    rpId: string;
+    /** Origin URL (for WebAuthn verification). */
+    origin: string;
+    /** Optional override for EntryPoint address used by the account implementation. */
+    entryPointAddress?: Address;
   };
 
-  const account = toPasskeyAccount({
-    address: parameters.address,
-    chain: parameters.chain,
-    contracts: parameters.contracts,
-    transport: parameters.transport,
-    sign: async ({ hash }) => {
-      const passkeySignature = await requestPasskeyAuthentication({
-        challenge: hash,
-        credentialPublicKey: parameters.credentialPublicKey,
-        credential: parameters.credential,
-      });
+  /** Bundler client instance (created externally by user) */
+  bundlerClient: BundlerClient;
 
-      return passkeyHashSignatureResponseFormat(
-        passkeySignature.passkeyAuthenticationResponse.id,
-        passkeySignature.passkeyAuthenticationResponse.response,
-        parameters.contracts,
-      );
-    },
-  });
-  const client = createClient<transport, chain, Account, rpcSchema>({
-    ...parameters,
-    account,
-    type: "walletClient",
-  })
-    .extend(() => ({
-      credentialPublicKey: parameters.credentialPublicKey,
-      userName: parameters.userName,
-      userDisplayName: parameters.userDisplayName,
-      contracts: parameters.contracts,
-    }))
-    .extend(publicActions)
-    .extend(walletActions)
-    .extend(eip712WalletActions())
-    .extend(zksyncSsoPasskeyActions)
-    .extend(zksyncSsoPasskeyWalletActions)
-    .extend(erc7739Actions({
-      verifier: account.address,
-    }));
-  return client;
-}
+  /** Chain configuration */
+  chain: TChain;
 
-export type PasskeyRequiredContracts = {
-  oidcKeyRegistry: Address; // Oidc key registry
-  session: Address; // Session, spend limit, etc.
-  passkey: Address; // Validator for passkey signature
-  recovery: Address; // Validator for account recovery
-  recoveryOidc: Address; // Validator for account recovery with OIDC
-  accountFactory?: Address; // For account creation
-};
-type ZksyncSsoPasskeyData = {
-  credentialPublicKey: Uint8Array; // Public key of the passkey
-  userName: string; // Basically unique user id (which is called `userName` in webauthn)
-  userDisplayName: string; // Also option required for webauthn
-  contracts: PasskeyRequiredContracts;
-  paymasterHandler?: CustomPaymasterHandler;
-};
+  /** Transport for public RPC calls */
+  transport: TTransport;
 
-export type ClientWithZksyncSsoPasskeyData<
-  transport extends Transport = Transport,
-  chain extends Chain = Chain,
-> = Client<transport, chain, Account> & ZksyncSsoPasskeyData;
+  /** Optional paymaster configuration for sponsored transactions - can be either a full config object or just an address string */
+  paymaster?: PaymasterConfig | Address;
 
-export type ZksyncSsoPasskeyClient<
-  transport extends Transport = Transport,
-  chain extends Chain = Chain,
-  rpcSchema extends RpcSchema | undefined = undefined,
-  account extends Account = Account,
-> = Prettify<
-  Client<
-    transport,
-    chain,
-    account,
-    rpcSchema extends RpcSchema
-      ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
-      : [...PublicRpcSchema, ...WalletRpcSchema],
-    PublicActions<transport, chain, account> & WalletActions<chain, account> & ZksyncSsoPasskeyActions
-  > & ZksyncSsoPasskeyData
->;
-
-export interface ZksyncSsoPasskeyClientConfig<
-  transport extends Transport = Transport,
-  chain extends Chain = Chain,
-  rpcSchema extends RpcSchema | undefined = undefined,
-> extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, "account"> {
-  chain: NonNullable<chain>;
-  address: Address;
-  credentialPublicKey: Uint8Array;
-  userName: string;
-  userDisplayName: string;
-  contracts: PasskeyRequiredContracts;
-  credential?: PublicKeyCredentialDescriptorJSON;
+  /** Optional client metadata */
   key?: string;
   name?: string;
+};
+
+/**
+ * Passkey bundler client type with all actions
+ */
+export type PasskeyClient<
+  TTransport extends Transport = Transport,
+  TChain extends Chain = Chain,
+  TRpcSchema extends RpcSchema | undefined = undefined,
+> = Prettify<
+  Client<
+    TTransport,
+    TChain,
+    JsonRpcAccount,
+    TRpcSchema extends RpcSchema
+      ? [...PublicRpcSchema, ...WalletRpcSchema, ...TRpcSchema]
+      : [...PublicRpcSchema, ...WalletRpcSchema]
+  > &
+  PublicActions<TTransport, TChain> &
+  PasskeyClientActions & {
+    /** The bundler client instance */
+    bundler: BundlerClient;
+  }
+>;
+
+/**
+ * Create a viem wallet client wrapper around a passkey smart account.
+ *
+ * This client provides a standard viem WalletClient interface while using
+ * user operations under the hood. All transactions are sent via
+ * the bundler and return actual transaction hashes (not userOp hashes).
+ *
+ * The smart account is lazy-loaded on first transaction since toPasskeySmartAccount is async.
+ *
+ * @param params - Configuration including account details, bundler client, and chain
+ * @returns A viem wallet client compatible with wagmi and standard tooling
+ *
+ * @example
+ * ```typescript
+ * import { createPublicClient, http } from "viem";
+ * import { createBundlerClient } from "viem/account-abstraction";
+ * import { createPasskeyClient } from "zksync-sso/client/passkey";
+ *
+ * const publicClient = createPublicClient({
+ *   chain,
+ *   transport: http(rpcUrl),
+ * });
+ *
+ * const bundlerClient = createBundlerClient({
+ *   client: publicClient,
+ *   transport: http(bundlerUrl),
+ * });
+ *
+ * const client = createPasskeyClient({
+ *   account: {
+ *     address: "0x...",
+ *     validatorAddress: "0x...",
+ *     credentialId: "0x...",
+ *     rpId: window.location.hostname,
+ *     origin: window.location.origin,
+ *   },
+ *   bundlerClient,
+ *   chain,
+ *   transport: http(rpcUrl),
+ * });
+ *
+ * // Use like a normal wallet client
+ * const hash = await client.sendTransaction({
+ *   to: "0x...",
+ *   value: parseEther("0.1"),
+ *   data: "0x",
+ * });
+ *
+ * // Wait for confirmation
+ * const receipt = await client.waitForTransactionReceipt({ hash });
+ *
+ * // Add a new passkey
+ * await client.addPasskey({
+ *   credentialId: "0x...",
+ *   publicKey: { x: "0x...", y: "0x..." },
+ *   originDomain: "example.com",
+ * });
+ *
+ * // Access bundler client directly
+ * const bundler = client.bundler;
+ * ```
+ */
+export function createPasskeyClient<
+  TTransport extends Transport = Transport,
+  TChain extends Chain = Chain,
+  TRpcSchema extends RpcSchema | undefined = undefined,
+>(
+  params: CreatePasskeyClientParams<TTransport, TChain>,
+): PasskeyClient<TTransport, TChain, TRpcSchema> {
+  const { account: accountConfig, bundlerClient, chain, transport } = params;
+
+  // Wrap bundler client to inject paymaster if provided
+  const wrappedBundlerClient = bundlerClient;
+
+  // Create public client for RPC calls
+  const publicClient = createPublicClient({
+    chain,
+    transport,
+  });
+
+  // Prepare passkey account params for lazy loading
+  const passkeyAccountParams: ToPasskeySmartAccountParams = {
+    client: publicClient as ToPasskeySmartAccountParams["client"],
+    address: accountConfig.address,
+    validatorAddress: accountConfig.validatorAddress,
+    credentialId: accountConfig.credentialId,
+    rpId: accountConfig.rpId,
+    origin: accountConfig.origin,
+    entryPointAddress: accountConfig.entryPointAddress,
+  };
+
+  // Create the client with all actions
+  // Use standard pattern: extend with walletActions first, then override with custom actions
+  const client = createClient({
+    chain,
+    transport,
+    account: { address: accountConfig.address, type: "json-rpc" },
+    type: "walletClient",
+    key: params.key || "zksync-sso-passkey-client",
+    name: params.name || "ZKsync SSO Passkey Client",
+  })
+    .extend(publicActions)
+    .extend(walletActions)
+    .extend((client) =>
+      passkeyClientActions({
+        client,
+        bundler: wrappedBundlerClient,
+        passkeyAccount: passkeyAccountParams,
+        accountAddress: accountConfig.address,
+        validatorAddress: accountConfig.validatorAddress,
+        paymaster: params.paymaster,
+      }),
+    )
+    .extend(() => ({
+      bundler: wrappedBundlerClient,
+    }));
+
+  return client as PasskeyClient<TTransport, TChain, TRpcSchema>;
 }

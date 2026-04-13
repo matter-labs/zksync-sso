@@ -5,5 +5,5 @@ sol!(
     #[derive(Debug, Default)]
     #[allow(missing_docs)]
     GuardianExecutor,
-    "../../../../../../packages/erc4337-contracts/out/GuardianExecutor.sol/GuardianExecutor.json"
+    "../../../../../../packages/contracts/out/GuardianExecutor.sol/GuardianExecutor.json"
 );

@@ -1,0 +1,46 @@
+name: zksync-sso
+
+services:
+  l1:
+    image: ghcr.io/foundry-rs/foundry:v1.5.1
+    entrypoint: ""
+    user: root
+    ports:
+      - "5010:5010"
+    volumes:
+      - ./dev/zksyncos/l1-state.json:/l1-state.json:ro
+    command: >
+      bash -lc "anvil --load-state /l1-state.json --port 5010 --host 0.0.0.0"
+    healthcheck:
+      test: ["CMD-SHELL", "cast chain-id -r http://localhost:5010"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  zksyncos:
+    image: ghcr.io/matter-labs/zksync-os-server:v0.17.1
+    platform: linux/amd64
+    ports:
+      - "3050:3050"
+    environment:
+      GENERAL_L1_RPC_URL: "http://l1:5010"
+    entrypoint: ""
+    user: root
+    working_dir: /app
+    command: ["/usr/bin/tini", "--", "zksync-os-server", "--config", "/app/config/config.yaml"]
+    volumes:
+      - zksyncos_db:/app/db
+      - ./dev/zksyncos/config.yaml:/app/config/config.yaml:ro
+      - ./dev/zksyncos/genesis.json:/app/config/genesis.json:ro
+    depends_on:
+      l1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/bin/bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/3050"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  zksyncos_db:

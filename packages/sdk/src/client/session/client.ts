@@ -1,173 +1,134 @@
-import { type Account, type Address, type Chain, type Client, createClient, createPublicClient, encodeAbiParameters, getAddress, type Hash, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { zksyncInMemoryNode } from "viem/chains";
+import {
+  type Address,
+  type Chain,
+  type Client,
+  createClient,
+  createPublicClient,
+  type Hash,
+  type Prettify,
+  type PublicActions,
+  publicActions,
+  type PublicRpcSchema,
+  type RpcSchema,
+  type Transport,
+  walletActions,
+  type WalletRpcSchema,
+} from "viem";
+import type { BundlerClient } from "viem/account-abstraction";
 
-import type { CustomPaymasterHandler } from "../../paymaster/index.js";
-import { encodeSessionTx } from "../../utils/encoding.js";
-import type { SessionConfig, SessionStateEventCallback } from "../../utils/session.js";
-import { toSessionAccount } from "./account.js";
-import { getSessionState, sessionStateNotify } from "./actions/session.js";
-import { publicActionsRewrite } from "./decorators/publicActionsRewrite.js";
-import { type ZksyncSsoWalletActions, zksyncSsoWalletActions } from "./decorators/wallet.js";
+import type { PaymasterConfig } from "../../actions/sendUserOperation.js";
+import type { SessionRequiredContracts, ToSessionSmartAccountParams } from "./account.js";
+import { type SessionClientActions, sessionClientActions } from "./client-actions.js";
+import type { SessionSpec } from "./types.js";
 
-export const signSessionTransaction = (args: {
-  sessionKeySignedHash: Hash;
-  sessionContract: Address;
-  sessionConfig: SessionConfig;
-  to: Address;
-  callData?: Hash;
-  timestamp?: bigint;
-}) => {
-  return encodeAbiParameters(
-    [
-      { type: "bytes", name: "sessionKeySignedHash" },
-      { type: "address", name: "sessionContract" },
-      { type: "bytes", name: "validatorData" },
-    ],
-    [
-      args.sessionKeySignedHash,
-      args.sessionContract,
-      encodeSessionTx({
-        sessionConfig: args.sessionConfig,
-        to: args.to,
-        callData: args.callData,
-        timestamp: args.timestamp,
-      }),
-    ],
-  );
-};
-
-export function createZksyncSessionClient<
-  transport extends Transport,
-  chain extends Chain,
-  rpcSchema extends RpcSchema | undefined = undefined,
->(_parameters: ZksyncSsoSessionClientConfig<transport, chain, rpcSchema>): ZksyncSsoSessionClient<transport, chain, rpcSchema> {
-  type WalletClientParameters = typeof _parameters;
-  const parameters: WalletClientParameters & {
-    key: NonNullable<WalletClientParameters["key"]>;
-    name: NonNullable<WalletClientParameters["name"]>;
-  } = {
-    ..._parameters,
-    address: getAddress(_parameters.address),
-    key: _parameters.key || "zksync-sso-session-wallet",
-    name: _parameters.name || "ZKsync SSO Session Client",
-  };
-
-  const getInMemoryNodeTimestamp = async () => {
-    const publicClient = createPublicClient({ chain: parameters.chain, transport: parameters.transport });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const timestamp: number = await publicClient.request({ method: "config_getCurrentTimestamp" as any });
-    return BigInt(timestamp);
-  };
-
-  const account = toSessionAccount({
-    address: parameters.address,
-    signTransaction: async ({ hash, to, callData }) => {
-      // In Memory Node uses a different timestamp mechanism which isn't equal to actual timestamp
-      const timestamp = parameters.chain.id === zksyncInMemoryNode.id
-        ? await getInMemoryNodeTimestamp()
-        : undefined;
-
-      const sessionKeySigner = privateKeyToAccount(parameters.sessionKey);
-      const hashSignature = await sessionKeySigner.sign({ hash });
-
-      return signSessionTransaction({
-        sessionKeySignedHash: hashSignature,
-        sessionContract: parameters.contracts.session,
-        sessionConfig: parameters.sessionConfig,
-        to,
-        callData,
-        timestamp,
-      });
-    },
-  });
-  const client = createClient<transport, chain, Account, rpcSchema>({
-    ...parameters,
-    account,
-    type: "walletClient",
-  })
-    .extend(() => ({
-      sessionKey: parameters.sessionKey,
-      sessionConfig: parameters.sessionConfig,
-      contracts: parameters.contracts,
-      paymasterHandler: parameters.paymasterHandler,
-      onSessionStateChange: parameters.onSessionStateChange,
-      _sessionNotifyTimeout: undefined as NodeJS.Timeout | undefined,
-    }))
-    .extend(publicActions)
-    .extend(publicActionsRewrite)
-    .extend(zksyncSsoWalletActions);
-
-  // Check session state on initialization if callback is provided
-  if (client.onSessionStateChange) {
-    getSessionState(client, {
-      account: client.account.address,
-      sessionConfig: client.sessionConfig,
-      contracts: client.contracts,
-    }).then(({ sessionState }) => {
-      sessionStateNotify({
-        sessionConfig: client.sessionConfig,
-        sessionState,
-        onSessionStateChange: client.onSessionStateChange!,
-        sessionNotifyTimeout: client._sessionNotifyTimeout,
-      });
-    }).catch((error) => {
-      console.error("Failed to get session state on initialization:", error);
-    });
-  }
-
-  return client;
-}
-
-export type SessionRequiredContracts = {
-  session: Address; // Session, spend limit, etc.
-};
-type ZksyncSsoSessionData = {
-  sessionKey: Hash;
-  sessionConfig: SessionConfig;
-  contracts: SessionRequiredContracts;
-  paymasterHandler?: CustomPaymasterHandler;
-  onSessionStateChange?: SessionStateEventCallback;
-  skipPreTransactionStateValidation?: boolean;
-  _sessionNotifyTimeout?: NodeJS.Timeout;
-};
-
-export type ClientWithZksyncSsoSessionData<
-  transport extends Transport = Transport,
-  chain extends Chain = Chain,
-  account extends Account = Account,
-> = Client<transport, chain, account> & ZksyncSsoSessionData;
-
-export type ZksyncSsoSessionClient<
-  transport extends Transport = Transport,
-  chain extends Chain = Chain,
-  rpcSchema extends RpcSchema | undefined = undefined,
-  account extends Account = Account,
-> = Prettify<
-  Client<
-    transport,
-    chain,
-    account,
-    rpcSchema extends RpcSchema
-      ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
-      : [...PublicRpcSchema, ...WalletRpcSchema],
-    ZksyncSsoWalletActions<chain, account>
-  > & ZksyncSsoSessionData
->;
-
-export interface ZksyncSsoSessionClientConfig<
-  transport extends Transport = Transport,
-  chain extends Chain = Chain,
-  rpcSchema extends RpcSchema | undefined = undefined,
-> extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, "account"> {
-  chain: NonNullable<chain>;
+/** Parameters for creating a Session smart account client */
+export type CreateSessionClientParams<
+  TTransport extends Transport = Transport,
+  TChain extends Chain = Chain,
+> = {
+  /** Smart account address (already deployed) */
   address: Address;
-  sessionKey: Hash;
-  sessionConfig: SessionConfig;
+  /** Session key private key */
+  sessionKeyPrivateKey: Hash;
+  /** Session specification governing allowed actions */
+  sessionSpec: SessionSpec;
+  /** Session required contracts */
   contracts: SessionRequiredContracts;
+  /** Bundler client instance */
+  bundlerClient: BundlerClient;
+  /** Chain config */
+  chain: TChain;
+  /** Transport for public RPC */
+  transport: TTransport;
+  /** Optional paymaster configuration for sponsoring transactions */
+  paymaster?: PaymasterConfig;
+  /** Optional timestamp override for signature generation */
+  currentTimestamp?: bigint;
+  /** Optional override for EntryPoint address used by the account implementation. */
+  entryPointAddress?: Address;
+  /** Optional client metadata */
   key?: string;
   name?: string;
-  paymasterHandler?: CustomPaymasterHandler;
-  onSessionStateChange?: SessionStateEventCallback;
-  skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
+};
+
+/** Session client type with actions */
+export type SessionClient<
+  TTransport extends Transport = Transport,
+  TChain extends Chain = Chain,
+  TRpcSchema extends RpcSchema | undefined = undefined,
+> = Prettify<
+  Client<
+    TTransport,
+    TChain,
+    undefined,
+    TRpcSchema extends RpcSchema
+      ? [...PublicRpcSchema, ...WalletRpcSchema, ...TRpcSchema]
+      : [...PublicRpcSchema, ...WalletRpcSchema]
+  > &
+  PublicActions<TTransport, TChain> &
+  SessionClientActions & {
+    bundler: BundlerClient;
+  }
+>;
+
+/**
+ * Create a client wrapping a session smart account. Provides wallet-like API
+ * plus helpers for session creation & state queries. Transactions sent via
+ * sendTransaction or sendSessionTransaction are encoded as session execute() calls.
+ */
+export function createSessionClient<
+  TTransport extends Transport = Transport,
+  TChain extends Chain = Chain,
+  TRpcSchema extends RpcSchema | undefined = undefined,
+>(
+  params: CreateSessionClientParams<TTransport, TChain>,
+): SessionClient<TTransport, TChain, TRpcSchema> {
+  const {
+    address,
+    contracts,
+    sessionKeyPrivateKey,
+    sessionSpec,
+    bundlerClient,
+    chain,
+    transport,
+    currentTimestamp,
+    paymaster,
+  } = params;
+
+  const publicClient = createPublicClient({ chain, transport });
+
+  const sessionAccountParams: ToSessionSmartAccountParams = {
+    client: publicClient as ToSessionSmartAccountParams["client"],
+    address,
+    contracts,
+    sessionKeyPrivateKey,
+    sessionSpec,
+    currentTimestamp,
+    entryPointAddress: params.entryPointAddress,
+  };
+
+  const client = createClient({
+    chain,
+    transport,
+    account: undefined,
+    type: "walletClient",
+    key: params.key || "zksync-sso-session-client",
+    name: params.name || "ZKsync SSO Session Client",
+  })
+    .extend(publicActions)
+    .extend(walletActions)
+    .extend((client) =>
+      sessionClientActions({
+        client,
+        bundler: bundlerClient,
+        sessionAccount: sessionAccountParams,
+        accountAddress: address,
+        paymaster,
+      }),
+    )
+    .extend(() => ({
+      bundler: bundlerClient,
+    }));
+
+  return client as SessionClient<TTransport, TChain, TRpcSchema>;
 }

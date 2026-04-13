@@ -13,3 +13,9 @@ export interface Communicator {
   onMessage: <M extends Message>(_: (_: Partial<M>) => boolean) => Promise<M>;
   ready: () => Promise<void>;
 }
+
+export interface AppMetadata {
+  name: string;
+  icon: string | null;
+  configData: Record<string, string | number | boolean>;
+}

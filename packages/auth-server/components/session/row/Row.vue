@@ -57,8 +57,8 @@
 <script setup lang="ts">
 import { HandRaisedIcon } from "@heroicons/vue/24/outline";
 import type { Hex } from "viem";
-import { SessionKeyValidatorAbi } from "zksync-sso-4337/abi";
-import { type SessionConfig, type SessionState, SessionStatus } from "zksync-sso-4337/client";
+import { SessionKeyValidatorAbi } from "zksync-sso/abi";
+import { type SessionConfig, type SessionState, SessionStatus } from "zksync-sso/client";
 
 const props = defineProps<{
   sessionHash: Hex;

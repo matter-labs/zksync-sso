@@ -2,7 +2,7 @@
 
 set -e
 
-echo "🦀 Building zkSync SSO WASM SDK..."
+echo "🦀 Building ZKsync SSO WASM SDK..."
 
 # Navigate to the web SDK directory
 cd "$(dirname "$0")"

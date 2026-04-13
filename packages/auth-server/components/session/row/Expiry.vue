@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { SessionStatus } from "zksync-sso-4337/client";
+import { SessionStatus } from "zksync-sso/client";
 
 const props = defineProps<{
   status: SessionStatus;

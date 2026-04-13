@@ -22,13 +22,9 @@ use caution and stay up to date with the latest updates and changes as they are 
 - ❤️‍🩹 Account recovery
   - Setup EOA or other SSO Guardian accounts to create new passkey
   - Use Google Auth (OIDC) recovery flow to create new passkey
-- 💻 Simple SDKs :
-  - JavaScript
-  - React Native
-  - Swift
-  - Kotlin _(Coming Soon)_
+- 💻 JavaScript SDK for smart accounts on zksync-os
 - 🤝 Open-source authentication server
-- 🎓 Examples to get started quickly
+- 🎓 Demo app to get started quickly
 
 ## Getting started
 
@@ -124,16 +120,30 @@ const connectWithSSO = () => {
 
 ## Local Development
 
-This monorepo is comprised of the following packages, products, and examples:
+This monorepo is comprised of the active development path:
 
-- `packages/sdk-4337` is the `zksync-sso` JavaScript SDK
+- `packages/sdk` is the `zksync-sso` JavaScript SDK
+- `packages/sdk-platforms/web` provides the Rust/WASM web bindings used by the
+  SDK
 - `packages/auth-server` is the Auth Server used for account creation and
   session key management
-- `packages/erc4337-contracts` are the on-chain smart contracts behind ZKsync
-  SSO accounts
-- `examples/nft-quest` is an app demonstrating the use of ZKsync SSO with
-  sessions
-- `examples/nft-quest-contracts` are the smart contracts for `nft-quest`
+- `packages/contracts` are the on-chain smart contracts behind zksync SSO
+  accounts
+- `packages/bundler` contains the Alto-facing bundler helpers and config
+- `examples/demo-app` is the local integration app for the current stack
+
+## Prerequisites
+
+Install these once before running the local development flow:
+
+- Node.js 22.x
+- `pnpm`
+- [Foundry](https://getfoundry.sh)
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
 
 ## Running development
 
@@ -151,47 +161,51 @@ This monorepo is comprised of the following packages, products, and examples:
    cp packages/bundler/.env.example packages/bundler/.env
    ```
 
-3. Install [Foundry](https://getfoundry.sh) (if not yet installed):
+3. Install contract Soldeer dependencies:
 
    ```bash
-   curl -L https://foundry.paradigm.xyz | bash
-   foundryup
+   cd packages/contracts && forge soldeer install && cd ../..
    ```
 
-4. Install ERC-4337 Soldeer dependencies:
+4. Start the local `zksync-os` stack in a separate terminal:
 
    ```bash
-   cd packages/erc4337-contracts && forge soldeer install && cd ../..
+   pnpm dev:stack:up
    ```
 
-5. Start a local Anvil node in a separate terminal (forks mainnet, chain-id
-   1337):
+   This also predeploys the local bundler prerequisites.
+
+5. Start the Alto bundler and CORS proxy in separate terminals:
 
    ```bash
-   pnpm --dir packages/erc4337-contracts run anvil
+   # Terminal 1
+   pnpm --dir packages/contracts run bundler
    ```
-
-6. Start the Alto bundler with CORS proxy in a separate terminal:
 
    ```bash
-   pnpm --dir packages/erc4337-contracts run bundler:with-proxy
+   # Terminal 2
+   pnpm --dir packages/contracts run bundler-proxy
    ```
 
-7. Start the demo application (automatically builds contracts, deploys, and
-   starts auth-server):
+6. Start the demo application and local SSO helpers:
 
    ```bash
-   pnpm nx dev:erc4337 demo-app
+   pnpm nx dev demo-app
    ```
+
+   This uses `scripts/setup-local-dev.sh`.
+
+For reusable deployments, use `scripts/deploy-sso-contracts.sh`.
 
 Local port list:
 
 - auth server: 3002
 - auth server api: 3004
 - demo app: 3005
-- bundler CORS proxy: 4337
+- bundler CORS proxy: `http://localhost:4337`
 - Alto bundler: 4338
-- Anvil: 8545
+- zksync-os L1: 5010
+- zksync-os RPC: 3050
 
 ## Running commands
 
@@ -231,12 +245,12 @@ command.
 
 ## Running/Debugging End-to-End Tests
 
-To execute the end-to-end tests, complete steps 1–6 from "Running development"
-above (Anvil running + contracts deployed + bundler running), then:
+To execute the end-to-end tests, complete steps 1–5 from "Running development"
+above (zksync-os running + bundler running), then:
 
 ```bash
-# ERC-4337 e2e tests
-pnpm nx e2e:erc4337 demo-app
+# SDK e2e tests
+pnpm nx e2e demo-app
 
 # Demo-only tests (session + passkey)
 pnpm nx e2e:demo-only demo-app
@@ -244,6 +258,9 @@ pnpm nx e2e:demo-only demo-app
 # Guardian e2e tests
 pnpm nx e2e:guardian auth-server
 ```
+
+`pnpm nx e2e demo-app` runs `scripts/setup-local-dev.sh`, but still expects
+`zksync-os`, Alto, and the bundler proxy to already be running.
 
 To debug end-to-end tests interactively:
 

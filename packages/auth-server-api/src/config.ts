@@ -31,9 +31,9 @@ try {
 // Environment schema with optional contract addresses (can fall back to contracts.json)
 const envSchema = z.object({
   PORT: z.string().default("3004"),
-  CORS_ORIGINS: z.string().default("http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005,http://localhost:3000"),
-  DEPLOYER_PRIVATE_KEY: z.string().default("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"),
-  RPC_URL: z.string().default("http://127.0.0.1:8545"),
+  CORS_ORIGINS: z.string().default("http://localhost:3000,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005,http://localhost:3102,http://localhost:3104,http://localhost:3202,http://localhost:3204"),
+  DEPLOYER_PRIVATE_KEY: z.string().default("0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"),
+  RPC_URL: z.string().default("http://127.0.0.1:3050"),
   FACTORY_ADDRESS: z.string().optional(),
   EOA_VALIDATOR_ADDRESS: z.string().optional(),
   WEBAUTHN_VALIDATOR_ADDRESS: z.string().optional(),
@@ -103,8 +103,8 @@ function parseSupportedChains(): Chain[] {
   if (!process.env.CHAIN_1_ID) {
     console.error("CHAIN_1_ID is required. Please configure at least one chain using CHAIN_N_* environment variables.");
     console.error("\nExample configuration:");
-    console.error("  CHAIN_1_ID=1337");
-    console.error("  CHAIN_1_RPC_URL=http://localhost:8545");
+    console.error("  CHAIN_1_ID=6565");
+    console.error("  CHAIN_1_RPC_URL=http://localhost:3050");
     console.error("  CHAIN_1_BASE_TOKEN_DECIMALS=18  # Optional, defaults to 18");
     console.error("\nSee .env.example for more examples.");
     process.exit(1);

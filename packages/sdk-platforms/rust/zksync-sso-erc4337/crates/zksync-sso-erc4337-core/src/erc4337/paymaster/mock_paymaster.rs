@@ -10,7 +10,7 @@ sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
     MockPaymaster,
-    "../../../../../../packages/erc4337-contracts/out/MockPaymaster.sol/MockPaymaster.json"
+    "../../../../../../packages/contracts/out/MockPaymaster.sol/MockPaymaster.json"
 );
 
 pub async fn deploy_mock_paymaster<P>(

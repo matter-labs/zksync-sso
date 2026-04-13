@@ -5,14 +5,16 @@ import { promisify } from "util";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
+const AUTH_SERVER_URL = process.env.PW_AUTH_SERVER_URL || "http://localhost:3002";
+
 const execAsync = promisify(exec);
 
 /**
- * Fund an account with ETH using Anvil's default rich wallet
+ * Fund an account with ETH using the local zksync-os rich wallet
  */
-async function fundAccount(address: string, amount: string = "1"): Promise<void> {
-  const ANVIL_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-  const cmd = `cast send ${address} --value ${amount}ether --private-key ${ANVIL_PRIVATE_KEY} --rpc-url http://localhost:8545`;
+async function fundAccount(address: string, amount: string = "0.1"): Promise<void> {
+  const RICH_WALLET_PRIVATE_KEY = "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6";
+  const cmd = `cast send ${address} --value ${amount}ether --private-key ${RICH_WALLET_PRIVATE_KEY} --rpc-url http://localhost:3050`;
   try {
     await execAsync(cmd);
     console.log(`✅ Funded ${address} with ${amount} ETH`);
@@ -34,7 +36,7 @@ async function waitForAuthServerToLoad(page: Page): Promise<void> {
   let retryCount = 0;
 
   // Wait for auth server to finish loading
-  await page.goto("http://localhost:3002");
+  await page.goto(AUTH_SERVER_URL);
   let authServerHeader = page.getByTestId("signup");
   while (!(await authServerHeader.isVisible()) && retryCount < maxRetryAttempts) {
     await page.waitForTimeout(1000);
@@ -112,7 +114,7 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
 
   // ===== Step 1: Create Primary Account =====
   console.log("Step 1: Creating primary account...");
-  await page.goto("http://localhost:3002");
+  await page.goto(AUTH_SERVER_URL);
   await page.waitForTimeout(1000);
 
   // No popup - we're already on the auth-server signup page
@@ -149,11 +151,11 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
   console.log(`Primary account created: ${primaryAddressText}`);
 
   // Fund the primary account with ETH
-  await fundAccount(primaryAddressText, "1");
+  await fundAccount(primaryAddressText);
 
   // ===== Step 2: Navigate to Guardian Settings ===
   console.log("\nStep 2: Navigating to guardian settings...");
-  await page.goto("http://localhost:3002/dashboard/settings");
+  await page.goto(`${AUTH_SERVER_URL}/dashboard/settings`);
   await page.waitForTimeout(2000);
 
   // Find the "Add Recovery Method" button
@@ -185,7 +187,7 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
     console.log(`Guardian page exception: "${exception}"`);
   });
 
-  await guardianPage.goto("http://localhost:3002");
+  await guardianPage.goto(AUTH_SERVER_URL);
   await guardianPage.waitForTimeout(2000);
 
   // No popup - we're already on the auth-server signup page
@@ -214,7 +216,7 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
   console.log(`Guardian account created: ${guardianAddressText}`);
 
   // Fund the guardian account with ETH
-  await fundAccount(guardianAddressText, "1");
+  await fundAccount(guardianAddressText);
 
   // ===== Step 4: Propose Guardian ===
   console.log("\nStep 4: Proposing guardian...");
@@ -238,7 +240,7 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
   await proposeButton.click();
 
   // Wait for guardian proposal to complete
-  // NOTE: The SSO client automatically signs ERC-4337 transactions,
+  // NOTE: The SSO client automatically signs smart-account transactions,
   // so there are NO popup windows to interact with during guardian proposal
   console.log("Waiting for guardian proposal transaction to complete...");
 
@@ -275,7 +277,7 @@ test("Guardian flow: propose and confirm guardian", async ({ page, context: _con
   console.log("\nStep 5: Confirming guardian...");
 
   // Construct confirmation URL
-  const confirmUrl = `http://localhost:3002/recovery/guardian/confirm-guardian?accountAddress=${primaryAddressText}&guardianAddress=${guardianAddressText}`;
+  const confirmUrl = `${AUTH_SERVER_URL}/recovery/guardian/confirm-guardian?accountAddress=${primaryAddressText}&guardianAddress=${guardianAddressText}`;
   console.log(`Confirmation URL: ${confirmUrl}`);
 
   // Capture page errors
@@ -429,7 +431,7 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
 
   // ===== Step 1: Create Primary Account with Paymaster =====
   console.log("Step 1: Creating primary account with paymaster...");
-  await page.goto("http://localhost:3002");
+  await page.goto(AUTH_SERVER_URL);
   await page.waitForTimeout(1000);
 
   // No popup - we're already on the auth-server signup page
@@ -463,14 +465,14 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
   console.log(`Primary account created: ${primaryAddressText}`);
 
   // Fund the primary account with ETH
-  await fundAccount(primaryAddressText, "1");
+  await fundAccount(primaryAddressText);
 
   // ===== Step 2: Create Guardian Account ===
   console.log("\nStep 2: Creating guardian account...");
   const guardianContext = await page.context().browser()!.newContext();
   const guardianPage = await guardianContext.newPage();
 
-  await guardianPage.goto("http://localhost:3002");
+  await guardianPage.goto(AUTH_SERVER_URL);
   await guardianPage.waitForTimeout(2000);
 
   // No popup - we're already on the auth-server signup page
@@ -499,7 +501,7 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
   console.log(`Guardian account created: ${guardianAddressText}`);
 
   // Fund the guardian account with ETH
-  await fundAccount(guardianAddressText, "1");
+  await fundAccount(guardianAddressText);
 
   // ===== Step 3: Navigate to Guardian Settings and Propose ===
   console.log("\nStep 3: Proposing guardian with paymaster...");
@@ -513,7 +515,7 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
     console.log(`Primary page console: ${logMsg}`);
   });
 
-  await page.goto("http://localhost:3002/dashboard/settings");
+  await page.goto(`${AUTH_SERVER_URL}/dashboard/settings`);
   await page.waitForTimeout(2000);
 
   const addGuardianButton = page.getByTestId("add-recovery-method");
@@ -540,7 +542,7 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
   await proposeButton.click();
 
   // Wait for paymaster-sponsored guardian proposal to complete
-  // NOTE: The SSO client automatically signs ERC-4337 transactions with paymaster,
+  // NOTE: The SSO client automatically signs smart-account transactions with paymaster,
   // so there are NO popup windows to interact with during guardian proposal
   console.log("Waiting for paymaster-sponsored guardian proposal to complete...");
   await page.waitForTimeout(8000); // Wait for module installation + guardian proposal
@@ -566,7 +568,7 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
 
   // ===== Step 4: Confirm Guardian with Paymaster =====
   console.log("\nStep 4: Confirming guardian with paymaster...");
-  const confirmUrl = `http://localhost:3002/recovery/guardian/confirm-guardian?accountAddress=${primaryAddressText}&guardianAddress=${guardianAddressText}`;
+  const confirmUrl = `${AUTH_SERVER_URL}/recovery/guardian/confirm-guardian?accountAddress=${primaryAddressText}&guardianAddress=${guardianAddressText}`;
 
   // Capture page errors for paymaster test
   const paymasterPageErrors: string[] = [];
@@ -693,12 +695,12 @@ test("Guardian flow: propose guardian with paymaster", async ({ page }) => {
 });
 
 test("Guardian flow: full recovery execution", async ({ page, context: baseContext }) => {
-  test.setTimeout(120000); // Extended timeout for full recovery flow
+  test.setTimeout(240000); // Full local recovery flow is slow on zksync-os
   console.log("\n=== Starting Full Recovery Execution E2E Test ===\n");
 
   // Step 1: Create account owner
   console.log("Step 1: Creating account owner...");
-  await page.goto("http://localhost:3002");
+  await page.goto(AUTH_SERVER_URL);
 
   const { newCredential: _ownerCredential } = await setupWebAuthn(page);
   await page.getByTestId("signup").click();
@@ -717,7 +719,7 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
   const guardianContext = await baseContext.browser()!.newContext();
   const guardianPage = await guardianContext.newPage();
 
-  await guardianPage.goto("http://localhost:3002");
+  await guardianPage.goto(AUTH_SERVER_URL);
   await guardianPage.waitForTimeout(2000);
 
   const { newCredential: _guardianCredential } = await setupWebAuthn(guardianPage);
@@ -743,7 +745,7 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
     console.log(`Owner page console: ${logMsg}`);
   });
 
-  await page.goto("http://localhost:3002/dashboard/settings");
+  await page.goto(`${AUTH_SERVER_URL}/dashboard/settings`);
   await page.waitForTimeout(2000);
 
   const addRecoveryButton = page.getByTestId("add-recovery-method");
@@ -787,7 +789,7 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
 
   // Step 4: Guardian accepts role
   console.log("\nStep 4: Guardian accepting role...");
-  const confirmUrl = `http://localhost:3002/recovery/guardian/confirm-guardian?accountAddress=${ownerAddress}&guardianAddress=${guardianAddress}`;
+  const confirmUrl = `${AUTH_SERVER_URL}/recovery/guardian/confirm-guardian?accountAddress=${ownerAddress}&guardianAddress=${guardianAddress}`;
   console.log(`Confirmation URL: ${confirmUrl}`);
   await guardianPage.goto(confirmUrl);
   await guardianPage.waitForTimeout(2000);
@@ -802,58 +804,40 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
   await confirmButton.click();
   console.log("Clicked confirm button, waiting for response...");
 
-  // Wait and check state multiple times to see if it progresses or gets stuck
-  await guardianPage.waitForTimeout(2000);
-
   const stateElement = guardianPage.locator("text=Current State:").locator("xpath=following-sibling::span");
+  const successIndicator = guardianPage.getByText(/Guardian Confirmed|successfully confirmed/i).first();
+  const confirmGuardianErrorElement = guardianPage.locator("p.text-error-600, p.text-error-400").first();
+  const debugStateVisible = await stateElement.isVisible().catch(() => false);
 
-  // Check state progression over 30 seconds (15 iterations × 2 seconds)
-  // Allows time for: event queries (10s) + transaction confirmation (10s) + buffer
+  if (!debugStateVisible) {
+    console.log("Debug state panel is not visible in preview mode; waiting on user-visible confirmation instead.");
+  }
+
+  // Wait up to ~50 seconds for either success or a visible error.
   for (let i = 0; i < 25; i++) {
-    const currentState = await stateElement.textContent().catch(() => "unknown");
+    const currentState = debugStateVisible ? await stateElement.textContent().catch(() => "unknown") : "debug-hidden";
     console.log(`[${i * 2}s] Current confirmation state: ${currentState}`);
 
-    // Check for UI error after each state check
-    const errorElement = guardianPage.locator("p.text-error-600, p.text-error-400");
-    const hasError = await errorElement.isVisible().catch(() => false);
+    if (await successIndicator.isVisible().catch(() => false)) {
+      console.log("✅ Guardian confirmed successfully.");
+      break;
+    }
 
-    if (hasError) {
-      const errorText = await errorElement.textContent();
+    if (await confirmGuardianErrorElement.isVisible().catch(() => false)) {
+      const errorText = await confirmGuardianErrorElement.textContent();
       console.log("❌ Guardian confirmation failed with UI error:", errorText);
       throw new Error(`Guardian confirmation failed: ${errorText}`);
     }
 
-    // If state shows error, extract it
-    if (currentState?.startsWith("error:")) {
+    if (currentState.startsWith("error:")) {
       console.log("❌ Confirmation state shows error:", currentState);
       throw new Error(`Guardian confirmation failed: ${currentState}`);
-    }
-
-    // If we reached a final state, break
-    if (currentState === "complete" || currentState === "confirm_guardian_completed") {
-      break;
-    }
-
-    // If stuck in getting state for more than 16 seconds, that's the issue
-    // (Allows 5s for getBlockNumber + 10s for event queries + buffer)
-    if (i >= 8 && currentState?.includes("getting")) {
-      console.log(`⚠️ Stuck in ${currentState} for ${i * 2} seconds`);
-      await guardianPage.screenshot({ path: "test-results/stuck-getting-client-debug.png" });
-      const bodyText = await guardianPage.locator("body").textContent();
-      console.log("Page debug state:", bodyText?.match(/Current State:.*?Expected flow:/s)?.[0] || "Not found");
-      throw new Error(`Guardian confirmation stuck in state: ${currentState}. getConfigurableAccount or getWalletClient is hanging/failing silently.`);
     }
 
     await guardianPage.waitForTimeout(2000);
   }
 
-  // Check for successful completion
-  const finalState = await stateElement.textContent().catch(() => "unknown");
-  if (finalState !== "complete" && finalState !== "confirm_guardian_completed") {
-    console.log("⚠️ Guardian confirmation did not complete. Final state:", finalState);
-    throw new Error(`Guardian confirmation failed. Final state: ${finalState}`);
-  }
-  console.log("✅ Guardian confirmed successfully. Final state:", finalState);
+  await expect(successIndicator).toBeVisible({ timeout: 5000 });
 
   // Step 5: Owner initiates recovery with new passkey using "Confirm Now" flow
   console.log("\nStep 5: Owner initiating account recovery with Confirm Now...");
@@ -863,7 +847,7 @@ test("Guardian flow: full recovery execution", async ({ page, context: baseConte
   const recoveryPage = await recoveryContext.newPage();
 
   // Navigate directly to guardian recovery page
-  await recoveryPage.goto("http://localhost:3002/recovery/guardian");
+  await recoveryPage.goto(`${AUTH_SERVER_URL}/recovery/guardian`);
   await recoveryPage.waitForTimeout(2000);
 
   // Enter owner account address - find the input inside the ZkInput component

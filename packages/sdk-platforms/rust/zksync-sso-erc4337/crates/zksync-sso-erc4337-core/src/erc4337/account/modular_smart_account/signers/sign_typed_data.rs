@@ -11,7 +11,7 @@ sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
     EIP712,
-    "../../../../../../packages/erc4337-contracts/out/EIP712.sol/EIP712.json"
+    "../../../../../../packages/contracts/out/EIP712.sol/EIP712.json"
 );
 
 pub async fn sign_typed_data<P>(

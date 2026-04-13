@@ -1,5 +1,5 @@
-// TODO: OIDC/Google OAuth is not yet available in zksync-sso-4337
-// This composable has been commented out until OIDC support is added to sdk-4337
+// TODO: OIDC/Google OAuth is not yet available in zksync-sso
+// This composable has been commented out until OIDC support is added to sdk
 
 /*
 import { JWT } from "zksync-sso-circuits";

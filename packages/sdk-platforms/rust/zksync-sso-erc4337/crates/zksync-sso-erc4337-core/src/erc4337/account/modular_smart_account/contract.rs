@@ -5,7 +5,7 @@ sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
     MSAFactory,
-    "../../../../../../packages/erc4337-contracts/out/MSAFactory.sol/MSAFactory.json"
+    "../../../../../../packages/contracts/out/MSAFactory.sol/MSAFactory.json"
 );
 
 sol!(
@@ -13,5 +13,5 @@ sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
     ModularSmartAccount,
-    "../../../../../../packages/erc4337-contracts/out/ModularSmartAccount.sol/ModularSmartAccount.json"
+    "../../../../../../packages/contracts/out/ModularSmartAccount.sol/ModularSmartAccount.json"
 );

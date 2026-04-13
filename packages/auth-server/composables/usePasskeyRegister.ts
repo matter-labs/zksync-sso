@@ -1,5 +1,5 @@
 import type { Hex } from "viem";
-import { createWebAuthnCredential } from "zksync-sso-4337/client";
+import { createWebAuthnCredential } from "zksync-sso/client";
 
 // Return type matching what components expect
 export type RegisterNewPasskeyReturnType = {

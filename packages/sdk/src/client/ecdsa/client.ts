@@ -1,90 +1,192 @@
-import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
-import { eip712WalletActions } from "viem/zksync";
+import {
+  type Address,
+  type Chain,
+  type Client,
+  createClient,
+  createPublicClient,
+  type Hash,
+  type Prettify,
+  type PublicActions,
+  publicActions,
+  type PublicRpcSchema,
+  type RpcSchema,
+  type Transport,
+  walletActions,
+  type WalletRpcSchema,
+} from "viem";
+import type { BundlerClient } from "viem/account-abstraction";
 
-import type { CustomPaymasterHandler } from "../../paymaster/index.js";
-import { toEcdsaAccount } from "./account.js";
-import { type ZksyncSsoEcdsaActions, zksyncSsoEcdsaActions } from "./decorators/ecdsa.js";
-import { zksyncSsoEcdsaWalletActions } from "./decorators/wallet.js";
-import type { Signer } from "./types.js";
+import type { ToEcdsaSmartAccountParams } from "./account.js";
+import {
+  type EcdsaClientActions,
+  ecdsaClientActions,
+} from "./client-actions.js";
 
-export async function createZksyncEcdsaClient<
-  transport extends Transport,
-  chain extends Chain,
-  rpcSchema extends RpcSchema | undefined = undefined,
->(_parameters: ZksyncSsoEcdsaClientConfig<transport, chain, rpcSchema>): Promise<ZksyncSsoEcdsaClient<transport, chain, rpcSchema>> {
-  type WalletClientParameters = typeof _parameters;
-  const parameters: WalletClientParameters & {
-    key: NonNullable<WalletClientParameters["key"]>;
-    name: NonNullable<WalletClientParameters["name"]>;
-  } = {
-    ..._parameters,
-    address: getAddress(_parameters.address),
-    key: _parameters.key || "zksync-sso-ecdsa-wallet",
-    name: _parameters.name || "ZKsync SSO ECDSA Client",
+/**
+ * Parameters for creating an ECDSA bundler client
+ */
+export type CreateEcdsaClientParams<
+  TTransport extends Transport = Transport,
+  TChain extends Chain = Chain,
+> = {
+  /** ECDSA account configuration */
+  account: {
+    /** Smart account address (required - no counterfactual support). */
+    address: Address;
+    /** ECDSA signer private key (hex string). */
+    signerPrivateKey: Hash;
+    /** EOA validator contract address (required for signature formatting). */
+    eoaValidatorAddress: Address;
+    /** Optional override for EntryPoint address used by the account implementation. */
+    entryPointAddress?: Address;
   };
 
-  const account = await toEcdsaAccount({
-    address: parameters.address,
-    owner: parameters.owner,
-  });
+  /** Bundler client instance (created externally by user) */
+  bundlerClient: BundlerClient;
 
-  const client = createClient<transport, chain, Account, rpcSchema>({
-    ...parameters,
-    account,
-    type: "walletClient",
-  })
-    .extend(() => ({
-      contracts: parameters.contracts,
-    }))
-    .extend(publicActions)
-    .extend(walletActions)
-    .extend(eip712WalletActions())
-    .extend(zksyncSsoEcdsaActions)
-    .extend(zksyncSsoEcdsaWalletActions);
-  return client;
-}
+  /** Chain configuration */
+  chain: TChain;
 
-export type EcdsaRequiredContracts = {
-  session: Address; // Session, spend limit, etc.
-  accountFactory?: Address; // For account creation
-};
+  /** Transport for public RPC calls */
+  transport: TTransport;
 
-type ZksyncSsoEcdsaData = {
-  contracts: EcdsaRequiredContracts;
-  paymasterHandler?: CustomPaymasterHandler;
-};
+  /** Optional paymaster address for sponsored transactions */
+  paymaster?: Address;
 
-export type ClientWithZksyncSsoEcdsaData<
-  transport extends Transport = Transport,
-  chain extends Chain = Chain,
-> = Client<transport, chain, Account> & ZksyncSsoEcdsaData;
-
-export type ZksyncSsoEcdsaClient<
-  transport extends Transport = Transport,
-  chain extends Chain = Chain,
-  rpcSchema extends RpcSchema | undefined = undefined,
-  account extends Account = Account,
-> = Prettify<
-  Client<
-    transport,
-    chain,
-    account,
-    rpcSchema extends RpcSchema
-      ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
-      : [...PublicRpcSchema, ...WalletRpcSchema],
-    PublicActions<transport, chain, account> & WalletActions<chain, account> & ZksyncSsoEcdsaActions
-  > & ZksyncSsoEcdsaData
->;
-
-export interface ZksyncSsoEcdsaClientConfig<
-  transport extends Transport = Transport,
-  chain extends Chain = Chain,
-  rpcSchema extends RpcSchema | undefined = undefined,
-> extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, "account"> {
-  chain: NonNullable<chain>;
-  address: Address;
-  owner: Signer;
-  contracts: EcdsaRequiredContracts;
+  /** Optional client metadata */
   key?: string;
   name?: string;
+};
+
+/**
+ * ECDSA bundler client type with all actions
+ */
+export type EcdsaClient<
+  TTransport extends Transport = Transport,
+  TChain extends Chain = Chain,
+  TRpcSchema extends RpcSchema | undefined = undefined,
+> = Prettify<
+  Client<
+    TTransport,
+    TChain,
+    undefined,
+    TRpcSchema extends RpcSchema
+      ? [...PublicRpcSchema, ...WalletRpcSchema, ...TRpcSchema]
+      : [...PublicRpcSchema, ...WalletRpcSchema]
+  > &
+  PublicActions<TTransport, TChain> &
+  EcdsaClientActions & {
+    /** The bundler client instance */
+    bundler: BundlerClient;
+  }
+>;
+
+/**
+ * Create a viem wallet client wrapper around an ECDSA smart account.
+ *
+ * This client provides a standard viem WalletClient interface while using
+ * user operations under the hood. All transactions are sent via
+ * the bundler and return actual transaction hashes (not userOp hashes).
+ *
+ * The smart account is lazy-loaded on first transaction since toEcdsaSmartAccount is async.
+ *
+ * @param params - Configuration including account details, bundler client, and chain
+ * @returns A viem wallet client compatible with wagmi and standard tooling
+ *
+ * @example
+ * ```typescript
+ * import { createPublicClient, http } from "viem";
+ * import { createBundlerClient } from "viem/account-abstraction";
+ * import { createEcdsaClient } from "zksync-sso/client/ecdsa";
+ *
+ * const publicClient = createPublicClient({
+ *   chain,
+ *   transport: http(rpcUrl),
+ * });
+ *
+ * const bundlerClient = createBundlerClient({
+ *   client: publicClient,
+ *   transport: http(bundlerUrl),
+ * });
+ *
+ * const client = createEcdsaClient({
+ *   account: {
+ *     address: "0x...",
+ *     signerPrivateKey: "0x...",
+ *     eoaValidatorAddress: "0x...",
+ *   },
+ *   bundlerClient,
+ *   chain,
+ *   transport: http(rpcUrl),
+ * });
+ *
+ * // Use like a normal wallet client
+ * const hash = await client.sendTransaction({
+ *   to: "0x...",
+ *   value: parseEther("0.1"),
+ *   data: "0x",
+ * });
+ *
+ * // Wait for confirmation
+ * const receipt = await client.waitForTransactionReceipt({ hash });
+ *
+ * // Sign messages (supported for ECDSA)
+ * const signature = await client.signMessage({ message: "Hello" });
+ *
+ * // Access bundler client directly
+ * const bundler = client.bundler;
+ * ```
+ */
+export function createEcdsaClient<
+  TTransport extends Transport = Transport,
+  TChain extends Chain = Chain,
+  TRpcSchema extends RpcSchema | undefined = undefined,
+>(
+  params: CreateEcdsaClientParams<TTransport, TChain>,
+): EcdsaClient<TTransport, TChain, TRpcSchema> {
+  const { account: accountConfig, bundlerClient, chain, transport } = params;
+
+  // Wrap bundler client to inject paymaster if provided
+  const wrappedBundlerClient = bundlerClient;
+
+  // Create public client for RPC calls
+  const publicClient = createPublicClient({
+    chain,
+    transport,
+  });
+
+  // Prepare ECDSA account params for lazy loading
+  const ecdsaAccountParams: ToEcdsaSmartAccountParams = {
+    client: publicClient as ToEcdsaSmartAccountParams["client"],
+    address: accountConfig.address,
+    signerPrivateKey: accountConfig.signerPrivateKey,
+    eoaValidatorAddress: accountConfig.eoaValidatorAddress,
+    entryPointAddress: accountConfig.entryPointAddress,
+  };
+
+  // Create the client with all actions
+  // Use standard pattern: extend with walletActions first, then override with custom actions
+  const client = createClient({
+    chain,
+    transport,
+    account: undefined,
+    type: "walletClient",
+    key: params.key || "zksync-sso-ecdsa-client",
+    name: params.name || "ZKsync SSO ECDSA Client",
+  })
+    .extend(publicActions)
+    .extend(walletActions)
+    .extend((client) =>
+      ecdsaClientActions({
+        client,
+        bundler: wrappedBundlerClient,
+        ecdsaAccount: ecdsaAccountParams,
+        accountAddress: accountConfig.address,
+      }),
+    )
+    .extend(() => ({
+      bundler: wrappedBundlerClient,
+    }));
+
+  return client as EcdsaClient<TTransport, TChain, TRpcSchema>;
 }

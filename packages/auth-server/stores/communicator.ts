@@ -1,4 +1,4 @@
-import type { Message, PopupConfigMessage } from "zksync-sso-4337/client";
+import type { Message, PopupConfigMessage } from "zksync-sso/client";
 
 /**
 * Communicates within a popup window to receive and respond to messages.

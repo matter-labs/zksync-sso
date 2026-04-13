@@ -32,7 +32,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/Iron
+          node-version: 22.17.0
           cache: "pnpm"
           registry-url: "https://registry.npmjs.org"
 
@@ -54,17 +54,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
-      # Web SDK depends on ERC-4337 contracts for WASM build
-      - name: Install ERC-4337 contract dependencies
+      # Web SDK depends on the contract workspace for WASM build
+      - name: Install contract dependencies
         run: forge soldeer install
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
-      - name: Build ERC-4337 contracts
+      - name: Build contracts
         run: forge build
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
       - name: Build the package
-        run: pnpm nx build sdk-4337
+        run: pnpm nx build sdk
 
       - name: Build the web SDK package
         run: pnpm nx build web-sdk
@@ -75,7 +75,7 @@ jobs:
           rm -f packages/sdk-platforms/web/pkg-node/.gitignore
 
       - name: Prepare package.json
-        working-directory: packages/sdk-4337
+        working-directory: packages/sdk
         run: node prepare-package.mjs
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
@@ -98,7 +98,7 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Publish SDK to NPM
-        working-directory: packages/sdk-4337
+        working-directory: packages/sdk
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }} --provenance
 
       - name: Publish web SDK to NPM
@@ -112,7 +112,7 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Publish SDK to GitHub Packages
-        working-directory: packages/sdk-4337
+        working-directory: packages/sdk
         run: |
           # Update package name for GitHub Packages to be scoped to the organization
           npm pkg set name="@matter-labs/zksync-sso"

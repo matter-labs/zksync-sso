@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "WebAssembly FFI bindings for zkSync SSO ERC-4337"
+description = "WebAssembly FFI bindings for ZKsync SSO ERC-4337"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false

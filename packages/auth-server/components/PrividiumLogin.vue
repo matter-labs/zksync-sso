@@ -72,6 +72,7 @@
           </ZkHighlightWrapper>
 
           <ZkButton
+            v-if="hasExistingAccounts"
             type="secondary"
             class="!text-slate-400"
             :loading="loginInProgress"
@@ -88,7 +89,8 @@
 
 <script lang="ts" setup>
 const prividiumAuthStore = usePrividiumAuthStore();
-const { loading, isAuthenticated, profile } = storeToRefs(prividiumAuthStore);
+const { loading, isAuthenticated, profile, walletAddresses } = storeToRefs(prividiumAuthStore);
+const hasExistingAccounts = computed(() => walletAddresses.value.length > 0);
 const { login } = useAccountStore();
 const { loginInProgress, loginToAccount } = useAccountLogin();
 const { registerInProgress: deployInProgress, createAccount, createAccountError } = useAccountCreate();

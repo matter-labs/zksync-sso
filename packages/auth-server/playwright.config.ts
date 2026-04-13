@@ -5,6 +5,12 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const authServerPort = "3202";
+const authServerApiPort = "3204";
+const authServerUrl = `http://localhost:${authServerPort}`;
+const authServerApiUrl = `http://localhost:${authServerApiPort}`;
+
+process.env.PW_AUTH_SERVER_URL = authServerUrl;
 
 // Load contracts.json for contract addresses used in e2e tests
 const localNode = JSON.parse(
@@ -13,7 +19,7 @@ const localNode = JSON.parse(
 
 // Auth server env vars derived from contracts.json
 const authServerEnv = {
-  NUXT_PUBLIC_AUTH_SERVER_API_URL: "http://localhost:3004",
+  NUXT_PUBLIC_AUTH_SERVER_API_URL: authServerApiUrl,
   NUXT_PUBLIC_CHAIN_ID: String(localNode.chainId),
   NUXT_PUBLIC_CHAIN_NAME: "Localhost",
   NUXT_PUBLIC_CHAIN_RPC_URL: localNode.rpcUrl,
@@ -25,8 +31,27 @@ const authServerEnv = {
   NUXT_PUBLIC_BEACON_ADDRESS: localNode.beacon,
   NUXT_PUBLIC_BUNDLER_URL: localNode.bundlerUrl,
   NUXT_PUBLIC_TEST_PAYMASTER_ADDRESS: localNode.testPaymaster || "",
-  PORT: "3002",
+  PORT: authServerPort,
 };
+
+const authServerApiEnv = {
+  CHAIN_1_ID: String(localNode.chainId),
+  CHAIN_1_RPC_URL: localNode.rpcUrl,
+  CORS_ORIGINS: [
+    "http://localhost:3000",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://localhost:3004",
+    "http://localhost:3005",
+    authServerUrl,
+    authServerApiUrl,
+  ].join(","),
+  DEPLOYER_PRIVATE_KEY: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6",
+  PORT: authServerApiPort,
+  RPC_URL: localNode.rpcUrl,
+};
+
+const reuseExistingServer = !!process.env.CI;
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -39,7 +64,7 @@ export default defineConfig({
   workers: 1,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:3002",
+    baseURL: authServerUrl,
     trace: "on-first-retry",
     video: "retain-on-failure",
   },
@@ -53,17 +78,18 @@ export default defineConfig({
 
   webServer: [
     {
-      command: "PORT=3004 pnpm nx dev auth-server-api",
-      url: "http://localhost:3004/api/health",
-      reuseExistingServer: !process.env.CI,
+      command: "pnpm nx dev auth-server-api",
+      url: `${authServerApiUrl}/api/health`,
+      reuseExistingServer,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,
+      env: { ...process.env, ...authServerApiEnv },
     },
     {
-      command: "pnpm nx dev:no-deploy auth-server",
-      url: "http://localhost:3002",
-      reuseExistingServer: !process.env.CI,
+      command: `NUXT_PUBLIC_AUTH_SERVER_API_URL=${authServerApiUrl} pnpm nx run auth-server:build:local && PORT=${authServerPort} NUXT_PUBLIC_AUTH_SERVER_API_URL=${authServerApiUrl} pnpm exec nuxt preview`,
+      url: authServerUrl,
+      reuseExistingServer,
       stdout: "pipe",
       stderr: "pipe",
       timeout: 180_000,

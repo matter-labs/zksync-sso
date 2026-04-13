@@ -74,7 +74,7 @@ import { ref, computed } from "vue";
 import { createPublicClient, http, parseEther, type Address, type Chain, encodePacked, keccak256, pad } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { privateKeyToAccount } from "viem/accounts";
-import { createSession, toEcdsaSmartAccount, LimitType, getSessionHash } from "zksync-sso-4337/client";
+import { createSession, toEcdsaSmartAccount, LimitType, getSessionHash } from "zksync-sso/client";
 
 interface SessionConfig {
   enabled: boolean;
@@ -159,7 +159,7 @@ async function createSessionOnChain() {
 
     const chain = {
       id: contracts.chainId,
-      name: "Anvil",
+      name: "ZKsync OS Local",
       nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
       rpcUrls: { default: { http: [contracts.rpcUrl] } },
     } satisfies Chain;
@@ -291,7 +291,11 @@ async function createSessionOnChain() {
     // Wait for the UserOp to be mined
     // eslint-disable-next-line no-console
     console.log("Waiting for session creation UserOp to be mined...");
-    await bundlerClient.waitForUserOperationReceipt({ hash: userOpHash });
+    await bundlerClient.waitForUserOperationReceipt({
+      hash: userOpHash,
+      retryCount: 180,
+      timeout: 300_000,
+    });
     // eslint-disable-next-line no-console
     console.log("Session creation UserOp mined!");
 

@@ -4,9 +4,14 @@ use eyre;
 use std::{pin::Pin, process::Command, str::FromStr, sync::Arc};
 
 pub fn get_signature_from_js(hash: String) -> eyre::Result<Bytes> {
-    let working_dir = "../../../../../erc4337-contracts";
+    let working_dir = "../../../../../contracts";
+    let chain_id =
+        std::env::var("CHAIN_ID").unwrap_or_else(|_| "1337".to_string());
+    let port = std::env::var("PORT").unwrap_or_else(|_| "8545".to_string());
 
     let output = Command::new("pnpm")
+        .env("CHAIN_ID", &chain_id)
+        .env("PORT", &port)
         .arg("tsx")
         .arg("test/integration/utils.ts")
         .arg("--hash")

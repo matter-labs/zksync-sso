@@ -1,6 +1,6 @@
 /**
  * ABI for the GuardianExecutor ERC-4337 module
- * Extracted from packages/erc4337-contracts/out/GuardianExecutor.sol/GuardianExecutor.json
+ * Extracted from packages/contracts/out/GuardianExecutor.sol/GuardianExecutor.json
  */
 export const GuardianExecutorAbi = [
   {

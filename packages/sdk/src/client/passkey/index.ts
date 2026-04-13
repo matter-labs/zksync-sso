@@ -1,4 +1,21 @@
-export * from "./account.js";
-export * from "./actions/passkey.js";
-export * from "./client.js";
-export * from "./decorators/passkey.js";
+export { toPasskeySmartAccount, type ToPasskeySmartAccountParams } from "./account.js";
+export {
+  createPasskeyClient,
+  type CreatePasskeyClientParams,
+  type PasskeyClient,
+} from "./client.js";
+export {
+  type PasskeyClientActions,
+  passkeyClientActions,
+} from "./client-actions.js";
+export {
+  base64urlToUint8Array,
+  type CreateCredentialOptions,
+  createWebAuthnCredential,
+  getPasskeyCredential,
+  getPasskeySignatureFromPublicKeyBytes,
+  getPublicKeyBytesFromPasskeySignature,
+  signWithPasskey,
+  type SignWithPasskeyOptions,
+  type WebAuthnCredential,
+} from "./webauthn.js";

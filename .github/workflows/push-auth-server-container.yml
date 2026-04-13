@@ -10,9 +10,9 @@ on:
       - "*"
     paths:
       - "packages/auth-server/**"
-      - "packages/sdk-4337/**"
+      - "packages/sdk/**"
       - "packages/sdk-platforms/rust/**"
-      - "packages/erc4337-contracts/**"
+      - "packages/contracts/**"
   pull_request:
     branches:
       - main

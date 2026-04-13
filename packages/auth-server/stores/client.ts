@@ -2,7 +2,7 @@ import { useAppKitProvider } from "@reown/appkit/vue";
 import { type Address, createPublicClient, createWalletClient, custom, type Hex, http, publicActions, walletActions } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { createPasskeyClient } from "zksync-sso-4337/client";
+import { createPasskeyClient } from "zksync-sso/client";
 
 export type ChainContracts = {
   eoaValidator: Address;

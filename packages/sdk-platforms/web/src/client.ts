@@ -25,13 +25,13 @@ export function setWasmBindings(bindings: {
 }
 
 /**
- * High-level TypeScript wrapper for the zkSync SSO ERC-4337 client
+ * High-level TypeScript wrapper for the ZKsync SSO client
  */
 /**
- * zkSync SSO ERC-4337 Client for web applications
+ * ZKsync SSO client for web applications
  *
- * Provides a WebAssembly-powered client for interacting with zkSync SSO
- * smart accounts using the ERC-4337 (Account Abstraction) standard.
+ * Provides a WebAssembly-powered client for interacting with ZKsync SSO
+ * smart accounts.
  *
  * @example
  * ```typescript
@@ -60,7 +60,7 @@ export class ZkSyncSsoClient {
   private client: any;
 
   /**
-   * Create a new zkSync SSO client
+   * Create a new ZKsync SSO client
    * @param config - Client configuration
    * @param privateKey - Private key for signing (hex string with or without 0x prefix)
    */

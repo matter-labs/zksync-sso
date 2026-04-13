@@ -1,7 +1,7 @@
 import ms from "ms";
+import type { SessionSpec, UsageLimit } from "src/client/index.js";
 import { type AbiFunction, type AbiParameter, type Address, encodeAbiParameters, type Hash, toHex } from "viem";
 
-import type { Limit, SessionConfig } from "../../utils/session.js";
 import type { ConvertBigIntToString } from "./type-utils.js";
 
 const DYNAMIC_ABI_INPUT_TYPES = ["bytes", "string"];
@@ -119,9 +119,9 @@ export const msStringToSeconds = (value: string): bigint => {
   return BigInt(seconds);
 };
 
-export type SessionConfigJSON = ConvertBigIntToString<SessionConfig>;
-export const parseSessionConfigJSON = (sessionConfig: SessionConfigJSON): SessionConfig => {
-  const serializeLimit = (limit: ConvertBigIntToString<Limit>) => ({
+export type SessionConfigJSON = ConvertBigIntToString<SessionSpec>;
+export const parseSessionConfigJSON = (sessionConfig: SessionConfigJSON): SessionSpec => {
+  const serializeLimit = (limit: ConvertBigIntToString<UsageLimit>) => ({
     limitType: limit.limitType,
     limit: BigInt(limit.limit),
     period: BigInt(limit.period),

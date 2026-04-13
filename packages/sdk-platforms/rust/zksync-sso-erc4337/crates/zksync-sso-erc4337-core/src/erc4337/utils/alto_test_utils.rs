@@ -32,10 +32,14 @@ pub struct AltoTestHelperConfig {
 
 impl Default for AltoTestHelperConfig {
     fn default() -> Self {
+        let default_node_url = std::env::var("RPC_URL")
+            .ok()
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "http://127.0.0.1:8545".to_string());
         Self {
             entrypoint: EntryPointConfig::default(),
             port: None,
-            node_url: Url::parse("http://127.0.0.1:8545").unwrap(),
+            node_url: Url::parse(&default_node_url).unwrap(),
             safe_mode: false,
             executor_private_keys: vec!["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string()],
             utility_private_key: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d".to_string(),
@@ -264,8 +268,7 @@ pub(super) fn resolve_contracts_dir() -> PathBuf {
     }
     let manifest_dir =
         std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into());
-    let candidate =
-        Path::new(&manifest_dir).join("../../../../../erc4337-contracts");
+    let candidate = Path::new(&manifest_dir).join("../../../../../contracts");
     candidate.canonicalize().unwrap_or_else(|_| candidate.to_path_buf())
 }
 

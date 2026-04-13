@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { bytesToHex, type Hex, toHex } from "viem";
-import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
+import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
 
 const emit = defineEmits<{
   (e: "done", passkey: PasskeyData): void;

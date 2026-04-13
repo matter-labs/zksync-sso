@@ -10,7 +10,7 @@
         Web SDK Status
       </h2>
       <p class="text-sm text-gray-600 mb-2">
-        Testing WASM-based ZKSync SSO ERC-4337 integration
+        Testing WASM-based ZKsync SSO integration
       </p>
 
       <div class="space-y-2">
@@ -84,7 +84,7 @@
         <div v-if="deploymentResult.eoaSigner">
           <strong>EOA Signer:</strong>
           <code class="bg-white px-2 py-1 rounded text-xs ml-2">{{ deploymentResult.eoaSigner }}</code>
-          <span class="text-xs text-gray-600 ml-2">(Anvil Rich Wallet #1)</span>
+          <span class="text-xs text-gray-600 ml-2">(ZKsync OS Rich Wallet #1)</span>
         </div>
         <div v-if="deploymentResult.passkeyEnabled">
           <span><strong>Passkey Enabled:</strong> Yes</span>
@@ -585,7 +585,7 @@ import { createWalletClient, http, type Hash, type Hex, type Address, parseEther
 import { privateKeyToAccount } from "viem/accounts";
 import { createBundlerClient } from "viem/account-abstraction";
 
-import { createEcdsaClient, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, findAddressesByPasskey, getPasskeyCredential } from "zksync-sso-4337/client";
+import { createEcdsaClient, prepareDeploySmartAccount, getAccountAddressFromLogs, generateAccountId, findAddressesByPasskey, getPasskeyCredential } from "zksync-sso/client";
 // WASM FFI helpers (prepare/sign/submit + paymaster)
 import {
   SendTransactionConfig,
@@ -680,8 +680,8 @@ const passkeyConfig = ref({
 
 // Wallet configuration state
 const walletConfig = ref({
-  source: "anvil", // 'anvil' | 'private-key' | 'browser-wallet'
-  anvilAccountIndex: 0,
+  source: "zksync-os", // 'zksync-os' | 'private-key' | 'browser-wallet'
+  zksyncOsAccountIndex: 0,
   privateKey: "",
   connectedAddress: "",
   isReady: false,
@@ -704,10 +704,10 @@ const sessionConfig = ref({
 // Session creation state
 const sessionCreated = ref(false);
 const eoaValidatorAddress = ref("");
-const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"; // Anvil account #1
+const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"; // ZKsync OS rich wallet #1
 
-// Anvil private keys for accounts 0-9
-const anvilPrivateKeys = [
+// Local zksync-os rich wallet private keys for accounts 0-9
+const zksyncOsPrivateKeys = [
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Account #0
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // Account #1
   "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", // Account #2
@@ -731,9 +731,9 @@ watch(contracts, (newContracts) => {
  * Get the private key for funding based on wallet configuration
  */
 function getFundingPrivateKey() {
-  if (walletConfig.value.source === "anvil") {
-    const index = walletConfig.value.anvilAccountIndex;
-    return anvilPrivateKeys[index] as Hash;
+  if (walletConfig.value.source === "zksync-os") {
+    const index = walletConfig.value.zksyncOsAccountIndex;
+    return zksyncOsPrivateKeys[index] as Hash;
   } else if (walletConfig.value.source === "private-key") {
     return walletConfig.value.privateKey as Hash;
   } else if (walletConfig.value.source === "browser-wallet") {
@@ -762,7 +762,7 @@ async function getFundingWalletClient() {
       transport: custom(window.ethereum),
     });
   } else {
-    // Use private key (anvil or manual entry)
+    // Use private key (local zksync-os rich wallet or manual entry)
     const privateKey = getFundingPrivateKey();
     if (!privateKey) {
       throw new Error("No private key available");
@@ -878,8 +878,8 @@ async function deployAccount() {
       console.log("Loaded Session validator address from contracts.json:", sessionValidatorAddress);
     }
 
-    // Add a rich Anvil wallet as an EOA signer for additional security
-    // Using Anvil account #1 (0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
+    // Add a local zksync-os rich wallet as an EOA signer for additional security
+    // Using rich wallet #1 (0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
     const eoaSignerAddress: Hex = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
     const eoaSignersAddresses: Hex[] = [eoaSignerAddress];
 
@@ -896,9 +896,9 @@ async function deployAccount() {
     console.log("Deploying account...");
     // eslint-disable-next-line no-console
     console.log("  Funding Source:", walletConfig.value.source);
-    if (walletConfig.value.source === "anvil") {
+    if (walletConfig.value.source === "zksync-os") {
       // eslint-disable-next-line no-console
-      console.log("  Using Anvil account #" + walletConfig.value.anvilAccountIndex + " as deployer");
+      console.log("  Using ZKsync OS account #" + walletConfig.value.zksyncOsAccountIndex + " as deployer");
     }
     // eslint-disable-next-line no-console
     console.log("  RPC URL:", contracts.rpcUrl);
@@ -910,6 +910,7 @@ async function deployAccount() {
     // Create chain config and public client
     const chain = getChainConfig(contracts);
     const publicClient = await createPublicClient(contracts);
+    const gasPrice = await publicClient.getGasPrice();
 
     // Prepare passkey signers if enabled
     let passkeySigners: Array<{ credentialId: Hex; publicKey: { x: Hex; y: Hex }; originDomain: string }> | undefined = undefined;
@@ -968,6 +969,7 @@ async function deployAccount() {
     const hash = await walletClient.sendTransaction({
       to: transaction.to,
       data: transaction.data,
+      gasPrice,
     });
 
     // eslint-disable-next-line no-console
@@ -1071,7 +1073,7 @@ async function registerPasskey() {
     const bundlerUrl = getBundlerUrl(contracts);
     const eoaValidatorAddress = contracts.eoaValidator;
 
-    // EOA signer private key (Anvil account #1) - to authorize the passkey registration
+    // EOA signer private key (ZKsync OS rich wallet #1) - to authorize the passkey registration
     const eoaSignerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
     // eslint-disable-next-line no-console
@@ -1258,6 +1260,8 @@ async function fundSmartAccount() {
     // Get the wallet client based on wallet configuration
     const walletClient = await getFundingWalletClient();
     const [signerAddress] = await walletClient.getAddresses();
+    const publicClient = await createPublicClient();
+    const gasPrice = await publicClient.getGasPrice();
 
     // eslint-disable-next-line no-console
     console.log("  From (Funding Wallet):", signerAddress);
@@ -1269,17 +1273,21 @@ async function fundSmartAccount() {
     const toAddress = getAddress(targetAddress);
 
     // Send transaction to fund the target
-    const hash = await walletClient.sendTransaction({
-      account: signerAddress,
+    const request = {
       to: toAddress,
       value: amountWei,
-    });
+      gasPrice,
+    };
+
+    const hash = walletConfig.value.source === "browser-wallet"
+      ? await walletClient.sendTransaction({
+        account: signerAddress,
+        ...request,
+      })
+      : await walletClient.sendTransaction(request);
 
     // eslint-disable-next-line no-console
     console.log("  Transaction sent:", hash);
-
-    // Create public client to wait for receipt
-    const publicClient = await createPublicClient();
 
     // Wait for confirmation
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -1520,7 +1528,7 @@ async function sendWithEoaPaymaster() {
     // Use "0x05" for General paymaster flow (same as passkey flow for consistency)
     const paymaster = new PaymasterParams(paymasterAddress, "0x05", null, null);
 
-    // Use the same Anvil EOA key from the page for demo
+    // Use the same local zksync-os EOA key from the page for demo
     const eoaKey = eoaSignerPrivateKey;
 
     const result = await send_transaction_eoa(

@@ -52,3 +52,5 @@ out/
 
 # IDEs
 .idea
+dev/zksyncos/l1-state.json
+examples/demo-app/contracts.local.json

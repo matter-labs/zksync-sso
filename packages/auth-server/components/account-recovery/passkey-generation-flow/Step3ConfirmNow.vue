@@ -78,7 +78,7 @@
 <script setup lang="ts">
 import { useAppKitAccount } from "@reown/appkit/vue";
 import { type Address, isAddressEqual } from "viem";
-import { getPasskeySignatureFromPublicKeyBytes } from "zksync-sso-4337/client/passkey";
+import { getPasskeySignatureFromPublicKeyBytes } from "zksync-sso/client/passkey";
 
 import type { RegisterNewPasskeyReturnType } from "~/composables/usePasskeyRegister";
 

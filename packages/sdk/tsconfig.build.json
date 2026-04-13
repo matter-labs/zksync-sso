@@ -5,6 +5,11 @@
   "exclude": ["src/**/*.test.ts", "src/**/*.test-d.ts"],
   "compilerOptions": {
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "zksync-sso-web-sdk/bundler": ["../sdk-platforms/web/dist/bundler.d.ts"],
+      "zksync-sso-web-sdk/node": ["../sdk-platforms/web/dist/node.d.ts"]
+    },
     "sourceMap": true,
     "rootDir": "./src"
   }

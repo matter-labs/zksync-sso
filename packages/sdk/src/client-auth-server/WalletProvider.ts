@@ -1,14 +1,12 @@
 import { EventEmitter } from "eventemitter3";
 import type { Address, Chain, Transport } from "viem";
 import { toHex } from "viem";
+import type { BundlerClient } from "viem/account-abstraction";
 
+import type { PaymasterConfig } from "../actions/sendUserOperation.js";
 import type { Communicator } from "../communicator/index.js";
 import { PopupCommunicator } from "../communicator/PopupCommunicator.js";
 import { serializeError, standardErrors } from "../errors/index.js";
-import type { CustomPaymasterHandler } from "../paymaster/index.js";
-import { getFavicon, getWebsiteName } from "../utils/helpers.js";
-import type { SessionStateEvent } from "../utils/session.js";
-import type { StorageLike } from "../utils/storage.js";
 import type {
   AppMetadata,
   ProviderInterface,
@@ -17,6 +15,7 @@ import type {
 import { type ExtractReturnType, type Method } from "./rpc.js";
 import type { SessionPreferences } from "./session/index.js";
 import { Signer } from "./Signer.js";
+import { getFavicon, getWebsiteName, type StorageLike } from "./utils/index.js";
 
 const DEFAULT_AUTH_SERVER_URL = "https://auth-test.zksync.dev/confirm";
 
@@ -24,20 +23,21 @@ export type WalletProviderConstructorOptions = {
   metadata: Partial<AppMetadata> | undefined;
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
+  bundlerClients?: Record<number, BundlerClient>;
   session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   authServerUrl?: string;
-  paymasterHandler?: CustomPaymasterHandler;
-  onSessionStateChange?: (state: { address: Address; chainId: number; state: SessionStateEvent }) => void;
-  skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
+  // onSessionStateChange?: (state: { address: Address; chainId: number; state: SessionStateEvent }) => void;
+  // skipPreTransactionStateValidation?: boolean; // Useful if you want to send session transactions really fast
   customCommunicator?: Communicator;
   storage?: StorageLike;
+  paymaster?: PaymasterConfig;
 };
 
 export class WalletProvider extends EventEmitter implements ProviderInterface {
   readonly isZksyncSso = true;
   private signer: Signer;
 
-  constructor({ metadata, chains, transports, session, authServerUrl, paymasterHandler, onSessionStateChange, skipPreTransactionStateValidation, customCommunicator, storage }: WalletProviderConstructorOptions) {
+  constructor({ metadata, chains, transports, bundlerClients, session, authServerUrl, /* onSessionStateChange, skipPreTransactionStateValidation, */ customCommunicator, storage, paymaster }: WalletProviderConstructorOptions) {
     super();
     const communicator = customCommunicator ?? new PopupCommunicator(authServerUrl || DEFAULT_AUTH_SERVER_URL);
     this.signer = new Signer({
@@ -50,11 +50,12 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       communicator: communicator,
       chains,
       transports,
+      bundlerClients,
       session: typeof session === "object" ? () => session : session,
-      paymasterHandler,
-      onSessionStateChange,
-      skipPreTransactionStateValidation,
+      // onSessionStateChange,
+      // skipPreTransactionStateValidation,
       storage,
+      paymaster,
     });
   }
 

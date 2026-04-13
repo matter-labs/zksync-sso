@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import Web3Avatar from "web3-avatar-vue";
-import type { AppMetadata } from "zksync-sso-4337/client";
+import type { AppMetadata } from "zksync-sso/client";
 
 const props = withDefaults(defineProps<{
   appMeta: AppMetadata;

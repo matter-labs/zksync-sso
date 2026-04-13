@@ -13,13 +13,13 @@ fn find_contracts_directory(manifest_dir: &str) -> eyre::Result<PathBuf> {
     let mut search_dir = PathBuf::from(manifest_dir);
 
     loop {
-        let contracts_dir = search_dir.join("erc4337-contracts");
+        let contracts_dir = search_dir.join("contracts");
         if contracts_dir.exists() && contracts_dir.is_dir() {
             return Ok(contracts_dir);
         }
 
         let packages_contracts_dir =
-            search_dir.join("packages").join("erc4337-contracts");
+            search_dir.join("packages").join("contracts");
         if packages_contracts_dir.exists() && packages_contracts_dir.is_dir() {
             return Ok(packages_contracts_dir);
         }
@@ -31,7 +31,7 @@ fn find_contracts_directory(manifest_dir: &str) -> eyre::Result<PathBuf> {
         }
     }
 
-    Err(eyre::eyre!("Could not find erc4337-contracts directory"))
+    Err(eyre::eyre!("Could not find contracts directory"))
 }
 
 fn get_manifest_dir() -> eyre::Result<String> {
@@ -94,10 +94,14 @@ pub async fn deploy_contracts(
         .arg("--rpc-url")
         .arg(rpc_url_string)
         .arg("--broadcast")
+        .arg("--legacy")
+        .arg("--slow")
+        .arg("--gas-estimate-multiplier")
+        .arg("1000")
         .arg("--private-key")
         .arg("0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6")
         .arg("--sig")
-        .arg("deployAll()")
+        .arg("run()")
         .output()?;
 
     println!("Command output: {output:?}");
@@ -217,7 +221,7 @@ mod tests {
         );
         assert!(contracts_dir.exists());
         assert!(contracts_dir.is_dir());
-        assert!(contracts_dir.ends_with("erc4337-contracts"));
+        assert!(contracts_dir.ends_with("contracts"));
 
         Ok(())
     }

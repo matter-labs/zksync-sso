@@ -32,6 +32,7 @@
     "**/*.ptau",
     "**/*.zkey",
     "packages/circuits/**",
+    "packages/contracts/**",
     "packages/examples/demo-app/cache/**",
     "packages/auth-server/public/snarkjs.min.js"
   ],

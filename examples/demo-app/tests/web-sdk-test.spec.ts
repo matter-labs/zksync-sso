@@ -2,13 +2,13 @@
 /**
  * Web SDK Test Suite
  *
- * NOTE: To run these tests, use the e2e:erc4337:demo-only target:
- *   pnpm nx e2e:erc4337:demo-only demo-app
+ * NOTE: To run these tests, use the e2e:sdk:demo-only target:
+ *   pnpm nx e2e:sdk:demo-only demo-app
  *
  * To run a specific test:
- *   pnpm nx e2e:erc4337:demo-only demo-app -t "test name"
+ *   pnpm nx e2e:sdk:demo-only demo-app -t "test name"
  *
- * This target uses nuxt preview (production build) and the ERC-4337 test configuration.
+ * This target uses nuxt preview (production build) and the SDK test configuration.
  */
 import { expect, type Page, test } from "@playwright/test";
 
@@ -43,7 +43,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("Deploy, fund, and transfer from smart account", async ({ page }) => {
-  // Use Anvil account #2 for this test to avoid nonce conflicts
+  // Reuse the same funded local wallet across tests; the suite runs serially.
   await page.goto("/web-sdk-test?fundingAccount=2");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
@@ -56,7 +56,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
   await page.getByRole("button", { name: "Deploy Account" }).click();
 
   // Wait for deployment to complete - look for the success message
-  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 60000 });
 
   // Verify deployment result has required information
   await expect(page.getByText("Account Address:")).toBeVisible();
@@ -76,7 +76,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
 
   // Wait for funding transaction to complete - look for transaction hash
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 180000 });
 
   // Verify we have a transaction hash displayed
   const fundTxHash = page.locator("code").filter({ hasText: /^0x[a-fA-F0-9]{64}/ }).first();
@@ -94,7 +94,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
   await expect(page.getByText("Recipient Address:")).toBeVisible();
   const recipientInput = page.getByText("Recipient Address:").locator("..").locator("input");
   await expect(recipientInput).toBeVisible();
-  await recipientInput.fill("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"); // Anvil account #2
+  await recipientInput.fill("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"); // Local zksync-os account #2
 
   // Fill in transfer amount - find input by locating the label first
   await expect(page.getByText("Amount (ETH):")).toBeVisible();
@@ -107,7 +107,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
 
   // Wait for transaction to complete - look for transaction hash in the send section
   // We need to find the second occurrence of "Transaction Hash:" since fund also has one
-  await expect(page.locator("strong:has-text(\"Transaction Hash:\")").nth(1)).toBeVisible({ timeout: 30000 });
+  await expect(page.locator("strong:has-text(\"Transaction Hash:\")").nth(1)).toBeVisible({ timeout: 180000 });
   await expect(page.getByText("Transaction failed: Failed to submit UserOperation:")).not.toBeVisible();
 
   // Verify we have a transaction hash for the send
@@ -120,8 +120,7 @@ test("Deploy, fund, and transfer from smart account", async ({ page }) => {
 });
 
 test("Deploy smart account with paymaster and send transaction", async ({ page }) => {
-  // Use Anvil account #5 for this test to avoid nonce conflicts
-  await page.goto("/web-sdk-test?fundingAccount=5");
+  await page.goto("/web-sdk-test?fundingAccount=2");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -133,7 +132,7 @@ test("Deploy smart account with paymaster and send transaction", async ({ page }
   await page.getByRole("button", { name: "Deploy Account" }).click();
 
   // Wait for deployment to complete
-  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 60000 });
   await expect(page.getByText("Account Address:")).toBeVisible();
   await expect(page.getByText("EOA Signer:")).toBeVisible();
 
@@ -145,7 +144,7 @@ test("Deploy smart account with paymaster and send transaction", async ({ page }
   await expect(amountInput).toBeVisible();
   await amountInput.fill("0.1");
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 180000 });
 
   console.log("✓ Smart account funded successfully");
 
@@ -157,15 +156,14 @@ test("Deploy smart account with paymaster and send transaction", async ({ page }
   const transferAmountInput = page.getByText("Amount (ETH):").locator("..").locator("input");
   await transferAmountInput.fill("0.001");
   await page.getByRole("button", { name: "Send with EOA" }).click();
-  await expect(page.locator("strong:has-text(\"Transaction Hash:\")").nth(1)).toBeVisible({ timeout: 30000 });
+  await expect(page.locator("strong:has-text(\"Transaction Hash:\")").nth(1)).toBeVisible({ timeout: 180000 });
   await expect(page.getByText("Transaction failed: Failed to submit UserOperation:")).not.toBeVisible();
 
   console.log("✓ Transaction sent from smart account successfully");
   console.log("✅ All steps completed successfully with paymaster!");
 });
 test("Deploy with passkey and send transaction using passkey", async ({ page }) => {
-  // Use Anvil account #3 for this test to avoid nonce conflicts with the first test
-  await page.goto("/web-sdk-test?fundingAccount=3");
+  await page.goto("/web-sdk-test?fundingAccount=2");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -207,7 +205,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   await page.getByRole("button", { name: "Deploy Account" }).click();
 
   // Wait for deployment to complete
-  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 60000 });
 
   // Verify passkey is enabled in deployment result
   await expect(page.getByText("Passkey Enabled: Yes")).toBeVisible();
@@ -224,7 +222,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
 
   // Wait for funding transaction to complete
-  await expect(page.getByText("Transaction Hash:"), "Funding failed").toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:"), "Funding failed").toBeVisible({ timeout: 180000 });
 
   console.log("✓ Smart account funded successfully");
 
@@ -252,7 +250,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
   await page.getByRole("button", { name: "Send with Passkey" }).click();
 
   // Wait for transaction to complete
-  await expect(page.getByText("Transaction confirmed! UserOp hash:")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Transaction confirmed! UserOp hash:")).toBeVisible({ timeout: 180000 });
   await expect(page.getByText("Transaction failed: Failed to submit UserOperation:")).not.toBeVisible();
 
   // Verify we have a transaction hash for the send
@@ -265,8 +263,7 @@ test("Deploy with passkey and send transaction using passkey", async ({ page }) 
 });
 
 test("Find addresses by passkey credential ID", async ({ page }) => {
-  // Use Anvil account #4 for this test to avoid nonce conflicts
-  await page.goto("/web-sdk-test?fundingAccount=4");
+  await page.goto("/web-sdk-test?fundingAccount=2");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -308,7 +305,7 @@ test("Find addresses by passkey credential ID", async ({ page }) => {
   await page.getByRole("button", { name: "Deploy Account" }).click();
 
   // Wait for deployment to complete
-  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 60000 });
 
   // Verify passkey is enabled in deployment result
   await expect(page.getByText("Passkey Enabled: Yes")).toBeVisible();
@@ -381,8 +378,7 @@ test("Deploy with session support and send transaction using session key", async
     console.error("[BROWSER ERROR]:", err);
   });
 
-  // Use Anvil account #7 for session tests (renumbered to avoid conflict with passkey test #4)
-  await page.goto("/web-sdk-test?fundingAccount=7");
+  await page.goto("/web-sdk-test?fundingAccount=2");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -402,7 +398,7 @@ test("Deploy with session support and send transaction using session key", async
   await page.getByRole("button", { name: "Deploy Account" }).click();
 
   // Wait for deployment to complete
-  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 60000 });
 
   // Verify deployment result
   await expect(page.getByText("Account Address:")).toBeVisible();
@@ -420,7 +416,7 @@ test("Deploy with session support and send transaction using session key", async
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
 
   // Wait for funding transaction to complete
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 180000 });
 
   console.log("✓ Smart account funded successfully");
 
@@ -476,7 +472,7 @@ test("Deploy with session support and send transaction using session key", async
   }
 
   // Wait for session creation to complete
-  await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 55000 });
+  await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 180000 });
   console.log("✓ Session created on-chain");
 
   // Step 4: Send Transaction Using Session Key
@@ -499,7 +495,7 @@ test("Deploy with session support and send transaction using session key", async
   await page.getByRole("button", { name: "Send Session Transaction" }).click();
 
   // Wait for transaction to complete
-  await expect(page.getByText("Success!")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Success!")).toBeVisible({ timeout: 180000 });
   await expect(page.getByText("UserOp Hash:")).toBeVisible();
 
   // Verify we have a UserOp hash for the session transaction
@@ -512,8 +508,7 @@ test("Deploy with session support and send transaction using session key", async
 });
 
 test("Deploy account, enable session, modify session config, and send transaction", async ({ page }) => {
-  // Use Anvil account #8 for this test (renumbered)
-  await page.goto("/web-sdk-test?fundingAccount=8");
+  await page.goto("/web-sdk-test?fundingAccount=2");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -532,7 +527,7 @@ test("Deploy account, enable session, modify session config, and send transactio
   console.log("Step 1: Deploying smart account...");
   await page.getByRole("button", { name: "Deploy Account" }).click();
 
-  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 60000 });
   console.log("✓ Smart account deployed");
 
   // Step 2: Fund Smart Account
@@ -540,7 +535,7 @@ test("Deploy account, enable session, modify session config, and send transactio
   const amountInput = page.locator("input[placeholder=\"0.1\"]");
   await amountInput.fill("0.15");
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 180000 });
   console.log("✓ Smart account funded with 0.15 ETH");
 
   // Step 3: Enable Session and Modify Configuration
@@ -576,7 +571,7 @@ test("Deploy account, enable session, modify session config, and send transactio
 
   await expect(page.getByRole("button", { name: "Create Session" })).toBeVisible();
   await page.getByRole("button", { name: "Create Session" }).click();
-  await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 180000 });
 
   console.log("✓ Session created on-chain with custom configuration");
 
@@ -594,7 +589,7 @@ test("Deploy account, enable session, modify session config, and send transactio
   await page.getByRole("button", { name: "Send Session Transaction" }).click();
 
   // Wait for success
-  await expect(page.getByText("Success!")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Success!")).toBeVisible({ timeout: 180000 });
   await expect(page.getByText("UserOp Hash:")).toBeVisible();
 
   console.log("✓ Transaction sent successfully with custom session configuration");
@@ -603,8 +598,7 @@ test("Deploy account, enable session, modify session config, and send transactio
 });
 
 test("Deploy account with session validator pre-installed", async ({ page }) => {
-  // Use Anvil account #9 for this test (renumbered)
-  await page.goto("/web-sdk-test?fundingAccount=9");
+  await page.goto("/web-sdk-test?fundingAccount=2");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -625,7 +619,7 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
   await page.getByRole("button", { name: "Deploy Account" }).click();
 
   // Wait for deployment to complete
-  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 60000 });
 
   // Verify deployment success message includes session validator (check the success message specifically)
   await expect(
@@ -639,7 +633,7 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
   const amountInput = page.locator("input[placeholder=\"0.1\"]");
   await amountInput.fill("0.1");
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
-  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:")).toBeVisible({ timeout: 180000 });
   console.log("✓ Smart account funded");
 
   // Step 4: Enable session configuration (validator already installed)
@@ -669,7 +663,7 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
 
   await expect(page.getByRole("button", { name: "Create Session" })).toBeVisible();
   await page.getByRole("button", { name: "Create Session" }).click();
-  await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Session Created Successfully!")).toBeVisible({ timeout: 180000 });
 
   console.log("✓ Session created on-chain using pre-installed validator");
 
@@ -687,7 +681,7 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
   await page.getByRole("button", { name: "Send Session Transaction" }).click();
 
   // Wait for success
-  await expect(page.getByText("Success!")).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Success!")).toBeVisible({ timeout: 180000 });
   await expect(page.getByText("UserOp Hash:")).toBeVisible();
 
   console.log("✓ Transaction sent successfully using pre-installed session validator");
@@ -696,8 +690,7 @@ test("Deploy account with session validator pre-installed", async ({ page }) => 
 });
 
 test("Deploy with passkey and send transaction using passkey with paymaster", async ({ page }) => {
-  // Use Anvil account #8 for this test to avoid nonce conflicts
-  await page.goto("/web-sdk-test?fundingAccount=8");
+  await page.goto("/web-sdk-test?fundingAccount=2");
   await expect(page.getByText("ZKSync SSO Web SDK Test")).toBeVisible();
 
   // Wait for SDK to load
@@ -739,7 +732,7 @@ test("Deploy with passkey and send transaction using passkey with paymaster", as
   await page.getByRole("button", { name: "Deploy Account" }).click();
 
   // Wait for deployment to complete
-  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Account Deployed Successfully!")).toBeVisible({ timeout: 60000 });
 
   // Verify passkey is enabled in deployment result
   await expect(page.getByText("Passkey Enabled: Yes")).toBeVisible();
@@ -756,7 +749,7 @@ test("Deploy with passkey and send transaction using passkey with paymaster", as
   await page.getByRole("button", { name: "Fund Smart Account" }).click();
 
   // Wait for funding transaction to complete
-  await expect(page.getByText("Transaction Hash:"), "Funding failed").toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Transaction Hash:"), "Funding failed").toBeVisible({ timeout: 180000 });
 
   console.log("✓ Smart account funded successfully");
 
@@ -788,7 +781,7 @@ test("Deploy with passkey and send transaction using passkey with paymaster", as
   await page.getByRole("button", { name: "Send with Paymaster (Passkey)" }).click();
 
   // Wait for transaction to complete - look for success message
-  await expect(page.getByText("Transaction confirmed! UserOp hash:"), "Paymaster transaction failed").toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Transaction confirmed! UserOp hash:"), "Paymaster transaction failed").toBeVisible({ timeout: 180000 });
 
   // Verify we don't have an error message
   await expect(page.getByText("Failed to submit UserOperation:")).not.toBeVisible();

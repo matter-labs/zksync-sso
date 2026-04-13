@@ -1,7 +1,7 @@
 import type { Account, Address, Chain, Hex, Transport, WalletClient } from "viem";
 import { encodeAbiParameters, keccak256, pad, parseAbiParameters, toHex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
-import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso-4337/utils";
+import { base64urlToUint8Array, getPublicKeyBytesFromPasskeySignature } from "zksync-sso/utils";
 
 import { GuardianExecutorAbi, RecoveryType } from "~/abi/GuardianExecutorAbi";
 
@@ -160,7 +160,7 @@ export const useRecoveryGuardian = () => {
 
   /**
    * Propose a new guardian for the caller's account
-   * This is called by the smart account owner via ERC-4337 user operation
+   * This is called by the smart account owner via a user operation
    */
   const { inProgress: proposeGuardianInProgress, error: proposeGuardianError, execute: proposeGuardian } = useAsync(async (address: Address) => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
@@ -217,7 +217,7 @@ export const useRecoveryGuardian = () => {
 
   /**
    * Remove an existing guardian from the caller's account
-   * This is called by the smart account owner via ERC-4337 user operation
+   * This is called by the smart account owner via a user operation
    */
   const { inProgress: removeGuardianInProgress, error: removeGuardianError, execute: removeGuardian } = useAsync(async (address: Address) => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");
@@ -280,7 +280,7 @@ export const useRecoveryGuardian = () => {
 
   /**
    * Discard/cancel any ongoing recovery for the caller's account
-   * This is called by the smart account owner via ERC-4337 user operation
+   * This is called by the smart account owner via a user operation
    */
   const { inProgress: discardRecoveryInProgress, error: discardRecoveryError, execute: discardRecovery } = useAsync(async () => {
     if (!contracts.guardianExecutor) throw new Error("GuardianExecutor contract address not configured");

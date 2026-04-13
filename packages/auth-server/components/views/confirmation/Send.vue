@@ -165,7 +165,7 @@ import { useIntervalFn } from "@vueuse/core";
 import { type Address, formatUnits, type SendTransactionRequest } from "viem";
 import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
 import Web3Avatar from "web3-avatar-vue";
-import type { ExtractParams } from "zksync-sso-4337/client";
+import type { ExtractParams } from "zksync-sso/client";
 
 import { formatAmount, shortenAddress } from "~/utils/formatters";
 
@@ -233,7 +233,7 @@ const totalFee = computed<bigint>(() => {
 });
 
 const hasPaymaster = computed<boolean>(() => {
-  // Check if request has paymaster metadata (ERC-4337)
+  // Check if request has paymaster metadata
   if (requestPaymaster.value) {
     return true;
   }

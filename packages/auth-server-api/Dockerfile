@@ -16,7 +16,7 @@ RUN rustup target add wasm32-unknown-unknown
 # Install wasm-pack
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-# Install Foundry (forge, cast, anvil)
+# Install Foundry (forge and cast tooling)
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="/root/.foundry/bin:${PATH}"
 RUN foundryup
@@ -54,17 +54,17 @@ COPY . .
 # Install all dependencies
 RUN pnpm install -r --frozen-lockfile
 
-# Build ERC-4337 contracts with Foundry
-WORKDIR /usr/src/app/packages/erc4337-contracts
+# Build contracts with Foundry
+WORKDIR /usr/src/app/packages/contracts
 RUN forge soldeer install
 RUN forge build
 
-# Build ERC-4337 related packages (following CI build order)
+# Build SDK-related packages (following CI build order)
 WORKDIR /usr/src/app
 
-# Build in correct dependency order: web-sdk -> sdk-4337 -> auth-server-api
+# Build in correct dependency order: web-sdk -> sdk -> auth-server-api
 RUN pnpm nx build web-sdk
-RUN pnpm nx build sdk-4337 || (echo "===SDK-4337 Build Failed, trying direct build===" && cd packages/sdk-4337 && pnpm build)
+RUN pnpm nx build sdk || (echo "===SDK Build Failed, trying direct build===" && cd packages/sdk && pnpm build)
 RUN pnpm nx build auth-server-api || (echo "===Auth-Server-API Build Failed, trying direct build===" && cd packages/auth-server-api && pnpm build)
 
 # Deploy only production dependencies for auth-server-api
@@ -82,8 +82,8 @@ COPY --from=builder /prod/auth-server-api /prod/auth-server-api
 # Copy the built dist folder
 COPY --from=builder /usr/src/app/packages/auth-server-api/dist /prod/auth-server-api/dist
 
-# Copy sdk-4337 built files to node_modules
-COPY --from=builder /usr/src/app/packages/sdk-4337/dist /prod/auth-server-api/node_modules/zksync-sso-4337/dist
+# Copy sdk built files to node_modules
+COPY --from=builder /usr/src/app/packages/sdk/dist /prod/auth-server-api/node_modules/zksync-sso/dist
 
 # Copy web-sdk built files and WASM packages to .pnpm directory structure
 RUN mkdir -p $(find /prod/auth-server-api/node_modules/.pnpm -type d -name "zksync-sso-web-sdk" 2>/dev/null | head -1)
@@ -98,16 +98,16 @@ RUN PNPM_WEB_SDK=$(find /prod/auth-server-api/node_modules/.pnpm -type d -name "
     fi && \
     rm -rf /tmp/pkg-bundler /tmp/pkg-node /tmp/web-dist
 
-# Copy sdk-4337 built files to .pnpm directory structure
-COPY --from=builder /usr/src/app/packages/sdk-4337/dist /tmp/sdk-4337-dist
-RUN PNPM_SDK_4337=$(find /prod/auth-server-api/node_modules/.pnpm -type d -name "zksync-sso-4337" 2>/dev/null | head -1) && \
-    if [ -n "$PNPM_SDK_4337" ]; then \
-      cp -r /tmp/sdk-4337-dist "$PNPM_SDK_4337/dist"; \
+# Copy sdk built files to .pnpm directory structure
+COPY --from=builder /usr/src/app/packages/sdk/dist /tmp/sdk-dist
+RUN PNPM_SDK=$(find /prod/auth-server-api/node_modules/.pnpm -type d -name "zksync-sso" 2>/dev/null | head -1) && \
+    if [ -n "$PNPM_SDK" ]; then \
+      cp -r /tmp/sdk-dist "$PNPM_SDK/dist"; \
     fi && \
-    rm -rf /tmp/sdk-4337-dist
+    rm -rf /tmp/sdk-dist
 
 # Copy full Foundry build output so downstream tools can extract whatever they need
-COPY --from=builder /usr/src/app/packages/erc4337-contracts/out /prod/auth-server-api/contracts
+COPY --from=builder /usr/src/app/packages/contracts/out /prod/auth-server-api/contracts
 
 WORKDIR /prod/auth-server-api
 

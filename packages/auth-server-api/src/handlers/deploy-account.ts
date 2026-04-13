@@ -3,7 +3,7 @@ import type { PrividiumSiweChain } from "prividium/siwe";
 import { type Address, createPublicClient, createWalletClient, type Hex, http, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
-import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso-4337/client";
+import { getAccountAddressFromLogs, prepareDeploySmartAccount } from "zksync-sso/client";
 
 import { env, EOA_VALIDATOR_ADDRESS, FACTORY_ADDRESS, getChain, GUARDIAN_EXECUTOR_ADDRESS, prividiumConfig, SESSION_VALIDATOR_ADDRESS, WEBAUTHN_VALIDATOR_ADDRESS } from "../config.js";
 import { deployAccountSchema } from "../schemas.js";
@@ -108,12 +108,11 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     // Send transaction
     let txHash: Hex;
     try {
-      const txParams = {
+      txHash = await walletClient.sendTransaction({
         to: transaction.to,
         data: transaction.data,
-      };
-
-      txHash = await walletClient.sendTransaction(txParams);
+        type: "legacy",
+      });
     } catch (error) {
       console.error("Transaction send failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";

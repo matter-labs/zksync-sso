@@ -1,7 +1,7 @@
 import { FetchError } from "ofetch";
 import { erc20Abi, formatUnits, toFunctionSelector } from "viem";
 import type { Address } from "viem/accounts";
-import { LimitType, type SessionSpec, type SessionState } from "zksync-sso-4337/client";
+import { LimitType, type SessionSpec, type SessionState } from "zksync-sso/client";
 
 // Type alias for compatibility
 type SessionConfig = SessionSpec;

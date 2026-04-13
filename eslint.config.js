@@ -17,8 +17,6 @@ export default [
       "**/deployments-zk/",
       "**/cache-zk/",
       "**/typechain-types/",
-      "**/react-native-zksync-sso/",
-      "packages/erc4337-contracts/**",
       "packages/contracts/**",
       "packages/circuits/**",
     ],

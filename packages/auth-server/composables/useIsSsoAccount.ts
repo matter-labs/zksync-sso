@@ -22,7 +22,7 @@ export function useIsSsoAccount() {
       });
     } catch (err: unknown) {
       // Handle NoFallbackHandler error (0x48c9ceda) - ModularSmartAccount doesn't implement supportsInterface yet
-      // WORKAROUND: In our dev environment, all accounts deployed via auth-server-api are ERC-4337 ModularSmartAccounts
+      // WORKAROUND: In our dev environment, all accounts deployed via auth-server-api are ModularSmartAccounts
       // that throw this error. We treat these as SSO accounts.
       // Check both the error message and the full error string representation
       const errorString = err.toString?.() || String(err);

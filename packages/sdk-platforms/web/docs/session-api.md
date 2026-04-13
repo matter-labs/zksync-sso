@@ -1,6 +1,6 @@
 # Session API Guide
 
-This guide explains how to use the session-based transaction API with the zkSync SSO viem integration.
+This guide explains how to use the session-based transaction API with the ZKsync SSO viem integration.
 
 ## Overview
 

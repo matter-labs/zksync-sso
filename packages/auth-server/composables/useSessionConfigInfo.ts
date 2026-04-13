@@ -2,7 +2,7 @@ import { FetchError } from "ofetch";
 import { erc20Abi, formatUnits, toFunctionSelector } from "viem";
 import type { Address } from "viem/accounts";
 import type { UnwrapRef } from "vue";
-import { type Limit, LimitType, LimitUnlimited, type SessionSpec } from "zksync-sso-4337/client";
+import { type Limit, LimitType, LimitUnlimited, type SessionSpec } from "zksync-sso/client";
 
 // Type alias for compatibility
 type SessionConfig = SessionSpec;

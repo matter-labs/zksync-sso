@@ -20,6 +20,41 @@ export const useAccountStore = defineStore("account", () => {
     accountData.value = null;
   };
 
+  // Verify cached account still exists on-chain (handles chain restarts / redeployments)
+  const verifyAccount = async () => {
+    if (!address.value) return;
+    try {
+      const { getPublicClient, contracts } = useClientStore();
+      const client = getPublicClient();
+      const entryPoint = contracts.entryPoint;
+      if (!entryPoint) return;
+      await client.readContract({
+        address: entryPoint,
+        abi: [{
+          type: "function",
+          name: "getNonce",
+          inputs: [
+            { type: "address", name: "sender" },
+            { type: "uint192", name: "key" },
+          ],
+          outputs: [{ type: "uint256" }],
+          stateMutability: "view",
+        }],
+        functionName: "getNonce",
+        args: [address.value, 0n],
+        account: address.value,
+      });
+    } catch (err) {
+      console.warn("Cached account no longer exists on-chain, logging out", err);
+      logout();
+    }
+  };
+
+  if (import.meta.client) {
+    // Defer to avoid circular dependency with useClientStore during store initialization
+    nextTick(() => verifyAccount());
+  }
+
   const { subscribe: subscribeOnAccountChange, notify: notifyOnAccountChange } = useObservable<Address | null>();
   watch(address, (newAddress) => {
     notifyOnAccountChange(newAddress);

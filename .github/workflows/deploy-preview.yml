@@ -2,10 +2,10 @@ name: "Preview Auth Server"
 on:
   pull_request:
     paths:
-      - "packages/erc4337-contracts/**"
+      - "packages/contracts/**"
       - "packages/sdk-platforms/rust/**"
       - "packages/auth-server/**"
-      - "packages/sdk-4337/**"
+      - "packages/sdk/**"
   workflow_dispatch:
 
 env:
@@ -32,7 +32,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/Iron
+          node-version: 22.17.0
           cache: 'pnpm'
 
       - name: Setup Rust toolchain
@@ -47,17 +47,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
-      # Web SDK depends on ERC-4337 contracts for WASM build
+      # Web SDK depends on the contract workspace for WASM build
       - name: Install foundry
         uses: foundry-rs/foundry-toolchain@v1.5.0
         
-      - name: Install ERC-4337 contract dependencies
+      - name: Install contract dependencies
         run: forge soldeer install
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
-      - name: Build ERC-4337 contracts
+      - name: Build contracts
         run: forge build
-        working-directory: packages/erc4337-contracts
+        working-directory: packages/contracts
 
       - name: Build Auth Server
         env:

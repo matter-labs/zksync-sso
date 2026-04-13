@@ -5,9 +5,9 @@ ZKsync SSO Auth Server
 ## How to deploy locally?
 
 ```sh
-# Ensure era_test_node is already running (npx zksync-cli dev start)
-# Deploy ZKsync SSO smart contracts
-pnpm --dir packages/contracts run deploy
+# Ensure the local zksync-os stack is already running (pnpm dev:stack:up)
+# Deploy the reusable SSO contract suite
+pnpm --dir packages/contracts run deploy-contracts
 
 # Start Auth Server
 pnpm nx dev auth-server
