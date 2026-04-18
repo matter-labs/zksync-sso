@@ -15,7 +15,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
-    "prividium": "^0.15.0",
+    "prividium": "^0.15.1",
     "viem": "2.30.0",
     "zksync-sso": "workspace:*",
     "zod": "^3.24.1"

@@ -30,7 +30,7 @@
     "nuxt-typed-router": "3.7.3",
     "pinia": "^2.1.7",
     "prettier": "^2.5.x || 3.x",
-    "prividium": "^0.15.0",
+    "prividium": "^0.15.1",
     "radix-vue": "^1.9.6",
     "sass": "^1.77.6",
     "snarkjs": "^0.7.5",
