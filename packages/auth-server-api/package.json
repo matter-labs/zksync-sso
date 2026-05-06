@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "node --experimental-wasm-modules --import tsx src/index.ts",
-    "start": "node --experimental-wasm-modules dist/index.js"
+    "start": "node --experimental-wasm-modules dist/index.js",
+    "test": "node --import tsx --test test/**/*.test.ts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "13.x",

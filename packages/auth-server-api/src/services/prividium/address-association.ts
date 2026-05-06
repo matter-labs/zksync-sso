@@ -1,5 +1,6 @@
 import type { Hex } from "viem";
 
+import { authenticatedFetch, type PrividiumApiAuth } from "./authenticated-fetch.js";
 import type { FullUserResponse } from "./types.js";
 
 /**
@@ -12,19 +13,18 @@ import type { FullUserResponse } from "./types.js";
  *
  * @param userId The Prividium user ID to add addresses to
  * @param addresses Array of wallet addresses to associate
- * @param authHeaders The authentication headers from SDK
+ * @param auth The admin authentication provider from SDK
  * @param apiUrl The base URL for the Prividium API
  */
 export async function addAddressToUser(
   userId: string,
   addresses: Hex[],
-  authHeaders: Record<string, string>,
+  auth: PrividiumApiAuth,
   apiUrl: string,
 ): Promise<void> {
   // Step 1: Get current user data
-  const getUserResponse = await fetch(`${apiUrl}/api/users/${userId}`, {
+  const getUserResponse = await authenticatedFetch(auth, `${apiUrl}/api/users/${userId}`, {
     method: "GET",
-    headers: authHeaders,
   });
 
   if (!getUserResponse.ok) {
@@ -39,10 +39,9 @@ export async function addAddressToUser(
   const allWallets = [...new Set([...existingWallets, ...addresses])];
 
   // Step 2: Update user with new wallets
-  const updateResponse = await fetch(`${apiUrl}/api/users/${userId}`, {
+  const updateResponse = await authenticatedFetch(auth, `${apiUrl}/api/users/${userId}`, {
     method: "PUT",
     headers: {
-      ...authHeaders,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
