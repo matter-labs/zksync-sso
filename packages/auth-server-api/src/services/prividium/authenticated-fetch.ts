@@ -34,13 +34,17 @@ export async function authenticatedFetch(
   input: Parameters<typeof fetch>[0],
   init?: Parameters<typeof fetch>[1],
 ): Promise<Response> {
-  const send = async () => fetch(input, withAuthHeaders(init, await getFreshAuthHeaders(auth)));
+  const send = (headers: Record<string, string>) => fetch(input, withAuthHeaders(init, headers));
 
-  const response = await send();
+  const response = await send(await getFreshAuthHeaders(auth));
   if (response.status !== 401) {
     return response;
   }
 
   await auth.authorize();
-  return send();
+  const refreshedHeaders = auth.getAuthHeaders();
+  if (!refreshedHeaders) {
+    throw new Error("Failed to get auth headers after reauthorization");
+  }
+  return send(refreshedHeaders);
 }
