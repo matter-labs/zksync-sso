@@ -168,22 +168,12 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
 
     // Prividium post-deployment steps (all blocking)
     if (prividiumConfig.enabled && req.prividiumUser && adminSdk) {
-      // Get auth headers from SDK
-      const authHeaders = adminSdk.getAuthHeaders();
-      if (!authHeaders) {
-        console.error("Failed to get auth headers");
-        res.status(500).json({
-          error: "Authentication error",
-        });
-        return;
-      }
-
       // Step 1: Whitelist the contract with template (blocking)
       try {
         await whitelistContract(
           deployedAddress,
           prividiumConfig.templateKey,
-          authHeaders,
+          adminSdk,
           prividiumConfig.apiUrl,
         );
       } catch (error) {
@@ -199,7 +189,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
         await addAddressToUser(
           req.prividiumUser.userId,
           [deployedAddress],
-          authHeaders,
+          adminSdk,
           prividiumConfig.apiUrl,
         );
       } catch (error) {
