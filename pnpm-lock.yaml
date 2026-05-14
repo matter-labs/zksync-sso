@@ -212,8 +212,8 @@ importers:
         specifier: ^2.5.x || 3.x
         version: 3.3.3
       prividium:
-        specifier: ^0.18.0
-        version: 0.18.0(@fastify/swagger@9.6.1)(bufferutil@4.0.8)(openapi-types@12.1.3)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))
+        specifier: ^0.18.1
+        version: 0.18.1(@fastify/swagger@9.6.1)(bufferutil@4.0.8)(openapi-types@12.1.3)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))
       radix-vue:
         specifier: ^1.9.6
         version: 1.9.7(vue@3.5.34(typescript@5.6.2))
@@ -288,8 +288,8 @@ importers:
         specifier: ^7.5.0
         version: 7.5.1(express@4.21.2)
       prividium:
-        specifier: ^0.18.0
-        version: 0.18.0(@fastify/swagger@9.6.1)(bufferutil@4.0.8)(openapi-types@12.1.3)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))
+        specifier: ^0.18.1
+        version: 0.18.1(@fastify/swagger@9.6.1)(bufferutil@4.0.8)(openapi-types@12.1.3)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))
       viem:
         specifier: 2.30.0
         version: 2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
@@ -449,7 +449,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.3.13
+        version: 1.3.14
       '@types/cors':
         specifier: ^2.8.17
         version: 2.8.19
@@ -4297,8 +4297,8 @@ packages:
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
 
-  '@types/bun@1.3.13':
-    resolution: {integrity: sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw==}
+  '@types/bun@1.3.14':
+    resolution: {integrity: sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw==}
 
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
@@ -5442,8 +5442,8 @@ packages:
     resolution: {integrity: sha512-lDsx2BzkKe7gkCYiT5Acj02DpTwDznl/VNN7Psn7M3USPG7Vs/BaClZJJTAG+ufAR9++N1/NiUTdaFBWDIl5TQ==}
     engines: {node: '>=12'}
 
-  bun-types@1.3.13:
-    resolution: {integrity: sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA==}
+  bun-types@1.3.14:
+    resolution: {integrity: sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ==}
 
   bundle-name@4.1.0:
     resolution: {integrity: sha512-tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q==}
@@ -8808,8 +8808,8 @@ packages:
     resolution: {integrity: sha512-Pdlw/oPxN+aXdmM9R00JVC9WVFoCLTKJvDVLgmJ+qAffBMxsV85l/Lu7sNx4zSzPyoL2euImuEwHhOXdEgNFZQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
-  prividium@0.18.0:
-    resolution: {integrity: sha512-VYF2JxMvFfKJrFE67E5KbjXCqpQppoqJGEr7cyk1MScxtG9ZFDoIip4mhHMkalrQBzYwEAnIdMv3zVquRgKcfA==}
+  prividium@0.18.1:
+    resolution: {integrity: sha512-b92OvS35tf5cBHRRmxrfXvjKGmHvOv/+GOXsGmeIyeVKq41xHREQ76apiuzYSD7BJ9DFNGQ8gqbrCwPBcV1HYA==}
     hasBin: true
     peerDependencies:
       viem: '>=2.0.0'
@@ -13512,7 +13512,7 @@ snapshots:
       pathe: 1.1.2
       postcss: 8.4.47
       postcss-nesting: 13.0.1(postcss@8.4.47)
-      tailwind-config-viewer: 2.0.4(tailwindcss@3.4.14(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2)))
+      tailwind-config-viewer: 2.0.4(tailwindcss@3.4.14)
       tailwindcss: 3.4.14(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))
       ufo: 1.5.4
       unctx: 2.3.1
@@ -15520,9 +15520,9 @@ snapshots:
       '@types/connect': 3.4.38
       '@types/node': 22.15.33
 
-  '@types/bun@1.3.13':
+  '@types/bun@1.3.14':
     dependencies:
-      bun-types: 1.3.13
+      bun-types: 1.3.14
 
   '@types/connect@3.4.38':
     dependencies:
@@ -17920,7 +17920,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  bun-types@1.3.13:
+  bun-types@1.3.14:
     dependencies:
       '@types/node': 22.15.33
 
@@ -22190,7 +22190,7 @@ snapshots:
       ansi-styles: 5.2.0
       react-is: 18.3.1
 
-  prividium@0.18.0(@fastify/swagger@9.6.1)(bufferutil@4.0.8)(openapi-types@12.1.3)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)):
+  prividium@0.18.1(@fastify/swagger@9.6.1)(bufferutil@4.0.8)(openapi-types@12.1.3)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)):
     dependencies:
       '@clack/prompts': 0.11.0
       '@fastify/http-proxy': 11.4.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
@@ -22961,7 +22961,7 @@ snapshots:
 
   system-architecture@0.1.0: {}
 
-  tailwind-config-viewer@2.0.4(tailwindcss@3.4.14(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))):
+  tailwind-config-viewer@2.0.4(tailwindcss@3.4.14):
     dependencies:
       '@koa/router': 12.0.2
       commander: 6.2.1
