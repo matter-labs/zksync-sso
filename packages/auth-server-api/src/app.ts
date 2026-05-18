@@ -2,12 +2,13 @@ import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 
 import { env, prividiumConfig } from "./config.js";
+import { createExpressApp } from "./create-express-app.js";
 import { deployAccountHandler } from "./handlers/deploy-account.js";
 import { prividiumAuthMiddleware } from "./middleware/prividium-auth.js";
 import { deployLimiter } from "./middleware/rate-limit.js";
 
 // Initialize Express app
-const app = express();
+const app = createExpressApp();
 
 // Middleware
 app.use(express.json());
