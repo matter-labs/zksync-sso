@@ -170,12 +170,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
     if (prividiumConfig.enabled && req.prividiumUser && adminSdk) {
       // Step 1: Whitelist the contract with template (blocking)
       try {
-        await whitelistContract(
-          deployedAddress,
-          prividiumConfig.templateKey,
-          adminSdk,
-          prividiumConfig.apiUrl,
-        );
+        await whitelistContract(deployedAddress, prividiumConfig.templateKey, adminSdk);
       } catch (error) {
         console.error("Failed to whitelist contract:", error);
         res.status(500).json({
@@ -186,12 +181,7 @@ export const deployAccountHandler = async (req: Request, res: Response): Promise
 
       // Step 2: Associate address with user (blocking)
       try {
-        await addAddressToUser(
-          req.prividiumUser.userId,
-          [deployedAddress],
-          adminSdk,
-          prividiumConfig.apiUrl,
-        );
+        await addAddressToUser(req.prividiumUser.userId, [deployedAddress], adminSdk);
       } catch (error) {
         console.error("Failed to associate address with user:", error);
         res.status(500).json({

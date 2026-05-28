@@ -1,6 +1,5 @@
 export * from "./address-association.js";
 export * from "./admin-auth.js";
-export * from "./authenticated-fetch.js";
 export * from "./contract-whitelist.js";
 export * from "./types.js";
 export * from "./user-auth.js";

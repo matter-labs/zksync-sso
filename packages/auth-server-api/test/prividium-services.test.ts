@@ -1,83 +1,62 @@
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 
-import { authenticatedFetch, type PrividiumApiAuth } from "../src/services/prividium/authenticated-fetch.ts";
+import type { PrividiumSiweChain } from "prividium/siwe";
+
+import { addAddressToUser } from "../src/services/prividium/address-association.ts";
 import { whitelistContract } from "../src/services/prividium/contract-whitelist.ts";
 
-const originalFetch = globalThis.fetch;
+type AdminContractsCreate = PrividiumSiweChain["admin"]["contracts"]["create"];
+type AdminUsersGetById = PrividiumSiweChain["admin"]["users"]["getById"];
+type AdminUsersUpdate = PrividiumSiweChain["admin"]["users"]["update"];
 
-afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
-
-describe("authenticatedFetch", () => {
-  it("uses cached auth headers without reauthorizing", async () => {
-    const auth: PrividiumApiAuth = {
-      getAuthHeaders: () => ({ Authorization: "Bearer cached-token" }),
-      authorize: async () => {
-        throw new Error("authorize should not be called");
+function makeAdminSdk(overrides: {
+  contractsCreate?: AdminContractsCreate;
+  usersGetById?: AdminUsersGetById;
+  usersUpdate?: AdminUsersUpdate;
+}): PrividiumSiweChain {
+  return {
+    admin: {
+      contracts: {
+        create:
+          overrides.contractsCreate
+          ?? (async () => {
+            throw new Error("contracts.create not stubbed");
+          }),
       },
-    };
-
-    globalThis.fetch = (async (_url, init) => {
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer cached-token");
-      return new Response("{}", { status: 200 });
-    }) as typeof fetch;
-
-    const response = await authenticatedFetch(auth, "https://api.example.com/api/contracts");
-
-    assert.equal(response.status, 200);
-  });
-
-  it("reauthorizes and retries once after a 401 response", async () => {
-    let token = "old-token";
-    let authorizeCalls = 0;
-    const seenTokens: string[] = [];
-    const auth: PrividiumApiAuth = {
-      getAuthHeaders: () => ({ Authorization: `Bearer ${token}` }),
-      authorize: async () => {
-        authorizeCalls++;
-        token = "new-token";
+      users: {
+        getById:
+          overrides.usersGetById
+          ?? (async () => {
+            throw new Error("users.getById not stubbed");
+          }),
+        update:
+          overrides.usersUpdate
+          ?? (async () => {
+            throw new Error("users.update not stubbed");
+          }),
       },
-    };
-
-    globalThis.fetch = (async (_url, init) => {
-      seenTokens.push(new Headers(init?.headers).get("Authorization") ?? "");
-      if (seenTokens.length === 1) {
-        return new Response("{}", { status: 401 });
-      }
-      return new Response("{}", { status: 200 });
-    }) as typeof fetch;
-
-    const response = await authenticatedFetch(auth, "https://api.example.com/api/contracts");
-
-    assert.equal(response.status, 200);
-    assert.equal(authorizeCalls, 1);
-    assert.deepEqual(seenTokens, ["Bearer old-token", "Bearer new-token"]);
-  });
-});
+    },
+  } as unknown as PrividiumSiweChain;
+}
 
 describe("whitelistContract", () => {
   it("sends Prividium contract disclosure fields expected by the API", async () => {
-    let requestBody: unknown;
-    const auth: PrividiumApiAuth = {
-      getAuthHeaders: () => ({ Authorization: "Bearer token" }),
-      authorize: async () => {},
-    };
-
-    globalThis.fetch = (async (_url, init) => {
-      requestBody = JSON.parse(init?.body as string);
-      return new Response("{}", { status: 201 });
-    }) as typeof fetch;
+    let createParams: Parameters<AdminContractsCreate>[0] | undefined;
+    const sdk = makeAdminSdk({
+      contractsCreate: (async (params) => {
+        createParams = params;
+        return {} as Awaited<ReturnType<AdminContractsCreate>>;
+      }) as AdminContractsCreate,
+    });
 
     await whitelistContract(
       "0x1234567890123456789012345678901234567890",
       "sso-account",
-      auth,
-      "https://api.example.com",
+      sdk,
     );
 
-    assert.deepEqual(requestBody, {
+    assert.deepEqual(createParams, {
       contractAddress: "0x1234567890123456789012345678901234567890",
       templateKey: "sso-account",
       abi: "[]",
@@ -85,6 +64,43 @@ describe("whitelistContract", () => {
       description: null,
       discloseErc20TotalSupply: false,
       discloseBytecode: false,
+      disclosureStartBlock: "0x0",
+    });
+  });
+});
+
+describe("addAddressToUser", () => {
+  it("merges new addresses with existing wallets (deduplicated)", async () => {
+    let updateParams: Parameters<AdminUsersUpdate> | undefined;
+    const sdk = makeAdminSdk({
+      usersGetById: (async () =>
+        ({
+          id: "user-1",
+          wallets: [
+            { id: 1, walletAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", userId: "user-1", createdAt: "", updatedAt: "" },
+          ],
+        }) as Awaited<ReturnType<AdminUsersGetById>>) as AdminUsersGetById,
+      usersUpdate: (async (...args) => {
+        updateParams = args;
+        return {} as Awaited<ReturnType<AdminUsersUpdate>>;
+      }) as AdminUsersUpdate,
+    });
+
+    await addAddressToUser(
+      "user-1",
+      [
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", // duplicate of existing
+        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", // new
+      ],
+      sdk,
+    );
+
+    assert.equal(updateParams?.[0], "user-1");
+    assert.deepEqual(updateParams?.[1], {
+      wallets: [
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ],
     });
   });
 });
