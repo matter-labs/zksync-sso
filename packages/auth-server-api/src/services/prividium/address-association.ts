@@ -7,9 +7,9 @@ import { getAddress, type Hex } from "viem";
  * Requires an admin-authenticated chain because it mutates another user's
  * wallet list. Existing wallets returned by the SDK may be checksum-cased
  * while incoming `addresses` may be lowercase (viem log topics, env input),
- * so both sides are normalised via viem's `getAddress` before the set-based
- * dedup — otherwise the unique constraint on the server would reject the
- * PUT for the same address in two casings.
+ * so both sides are normalized via viem's `getAddress` before the set-based
+ * de-duplication — otherwise the unique constraint on the server would
+ * reject the PUT for the same address in two casings.
  *
  * @param userId The Prividium user ID to add addresses to
  * @param addresses Array of wallet addresses to associate
