@@ -1,12 +1,15 @@
 import type { PrividiumSiweChain } from "prividium/siwe";
-import type { Hex } from "viem";
+import { getAddress, type Hex } from "viem";
 
 /**
  * Adds wallet addresses to a user in Prividium via the SDK admin namespace.
  *
- * Flow:
- * 1. GET the current user data to fetch existing wallet addresses
- * 2. PUT the updated wallets array (existing + new addresses, de-duplicated)
+ * Requires an admin-authenticated chain because it mutates another user's
+ * wallet list. Existing wallets returned by the SDK may be checksum-cased
+ * while incoming `addresses` may be lowercase (viem log topics, env input),
+ * so both sides are normalised via viem's `getAddress` before the set-based
+ * dedup — otherwise the unique constraint on the server would reject the
+ * PUT for the same address in two casings.
  *
  * @param userId The Prividium user ID to add addresses to
  * @param addresses Array of wallet addresses to associate
@@ -18,8 +21,9 @@ export async function addAddressToUser(
   sdk: PrividiumSiweChain,
 ): Promise<void> {
   const user = await sdk.admin.users.getById(userId);
-  const existingWallets = user.wallets.map((w) => w.walletAddress);
-  const allWallets = [...new Set([...existingWallets, ...addresses])];
+  const existingWallets = user.wallets.map((w) => getAddress(w.walletAddress));
+  const incomingWallets = addresses.map((a) => getAddress(a));
+  const allWallets = [...new Set([...existingWallets, ...incomingWallets])];
 
   await sdk.admin.users.update(userId, { wallets: allWallets });
 

@@ -6,6 +6,12 @@ import type { Hex } from "viem";
  * creating a contract entry with a template key. This allows the contract
  * to inherit permissions from the template.
  *
+ * Requires an admin-authenticated chain because /api/contracts is an admin
+ * endpoint. Sends `disclosureStartBlock: "0x0"` so the contract's bytecode
+ * and ERC20 supply (when enabled by the template) are disclosable from
+ * genesis — SSO smart accounts are deployed by us and have no pre-history
+ * to protect.
+ *
  * @param contractAddress The deployed contract address to whitelist
  * @param templateKey The template key to associate with the contract
  * @param sdk The admin-authenticated Prividium SDK chain
