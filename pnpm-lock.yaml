@@ -288,8 +288,8 @@ importers:
         specifier: ^7.5.0
         version: 7.5.1(express@4.21.2)
       prividium:
-        specifier: ^0.18.1
-        version: 0.18.1(@fastify/swagger@9.6.1)(bufferutil@4.0.8)(openapi-types@12.1.3)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))
+        specifier: ^1.0.0
+        version: 1.0.0(@fastify/swagger@9.6.1)(bufferutil@4.0.8)(openapi-types@12.1.3)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1))
       viem:
         specifier: 2.30.0
         version: 2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
@@ -8814,6 +8814,12 @@ packages:
     peerDependencies:
       viem: '>=2.0.0'
 
+  prividium@1.0.0:
+    resolution: {integrity: sha512-ZLhVwdSoYid4KZW+5n7j+QEgqGRD4Ql1+5RyBevD9Z0cjWLhYe/5RyfnNY7F18c2XcY5M79SWqFEz4FvEIBiQQ==}
+    hasBin: true
+    peerDependencies:
+      viem: '>=2.0.0'
+
   proc-log@3.0.0:
     resolution: {integrity: sha512-++Vn7NS4Xf9NacaU9Xq3URUuqZETPsf8L4j5/ckhaRYsfPeRyzGw+iDjFhV/Jr3uNmTvvddEJFWh5R1gRgUH8A==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
@@ -13512,7 +13518,7 @@ snapshots:
       pathe: 1.1.2
       postcss: 8.4.47
       postcss-nesting: 13.0.1(postcss@8.4.47)
-      tailwind-config-viewer: 2.0.4(tailwindcss@3.4.14)
+      tailwind-config-viewer: 2.0.4(tailwindcss@3.4.14(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2)))
       tailwindcss: 3.4.14(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))
       ufo: 1.5.4
       unctx: 2.3.1
@@ -22211,6 +22217,27 @@ snapshots:
       - openapi-types
       - utf-8-validate
 
+  prividium@1.0.0(@fastify/swagger@9.6.1)(bufferutil@4.0.8)(openapi-types@12.1.3)(utf-8-validate@5.0.10)(viem@2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)):
+    dependencies:
+      '@clack/prompts': 0.11.0
+      '@fastify/http-proxy': 11.4.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      '@fastify/static': 9.0.0
+      appdirsjs: 1.2.7
+      blakejs: 1.2.1
+      date-fns: 4.1.0
+      fastify: 5.8.5
+      fastify-type-provider-zod: 6.1.0(@fastify/swagger@9.6.1)(fastify@5.8.5)(openapi-types@12.1.3)(zod@4.2.1)
+      kleur: 4.1.5
+      open: 10.1.0
+      viem: 2.30.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.1)
+      yargs: 18.0.0
+      zod: 4.2.1
+    transitivePeerDependencies:
+      - '@fastify/swagger'
+      - bufferutil
+      - openapi-types
+      - utf-8-validate
+
   proc-log@3.0.0: {}
 
   process-nextick-args@2.0.1: {}
@@ -22961,7 +22988,7 @@ snapshots:
 
   system-architecture@0.1.0: {}
 
-  tailwind-config-viewer@2.0.4(tailwindcss@3.4.14):
+  tailwind-config-viewer@2.0.4(tailwindcss@3.4.14(ts-node@10.9.2(@swc/core@1.15.2(@swc/helpers@0.5.13))(@swc/wasm@1.15.2)(@types/node@24.3.3)(typescript@5.6.2))):
     dependencies:
       '@koa/router': 12.0.2
       commander: 6.2.1

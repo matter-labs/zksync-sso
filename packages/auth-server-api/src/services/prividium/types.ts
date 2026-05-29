@@ -31,14 +31,3 @@ export interface UserAuthResult {
   userId?: string;
   error?: UserAuthErrorType;
 }
-
-// Full user response from GET /api/users/:id
-export interface FullUserResponse {
-  id: string;
-  displayName?: string;
-  source: string;
-  wallets: Array<{ walletAddress: Hex }>;
-  roles: Array<{ roleName: string }>;
-  createdAt: string;
-  updatedAt: string;
-}
