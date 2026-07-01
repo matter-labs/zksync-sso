@@ -24,6 +24,8 @@ jobs:
     # Only run docker build/push for the main repository, not forks
     # Allow manual dispatch from any repository
     if: github.repository == 'matter-labs/zksync-sso'
+    outputs:
+      docker_tag: ${{ steps.docker_tag.outputs.tag }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -78,3 +80,17 @@ jobs:
       - name: Print image digest to summary
         run: |
           echo "Bundler Image tag: ${{ steps.docker_tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+
+  sbom-generation:
+    name: SBOM
+    needs: [ 'build-push-image' ]
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/sbom-analysis-reusable.yaml
+    secrets: inherit
+    with:
+      version: ${{ github.sha }}
+      container_name: sso-bundler
+      container_tag: ${{ needs.build-push-image.outputs.docker_tag }}
