@@ -37,7 +37,7 @@ jobs:
           PROJECT_VERSION: ${{ inputs.version }}
           PARENT_UUID: ${{ vars.DEPENDENCY_TRACK_PARENT_PROJECT_UUID }}
 
-  sbom-node-code:
+  sbom-code:
     name: Generate and upload SBOM of the source code for analysis
     needs: create-parent-project
     runs-on: ubuntu-latest
