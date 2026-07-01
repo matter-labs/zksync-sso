@@ -7,8 +7,8 @@ on:
 
 env:
   VERSION: "996fbd7cbceddf4f7810e81735713419b8457269"
-  CONTAINER: "sso-auth-server-api"
-  CONTAINER_TAG: "996fbd7-1780065236920"
+  CONTAINER: "sso-auth-server"
+  CONTAINER_TAG: "996fbd7-1780065232708"
 
 
 jobs:
