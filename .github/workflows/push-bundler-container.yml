@@ -91,5 +91,6 @@ jobs:
     uses: ./.github/workflows/sbom-analysis-reusable.yaml
     secrets: inherit
     with:
-      version: ${{ needs.build-push-image.outputs.docker_tag }}
-      container: sso-bundler
+      version: ${{ github.sha }}
+      container_name: sso-bundler
+      container_tag: ${{ needs.build-push-image.outputs.docker_tag }}

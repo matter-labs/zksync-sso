@@ -1,15 +1,20 @@
 name: SBOM generation and upload to Dependency Track
 
 on:
-  push:
-    branches:
-      - ZKD-3716-sbom-workflows
-
-env:
-  VERSION: "996fbd7cbceddf4f7810e81735713419b8457269"
-  CONTAINER: "sso-bundler"
-  CONTAINER_TAG: "996fbd7-1780065219943"
-
+  workflow_call:
+    inputs:
+      version:
+        description: Commit hash to run SBOM generation against
+        required: true
+        type: string
+      container_name:
+        description: Name of the container to run SBOM generation against
+        required: true
+        type: string
+      container_tag:
+        description: Tag of the container to run SBOM generation against
+        required: true
+        type: string
 
 jobs:
   create-parent-project:
@@ -29,7 +34,7 @@ jobs:
           DT_BASE_URL: https://${{ vars.DEPENDENCY_TRACK_SERVER_HOSTNAME }}
           DT_API_KEY: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
           PROJECT_NAME: ${{ github.event.repository.name }}
-          PROJECT_VERSION: ${{ env.VERSION }}
+          PROJECT_VERSION: ${{ inputs.version }}
           PARENT_UUID: ${{ vars.DEPENDENCY_TRACK_PARENT_PROJECT_UUID }}
 
   sbom-node-code:
@@ -57,12 +62,12 @@ jobs:
           serverhostname: ${{ vars.DEPENDENCY_TRACK_SERVER_HOSTNAME }}
           apikey: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
           projectname: "${{ github.event.repository.name }}-code"
-          projectversion: ${{ env.VERSION }}
+          projectversion: ${{ inputs.version }}
           isLatest: true
           bomfilename: "bom-code.cdx.json"
           autocreate: true
           parentname: ${{ github.event.repository.name }}
-          parentversion: ${{ env.VERSION }}
+          parentversion: ${{ inputs.version }}
 
   sbom-image:
     name: Generate and upload SBOM of the container images for analysis
@@ -75,10 +80,10 @@ jobs:
       - name: Generate CycloneDX file on image analysis
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          image: ghcr.io/matter-labs/${{ env.CONTAINER }}:${{ env.CONTAINER_TAG }}
+          image: ghcr.io/matter-labs/${{ inputs.container_name }}:${{ inputs.container_tag }}
           registry-username: ${{ github.repository_owner }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
-          output-file: "bom-${{ env.CONTAINER }}-image.cdx.json"
+          output-file: "bom-${{ inputs.container_name }}-image.cdx.json"
           format: 'cyclonedx-json@1.6'
           upload-artifact: 'false'
           upload-release-assets: 'false'
@@ -88,10 +93,10 @@ jobs:
         with:
           serverhostname: ${{ vars.DEPENDENCY_TRACK_SERVER_HOSTNAME }}
           apikey: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
-          projectname: "${{ env.CONTAINER }}-image"
-          projectversion: ${{ env.CONTAINER_TAG }}
+          projectname: "${{ inputs.container_name }}-image"
+          projectversion: ${{ inputs.container_tag }}
           isLatest: true
-          bomfilename: "bom-${{ env.CONTAINER }}-image.cdx.json"
+          bomfilename: "bom-${{ inputs.container_name }}-image.cdx.json"
           autocreate: true
           parentname: ${{ github.event.repository.name }}
-          parentversion: ${{ env.VERSION }}
+          parentversion: ${{ inputs.version }}
