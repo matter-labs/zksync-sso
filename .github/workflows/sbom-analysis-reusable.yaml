@@ -6,7 +6,7 @@ on:
       - ZKD-3716-sbom-workflows
 
 env:
-  VERSION: "996fbd7-1780065236920"
+  VERSION: "996fbd7-1780065232708"
   CONTAINER: sso-auth-server
 
 jobs:
