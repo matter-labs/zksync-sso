@@ -6,8 +6,9 @@ on:
       - ZKD-3716-sbom-workflows
 
 env:
-  VERSION: "996fbd7-1780065232708"
-  CONTAINER: sso-auth-server
+  VERSION: "996fbd7cbceddf4f7810e81735713419b8457269"
+  CONTAINER: "sso-auth-server"
+  CONTAINER_TAG: "996fbd7-1780065232708"
 
 jobs:
   create-parent-project:
@@ -73,7 +74,7 @@ jobs:
       - name: Generate CycloneDX file on image analysis
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          image: ghcr.io/matter-labs/${{ env.CONTAINER }}:${{ env.VERSION }}
+          image: ghcr.io/matter-labs/${{ env.CONTAINER }}:${{ env.CONTAINER_TAG }}
           registry-username: ${{ github.repository_owner }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
           output-file: "bom-${{ env.CONTAINER }}-image.cdx.json"
