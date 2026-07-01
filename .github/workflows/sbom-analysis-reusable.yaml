@@ -10,6 +10,7 @@ env:
   CONTAINER: "sso-auth-server-api"
   CONTAINER_TAG: "996fbd7-1780065236920"
 
+
 jobs:
   create-parent-project:
     name: Create or verify Dependency Track collection project
