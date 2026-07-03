@@ -18,12 +18,27 @@ async function start() {
 
   // Start server
   const port = parseInt(env.PORT, 10);
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`Auth Server API listening on port ${port}`);
     console.log(`CORS origins: ${allowlist.join(", ")}`);
     console.log(`Deployer address: ${privateKeyToAccount(env.DEPLOYER_PRIVATE_KEY as Hex).address}`);
     console.log(`RPC URL: ${env.RPC_URL}`);
   });
+
+  // Node running as PID 1 in the container does not get default signal
+  // dispositions from the kernel, so without explicit handlers SIGTERM
+  // is ignored and k8s falls through to SIGKILL at the grace period.
+  const shutdown = (signal: NodeJS.Signals) => {
+    console.log(`${signal} received, shutting down...`);
+    server.close((err) => {
+      if (err) console.error("Error during server close:", err);
+      else console.log("HTTP server closed");
+      process.exit(err ? 1 : 0);
+    });
+  };
+  for (const signal of ["SIGTERM", "SIGINT"] as const) {
+    process.on(signal, () => shutdown(signal));
+  }
 }
 
 start().catch((error) => {
